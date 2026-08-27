@@ -281,11 +281,11 @@ export default async function ReportsPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[#020617] p-8 text-white">
+      <main className="min-h-screen bg-[#0a0e13] p-8 text-white">
         <h1 className="text-3xl font-bold text-red-400">
           Error loading reports
         </h1>
-        <p className="mt-4 text-slate-300">{error.message}</p>
+        <p className="mt-4 text-[#8a93a3]">{error.message}</p>
       </main>
     );
   }
@@ -433,19 +433,19 @@ export default async function ReportsPage() {
   });
 
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
       <div className="mx-auto max-w-[96rem]">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-teal-300">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.35em] text-teal-300">
               Reports
             </p>
 
-            <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl">
+            <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
               Saved Inspections
             </h1>
 
-            <p className="mt-3 max-w-2xl text-slate-400">
+            <p className="mt-3 max-w-2xl text-[#8a93a3]">
               Manage inspection reports, publishing, client delivery, and live report engagement.
             </p>
           </div>
@@ -492,9 +492,9 @@ export default async function ReportsPage() {
 
 function ReportMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl transition duration-150 hover:border-teal-500/50 hover:bg-[#13213a] active:scale-[0.985]">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-3 text-3xl font-black text-white">{value}</p>
+    <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl transition duration-150 hover:border-teal-500/50 hover:bg-[#13213a] active:scale-[0.985]">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">{label}</p>
+      <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
     </div>
   );
 }

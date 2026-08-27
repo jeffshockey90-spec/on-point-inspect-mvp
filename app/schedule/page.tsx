@@ -255,7 +255,7 @@ export default async function SchedulePage() {
   const widgetFallbackAddress = firstUpcoming ? getAddress(firstUpcoming) : null;
 
   return (
-    <main className="min-h-screen bg-[#020617] p-4 text-white sm:p-6">
+    <main className="min-h-screen bg-[#0a0e13] p-4 text-white sm:p-6">
       <div className="mx-auto max-w-[96rem]">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -263,7 +263,7 @@ export default async function SchedulePage() {
               Inspection Schedule
             </h1>
 
-            <p className="mt-3 max-w-2xl text-sm text-slate-400 sm:text-base">
+            <p className="mt-3 max-w-2xl text-sm text-[#8a93a3] sm:text-base">
               Manage the full inspection schedule from the calendar. Drag appointments
               to reschedule, click an appointment to edit, delete, or open the report.
             </p>
@@ -299,8 +299,8 @@ export default async function SchedulePage() {
         </div>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#59626f]">
               Scheduled
             </p>
             <p className="mt-2 text-3xl font-bold text-white">
@@ -308,8 +308,8 @@ export default async function SchedulePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#59626f]">
               Unscheduled
             </p>
             <p className="mt-2 text-3xl font-bold text-yellow-200">
@@ -317,8 +317,8 @@ export default async function SchedulePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#59626f]">
               Total Reports
             </p>
             <p className="mt-2 text-3xl font-bold text-teal-300">
@@ -326,8 +326,8 @@ export default async function SchedulePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#59626f]">
               Booking Requests
             </p>
             <p className="mt-2 text-3xl font-bold text-teal-300">
@@ -339,71 +339,71 @@ export default async function SchedulePage() {
         <ScheduleReminderSettings />
         <InspectorAvailabilitySettings />
 
-        <section className="mb-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
+        <section className="mb-8 rounded-2xl border border-[#1a212c] bg-[#0f172a] p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-xl font-black text-teal-300">Pending Booking Requests</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+              <h2 className="text-xl font-semibold text-teal-300">Pending Booking Requests</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
                 Public and realtor requests land here first. Confirming a request creates a scheduled inspection from the requested date, time, client, realtor, and property details.
               </p>
             </div>
 
             <Link
               href={bookingPageHref}
-              className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-center text-sm font-black text-teal-200 transition hover:bg-teal-500/20"
+              className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-center text-sm font-semibold text-teal-200 transition hover:bg-teal-500/20"
             >
               Open Booking Page
             </Link>
           </div>
 
           {pendingBookingRequests.length === 0 ? (
-            <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-sm text-slate-400">
+            <div className="mt-5 rounded-xl border border-[#232b38] bg-[#020817]/70 p-5 text-sm text-[#8a93a3]">
               No pending booking requests right now.
             </div>
           ) : (
             <div className="mt-5 grid gap-4">
               {pendingBookingRequests.map((request: BookingRequestRow) => (
-                <article key={request.id} className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-5">
+                <article key={request.id} className="rounded-2xl border border-[#232b38] bg-[#020817]/70 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
                         {request.requester_role || "Requester"}
                       </p>
-                      <h3 className="mt-1 text-lg font-black text-white">
+                      <h3 className="mt-1 text-lg font-semibold text-white">
                         {request.realtor_name || request.requester_name || "Name not entered"}
                       </h3>
-                      <p className="mt-1 break-all text-sm text-slate-400">
+                      <p className="mt-1 break-all text-sm text-[#8a93a3]">
                         {[request.realtor_phone || request.requester_phone, request.realtor_email || request.requester_email].filter(Boolean).join(" • ") || "No contact"}
                       </p>
                     </div>
 
-                    <span className="rounded-full border border-yellow-400/40 bg-yellow-500/10 px-3 py-1 text-xs font-black text-yellow-200">
+                    <span className="rounded-full border border-yellow-400/40 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-200">
                       Pending
                     </span>
                   </div>
 
                   <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                    <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-3">
-                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">Requested Time</p>
+                    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Requested Time</p>
                       <p className="mt-1 font-bold text-white">{formatBookingDate(request.preferred_date)}</p>
-                      <p className="text-slate-400">{formatTime(request.preferred_time || "")}</p>
+                      <p className="text-[#8a93a3]">{formatTime(request.preferred_time || "")}</p>
                     </div>
 
-                    <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-3">
-                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">Client</p>
+                    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Client</p>
                       <p className="mt-1 font-bold text-white">{request.client_name || "Not entered"}</p>
-                      <p className="break-all text-slate-400">{[request.client_phone, request.client_email].filter(Boolean).join(" • ") || "No contact"}</p>
+                      <p className="break-all text-[#8a93a3]">{[request.client_phone, request.client_email].filter(Boolean).join(" • ") || "No contact"}</p>
                     </div>
 
-                    <div className="rounded-xl border border-slate-700 bg-slate-950/70 p-3 sm:col-span-2">
-                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">Property</p>
+                    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3 sm:col-span-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Property</p>
                       <p className="mt-1 font-bold text-teal-100">{getBookingAddress(request)}</p>
-                      <p className="mt-1 text-slate-400">{Array.isArray(request.services) ? request.services.join(" • ") : request.services || request.service_type || "Home Inspection"}</p>
+                      <p className="mt-1 text-[#8a93a3]">{Array.isArray(request.services) ? request.services.join(" • ") : request.services || request.service_type || "Home Inspection"}</p>
                     </div>
                   </div>
 
                   {request.notes ? (
-                    <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-sm leading-6 text-slate-300">
+                    <p className="mt-4 rounded-xl border border-[#232b38] bg-[#131923] p-3 text-sm leading-6 text-[#8a93a3]">
                       {request.notes}
                     </p>
                   ) : null}
@@ -441,7 +441,7 @@ export default async function SchedulePage() {
                   <p className="text-sm font-bold text-white">
                     {getAddress(inspection)}
                   </p>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-[#8a93a3]">
                     {getClient(inspection)}
                   </p>
                 </Link>
@@ -451,18 +451,18 @@ export default async function SchedulePage() {
         ) : null}
 
         {rows.length === 0 && !error ? (
-          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6">
+          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-6">
             <h2 className="text-xl font-bold text-white">
               No inspections scheduled yet
             </h2>
 
-            <p className="mt-2 text-slate-400">
+            <p className="mt-2 text-[#8a93a3]">
               Once inspections are created, they will show here with the date,
               time, address, client, realtor, and status.
             </p>
           </div>
         ) : sortedRows.length > 0 ? (
-          <details className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a]">
+          <details className="overflow-hidden rounded-2xl border border-[#1a212c] bg-[#0f172a]">
             <summary className="cursor-pointer bg-zinc-950 px-5 py-4 text-sm font-bold text-teal-300 transition hover:bg-zinc-900">
               Show inspection list
             </summary>
@@ -492,7 +492,7 @@ export default async function SchedulePage() {
                         {formatDate(date)}
                       </p>
 
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-sm text-[#8a93a3]">
                         {time || "Time not entered"}
                       </p>
 
@@ -516,7 +516,7 @@ export default async function SchedulePage() {
                       </p>
 
                       {(inspection.inspection_type || inspection.type) && (
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-[#59626f]">
                           {inspection.inspection_type || inspection.type}
                         </p>
                       )}

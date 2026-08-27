@@ -84,7 +84,7 @@ export default function CompanyImageUploader({
   initialUrl = "",
   folder,
   buttonText,
-  previewClassName = "h-24 w-24 rounded-2xl border border-slate-700 bg-white object-contain p-2",
+  previewClassName = "h-24 w-24 rounded-2xl border border-[#232b38] bg-white object-contain p-2",
 }: Props) {
   const [url, setUrl] = useState(initialUrl);
   const [localPreviewUrl, setLocalPreviewUrl] = useState("");
@@ -177,27 +177,27 @@ export default function CompanyImageUploader({
   }
 
   return (
-    <div className="min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-4 md:col-span-2">
+    <div className="min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 md:col-span-2">
       <input type="hidden" name={name} value={url} />
 
       <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
         <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             {label}
           </p>
 
           {helper && (
-            <p className="mt-2 max-w-xl text-xs leading-5 text-slate-500">
+            <p className="mt-2 max-w-xl text-xs leading-5 text-[#59626f]">
               {helper}
             </p>
           )}
 
           {url && (
-            <div className="mt-3 rounded-xl border border-slate-800 bg-[#020617] p-3">
+            <div className="mt-3 rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
               <p className="text-xs font-bold text-emerald-300">
                 Image selected
               </p>
-              <p className="mt-1 truncate text-xs text-slate-500">
+              <p className="mt-1 truncate text-xs text-[#59626f]">
                 Uploaded image saved to settings field
               </p>
             </div>
@@ -225,7 +225,7 @@ export default function CompanyImageUploader({
       </div>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <label className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-teal-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400 sm:w-auto">
+        <label className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-teal-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-teal-400 sm:w-auto">
           {uploading ? "Uploading..." : buttonText}
           <input
             type="file"
@@ -250,7 +250,7 @@ export default function CompanyImageUploader({
               setImageFailed(false);
               showMessage("info", "Image cleared. Click Save Settings to keep this change.");
             }}
-            className="rounded-xl border border-slate-700 px-5 py-3 text-sm font-bold text-slate-200 transition hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-[#232b38] px-5 py-3 text-sm font-bold text-[#e8ecf3] transition hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Clear
           </button>

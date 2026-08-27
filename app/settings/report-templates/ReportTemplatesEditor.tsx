@@ -86,9 +86,9 @@ export default function ReportTemplatesEditor() {
     await loadTemplates();
   }
 
-  if (loading) return <div className="text-slate-400">Loading…</div>;
+  if (loading) return <div className="text-[#8a93a3]">Loading…</div>;
 
-  const input = "w-full rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2.5 text-white outline-none focus:border-teal-400";
+  const input = "w-full rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2.5 text-white outline-none focus:border-teal-400";
 
   return (
     <section className="space-y-4">
@@ -97,21 +97,21 @@ export default function ReportTemplatesEditor() {
         <>
           {templates.length === 0 ? (
             <div className="fl-card" style={{ padding: 20 }}>
-              <p className="text-slate-300">No templates yet. Build one for a specialty inspection — like a structural &amp; mechanical, a re-inspection, or a mold visit.</p>
+              <p className="text-[#8a93a3]">No templates yet. Build one for a specialty inspection — like a structural &amp; mechanical, a re-inspection, or a mold visit.</p>
             </div>
           ) : (
             <ul className="space-y-3">
               {templates.map((t) => (
                 <li key={t.id} className="fl-card flex flex-wrap items-center gap-3" style={{ padding: 16 }}>
                   <div className="min-w-0 flex-1">
-                    <div className="text-base font-black text-white">{t.name}</div>
-                    <div className="mt-0.5 text-xs text-slate-400">
+                    <div className="text-base font-semibold text-white">{t.name}</div>
+                    <div className="mt-0.5 text-xs text-[#8a93a3]">
                       {(t.sections || []).length} sections
                       {t.service_key && <> · auto-applies to <span className="text-teal-300 font-bold">{serviceName(t.service_key)}</span></>}
                     </div>
                   </div>
                   <button type="button" onClick={() => edit(t)} className="fl-btn fl-btn-ghost">Edit</button>
-                  <button type="button" onClick={() => remove(t)} className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-400 hover:border-red-500 hover:text-red-300">Delete</button>
+                  <button type="button" onClick={() => remove(t)} className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-bold text-[#8a93a3] hover:border-red-500 hover:text-red-300">Delete</button>
                 </li>
               ))}
             </ul>
@@ -141,17 +141,17 @@ export default function ReportTemplatesEditor() {
           <div>
             <span className="fl-lbl">Sections (in order)</span>
             {draft.sections.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-500">No sections yet — add them below.</p>
+              <p className="mt-2 text-sm text-[#59626f]">No sections yet — add them below.</p>
             ) : (
               <ul className="mt-2 space-y-2">
                 {draft.sections.map((s, i) => (
-                  <li key={`${s}-${i}`} className="flex items-center gap-2 rounded-lg border border-slate-800 bg-[#0b1220] px-3 py-2">
+                  <li key={`${s}-${i}`} className="flex items-center gap-2 rounded-lg border border-[#1a212c] bg-[#10151e] px-3 py-2">
                     <span className="flex flex-col">
-                      <button type="button" onClick={() => moveSection(i, -1)} disabled={i === 0} className="h-4 leading-none text-slate-400 hover:text-white disabled:opacity-30">▲</button>
-                      <button type="button" onClick={() => moveSection(i, 1)} disabled={i === draft.sections.length - 1} className="h-4 leading-none text-slate-400 hover:text-white disabled:opacity-30">▼</button>
+                      <button type="button" onClick={() => moveSection(i, -1)} disabled={i === 0} className="h-4 leading-none text-[#8a93a3] hover:text-white disabled:opacity-30">▲</button>
+                      <button type="button" onClick={() => moveSection(i, 1)} disabled={i === draft.sections.length - 1} className="h-4 leading-none text-[#8a93a3] hover:text-white disabled:opacity-30">▼</button>
                     </span>
                     <span className="min-w-0 flex-1 text-sm font-bold text-white">{s}</span>
-                    <button type="button" onClick={() => removeSection(i)} className="text-slate-500 hover:text-red-300">✕</button>
+                    <button type="button" onClick={() => removeSection(i)} className="text-[#59626f] hover:text-red-300">✕</button>
                   </li>
                 ))}
               </ul>
@@ -166,13 +166,13 @@ export default function ReportTemplatesEditor() {
               <span className="fl-lbl">Quick add standard sections</span>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {BASE_SECTION_ORDER.filter((b) => !draft.sections.some((s) => s.toLowerCase() === b.toLowerCase())).map((b) => (
-                  <button key={b} type="button" onClick={() => addSection(b)} className="rounded-full border border-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:border-teal-400 hover:text-teal-200">+ {b}</button>
+                  <button key={b} type="button" onClick={() => addSection(b)} className="rounded-full border border-[#232b38] px-2.5 py-1 text-xs font-semibold text-[#8a93a3] hover:border-teal-400 hover:text-teal-200">+ {b}</button>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-slate-800 pt-4">
+          <div className="flex flex-wrap items-center gap-3 border-t border-[#1a212c] pt-4">
             <button type="button" onClick={save} disabled={saving} className="fl-btn fl-btn-primary disabled:opacity-60">{saving ? "Saving…" : "Save template"}</button>
             <button type="button" onClick={() => { setDraft(null); setMsg(null); }} className="fl-btn fl-btn-ghost">Cancel</button>
             {msg && <span className={`text-sm font-bold ${msg.tone === "ok" ? "text-emerald-300" : "text-red-300"}`}>{msg.text}</span>}

@@ -654,7 +654,7 @@ export default function BulkAICapturePage() {
             onChange={(e) => setGlobalNote(e.target.value)}
             rows={4}
             placeholder="Optional note for all photos..."
-            className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400"
+            className="mt-5 w-full rounded-xl border border-slate-700 bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400"
           />
 
           <div className="mt-5 rounded-2xl border border-purple-800 bg-purple-950/20 p-4">
@@ -669,7 +669,7 @@ export default function BulkAICapturePage() {
               onChange={(e) => setAiMemory(e.target.value)}
               rows={4}
               placeholder="Example: Always keep findings concise. Route sink, drain, supply, toilet, tub, shower, water heater, and visible leaks to Plumbing."
-              className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-purple-400"
+              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#0a0e13] p-4 text-white outline-none focus:border-purple-400"
             />
 
             <button
@@ -809,7 +809,7 @@ function MediaUploadButtons({
         />
       </label>
 
-      <p className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300 md:col-span-3">
+      <p className="rounded-xl border border-slate-700 bg-[#0a0e13] p-3 text-sm text-slate-300 md:col-span-3">
         Photos can be analyzed by AI. Videos are saved to the report as media attachments and can be reviewed by the client.
       </p>
     </div>
@@ -871,7 +871,7 @@ function MergePreviewPanel({
           return (
             <div
               key={`${merge.sourceId}-${merge.targetId}`}
-              className="rounded-xl border border-cyan-800 bg-slate-950/70 p-4"
+              className="rounded-xl border border-cyan-800 bg-[#131923] p-4"
             >
               <p className="mb-3 text-sm font-black uppercase tracking-wide text-cyan-300">
                 Merge Match {index + 1} · {Math.round(merge.confidence * 100)}% confidence
@@ -989,7 +989,7 @@ function PhotoReviewCard({
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
             {mergedChildren.map((child, childIndex) => (
-              <div key={child.id} className="rounded-lg border border-slate-700 bg-slate-950 p-2">
+              <div key={child.id} className="rounded-lg border border-slate-700 bg-[#0a0e13] p-2">
                 <img
                   src={child.previewUrl}
                   alt={`Merged photo ${childIndex + 1}`}
@@ -1027,7 +1027,7 @@ function PhotoReviewCard({
             rows={4}
             disabled={isMergedChild}
             placeholder="Optional note for this photo..."
-            className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+            className="mt-4 w-full rounded-xl border border-slate-700 bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
           />
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -1077,7 +1077,7 @@ function PhotoReviewCard({
             onChange={(e) => updateItem(item.id, { title: e.target.value })}
             disabled={isMergedChild}
             placeholder="Finding title"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+            className="w-full rounded-xl border border-slate-700 bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -1085,7 +1085,7 @@ function PhotoReviewCard({
               value={item.section}
               onChange={(e) => updateItem(item.id, { section: e.target.value })}
               disabled={isMergedChild}
-              className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+              className="rounded-xl border border-slate-700 bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
             >
               {SECTIONS.map((section) => (
                 <option key={section}>{section}</option>
@@ -1096,7 +1096,7 @@ function PhotoReviewCard({
               value={item.severity}
               onChange={(e) => updateItem(item.id, { severity: e.target.value })}
               disabled={isMergedChild}
-              className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+              className="rounded-xl border border-slate-700 bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
             >
               {SEVERITIES.map((severity) => (
                 <option key={severity}>{severity}</option>
@@ -1196,7 +1196,7 @@ function StatusBadge({ status }: { status: BulkItem["status"] }) {
   };
 
   return (
-    <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-sm font-bold text-slate-200">
+    <span className="rounded-full border border-slate-700 bg-[#0a0e13] px-3 py-1 text-sm font-bold text-slate-200">
       {labelMap[status]}
     </span>
   );
@@ -1224,7 +1224,7 @@ function MiniTextArea({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+        className="w-full rounded-xl border border-slate-700 bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
       />
     </label>
   );
@@ -1251,7 +1251,7 @@ function SmallInput({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+        className="w-full rounded-lg border border-slate-700 bg-[#0a0e13] p-2 text-white outline-none focus:border-teal-400 disabled:opacity-60"
       />
     </label>
   );

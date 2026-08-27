@@ -76,7 +76,7 @@ const EditableFinding = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4 text-sm font-bold text-slate-400">
+      <div className="rounded-xl border border-slate-700 bg-[#0a0e13]/50 p-4 text-sm font-bold text-slate-400">
         Loading editor...
       </div>
     ),
@@ -740,7 +740,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
               onChange={(event) => setNewSectionName(event.target.value)}
               disabled={savingSection}
               placeholder="Section name"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
+              className="w-full rounded-xl border border-slate-700 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
@@ -1355,7 +1355,7 @@ function AddSectionFindingForm({
               onChange={(event) => setAiNote(event.target.value)}
               disabled={generatingAi || saving}
               placeholder="Example: garage GFCI kept tripping, recommend electrician evaluate and repair as needed"
-              className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-slate-950 px-4 py-3 text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
 
@@ -1365,14 +1365,14 @@ function AddSectionFindingForm({
               onChange={(event) => setTitle(event.target.value)}
               disabled={saving}
               placeholder="Defect title"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl border border-slate-700 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
 
             <select
               value={severity}
               onChange={(event) => setSeverity(event.target.value)}
               disabled={saving}
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl border border-slate-700 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {(severityChoices.includes(severity) ? severityChoices : [...severityChoices, severity]).map((item) => (
                 <option key={item}>{item}</option>
@@ -1384,7 +1384,7 @@ function AddSectionFindingForm({
               onChange={(event) => setLocation(event.target.value)}
               disabled={saving}
               placeholder="Location (e.g. Northeast corner, Master bathroom)"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+              className="w-full rounded-xl border border-slate-700 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
             />
 
             <textarea
@@ -1392,7 +1392,7 @@ function AddSectionFindingForm({
               onChange={(event) => setObservation(event.target.value)}
               disabled={saving}
               placeholder="Observation"
-              className="min-h-[110px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+              className="min-h-[110px] w-full rounded-xl border border-slate-700 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
             />
 
             <textarea
@@ -1400,7 +1400,7 @@ function AddSectionFindingForm({
               onChange={(event) => setImplication(event.target.value)}
               disabled={saving}
               placeholder="Implication / why it matters"
-              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
 
             <textarea
@@ -1408,7 +1408,7 @@ function AddSectionFindingForm({
               onChange={(event) => setRecommendation(event.target.value)}
               disabled={saving}
               placeholder="Recommendation"
-              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-[90px] w-full rounded-xl border border-slate-700 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
 
@@ -2982,7 +2982,7 @@ function FindingCardBase({
                     setDragPhotoIndex(null);
                   }}
                   onDragEnd={() => setDragPhotoIndex(null)}
-                  className={`w-full max-w-full overflow-x-hidden rounded-xl border bg-slate-950 transition ${
+                  className={`w-full max-w-full overflow-x-hidden rounded-xl border bg-[#0a0e13] transition ${
                     dragPhotoIndex === index
                       ? "border-teal-400 opacity-60"
                       : dragPhotoIndex !== null
@@ -3310,7 +3310,7 @@ function FindingCardBase({
             </div>
 
             {allPhotos.length === 0 ? (
-              <p className="rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-sm text-slate-400">
+              <p className="rounded-lg border border-slate-700 bg-[#131923] p-3 text-sm text-slate-400">
                 No movable photo records were found in this report yet.
               </p>
             ) : (
@@ -3329,7 +3329,7 @@ function FindingCardBase({
                       return (
                         <div
                           key={String(photo.id || photo.file_path || index)}
-                          className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950"
+                          className="w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-[#0a0e13]"
                         >
                           {url ? (
                             isVideoMedia(photo) ? (
@@ -3610,7 +3610,7 @@ function FindingCardBase({
             onChange={(event) => setAiInspectorNote(event.target.value)}
             disabled={aiInspectorBusy}
             placeholder="Example: make this less aggressive and say further evaluation by a qualified contractor is recommended."
-            className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-slate-950 px-4 py-3 text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
           />
 
           <button
@@ -3631,7 +3631,7 @@ function FindingCardBase({
 
         <div
           onClick={(event) => event.stopPropagation()}
-          className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-slate-950/40 p-2 sm:p-4"
+          className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-slate-700 bg-[#131923] p-2 sm:p-4"
         >
           <EditableFinding
             key={`${String(displayFinding.id || finding.id)}-${String(

@@ -931,7 +931,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
             />
           )}
 
-          <div className="bg-slate-950 p-8 text-white">
+          <div className="bg-[#0a0e13] p-8 text-white">
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div>
                 <p className="text-sm font-black uppercase tracking-[0.3em] text-teal-300">

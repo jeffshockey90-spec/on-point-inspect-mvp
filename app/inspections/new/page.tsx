@@ -1338,12 +1338,12 @@ function NewInspectionPageContent() {
   return (
     <main className="min-h-screen bg-[#050816] px-4 pb-24 pt-6 text-white md:px-8">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5 md:p-8">
+        <header className="mb-6 rounded-2xl border border-zinc-800 bg-[#10151e] p-5 md:p-8">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-400">
             FLOW
           </p>
 
-          <h1 className="mt-2 text-3xl font-black md:text-5xl">
+          <h1 className="mt-2 text-3xl font-semibold md:text-5xl">
             Schedule Inspection
           </h1>
         </header>
@@ -1351,7 +1351,7 @@ function NewInspectionPageContent() {
         <section className="grid gap-5 lg:grid-cols-2">
           <Card title="Client Info">
             <div className="rounded-xl border border-zinc-800 bg-black/20 p-4">
-              <p className="mb-3 text-sm font-black uppercase tracking-wide text-teal-300">
+              <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-teal-300">
                 Primary Client
               </p>
 
@@ -1388,14 +1388,14 @@ function NewInspectionPageContent() {
                 className="rounded-xl border border-teal-500/30 bg-teal-500/5 p-4"
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-sm font-black uppercase tracking-wide text-teal-300">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-teal-300">
                     Co-Buyer {index + 1}
                   </p>
 
                   <button
                     type="button"
                     onClick={() => removeCoClient(coClient.id)}
-                    className="rounded-lg border border-red-500/40 px-3 py-1 text-xs font-black text-red-300 hover:bg-red-500/10"
+                    className="rounded-lg border border-red-500/40 px-3 py-1 text-xs font-semibold text-red-300 hover:bg-red-500/10"
                   >
                     Remove
                   </button>
@@ -1426,7 +1426,7 @@ function NewInspectionPageContent() {
             <button
               type="button"
               onClick={addCoClient}
-              className="w-full rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/20"
+              className="w-full rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/20"
             >
               + Add Co-Buyer
             </button>
@@ -1451,7 +1451,7 @@ function NewInspectionPageContent() {
               />
 
               {showRealtorMatches && filteredRealtors.length > 0 && (
-                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-zinc-700 bg-[#020617] shadow-2xl">
+                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-zinc-700 bg-[#0a0e13] shadow-2xl">
                   {filteredRealtors.map((realtor) => (
                     <button
                       key={realtor.id}
@@ -1543,7 +1543,7 @@ function NewInspectionPageContent() {
               type="button"
               onClick={runManualPropertyLookup}
               disabled={loadingProperty || !propertyAddress.trim()}
-              className="w-full rounded-xl border border-teal-500/60 bg-teal-500/10 px-4 py-3 font-black text-teal-300 hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-xl border border-teal-500/60 bg-teal-500/10 px-4 py-3 font-semibold text-teal-300 hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loadingProperty ? "Looking Up Property..." : "Lookup Property Info"}
             </button>
@@ -1566,7 +1566,7 @@ function NewInspectionPageContent() {
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-black uppercase tracking-wide text-teal-300">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-teal-300">
                     Property Photo
                   </p>
                   <p className="mt-1 text-xs leading-5 text-zinc-400">
@@ -1574,7 +1574,7 @@ function NewInspectionPageContent() {
                   </p>
                 </div>
 
-                <label className="inline-flex cursor-pointer rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/20">
+                <label className="inline-flex cursor-pointer rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/20">
                   {propertyPhotoUploading
                     ? "Uploading..."
                     : propertyImage
@@ -1611,7 +1611,7 @@ function NewInspectionPageContent() {
                   }`}
                 >
                   <span className="text-3xl">📷</span>
-                  <span className="mt-2 block font-black text-teal-300">
+                  <span className="mt-2 block font-semibold text-teal-300">
                     {propertyPhotoUploading ? "Uploading property photo..." : "Drop or upload property photo"}
                   </span>
                   <span className="mt-1 block text-xs text-zinc-400">
@@ -1642,7 +1642,7 @@ function NewInspectionPageContent() {
                       setPropertyPhotoError("");
                       setPropertyLookupStatus("Property photo removed. Street View may be used when the inspection is created.");
                     }}
-                    className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-black text-zinc-300 transition hover:border-red-400 hover:text-red-200"
+                    className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-red-400 hover:text-red-200"
                   >
                     Remove Photo
                   </button>
@@ -1658,7 +1658,7 @@ function NewInspectionPageContent() {
           </Card>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
+        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#10151e] p-5">
           <h2 className="mb-1 text-xl font-bold text-teal-400">Additional Services</h2>
           <p className="mb-4 text-sm text-zinc-400">
             Add any other paid service (sewer scope, termite, water quality, etc.) with its own
@@ -1684,7 +1684,7 @@ function NewInspectionPageContent() {
                           const value = e.target.value;
                           updateAddonService(addon.id, { type: value, ...addonDefaultsFor(value) });
                         }}
-                        className="w-full rounded-xl border border-zinc-700 bg-[#0b1220] px-3 py-2.5 text-white outline-none focus:border-teal-400"
+                        className="w-full rounded-xl border border-zinc-700 bg-[#10151e] px-3 py-2.5 text-white outline-none focus:border-teal-400"
                       >
                         {addonOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -1697,7 +1697,7 @@ function NewInspectionPageContent() {
                           value={addon.label}
                           onChange={(e) => updateAddonService(addon.id, { label: e.target.value })}
                           placeholder="Service name (e.g. Well Flow Test)"
-                          className="mt-2 w-full rounded-xl border border-zinc-700 bg-[#0b1220] px-3 py-2.5 text-white outline-none placeholder:text-zinc-500 focus:border-teal-400"
+                          className="mt-2 w-full rounded-xl border border-zinc-700 bg-[#10151e] px-3 py-2.5 text-white outline-none placeholder:text-zinc-500 focus:border-teal-400"
                         />
                       )}
                     </div>
@@ -1706,7 +1706,7 @@ function NewInspectionPageContent() {
                       <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-zinc-500">
                         Price
                       </label>
-                      <div className="flex items-center rounded-xl border border-zinc-700 bg-[#0b1220] px-3">
+                      <div className="flex items-center rounded-xl border border-zinc-700 bg-[#10151e] px-3">
                         <span className="text-zinc-400">$</span>
                         <input
                           inputMode="decimal"
@@ -1738,7 +1738,7 @@ function NewInspectionPageContent() {
           <button
             type="button"
             onClick={addAddonService}
-            className="mt-3 rounded-xl border border-teal-500/60 px-4 py-2.5 text-sm font-black text-teal-300 hover:bg-teal-500/10"
+            className="mt-3 rounded-xl border border-teal-500/60 px-4 py-2.5 text-sm font-semibold text-teal-300 hover:bg-teal-500/10"
           >
             + Add service
           </button>
@@ -1747,12 +1747,12 @@ function NewInspectionPageContent() {
             <p className="mt-3 text-sm text-zinc-300">
               Add-ons: <span className="font-bold text-white">${addonTotal.toFixed(2)}</span> ·
               Grand total:{" "}
-              <span className="font-black text-teal-300">${grandTotal.toFixed(2)}</span>
+              <span className="font-semibold text-teal-300">${grandTotal.toFixed(2)}</span>
             </p>
           )}
         </section>
 
-        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
+        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#10151e] p-5">
           <h2 className="mb-4 text-xl font-bold text-teal-400">Agreement</h2>
 
           <p className="mb-4 text-sm text-zinc-400">
@@ -1779,7 +1779,7 @@ function NewInspectionPageContent() {
           />
         </section>
 
-        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
+        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#10151e] p-5">
           <h2 className="mb-4 text-xl font-bold text-teal-400">
             Schedule + Quote
           </h2>
@@ -1918,7 +1918,7 @@ function NewInspectionPageContent() {
                 <p className="text-sm font-bold uppercase tracking-wide text-zinc-400">
                   {priceOverridden ? "Custom Price" : "Auto Pricing"}
                 </p>
-                <p className="mt-2 text-4xl font-black text-teal-300">
+                <p className="mt-2 text-4xl font-semibold text-teal-300">
                   ${effectiveTotal}
                 </p>
               </div>
@@ -1926,7 +1926,7 @@ function NewInspectionPageContent() {
                 <button
                   type="button"
                   onClick={() => setPriceOverridden(false)}
-                  className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-black text-teal-200 transition hover:bg-teal-500/10"
+                  className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-semibold text-teal-200 transition hover:bg-teal-500/10"
                 >
                   Reset to auto (${quote.total})
                 </button>
@@ -1973,7 +1973,7 @@ function NewInspectionPageContent() {
         <button
           onClick={scheduleInspection}
           disabled={saving}
-          className="mt-6 w-full rounded-xl bg-teal-500 px-5 py-4 text-lg font-black text-black transition active:scale-[0.99] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-6 w-full rounded-xl bg-teal-500 px-5 py-4 text-lg font-semibold text-black transition active:scale-[0.99] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? "Creating..." : "Create Inspection"}
         </button>
@@ -1981,12 +1981,12 @@ function NewInspectionPageContent() {
 
       {showBillingPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-teal-500 bg-[#0b1220] p-6 shadow-2xl">
-            <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-400">
+          <div className="w-full max-w-lg rounded-2xl border border-teal-500 bg-[#10151e] p-6 shadow-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-400">
               FLOW Billing
             </p>
 
-            <h2 className="mt-3 text-3xl font-black text-white">
+            <h2 className="mt-3 text-3xl font-semibold text-white">
               Your Trial Has Ended
             </h2>
 
@@ -2005,7 +2005,7 @@ function NewInspectionPageContent() {
               <button
                 type="button"
                 onClick={() => router.push("/billing")}
-                className="rounded-xl bg-teal-500 px-4 py-3 font-black text-black hover:bg-teal-400"
+                className="rounded-xl bg-teal-500 px-4 py-3 font-semibold text-black hover:bg-teal-400"
               >
                 Go To Billing
               </button>
@@ -2013,7 +2013,7 @@ function NewInspectionPageContent() {
               <button
                 type="button"
                 onClick={() => setShowBillingPopup(false)}
-                className="rounded-xl border border-zinc-700 px-4 py-3 font-black text-white hover:bg-zinc-800"
+                className="rounded-xl border border-zinc-700 px-4 py-3 font-semibold text-white hover:bg-zinc-800"
               >
                 Close
               </button>
@@ -2033,7 +2033,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-[#0b1220] p-5">
+    <div className="rounded-2xl border border-zinc-800 bg-[#10151e] p-5">
       <h2 className="mb-4 text-xl font-bold text-teal-400">{title}</h2>
       <div className="space-y-4">{children}</div>
     </div>

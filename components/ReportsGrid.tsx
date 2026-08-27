@@ -112,23 +112,23 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
 
   return (
     <div>
-      <div className="mb-6 space-y-3 rounded-2xl border border-slate-800 bg-[#0b1220] p-4">
+      <div className="mb-6 space-y-3 rounded-2xl border border-[#1a212c] bg-[#10151e] p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 focus-within:border-teal-400">
-            <span className="text-slate-500">🔎</span>
+          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2.5 focus-within:border-teal-400">
+            <span className="text-[#59626f]">🔎</span>
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by address, client, or realtor..."
-              className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 outline-none"
+              className="flex-1 bg-transparent text-sm text-white placeholder:text-[#59626f] outline-none"
             />
           </div>
 
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as SortOption)}
-            className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-teal-400"
+            className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2.5 text-sm font-bold text-[#e8ecf3] outline-none focus:border-teal-400"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -136,7 +136,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
             <option value="address">Address A-Z</option>
           </select>
 
-          <span className="text-xs font-bold text-slate-500 tabular-nums">
+          <span className="text-xs font-bold text-[#59626f] tabular-nums">
             {visibleReports.length} of {reports.length}
           </span>
         </div>
@@ -149,10 +149,10 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                 key={tab.key}
                 type="button"
                 onClick={() => setStatus(tab.key)}
-                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black transition ${
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                   isActive
                     ? "border-teal-400/60 bg-teal-500/15 text-teal-200"
-                    : "border-slate-700 bg-slate-950 text-slate-400 hover:border-slate-500 hover:text-slate-200"
+                    : "border-[#232b38] bg-[#0a0e13] text-[#8a93a3] hover:border-[#59626f] hover:text-[#e8ecf3]"
                 }`}
               >
                 {tab.label}
@@ -160,7 +160,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                   className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
                     isActive
                       ? "bg-teal-500/25 text-teal-100"
-                      : "bg-slate-800 text-slate-400"
+                      : "bg-[#1a212c] text-[#8a93a3]"
                   }`}
                 >
                   {counts[tab.key]}
@@ -172,8 +172,8 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
       </div>
 
       {visibleReports.length === 0 ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
-          <p className="text-slate-300">
+        <div className="rounded-2xl border border-[#1a212c] bg-[#131923] p-8">
+          <p className="text-[#8a93a3]">
             {reports.length === 0
               ? "No saved inspections found."
               : "No reports match your search or filter."}
@@ -184,7 +184,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
           {visibleReports.map((report, index) => (
             <div
               key={report.id}
-              className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[#13213a] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
+              className="group relative overflow-hidden rounded-2xl border border-[#1a212c] bg-[#131923] shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[#13213a] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
             >
               {/* Stretched link: makes the whole card clickable (opens the report).
                   The action buttons below sit above this overlay (relative z-20)
@@ -195,9 +195,9 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                 className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
               />
 
-              <div className="relative flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
+              <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[#0a0e13] text-[#59626f]">
                 {!report.propertyPhoto ? (
-                  <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-slate-500">
+                  <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-[#59626f]">
                     No Property Photo
                   </span>
                 ) : null}
@@ -219,7 +219,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                   {report.address}
                 </h2>
 
-                <p className="mt-3 text-slate-300">{report.cityStateZip}</p>
+                <p className="mt-3 text-[#8a93a3]">{report.cityStateZip}</p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <StatusBadge
@@ -243,7 +243,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                   )}
                 </div>
 
-                <div className="mt-5 space-y-2 text-sm text-slate-300">
+                <div className="mt-5 space-y-2 text-sm text-[#8a93a3]">
                   <p>
                     <span className="font-bold text-white">Client:</span>{" "}
                     {report.clientName}
@@ -260,8 +260,8 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                   </p>
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-slate-800 bg-[#020617]/70 p-4">
-                  <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                <div className="mt-5 rounded-2xl border border-[#1a212c] bg-[#131923] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
                     Report Engagement
                   </p>
 
@@ -285,20 +285,20 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                     />
 
                     {report.activity.inspectorViewed && (
-                      <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-black text-blue-300">
+                      <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300">
                         🔎 Inspector Viewed
                       </span>
                     )}
                   </div>
 
-                  <div className="mt-3 grid gap-2 text-xs text-slate-400">
+                  <div className="mt-3 grid gap-2 text-xs text-[#8a93a3]">
                     <p>
-                      <span className="font-bold text-slate-300">Views:</span>{" "}
+                      <span className="font-bold text-[#8a93a3]">Views:</span>{" "}
                       {report.activity.totalViews}
                     </p>
 
                     <p>
-                      <span className="font-bold text-slate-300">Last View:</span>{" "}
+                      <span className="font-bold text-[#8a93a3]">Last View:</span>{" "}
                       {report.activity.lastViewedLabel}
                     </p>
                   </div>
@@ -339,8 +339,8 @@ function StatusBadge({
     <span
       className={
         good
-          ? "rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-300"
-          : "rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-black text-amber-300"
+          ? "rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300"
+          : "rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300"
       }
     >
       {good ? goodLabel : badLabel}
@@ -361,8 +361,8 @@ function EngagementBadge({
     <span
       className={
         active
-          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-black text-green-300"
-          : "rounded-full border border-slate-700 bg-slate-800/70 px-3 py-1 text-xs font-black text-slate-400"
+          ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-300"
+          : "rounded-full border border-[#232b38] bg-[#1a212c] px-3 py-1 text-xs font-semibold text-[#8a93a3]"
       }
     >
       {active ? activeLabel : inactiveLabel}

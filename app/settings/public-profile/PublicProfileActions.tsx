@@ -284,7 +284,7 @@ export default function PublicProfileActions({
 
   if (!url) {
     return (
-      <div className="w-full max-w-full rounded-2xl border border-slate-700 bg-slate-950 p-5 text-sm leading-6 text-slate-400">
+      <div className="w-full max-w-full rounded-2xl border border-[#232b38] bg-[#0a0e13] p-5 text-sm leading-6 text-[#8a93a3]">
         Save your profile slug first. Your personalized QR code will appear here automatically.
       </div>
     );
@@ -295,31 +295,31 @@ export default function PublicProfileActions({
       <div className="grid w-full min-w-0 gap-0">
         <div className="min-w-0 p-4 sm:p-6">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
               Marketing Kit
             </p>
-            <span className="rounded-full border border-purple-400/50 bg-purple-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-purple-200">
+            <span className="rounded-full border border-purple-400/50 bg-purple-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-purple-200">
               Personalized QR
             </span>
           </div>
 
-          <h2 className="mt-3 break-words text-2xl font-black text-white">
+          <h2 className="mt-3 break-words text-2xl font-semibold text-white">
             Your Profile QR Code
           </h2>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a93a3]">
             Share your permanent FLOW profile QR code so clients and realtors can view your profile and request an inspection.
           </p>
 
           <div className="mt-5">
-            <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
               Great For
             </p>
             <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
               {usageBadges.map((badge) => (
                 <span
                   key={badge}
-                  className="min-w-0 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-center text-xs font-black text-teal-100"
+                  className="min-w-0 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-center text-xs font-semibold text-teal-100"
                 >
                   {badge}
                 </span>
@@ -344,8 +344,8 @@ export default function PublicProfileActions({
             </div>
           )}
 
-          <div className="mt-6 w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
+          <div className="mt-6 w-full overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
               Downloads
             </p>
             <div className="mt-4 flex flex-col gap-3">
@@ -353,7 +353,7 @@ export default function PublicProfileActions({
                 type="button"
                 onClick={downloadPng}
                 disabled={!ready || !hasCompanyLogo}
-                className="block w-full max-w-full rounded-xl bg-teal-500 px-4 py-3 text-center text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                className="block w-full max-w-full rounded-xl bg-teal-500 px-4 py-3 text-center text-sm font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
                 Download PNG
               </button>
@@ -362,7 +362,7 @@ export default function PublicProfileActions({
                 type="button"
                 onClick={printQrCard}
                 disabled={!ready || !hasCompanyLogo}
-                className="block w-full max-w-full rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                className="block w-full max-w-full rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
                 Print Card
               </button>
@@ -370,7 +370,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={copyLink}
-                className="block w-full max-w-full rounded-xl border border-slate-600 px-4 py-3 text-center text-sm font-black text-slate-200 transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
+                className="block w-full max-w-full rounded-xl border border-[#232b38] px-4 py-3 text-center text-sm font-semibold text-[#e8ecf3] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
               >
                 Copy Public Link
               </button>
@@ -378,7 +378,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={shareProfile}
-                className="block w-full max-w-full rounded-xl border border-slate-600 px-4 py-3 text-center text-sm font-black text-slate-200 transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
+                className="block w-full max-w-full rounded-xl border border-[#232b38] px-4 py-3 text-center text-sm font-semibold text-[#e8ecf3] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
               >
                 Share Profile
               </button>
@@ -386,8 +386,8 @@ export default function PublicProfileActions({
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center justify-center border-t border-slate-800 bg-[#050816]/70 p-4 sm:p-6">
-          <div className="w-full max-w-[240px] rounded-3xl border border-slate-700 bg-[#0b1220] p-4 text-center shadow-2xl shadow-black/30">
+        <div className="flex min-w-0 items-center justify-center border-t border-[#1a212c] bg-[#050816]/70 p-4 sm:p-6">
+          <div className="w-full max-w-[240px] rounded-3xl border border-[#232b38] bg-[#10151e] p-4 text-center shadow-2xl shadow-black/30">
             <div className="relative rounded-3xl bg-white p-3">
               {svgMarkup ? (
                 <div
@@ -399,7 +399,7 @@ export default function PublicProfileActions({
               )}
 
               {hasCompanyLogo ? (
-                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-2xl border-4 border-teal-500 bg-[#020617] p-2 shadow-xl">
+                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-2xl border-4 border-teal-500 bg-[#0a0e13] p-2 shadow-xl">
                   <img
                     src={centerLogo}
                     alt={`${companyName} logo`}
@@ -410,8 +410,8 @@ export default function PublicProfileActions({
                   />
                 </div>
               ) : (
-                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border-4 border-amber-500 bg-[#020617] p-2 text-center shadow-xl">
-                  <span className="text-[9px] font-black uppercase leading-tight text-amber-300">
+                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border-4 border-amber-500 bg-[#0a0e13] p-2 text-center shadow-xl">
+                  <span className="text-[9px] font-semibold uppercase leading-tight text-amber-300">
                     Upload
                     <br />
                     Logo
@@ -421,15 +421,15 @@ export default function PublicProfileActions({
             </div>
 
             {!ready && !error && (
-              <p className="mt-3 text-center text-xs font-black uppercase tracking-wide text-slate-500">
+              <p className="mt-3 text-center text-xs font-semibold uppercase tracking-wide text-[#59626f]">
                 Generating QR...
               </p>
             )}
 
-            <p className="mt-4 text-center text-xs font-black uppercase tracking-[0.18em] text-teal-300">
+            <p className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">
               Scan to View Profile
             </p>
-            <p className="mt-1 text-center text-xs leading-5 text-slate-400">
+            <p className="mt-1 text-center text-xs leading-5 text-[#8a93a3]">
               Learn more and request an inspection.
             </p>
 
@@ -442,7 +442,7 @@ export default function PublicProfileActions({
             )}
 
             {showPoweredBy && (
-              <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+              <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-[0.28em] text-[#59626f]">
                 Powered by FLOW
               </p>
             )}

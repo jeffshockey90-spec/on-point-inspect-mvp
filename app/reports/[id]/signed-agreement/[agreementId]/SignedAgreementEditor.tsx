@@ -157,7 +157,7 @@ export default function SignedAgreementEditor({
             <button
               type="button"
               onClick={startEditing}
-              className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800"
+              className="rounded-xl bg-[#0a0e13] px-5 py-3 text-sm font-black text-white hover:bg-slate-800"
             >
               Edit Signed Agreement
             </button>

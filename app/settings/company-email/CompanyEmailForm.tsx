@@ -70,19 +70,19 @@ export default function CompanyEmailForm() {
     }
   }
 
-  if (loading) return <p className="text-slate-400">Loading…</p>;
+  if (loading) return <p className="text-[#8a93a3]">Loading…</p>;
 
   const inputCls =
-    "w-full rounded-xl border border-slate-700 bg-[#0b1220] px-3 py-2.5 text-white outline-none focus:border-teal-400";
-  const labelCls = "mb-1 block text-xs font-black uppercase tracking-wide text-slate-500";
+    "w-full rounded-xl border border-[#232b38] bg-[#10151e] px-3 py-2.5 text-white outline-none focus:border-teal-400";
+  const labelCls = "mb-1 block text-xs font-semibold uppercase tracking-wide text-[#59626f]";
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
+      <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
         <label className="flex items-center justify-between gap-4">
           <span>
-            <span className="block font-black text-white">Send from my company email</span>
-            <span className="mt-1 block text-sm text-slate-400">
+            <span className="block font-semibold text-white">Send from my company email</span>
+            <span className="mt-1 block text-sm text-[#8a93a3]">
               Adds a &quot;Resend via my company email&quot; button to your Sent Emails, so you can push
               a stuck message through your own mailbox. Resend stays your default for everything.
             </span>
@@ -96,7 +96,7 @@ export default function CompanyEmailForm() {
         </label>
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
+      <section className="space-y-4 rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
         <div className="grid gap-4 sm:grid-cols-[1fr_140px]">
           <div>
             <label className={labelCls}>Outgoing mail server (SMTP host)</label>
@@ -123,7 +123,7 @@ export default function CompanyEmailForm() {
             placeholder={hasPassword ? "••••••••" : "Your mailbox password"}
             autoComplete="new-password"
           />
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-[#59626f]">
             Stored encrypted. If your provider uses 2-factor login, use an app password.
           </p>
         </div>
@@ -133,10 +133,10 @@ export default function CompanyEmailForm() {
           <input className={inputCls} value={fromName} onChange={(e) => setFromName(e.target.value)} placeholder="On Point Home Inspections" />
         </div>
 
-        <p className="rounded-xl border border-slate-700 bg-black/30 p-3 text-xs leading-5 text-slate-400">
+        <p className="rounded-xl border border-[#232b38] bg-black/30 p-3 text-xs leading-5 text-[#8a93a3]">
           Northwest Registered Agent / businessidentity.llc email? Your server is{" "}
-          <span className="font-bold text-slate-200">mailserver.businessidentity.llc</span>, port{" "}
-          <span className="font-bold text-slate-200">465</span>. Username is your full email address, and
+          <span className="font-bold text-[#e8ecf3]">mailserver.businessidentity.llc</span>, port{" "}
+          <span className="font-bold text-[#e8ecf3]">465</span>. Username is your full email address, and
           the password is your webmail login. Note: some plans cap outgoing mail at a few sends per day.
         </p>
 
@@ -145,7 +145,7 @@ export default function CompanyEmailForm() {
             type="button"
             onClick={test}
             disabled={testing || saving}
-            className="rounded-xl border border-slate-600 px-5 py-2.5 text-sm font-black text-slate-200 hover:border-teal-400 disabled:opacity-60"
+            className="rounded-xl border border-[#232b38] px-5 py-2.5 text-sm font-semibold text-[#e8ecf3] hover:border-teal-400 disabled:opacity-60"
           >
             {testing ? "Testing…" : "Test connection"}
           </button>
@@ -153,14 +153,14 @@ export default function CompanyEmailForm() {
             type="button"
             onClick={save}
             disabled={saving || testing}
-            className="rounded-xl bg-teal-500 px-6 py-2.5 text-sm font-black text-slate-950 hover:bg-teal-400 disabled:opacity-60"
+            className="rounded-xl bg-teal-500 px-6 py-2.5 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save"}
           </button>
           {msg && (
             <span
               className={`text-sm font-bold ${
-                msg.tone === "ok" ? "text-emerald-300" : msg.tone === "err" ? "text-red-300" : "text-slate-300"
+                msg.tone === "ok" ? "text-emerald-300" : msg.tone === "err" ? "text-red-300" : "text-[#8a93a3]"
               }`}
             >
               {msg.text}

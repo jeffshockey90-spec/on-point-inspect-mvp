@@ -183,26 +183,26 @@ export default function PortfolioGalleryManager({
     <section className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-emerald-950/10 p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-emerald-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300">
             Portfolio Gallery
           </p>
-          <h2 className="mt-2 text-2xl font-black text-white">
+          <h2 className="mt-2 text-2xl font-semibold text-white">
             Show off your inspection work
           </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
             Add polished portfolio photos that appear on your public inspector profile. Use this for roof shots, exterior details, drone photos, major systems, or impressive homes you are allowed to showcase.
           </p>
         </div>
 
         <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-center">
-          <p className="text-2xl font-black text-emerald-200">{enabledImages.length}</p>
-          <p className="text-xs font-bold text-slate-400">Visible Photos</p>
+          <p className="text-2xl font-semibold text-emerald-200">{enabledImages.length}</p>
+          <p className="text-xs font-bold text-[#8a93a3]">Visible Photos</p>
         </div>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_0.9fr]">
-        <div className="rounded-2xl border border-slate-700 bg-slate-950/80 p-4 sm:p-5">
-          <p className="text-xs font-black uppercase tracking-wide text-emerald-300">
+        <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 sm:p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
             Add Photo
           </p>
 
@@ -239,11 +239,11 @@ export default function PortfolioGalleryManager({
                   <img
                     src={previewUrl}
                     alt="Selected portfolio preview"
-                    className="mx-auto h-36 w-full max-w-[220px] rounded-2xl border border-slate-700 object-cover sm:mx-0"
+                    className="mx-auto h-36 w-full max-w-[220px] rounded-2xl border border-[#232b38] object-cover sm:mx-0"
                   />
                   <div className="flex flex-col justify-center">
-                    <p className="text-lg font-black text-white">Photo selected</p>
-                    <p className="mt-2 break-words text-sm text-slate-300">
+                    <p className="text-lg font-semibold text-white">Photo selected</p>
+                    <p className="mt-2 break-words text-sm text-[#8a93a3]">
                       {selectedFile?.name}
                     </p>
                     <p className="mt-3 text-xs font-bold text-emerald-300">
@@ -254,13 +254,13 @@ export default function PortfolioGalleryManager({
               ) : (
                 <div className="py-6">
                   <p className="text-4xl">📸</p>
-                  <h3 className="mt-3 text-xl font-black text-white">
+                  <h3 className="mt-3 text-xl font-semibold text-white">
                     Upload Portfolio Photo
                   </h3>
-                  <p className="mt-2 text-sm font-bold text-slate-300">
+                  <p className="mt-2 text-sm font-bold text-[#8a93a3]">
                     Click to choose a photo or drag and drop one here.
                   </p>
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-xs text-[#59626f]">
                     On iPhone/iPad this opens Camera or Photo Library.
                   </p>
                 </div>
@@ -269,25 +269,25 @@ export default function PortfolioGalleryManager({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                   Title
                 </p>
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Example: Drone roof overview"
-                  className="w-full rounded-xl border border-slate-700 bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
+                  className="w-full rounded-xl border border-[#232b38] bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
                 />
               </label>
 
               <label className="block">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                   Category
                 </p>
                 <select
                   value={category}
                   onChange={(event) => setCategory(event.target.value)}
-                  className="w-full rounded-xl border border-slate-700 bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
+                  className="w-full rounded-xl border border-[#232b38] bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
                 >
                   {categories.map((item) => (
                     <option key={item} value={item}>{item}</option>
@@ -297,7 +297,7 @@ export default function PortfolioGalleryManager({
             </div>
 
             <label className="block">
-              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Caption
               </p>
               <textarea
@@ -305,7 +305,7 @@ export default function PortfolioGalleryManager({
                 onChange={(event) => setCaption(event.target.value)}
                 rows={3}
                 placeholder="Optional caption shown under the image."
-                className="w-full rounded-xl border border-slate-700 bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
+                className="w-full rounded-xl border border-[#232b38] bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
               />
             </label>
 
@@ -313,28 +313,28 @@ export default function PortfolioGalleryManager({
               type="button"
               onClick={addImage}
               disabled={saving || !selectedFile}
-              className="rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              className="rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
               {saving ? "Uploading..." : "Add to Portfolio Gallery"}
             </button>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-700 bg-slate-950/80 p-4 sm:p-5">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+        <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 sm:p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
             Gallery Tips
           </p>
-          <h3 className="mt-2 text-xl font-black text-white">
+          <h3 className="mt-2 text-xl font-semibold text-white">
             Best photos to add
           </h3>
-          <div className="mt-4 grid gap-2 text-sm font-bold text-slate-300">
+          <div className="mt-4 grid gap-2 text-sm font-bold text-[#8a93a3]">
             {["Clean exterior shots", "Drone roof photos", "Historic or luxury homes", "High-quality system photos", "Interesting inspection details"].map((tip) => (
-              <div key={tip} className="rounded-xl border border-slate-800 bg-[#020817] p-3">
+              <div key={tip} className="rounded-xl border border-[#1a212c] bg-[#020817] p-3">
                 ✓ {tip}
               </div>
             ))}
           </div>
-          <p className="mt-4 text-xs leading-5 text-slate-500">
+          <p className="mt-4 text-xs leading-5 text-[#59626f]">
             Only upload photos you have permission to use publicly. Avoid client names, private documents, license plates, or personal information.
           </p>
         </div>
@@ -345,12 +345,12 @@ export default function PortfolioGalleryManager({
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {images.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/60 p-6 text-center text-sm text-slate-400 sm:col-span-2 xl:col-span-3">
+          <div className="rounded-2xl border border-dashed border-[#232b38] bg-[#131923] p-6 text-center text-sm text-[#8a93a3] sm:col-span-2 xl:col-span-3">
             No portfolio photos yet. Add your first image above.
           </div>
         ) : (
           images.map((image) => (
-            <div key={image.id} className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-xl">
+            <div key={image.id} className="overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] shadow-xl">
               <img
                 src={image.image_url}
                 alt={image.title || image.category || "Portfolio image"}
@@ -360,22 +360,22 @@ export default function PortfolioGalleryManager({
               <div className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="line-clamp-1 font-black text-white">{image.title || "Untitled photo"}</p>
+                    <p className="line-clamp-1 font-semibold text-white">{image.title || "Untitled photo"}</p>
                     <p className="mt-1 text-xs font-bold text-emerald-300">{image.category || "General"}</p>
                   </div>
-                  <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black ${image.is_enabled === false ? "border-slate-600 text-slate-400" : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"}`}>
+                  <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${image.is_enabled === false ? "border-[#232b38] text-[#8a93a3]" : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"}`}>
                     {image.is_enabled === false ? "Hidden" : "Live"}
                   </span>
                 </div>
 
-                {image.caption && <p className="line-clamp-2 text-sm leading-5 text-slate-400">{image.caption}</p>}
+                {image.caption && <p className="line-clamp-2 text-sm leading-5 text-[#8a93a3]">{image.caption}</p>}
 
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => updateImage(image.id, { is_enabled: image.is_enabled === false })}
                     disabled={saving}
-                    className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-black text-slate-200 transition hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                    className="rounded-xl border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#e8ecf3] transition hover:border-emerald-400 hover:text-emerald-300 disabled:opacity-50"
                   >
                     {image.is_enabled === false ? "Show" : "Hide"}
                   </button>
@@ -383,7 +383,7 @@ export default function PortfolioGalleryManager({
                     type="button"
                     onClick={() => deleteImage(image.id)}
                     disabled={saving}
-                    className="rounded-xl border border-red-500/50 px-3 py-2 text-xs font-black text-red-300 transition hover:bg-red-500 hover:text-white disabled:opacity-50"
+                    className="rounded-xl border border-red-500/50 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500 hover:text-white disabled:opacity-50"
                   >
                     Delete
                   </button>

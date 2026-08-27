@@ -43,12 +43,12 @@ function Segmented<T extends string>({
             className={`rounded-xl border px-4 py-2.5 text-left transition disabled:opacity-50 ${
               active
                 ? "border-teal-400 bg-teal-500/15 text-teal-100"
-                : "border-slate-700 bg-[#0b1220] text-slate-300 hover:border-slate-500"
+                : "border-[#232b38] bg-[#10151e] text-[#8a93a3] hover:border-[#59626f]"
             }`}
           >
-            <span className="block text-sm font-black">{o.label}</span>
+            <span className="block text-sm font-semibold">{o.label}</span>
             {o.hint && (
-              <span className="mt-0.5 block text-xs font-semibold text-slate-400">
+              <span className="mt-0.5 block text-xs font-semibold text-[#8a93a3]">
                 {o.hint}
               </span>
             )}
@@ -62,7 +62,7 @@ function Segmented<T extends string>({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8a93a3]">
         {label}
       </p>
       {children}
@@ -146,7 +146,7 @@ export default function AiWritingStudioEditor() {
   }
 
   if (loading) {
-    return <p className="text-slate-400">Loading your AI writing settings…</p>;
+    return <p className="text-[#8a93a3]">Loading your AI writing settings…</p>;
   }
 
   return (
@@ -159,9 +159,9 @@ export default function AiWritingStudioEditor() {
           </div>
         )}
 
-        <section className="rounded-2xl border border-slate-700 bg-[#0b1220] p-5">
-          <h2 className="text-lg font-black text-white">Standards</h2>
-          <p className="mt-1 text-sm text-slate-400">
+        <section className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5">
+          <h2 className="text-lg font-semibold text-white">Standards</h2>
+          <p className="mt-1 text-sm text-[#8a93a3]">
             The Standards of Practice your narratives reference. Recommendations are framed in
             language consistent with this standard.
           </p>
@@ -177,9 +177,9 @@ export default function AiWritingStudioEditor() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-700 bg-[#0b1220] p-5">
-          <h2 className="text-lg font-black text-white">Narrative defaults</h2>
-          <p className="mt-1 text-sm text-slate-400">
+        <section className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5">
+          <h2 className="text-lg font-semibold text-white">Narrative defaults</h2>
+          <p className="mt-1 text-sm text-[#8a93a3]">
             The baseline length, detail, and tone for every finding. Per-severity rows below can
             override these.
           </p>
@@ -211,9 +211,9 @@ export default function AiWritingStudioEditor() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-700 bg-[#0b1220] p-5">
-          <h2 className="text-lg font-black text-white">By severity</h2>
-          <p className="mt-1 text-sm text-slate-400">
+        <section className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5">
+          <h2 className="text-lg font-semibold text-white">By severity</h2>
+          <p className="mt-1 text-sm text-[#8a93a3]">
             Fine-tune specific severities — e.g. keep minor findings short and plain, but give
             safety and major concerns the full technical treatment. “Inherit” uses the defaults
             above.
@@ -224,11 +224,11 @@ export default function AiWritingStudioEditor() {
               return (
                 <div
                   key={sev}
-                  className="rounded-xl border border-slate-800 bg-[#070f1e] p-4"
+                  className="rounded-xl border border-[#1a212c] bg-[#070f1e] p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-sm font-black text-white">{sev}</span>
-                    <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-300">
+                    <span className="text-sm font-semibold text-white">{sev}</span>
+                    <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-[#8a93a3]">
                       <input
                         type="checkbox"
                         checked={o.inherit}
@@ -247,7 +247,7 @@ export default function AiWritingStudioEditor() {
                         onChange={(e) =>
                           patchOverride(sev, { length: e.target.value as WritingLength })
                         }
-                        className="rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2 text-sm font-semibold text-slate-200"
+                        className="rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm font-semibold text-[#e8ecf3]"
                       >
                         {LENGTH_OPTIONS.map((op) => (
                           <option key={op.value} value={op.value}>
@@ -261,7 +261,7 @@ export default function AiWritingStudioEditor() {
                         onChange={(e) =>
                           patchOverride(sev, { detail: e.target.value as WritingDetail })
                         }
-                        className="rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2 text-sm font-semibold text-slate-200"
+                        className="rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm font-semibold text-[#e8ecf3]"
                       >
                         {DETAIL_OPTIONS.map((op) => (
                           <option key={op.value} value={op.value}>
@@ -275,7 +275,7 @@ export default function AiWritingStudioEditor() {
                         onChange={(e) =>
                           patchOverride(sev, { tone: e.target.value as WritingTone })
                         }
-                        className="rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2 text-sm font-semibold text-slate-200"
+                        className="rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm font-semibold text-[#e8ecf3]"
                       >
                         {TONE_OPTIONS.map((op) => (
                           <option key={op.value} value={op.value}>
@@ -297,7 +297,7 @@ export default function AiWritingStudioEditor() {
               type="button"
               onClick={save}
               disabled={saving}
-              className="rounded-xl bg-teal-400 px-6 py-3 text-base font-black text-slate-950 transition hover:bg-teal-300 disabled:opacity-60"
+              className="rounded-xl bg-teal-400 px-6 py-3 text-base font-semibold text-slate-950 transition hover:bg-teal-300 disabled:opacity-60"
             >
               {saving ? "Saving…" : "Save settings"}
             </button>
@@ -312,11 +312,11 @@ export default function AiWritingStudioEditor() {
       <div className="lg:sticky lg:top-6 lg:self-start">
         <section className="rounded-2xl border border-teal-500/30 bg-[#071224] p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-black text-teal-200">Preview</h2>
+            <h2 className="text-lg font-semibold text-teal-200">Preview</h2>
             <select
               value={previewSeverity}
               onChange={(e) => setPreviewSeverity(e.target.value as Severity)}
-              className="rounded-lg border border-slate-700 bg-[#0b1220] px-2 py-1.5 text-xs font-bold text-slate-200"
+              className="rounded-lg border border-[#232b38] bg-[#10151e] px-2 py-1.5 text-xs font-bold text-[#e8ecf3]"
             >
               {SEVERITIES.map((s) => (
                 <option key={s} value={s}>
@@ -325,7 +325,7 @@ export default function AiWritingStudioEditor() {
               ))}
             </select>
           </div>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-[#8a93a3]">
             Example finding write-up with your settings. Updates as you change them.
           </p>
 
@@ -333,17 +333,17 @@ export default function AiWritingStudioEditor() {
             Narratives reference: {config.sopStandard} Standards of Practice
           </p>
 
-          <div className="mt-3 rounded-xl border border-slate-700 bg-[#0b1220] p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          <div className="mt-3 rounded-xl border border-[#232b38] bg-[#10151e] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               {preview.meta}
             </p>
-            <h3 className="mt-2 text-base font-black text-white">{preview.title}</h3>
-            <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-200">
+            <h3 className="mt-2 text-base font-semibold text-white">{preview.title}</h3>
+            <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#e8ecf3]">
               {preview.body}
             </p>
           </div>
 
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-[#59626f]">
             Sample defect for illustration. Your actual findings are written from each finding’s
             own photos and notes.
           </p>

@@ -62,20 +62,20 @@ export default function DeleteAccountSection() {
     <section className="mt-10 rounded-2xl border border-red-500/40 bg-red-950/20 p-6">
       <h2 className="text-xl font-bold text-red-300">Delete Account</h2>
 
-      <p className="mt-3 text-sm leading-6 text-slate-300">
+      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
         Permanently deleting your account may remove your inspections, reports,
         contacts, templates, agreements, invoices, analytics, photos, and related
         data. This action cannot be undone.
       </p>
 
-      <label className="mt-5 block text-sm font-medium text-slate-200">
+      <label className="mt-5 block text-sm font-medium text-[#e8ecf3]">
         Type DELETE to confirm
       </label>
 
       <input
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}
-        className="mt-2 w-full rounded-xl border border-red-500/40 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-red-400"
+        className="mt-2 w-full rounded-xl border border-red-500/40 bg-[#0a0e13] px-4 py-3 text-[#e8ecf3] outline-none focus:border-red-400"
         placeholder="DELETE"
       />
 

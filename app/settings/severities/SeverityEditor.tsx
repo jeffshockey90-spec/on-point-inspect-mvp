@@ -77,29 +77,29 @@ export default function SeverityEditor() {
     setSaving(false);
   }
 
-  if (loading) return <div className="text-slate-400">Loading…</div>;
+  if (loading) return <div className="text-[#8a93a3]">Loading…</div>;
 
-  const inputCls = "rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2 text-white outline-none focus:border-teal-400";
+  const inputCls = "rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-white outline-none focus:border-teal-400";
 
   return (
-    <section className="space-y-5 rounded-2xl border border-slate-800 bg-[#0f172a] p-4 shadow-xl sm:p-6">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+    <section className="space-y-5 rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4 shadow-xl sm:p-6">
+      <p className="text-xs font-bold uppercase tracking-wide text-[#59626f]">
         Order: top = least serious → bottom = most serious
       </p>
 
       <ul className="space-y-3">
         {rows.map((r, i) => (
-          <li key={r._key} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-[#0b1220] p-3">
+          <li key={r._key} className="flex flex-wrap items-center gap-3 rounded-xl border border-[#1a212c] bg-[#10151e] p-3">
             <div className="flex flex-col gap-1">
-              <button type="button" onClick={() => move(r._key, -1)} disabled={i === 0} className="h-5 leading-none text-slate-400 hover:text-white disabled:opacity-30">▲</button>
-              <button type="button" onClick={() => move(r._key, 1)} disabled={i === rows.length - 1} className="h-5 leading-none text-slate-400 hover:text-white disabled:opacity-30">▼</button>
+              <button type="button" onClick={() => move(r._key, -1)} disabled={i === 0} className="h-5 leading-none text-[#8a93a3] hover:text-white disabled:opacity-30">▲</button>
+              <button type="button" onClick={() => move(r._key, 1)} disabled={i === rows.length - 1} className="h-5 leading-none text-[#8a93a3] hover:text-white disabled:opacity-30">▼</button>
             </div>
 
             <input
               type="color"
               value={r.color}
               onChange={(e) => patch(r._key, { color: e.target.value })}
-              className="h-9 w-10 shrink-0 cursor-pointer rounded border border-slate-700 bg-transparent"
+              className="h-9 w-10 shrink-0 cursor-pointer rounded border border-[#232b38] bg-transparent"
               aria-label="Color"
             />
 
@@ -110,11 +110,11 @@ export default function SeverityEditor() {
               placeholder="Level name"
             />
 
-            <span className="rounded-full px-3 py-1 text-xs font-black" style={pillStyle(r.color)}>
+            <span className="rounded-full px-3 py-1 text-xs font-semibold" style={pillStyle(r.color)}>
               {r.label || "Preview"}
             </span>
 
-            <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-300">
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-bold text-[#8a93a3]">
               <input
                 type="checkbox"
                 checked={r.critical}
@@ -128,7 +128,7 @@ export default function SeverityEditor() {
               type="button"
               onClick={() => remove(r._key)}
               disabled={rows.length <= 1}
-              className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-bold text-slate-400 hover:border-red-500 hover:text-red-300 disabled:opacity-30"
+              className="rounded-lg border border-[#232b38] px-2.5 py-1.5 text-xs font-bold text-[#8a93a3] hover:border-red-500 hover:text-red-300 disabled:opacity-30"
             >
               Remove
             </button>
@@ -139,21 +139,21 @@ export default function SeverityEditor() {
       <button
         type="button"
         onClick={add}
-        className="rounded-xl border border-dashed border-slate-600 px-4 py-2.5 text-sm font-black text-slate-300 hover:border-teal-400 hover:text-teal-300"
+        className="rounded-xl border border-dashed border-[#232b38] px-4 py-2.5 text-sm font-semibold text-[#8a93a3] hover:border-teal-400 hover:text-teal-300"
       >
         + Add severity level
       </button>
 
-      <p className="text-[11px] text-slate-500">
+      <p className="text-[11px] text-[#59626f]">
         &quot;Safety/critical&quot; levels count toward safety findings and can block publishing, just like the default Safety &amp; Major Concern levels.
       </p>
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-slate-800 pt-4">
+      <div className="flex flex-wrap items-center gap-3 border-t border-[#1a212c] pt-4">
         <button
           type="button"
           onClick={() => save(false)}
           disabled={saving}
-          className="rounded-xl bg-teal-500 px-6 py-2.5 text-sm font-black text-slate-950 hover:bg-teal-400 disabled:opacity-60"
+          className="rounded-xl bg-teal-500 px-6 py-2.5 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
@@ -161,7 +161,7 @@ export default function SeverityEditor() {
           type="button"
           onClick={() => { if (window.confirm("Revert all severity levels to the FLOW defaults?")) save(true); }}
           disabled={saving}
-          className="rounded-xl border border-slate-600 px-5 py-2.5 text-sm font-bold text-slate-300 hover:border-slate-400 disabled:opacity-60"
+          className="rounded-xl border border-[#232b38] px-5 py-2.5 text-sm font-bold text-[#8a93a3] hover:border-slate-400 disabled:opacity-60"
         >
           Revert to defaults
         </button>

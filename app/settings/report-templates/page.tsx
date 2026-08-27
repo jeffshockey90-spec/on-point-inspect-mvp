@@ -12,15 +12,15 @@ export default async function ReportTemplatesPage() {
   if (!user) redirect("/login");
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
-          <Link href="/settings" className="text-sm font-bold text-slate-400 hover:text-teal-300">
+          <Link href="/settings" className="text-sm font-bold text-[#8a93a3] hover:text-teal-300">
             ← Settings
           </Link>
-          <p className="mt-4 text-sm font-black uppercase tracking-[0.3em] text-teal-300">Report</p>
-          <h1 className="mt-3 text-4xl font-black md:text-5xl">Report Templates</h1>
-          <p className="mt-4 max-w-2xl text-slate-300">
+          <p className="mt-4 text-sm font-semibold uppercase tracking-[0.3em] text-teal-300">Report</p>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Report Templates</h1>
+          <p className="mt-4 max-w-2xl text-[#8a93a3]">
             Build named section sets for the kinds of inspections you do. Link a template to a service
             type and it applies automatically when that service is booked — and you can switch a
             report&apos;s template anytime in the builder. Shared with your whole team.

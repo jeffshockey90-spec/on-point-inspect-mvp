@@ -38,12 +38,12 @@ function HistoryRow({ entry, isCurrent }: { entry: HistoryEntry; isCurrent: bool
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-[#020617] px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-[#1a212c] bg-[#0a0e13] px-3 py-2">
       <div>
-        <p className="text-xs font-bold text-slate-200">
+        <p className="text-xs font-bold text-[#e8ecf3]">
           {new Date(entry.created_at).toLocaleString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
           {isCurrent && (
-            <span className="ml-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-300">
+            <span className="ml-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-300">
               Current
             </span>
           )}
@@ -103,8 +103,8 @@ export default function W9Section({
       />
 
       {history.length > 0 && (
-        <div className="rounded-xl border border-slate-700 bg-slate-950 p-4">
-          <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">
+        <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             W9 History ({history.length})
           </p>
           <div className="space-y-2">

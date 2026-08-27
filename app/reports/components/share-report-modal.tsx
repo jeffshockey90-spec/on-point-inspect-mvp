@@ -43,7 +43,7 @@ export default function ShareReportModal({
         <input
           value={shareUrl}
           readOnly
-          className="flex-1 rounded-lg border border-slate-700 bg-slate-950 p-3 text-white"
+          className="flex-1 rounded-lg border border-slate-700 bg-[#0a0e13] p-3 text-white"
         />
 
         <button

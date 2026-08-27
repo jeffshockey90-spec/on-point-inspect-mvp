@@ -34,17 +34,17 @@ export default function StandardsOfPracticeEditor({
   }
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-cyan-500/30 bg-[#0b1220] shadow-2xl shadow-black/20">
-      <div className="border-b border-slate-800/90 p-5 sm:p-6 md:p-8">
+    <section className="overflow-hidden rounded-3xl border border-cyan-500/30 bg-[#10151e] shadow-2xl shadow-black/20">
+      <div className="border-b border-[#1a212c]/90 p-5 sm:p-6 md:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
               Report Settings
             </p>
-            <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
+            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">
               Standards of Practice
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
               Paste your own inspection Standards of Practice here. Leave it blank
               to use the FLOW default SOP. These settings are saved to your
               company and are used automatically in shared reports and PDF downloads.
@@ -52,7 +52,7 @@ export default function StandardsOfPracticeEditor({
           </div>
 
           <span
-            className={`inline-flex rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${
+            className={`inline-flex rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
               usingDefault
                 ? "border-teal-400/60 bg-teal-500/15 text-teal-300"
                 : "border-cyan-400/60 bg-cyan-500/15 text-cyan-200"
@@ -66,7 +66,7 @@ export default function StandardsOfPracticeEditor({
       <div className="grid gap-5 p-5 sm:p-6 md:p-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <div className="space-y-4">
           <label className="block min-w-0">
-            <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               SOP Title
             </p>
             <input
@@ -74,18 +74,18 @@ export default function StandardsOfPracticeEditor({
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Standards of Practice"
-              className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-cyan-400"
+              className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
             />
           </label>
 
-          <div className="rounded-2xl border border-slate-700 bg-[#020617] p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          <div className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Quick Setup
             </p>
-            <h3 className="mt-2 text-lg font-black text-white">
+            <h3 className="mt-2 text-lg font-semibold text-white">
               Start from the FLOW default
             </h3>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
               Copy Jeff’s default SOP into the editor, then adjust it for your
               own state, association, or company policy.
             </p>
@@ -94,7 +94,7 @@ export default function StandardsOfPracticeEditor({
               <button
                 type="button"
                 onClick={copyDefaultStandards}
-                className="w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto lg:w-full xl:w-auto"
+                className="w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto lg:w-full xl:w-auto"
               >
                 Use FLOW Default SOP
               </button>
@@ -102,7 +102,7 @@ export default function StandardsOfPracticeEditor({
               <button
                 type="button"
                 onClick={clearCustomStandards}
-                className="w-full rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-200 transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-300 sm:w-auto lg:w-full xl:w-auto"
+                className="w-full rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-[#e8ecf3] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-300 sm:w-auto lg:w-full xl:w-auto"
               >
                 Clear Custom SOP
               </button>
@@ -110,12 +110,12 @@ export default function StandardsOfPracticeEditor({
           </div>
 
           <div className="grid gap-3">
-            <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-700 bg-[#020617] p-4 transition hover:border-cyan-400/70">
+            <div className="flex items-start justify-between gap-4 rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 transition hover:border-cyan-400/70">
               <div className="min-w-0">
-                <p className="text-sm font-black leading-6 text-white">
+                <p className="text-sm font-semibold leading-6 text-white">
                   Show in shared report
                 </p>
-                <p className="mt-1 text-xs leading-5 text-slate-400">
+                <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
                   Adds the Standards of Practice tab and section for clients and realtors.
                 </p>
               </div>
@@ -128,12 +128,12 @@ export default function StandardsOfPracticeEditor({
               />
             </div>
 
-            <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-700 bg-[#020617] p-4 transition hover:border-cyan-400/70">
+            <div className="flex items-start justify-between gap-4 rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 transition hover:border-cyan-400/70">
               <div className="min-w-0">
-                <p className="text-sm font-black leading-6 text-white">
+                <p className="text-sm font-semibold leading-6 text-white">
                   Include in downloaded PDF
                 </p>
-                <p className="mt-1 text-xs leading-5 text-slate-400">
+                <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
                   Adds SOP pages to the downloadable report PDF.
                 </p>
               </div>
@@ -150,10 +150,10 @@ export default function StandardsOfPracticeEditor({
 
         <label className="block min-w-0">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Custom Standards of Practice
             </p>
-            <span className="text-xs font-bold text-slate-500">
+            <span className="text-xs font-bold text-[#59626f]">
               {body.trim().length ? `${body.trim().length.toLocaleString()} characters` : "Default fallback"}
             </span>
           </div>
@@ -163,9 +163,9 @@ export default function StandardsOfPracticeEditor({
             onChange={(event) => setBody(event.target.value)}
             rows={22}
             placeholder="Paste your Standards of Practice here. Leave blank to use the FLOW default SOP."
-            className="min-h-[420px] w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] p-4 text-sm leading-6 text-white outline-none focus:border-cyan-400"
+            className="min-h-[420px] w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-sm leading-6 text-white outline-none focus:border-cyan-400"
           />
-          <p className="mt-2 text-xs leading-5 text-slate-500">
+          <p className="mt-2 text-xs leading-5 text-[#59626f]">
             Tip: separate major paragraphs with a blank line. The shared report and PDF will format it automatically.
           </p>
         </label>

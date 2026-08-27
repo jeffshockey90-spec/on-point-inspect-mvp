@@ -3242,7 +3242,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                           ])}
                         />
 
-                        <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
+                        <p className="mt-4 rounded-xl border border-slate-700 bg-[#0a0e13] p-3 text-xs leading-5 text-slate-400">
 Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
                         </p>
 

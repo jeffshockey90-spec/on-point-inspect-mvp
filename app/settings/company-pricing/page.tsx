@@ -26,14 +26,14 @@ export default async function CompanyPricingSettingsPage() {
   if (!ownerMembership) redirect("/settings/pricing");
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl">
         <div className="mb-8">
-          <p className="text-sm font-black uppercase tracking-[0.3em] text-amber-300">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-300">
             Owner Settings
           </p>
-          <h1 className="mt-3 text-4xl font-black md:text-5xl">Company Pricing</h1>
-          <p className="mt-4 text-slate-300">
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Company Pricing</h1>
+          <p className="mt-4 text-[#8a93a3]">
             Set the default price sheet for your whole company. Every inspector on your
             team uses these rates for Quotes and new inspections — unless they set their
             own personal override in My Pricing.

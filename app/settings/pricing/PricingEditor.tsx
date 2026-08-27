@@ -25,9 +25,9 @@ function NumberField({
 }) {
   return (
     <label className="block min-w-0">
-      <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <div className="flex items-center gap-2 rounded-xl border border-slate-700 bg-[#020617] px-3">
-        {prefix && <span className="text-slate-500">{prefix}</span>}
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
+      <div className="flex items-center gap-2 rounded-xl border border-[#232b38] bg-[#0a0e13] px-3">
+        {prefix && <span className="text-[#59626f]">{prefix}</span>}
         <input
           type="number"
           step="0.01"
@@ -151,7 +151,7 @@ export default function PricingEditor({
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-8 text-center text-slate-400">
+      <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 text-center text-[#8a93a3]">
         Loading your pricing...
       </div>
     );
@@ -168,7 +168,7 @@ export default function PricingEditor({
     <div className="space-y-6">
       {mode === "company" && (
         <div className="rounded-xl border border-amber-500/40 bg-amber-950/20 p-4 text-sm text-amber-200">
-          This is your <span className="font-black">company price sheet</span>. Every
+          This is your <span className="font-semibold">company price sheet</span>. Every
           inspector on your team uses it unless they set their own override.
         </div>
       )}
@@ -183,7 +183,7 @@ export default function PricingEditor({
             type="button"
             onClick={handleRevert}
             disabled={reverting}
-            className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-black text-teal-200 hover:bg-teal-500/10 disabled:opacity-60"
+            className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-semibold text-teal-200 hover:bg-teal-500/10 disabled:opacity-60"
           >
             {reverting ? "Resetting..." : "Use company pricing instead"}
           </button>
@@ -191,16 +191,16 @@ export default function PricingEditor({
       )}
 
       {mode === "personal" && source === "company" && (
-        <div className="rounded-xl border border-slate-700 bg-[#0b1220] p-4 text-sm text-slate-300">
+        <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-4 text-sm text-[#8a93a3]">
           You're currently using your{" "}
-          <span className="font-black text-white">company's pricing</span>. Saving here
+          <span className="font-semibold text-white">company's pricing</span>. Saving here
           creates a personal override that applies only to your jobs.
         </div>
       )}
 
       {mode === "personal" && source === "default" && (
-        <div className="rounded-xl border border-slate-700 bg-[#0b1220] p-4 text-sm text-slate-300">
-          You're using the <span className="font-black text-white">default</span> pricing.
+        <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-4 text-sm text-[#8a93a3]">
+          You're using the <span className="font-semibold text-white">default</span> pricing.
           Save to set your own rates.
         </div>
       )}
@@ -218,9 +218,9 @@ export default function PricingEditor({
       )}
 
       {home && (
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
-          <h2 className="text-xl font-black text-teal-300">Home Inspection</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
+          <h2 className="text-xl font-semibold text-teal-300">Home Inspection</h2>
+          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
             A base price up to a square footage limit, then a step-up amount for every block of
             square footage over that.
           </p>
@@ -250,7 +250,7 @@ export default function PricingEditor({
             />
           </div>
 
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs text-[#59626f]">
             Example: ${home.basePrice || 0} for up to {home.baseSqftLimit || 0} sqft, then +$
             {home.incrementPrice || 0} for every {home.incrementSqftBlock || 0} sqft over that.
           </p>
@@ -258,9 +258,9 @@ export default function PricingEditor({
       )}
 
       {radon && (
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
-          <h2 className="text-xl font-black text-teal-300">Radon Test</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
+          <h2 className="text-xl font-semibold text-teal-300">Radon Test</h2>
+          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
             A flat fee. You can charge less when radon testing is booked alongside a home
             inspection.
           </p>
@@ -281,9 +281,9 @@ export default function PricingEditor({
       )}
 
       {mold && (
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
-          <h2 className="text-xl font-black text-teal-300">Mold Testing</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
+          <h2 className="text-xl font-semibold text-teal-300">Mold Testing</h2>
+          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
             A setup fee plus a fee per air/surface sample collected. The setup fee can be lower
             when paired with a home inspection.
           </p>
@@ -308,9 +308,9 @@ export default function PricingEditor({
         </section>
       )}
 
-      <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6">
-        <h2 className="text-xl font-black text-teal-300">Custom Services</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
+      <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
+        <h2 className="text-xl font-semibold text-teal-300">Custom Services</h2>
+        <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
           Add any service beyond Home, Radon, and Mold - sewer scope, well testing, termite
           inspection, whatever you offer. Each one can be a flat fee, a flat fee plus a per-unit
           fee, or its own square-footage formula.
@@ -327,14 +327,14 @@ export default function PricingEditor({
           ))}
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-800 pt-5">
-          <span className="text-sm font-bold text-slate-400">Add a new service:</span>
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#1a212c] pt-5">
+          <span className="text-sm font-bold text-[#8a93a3]">Add a new service:</span>
           {PRICING_SERVICE_TYPE_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => addService(option.value)}
-              className="rounded-xl border border-teal-500/50 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10"
+              className="rounded-xl border border-teal-500/50 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/10"
             >
               + {option.label}
             </button>
@@ -346,7 +346,7 @@ export default function PricingEditor({
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="w-full rounded-xl bg-teal-500 px-8 py-4 font-black text-slate-950 hover:bg-teal-400 disabled:opacity-60 sm:w-auto"
+        className="w-full rounded-xl bg-teal-500 px-8 py-4 font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-60 sm:w-auto"
       >
         {saving ? "Saving..." : "Save Pricing"}
       </button>
@@ -364,24 +364,24 @@ function CustomServiceCard({
   onRemove: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-700 bg-[#020617] p-4 sm:p-5">
+    <div className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <label className="min-w-0 flex-1">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             Service Name
           </p>
           <input
             type="text"
             value={service.name}
             onChange={(e) => onChange({ name: e.target.value })}
-            className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#0b1220] p-3 text-white outline-none focus:border-teal-400"
+            className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#10151e] p-3 text-white outline-none focus:border-teal-400"
           />
         </label>
 
         <button
           type="button"
           onClick={onRemove}
-          className="mt-6 shrink-0 rounded-xl border border-red-500/50 px-3 py-2 text-xs font-black text-red-300 hover:bg-red-500/10"
+          className="mt-6 shrink-0 rounded-xl border border-red-500/50 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10"
         >
           Remove
         </button>
@@ -447,14 +447,14 @@ function CustomServiceCard({
             onChange={(value) => onChange({ perUnitFee: value })}
           />
           <label className="block min-w-0 sm:col-span-3">
-            <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Unit Label (e.g. "sample", "hour")
             </p>
             <input
               type="text"
               value={service.unitLabel || ""}
               onChange={(e) => onChange({ unitLabel: e.target.value })}
-              className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#0b1220] p-3 text-white outline-none focus:border-teal-400"
+              className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#10151e] p-3 text-white outline-none focus:border-teal-400"
             />
           </label>
         </div>
