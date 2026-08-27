@@ -344,15 +344,16 @@ function supabaseAdmin() {
 // photo's URL plus the PDF page it appeared on (for mapping to findings).
 async function extractAndUploadPhotos(
   buffer: Buffer
-): Promise<{ page: number; url: string }[]> {
+): Promise<{ photos: { page: number; url: string }[]; coverUrl: string }> {
+  const empty = { photos: [] as { page: number; url: string }[], coverUrl: "" };
   const admin = supabaseAdmin();
-  if (!admin) return [];
+  if (!admin) return empty;
 
   let pdf: PDFDocument;
   try {
     pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
   } catch {
-    return [];
+    return empty;
   }
   const ctx = pdf.context;
 
@@ -380,6 +381,9 @@ async function extractAndUploadPhotos(
   const sessionId = randomUUID();
   const out: { page: number; url: string }[] = [];
   let idx = 0;
+  // The property cover photo is the largest image on the first couple of pages.
+  let coverUrl = "";
+  let coverArea = 0;
 
   for (const [ref, obj] of ctx.enumerateIndirectObjects()) {
     if (!(obj instanceof PDFRawStream)) continue;
@@ -409,10 +413,17 @@ async function extractAndUploadPhotos(
       .upload(path, jpeg, { contentType: "image/jpeg", upsert: false });
     if (error) continue;
     const { data } = admin.storage.from("company-assets").getPublicUrl(path);
-    if (data?.publicUrl) out.push({ page, url: data.publicUrl });
+    if (data?.publicUrl) {
+      out.push({ page, url: data.publicUrl });
+      const area = w * h;
+      if (page > 0 && page <= 2 && area > coverArea) {
+        coverArea = area;
+        coverUrl = data.publicUrl;
+      }
+    }
   }
 
-  return out;
+  return { photos: out, coverUrl };
 }
 
 // Attach each photo to a finding: prefer a finding on the photo's exact page
@@ -488,11 +499,14 @@ export async function POST(request: Request) {
     const coverInfo = extractCoverInfo(text);
     const findings = parseFindings(text, sectionMap);
 
-    // Extract the embedded photos and attach them to the matching findings so
-    // they carry into the FLOW report (and its downloadable PDF).
+    // Extract the embedded photos: attach defect photos to their findings, and
+    // use the largest cover-page image as the property photo. Both carry into
+    // the FLOW report (and its downloadable PDF).
+    let coverPhotoUrl = "";
     try {
-      const photos = await extractAndUploadPhotos(buffer);
-      if (photos.length) attachPhotosToFindings(findings, photos);
+      const extracted = await extractAndUploadPhotos(buffer);
+      if (extracted.photos.length) attachPhotosToFindings(findings, extracted.photos);
+      coverPhotoUrl = extracted.coverUrl;
     } catch (photoError) {
       console.error("Import photo extraction failed:", photoError);
     }
@@ -507,6 +521,7 @@ export async function POST(request: Request) {
       report: {
         reportType,
         ...coverInfo,
+        coverPhotoUrl,
         findings,
         rawTextPreview: text.slice(0, 5000),
       },
