@@ -42,7 +42,7 @@ function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
             className={`rounded-xl border px-4 py-2.5 text-left transition disabled:opacity-50 ${
               active
-                ? "border-teal-400 bg-teal-500/15 text-teal-100"
+                ? "border-teal-400 bg-teal-500/15 text-[var(--fl-accent-text)]"
                 : "border-[var(--fl-line)] bg-[var(--fl-surface)] text-[var(--fl-muted)] hover:border-[var(--fl-faint)]"
             }`}
           >

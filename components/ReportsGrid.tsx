@@ -159,7 +159,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
                     isActive
-                      ? "bg-teal-500/25 text-teal-100"
+                      ? "bg-teal-500/25 text-[var(--fl-accent-text)]"
                       : "bg-[var(--fl-raised)] text-[var(--fl-muted)]"
                   }`}
                 >

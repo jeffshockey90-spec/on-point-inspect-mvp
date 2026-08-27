@@ -319,7 +319,7 @@ export default function PublicProfileActions({
               {usageBadges.map((badge) => (
                 <span
                   key={badge}
-                  className="min-w-0 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-center text-xs font-semibold text-teal-100"
+                  className="min-w-0 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-center text-xs font-semibold text-[var(--fl-accent-text)]"
                 >
                   {badge}
                 </span>

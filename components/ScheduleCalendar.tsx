@@ -413,7 +413,7 @@ export default function ScheduleCalendar({
         <div className="rounded-2xl border border-teal-400/20 bg-[var(--fl-surface-2)] p-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-[var(--fl-text)]">Today</h2>
-            <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-3 py-1 text-xs font-bold text-teal-100">
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-3 py-1 text-xs font-bold text-[var(--fl-accent-text)]">
               {todaysEvents.length}
             </span>
           </div>
@@ -726,7 +726,7 @@ export default function ScheduleCalendar({
               <button
                 type="button"
                 onClick={() => router.push(`/reports/${selected.id}`)}
-                className="rounded-xl border border-teal-400/30 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 transition hover:bg-teal-500/20"
+                className="rounded-xl border border-teal-400/30 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
               >
                 Open Report
               </button>

@@ -41,7 +41,7 @@ export default function UserRoleTabs({ counts }: { counts: Counts }) {
             {t.label}
             <span
               className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                active ? "bg-teal-400/20 text-teal-100" : "bg-[var(--fl-raised)] text-[var(--fl-muted)]"
+                active ? "bg-teal-400/20 text-[var(--fl-accent-text)]" : "bg-[var(--fl-raised)] text-[var(--fl-muted)]"
               }`}
             >
               {t.count}

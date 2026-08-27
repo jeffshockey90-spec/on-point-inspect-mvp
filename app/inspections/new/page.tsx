@@ -1606,7 +1606,7 @@ function NewInspectionPageContent() {
                 <label
                   className={`mt-4 flex min-h-[190px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-5 text-center text-sm leading-6 transition ${
                     propertyPhotoDragging
-                      ? "border-teal-400 bg-teal-500/10 text-teal-100"
+                      ? "border-teal-400 bg-teal-500/10 text-[var(--fl-accent-text)]"
                       : "border-zinc-700 bg-[var(--fl-surface-2)] text-zinc-400 hover:border-teal-500/50 hover:bg-teal-500/5"
                   }`}
                 >

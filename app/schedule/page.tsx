@@ -397,7 +397,7 @@ export default async function SchedulePage() {
 
                     <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 sm:col-span-2">
                       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Property</p>
-                      <p className="mt-1 font-bold text-teal-100">{getBookingAddress(request)}</p>
+                      <p className="mt-1 font-bold text-[var(--fl-accent-text)]">{getBookingAddress(request)}</p>
                       <p className="mt-1 text-[var(--fl-muted)]">{Array.isArray(request.services) ? request.services.join(" • ") : request.services || request.service_type || "Home Inspection"}</p>
                     </div>
                   </div>
@@ -511,7 +511,7 @@ export default async function SchedulePage() {
                     </div>
 
                     <div>
-                      <p className="text-sm font-bold text-teal-100">
+                      <p className="text-sm font-bold text-[var(--fl-accent-text)]">
                         {getAddress(inspection)}
                       </p>
 

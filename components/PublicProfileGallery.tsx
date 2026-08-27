@@ -114,7 +114,7 @@ export default function PublicProfileGallery({
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent p-5">
                 {cleanImages[0].category && (
-                  <span className="rounded-full border border-teal-300/60 bg-teal-500/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-teal-100">
+                  <span className="rounded-full border border-teal-300/60 bg-teal-500/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                     {cleanImages[0].category}
                   </span>
                 )}

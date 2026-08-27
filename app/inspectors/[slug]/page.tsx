@@ -468,7 +468,7 @@ export default async function PublicInspectorProfilePage({
                       return (
                         <span
                           key={certification}
-                          className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-xs font-semibold text-teal-100"
+                          className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-xs font-semibold text-[var(--fl-accent-text)]"
                         >
                           <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-teal-400 text-[10px] text-slate-950">
                             {badge.icon}

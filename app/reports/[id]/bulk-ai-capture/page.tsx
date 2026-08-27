@@ -681,7 +681,7 @@ export default function BulkAICapturePage() {
             </button>
           </div>
 
-          <p className="mt-4 rounded-xl border border-teal-800 bg-teal-500/10 p-3 text-sm text-teal-100">
+          <p className="mt-4 rounded-xl border border-teal-800 bg-teal-500/10 p-3 text-sm text-[var(--fl-accent-text)]">
             Tip: Analyze all photos first. Then click Auto Merge Similar Findings to preview which photos will be grouped together before saving.
           </p>
 

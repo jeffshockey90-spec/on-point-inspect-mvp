@@ -667,7 +667,7 @@ export default function MarketingImageStudio({
           <div className="mt-6 space-y-5">
             <div className="rounded-2xl border border-teal-300/25 bg-teal-400/10 p-4">
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-teal-100">
+                <span className="mb-2 block text-sm font-semibold text-[var(--fl-accent-text)]">
                   Choose Report
                 </span>
                 <select
@@ -688,7 +688,7 @@ export default function MarketingImageStudio({
               </label>
 
               {loadingReport ? (
-                <p className="mt-3 text-sm font-bold text-teal-100">
+                <p className="mt-3 text-sm font-bold text-[var(--fl-accent-text)]">
                   Pulling address and photos...
                 </p>
               ) : null}
@@ -696,10 +696,10 @@ export default function MarketingImageStudio({
               {selectedReportId && reportPhotos.length ? (
                 <div className="mt-4">
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-teal-100">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                       Property Photo
                     </p>
-                    <p className="rounded-full bg-teal-400/15 px-2 py-1 text-[10px] font-semibold text-teal-100">
+                    <p className="rounded-full bg-teal-400/15 px-2 py-1 text-[10px] font-semibold text-[var(--fl-accent-text)]">
                       Primary
                     </p>
                   </div>

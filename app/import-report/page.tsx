@@ -936,7 +936,7 @@ export default function ImportReportPage() {
               )}
 
               {parsedReport.importerStatus && (
-                <p className="mt-4 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3 text-sm text-teal-100">
+                <p className="mt-4 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3 text-sm text-[var(--fl-accent-text)]">
                   {parsedReport.importerStatus} Finding photos detected: {photoCount}. Section info items detected: {propertyDetails.length}.
                 </p>
               )}

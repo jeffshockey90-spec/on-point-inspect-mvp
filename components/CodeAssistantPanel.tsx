@@ -190,7 +190,7 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
                 void ask(example);
               }}
               disabled={loading}
-              className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 text-xs font-bold text-teal-100 transition hover:border-teal-400 hover:bg-teal-500/20 active:scale-[0.98] disabled:opacity-40"
+              className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 text-xs font-bold text-[var(--fl-accent-text)] transition hover:border-teal-400 hover:bg-teal-500/20 active:scale-[0.98] disabled:opacity-40"
             >
               {example}
             </button>

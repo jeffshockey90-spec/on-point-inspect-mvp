@@ -61,7 +61,7 @@ export default function FindingToneControl({
   }
 
   const chip =
-    "rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-100 transition active:scale-95 disabled:opacity-50";
+    "rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent-text)] transition active:scale-95 disabled:opacity-50";
 
   const presets: { key: string; label: string }[] = [
     { key: "calmer", label: "🫸 Less alarming" },

@@ -919,7 +919,7 @@ function SectionLimitations({
                       disabled={saving}
                       className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                         selected
-                          ? "border-teal-400 bg-teal-500/15 text-teal-100"
+                          ? "border-teal-400 bg-teal-500/15 text-[var(--fl-accent-text)]"
                           : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-text)] hover:border-teal-400 hover:bg-teal-500/10"
                       } disabled:cursor-not-allowed disabled:opacity-60`}
                     >

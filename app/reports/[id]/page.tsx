@@ -2789,7 +2789,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               : {
                   label: reportIsPublished ? "Open Client Preview" : "Continue Inspection",
                   href: reportIsPublished ? `/share/${inspection.id}` : `/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`,
-                  className: "border-teal-400 bg-teal-500/15 text-teal-100 hover:bg-teal-500/25",
+                  className: "border-teal-400 bg-teal-500/15 text-[var(--fl-accent-text)] hover:bg-teal-500/25",
                   commandTool: "",
                 };
 
@@ -4184,7 +4184,7 @@ Service-life information is a general industry estimate only. Actual service lif
             title="Contacts & Email Delivery"
             subtitle="Send the report and manage client/realtor contact info"
             defaultOpen={false}
-            accentClassName="border-teal-500/40 text-teal-100"
+            accentClassName="border-teal-500/40 text-[var(--fl-accent-text)]"
           >
           <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <h2 className="mb-4 text-2xl font-bold text-[var(--fl-accent-text)]">

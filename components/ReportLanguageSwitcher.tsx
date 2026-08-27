@@ -39,7 +39,7 @@ export default function ReportLanguageSwitcher({
   }
 
   return (
-    <label className="inline-flex w-full items-center gap-3 rounded-xl border-2 border-teal-500/60 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 shadow-sm sm:w-auto print:hidden">
+    <label className="inline-flex w-full items-center gap-3 rounded-xl border-2 border-teal-500/60 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] shadow-sm sm:w-auto print:hidden">
       <Languages className="h-5 w-5 shrink-0 text-[var(--fl-accent-text)]" />
       <span className="whitespace-nowrap">
         Language <span className="text-[var(--fl-accent-text)]">· Idioma · 语言</span>

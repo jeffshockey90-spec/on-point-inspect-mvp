@@ -545,7 +545,7 @@ export default function RepairResponseForm({
       </section>
 
       {message ? (
-        <p className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-bold text-teal-100">
+        <p className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-accent-text)]">
           {message}
         </p>
       ) : null}
