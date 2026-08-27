@@ -3918,7 +3918,7 @@ Service-life information is a general industry estimate only. Actual service lif
             helper="Collapsed by default to keep the report editor fast. Open to review email opens, link clicks, client/realtor views, and reading time."
           >
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
               <EngagementStatCard
                 label="Total Views"
                 value={String(engagementViews.length)}
@@ -4506,7 +4506,7 @@ function EngagementStatCard({
         {label}
       </p>
 
-      <p className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-2 break-words text-xl font-semibold leading-tight text-[var(--fl-text)]">{value}</p>
 
       {helper && (
         <p className="mt-2 text-xs leading-5 text-[var(--fl-muted)]">{helper}</p>
