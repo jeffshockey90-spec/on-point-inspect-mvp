@@ -189,11 +189,20 @@ export default function SupportPage() {
     try {
       setUploading(true);
       setError("");
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/support/upload", { method: "POST", body: form });
+      // 1) Ask the server for a one-time signed upload URL.
+      const res = await fetch("/api/support/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, type: file.type }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Upload failed.");
+      // 2) Upload the file straight to storage (no serverless body-size limit).
+      const supabase = createClient();
+      const { error: upErr } = await supabase.storage
+        .from("company-assets")
+        .uploadToSignedUrl(data.path, data.token, file);
+      if (upErr) throw new Error(upErr.message || "Upload failed.");
       setAttachment({ url: data.url, name: data.name, type: data.type || "" });
     } catch (err: any) {
       setError(err?.message || "Upload failed.");

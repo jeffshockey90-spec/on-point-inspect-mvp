@@ -4,10 +4,8 @@ import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 const BUCKET = "company-assets";
-const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
 
 function admin() {
   return createClient(
@@ -18,54 +16,47 @@ function admin() {
 }
 
 function safeName(name: string) {
-  return String(name || "file")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 80) || "file";
+  return (
+    String(name || "file")
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 80) || "file"
+  );
 }
 
-// Upload a support-chat attachment (report PDF, screenshot, etc.) and return a
-// public URL the chat message stores. Used by both the inspector and owner
-// support composers.
+// Returns a one-time signed upload URL so the browser uploads the attachment
+// DIRECTLY to storage. This avoids sending the file through the serverless
+// function body (which caps around ~4.5 MB and 413s on report PDFs).
 export async function POST(req: Request) {
   try {
     const user = await getSessionUser();
     if (!user) return unauthorized();
 
-    const form = await req.formData();
-    const file = form.get("file");
-
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "A file is required." }, { status: 400 });
-    }
-    if (file.size > MAX_BYTES) {
-      return NextResponse.json({ error: "File is too large (20 MB max)." }, { status: 400 });
-    }
+    const body = await req.json().catch(() => ({}));
+    const name = safeName(body?.name);
+    const type = String(body?.type || "");
 
     const supabase = admin();
-    const path = `support/${user.id}/${Date.now()}-${safeName(file.name)}`;
-    const bytes = await file.arrayBuffer();
+    const path = `support/${user.id}/${Date.now()}-${name}`;
 
-    const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, bytes, {
-      contentType: file.type || "application/octet-stream",
-      upsert: false,
-    });
-
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message || "Upload failed." }, { status: 500 });
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
+    if (error || !data) {
+      return NextResponse.json(
+        { error: error?.message || "Could not start upload." },
+        { status: 500 }
+      );
     }
 
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
 
     return NextResponse.json({
-      url: data?.publicUrl || "",
-      name: file.name || "file",
-      type: file.type || "",
+      path,
+      token: data.token,
+      url: pub?.publicUrl || "",
+      name: body?.name || "file",
+      type,
     });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "Upload failed." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error?.message || "Upload failed." }, { status: 500 });
   }
 }
