@@ -27,6 +27,7 @@ import {
   Rocket,
   Settings,
   Crown,
+  LogOut,
 } from "lucide-react";
 
 
@@ -456,22 +457,22 @@ export default function Navbar() {
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-zinc-800 bg-[#050816]/95 pt-[env(safe-area-inset-top)] backdrop-blur xl:flex">
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-[#1a212c] bg-[#0a0e13]/95 pt-[env(safe-area-inset-top)] backdrop-blur xl:flex">
         <Link
           href={dashboardHref}
           prefetch
           onPointerEnter={() => prefetchRoute(dashboardHref)}
           onClick={() => handleNavClick(dashboardHref)}
-          className="flex shrink-0 items-center gap-3 border-b border-slate-800 px-5 py-5 transition active:scale-[0.98] [touch-action:manipulation]"
+          className="flex shrink-0 items-center gap-3 border-b border-[#1a212c] px-5 py-[18px] transition active:scale-[0.98] [touch-action:manipulation]"
         >
           <img
             src="/icons/icon-192.png?v=3"
             alt="FLOW Logo"
-            className="h-11 w-11 shrink-0 rounded-xl border border-teal-500/40 object-cover shadow-lg shadow-teal-500/10"
+            className="h-9 w-9 shrink-0 rounded-[10px] border border-[#1ac5b4]/35 object-cover"
           />
 
           <div className="min-w-0 leading-tight">
-            <div className="whitespace-nowrap text-2xl font-black text-[#14c8d2]">
+            <div className="whitespace-nowrap text-[19px] font-extrabold tracking-tight text-white">
               FLOW
             </div>
           </div>
@@ -496,7 +497,7 @@ export default function Navbar() {
               return (
                 <Fragment key={`${item.title}-${item.href}`}>
                   {groupLabel && (
-                    <p className="mt-3 px-3 pb-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    <p className="mt-4 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#59626f]">
                       {groupLabel}
                     </p>
                   )}
@@ -507,18 +508,18 @@ export default function Navbar() {
                     onTouchStart={() => prefetchRoute(item.href)}
                     onClick={() => handleNavClick(item.href)}
                     aria-busy={opening}
-                    className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
                       active
-                        ? "border-white/40 bg-teal-400 text-black shadow-lg shadow-teal-500/30"
+                        ? "bg-[#1ac5b4]/[0.12] text-white"
                         : opening
-                          ? "border-teal-500 bg-[#111827] text-teal-400 opacity-80"
+                          ? "bg-white/[0.04] text-[#1ac5b4]"
                           : item.href === "/dashboard/owner"
-                            ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-300 hover:border-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-200"
-                            : "border-transparent text-teal-400 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
+                            ? "text-yellow-300/90 hover:bg-yellow-500/10 hover:text-yellow-200"
+                            : "text-[#8a93a3] hover:bg-white/[0.04] hover:text-[#e8ecf3]"
                     }`}
                   >
                     <NavSpinner active={opening} />
-                    {!opening && <ItemIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2.25} />}
+                    {!opening && <ItemIcon className={`h-[17px] w-[17px] shrink-0 ${active ? "text-[#1ac5b4]" : ""}`} strokeWidth={2} />}
                     <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
                       {opening ? "Opening..." : item.title}
                     </span>
@@ -530,8 +531,8 @@ export default function Navbar() {
           })()}
 
           {isReportBuilderRoute(pathname) && (
-            <div className="mt-4 border-t border-slate-800 pt-4">
-              <p className="px-3 text-[10px] font-black uppercase tracking-wide text-slate-500">
+            <div className="mt-4 border-t border-[#1a212c] pt-4">
+              <p className="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#59626f]">
                 Report Sections
               </p>
 
@@ -543,10 +544,10 @@ export default function Navbar() {
                     <a
                       key={key}
                       href={`#${anchorId}`}
-                      className={`rounded-xl border px-3 py-2 text-sm font-extrabold transition active:scale-[0.98] [touch-action:manipulation] ${
+                      className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
                         active
-                          ? "border-white/40 bg-teal-400 text-black shadow-lg shadow-teal-500/30"
-                          : "border-transparent text-teal-400 hover:border-teal-500 hover:bg-[#111827] hover:text-white"
+                          ? "bg-[#1ac5b4]/[0.12] text-white"
+                          : "text-[#8a93a3] hover:bg-white/[0.04] hover:text-[#e8ecf3]"
                       }`}
                     >
                       {label}
@@ -558,9 +559,9 @@ export default function Navbar() {
           )}
         </nav>
 
-        <div className="shrink-0 border-t border-slate-800 p-3">
-          <div className="flex items-center gap-3 rounded-xl bg-[#0b1220]/95 px-3 py-2.5 shadow-lg shadow-black/20">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-400/15 text-sm font-black text-teal-300">
+        <div className="shrink-0 border-t border-[#1a212c] p-3">
+          <div className="flex items-center gap-3 rounded-[10px] border border-[#1a212c] bg-[#10151e] px-3 py-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1ac5b4]/12 text-xs font-black text-[#1ac5b4]">
               {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
             </div>
 
@@ -568,7 +569,7 @@ export default function Navbar() {
               <div className="truncate text-xs font-bold text-white">
                 {userEmail || "Signed in"}
               </div>
-              <div className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              <div className="truncate text-[10px] font-bold uppercase tracking-wide text-[#59626f]">
                 {isOwner ? "Owner" : isRealtor && !isInspector ? "Realtor" : "Inspector"}
               </div>
             </div>
@@ -579,12 +580,12 @@ export default function Navbar() {
               disabled={loggingOut}
               aria-busy={loggingOut}
               title="Logout"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-500/60 text-red-300 transition active:scale-[0.98] hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#232b38] text-[#8a93a3] transition active:scale-[0.98] hover:border-red-500/60 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
               {loggingOut ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               ) : (
-                "🚪"
+                <LogOut className="h-4 w-4" strokeWidth={2} />
               )}
             </button>
           </div>

@@ -68,7 +68,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable} overflow-x-clip`}>
-      <body className="min-h-screen overflow-x-clip bg-[#050816] text-white antialiased">
+      <body className="min-h-screen overflow-x-clip bg-[#0a0e13] text-white antialiased">
         <ServiceWorkerRegister />
 
         <Navbar />
