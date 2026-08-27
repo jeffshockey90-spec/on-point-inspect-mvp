@@ -157,10 +157,10 @@ export default function AgreementSignatureForm({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl">
+    <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
       <h2 className="text-2xl font-extrabold text-teal-300">Sign Agreement</h2>
 
-      <p className="mt-2 text-slate-300">
+      <p className="mt-2 text-[#8a93a3]">
         By signing below, you confirm that you have read, understood, and accepted the Residential Inspection Agreement.
       </p>
 
@@ -178,19 +178,19 @@ export default function AgreementSignatureForm({
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <label>
-          <span className="mb-2 block text-sm font-bold text-slate-400">Client Name</span>
+          <span className="mb-2 block text-sm font-bold text-[#8a93a3]">Client Name</span>
 
           <input
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
             disabled={isBusy || signed}
             autoComplete="name"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
 
         <label>
-          <span className="mb-2 block text-sm font-bold text-slate-400">Client Email</span>
+          <span className="mb-2 block text-sm font-bold text-[#8a93a3]">Client Email</span>
 
           <input
             value={clientEmail}
@@ -198,24 +198,24 @@ export default function AgreementSignatureForm({
             disabled={isBusy || signed}
             type="email"
             autoComplete="email"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
         </label>
       </div>
 
       <div className="mt-5">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <span className="text-sm font-bold text-slate-400">Electronic Signature</span>
+          <span className="text-sm font-bold text-[#8a93a3]">Electronic Signature</span>
 
-          <div className="inline-flex overflow-hidden rounded-lg border border-slate-700">
+          <div className="inline-flex overflow-hidden rounded-lg border border-[#232b38]">
             <button
               type="button"
               onClick={() => switchMode("draw")}
               disabled={isBusy || signed}
-              className={`px-3 py-1.5 text-xs font-black transition disabled:cursor-not-allowed ${
+              className={`px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed ${
                 mode === "draw"
                   ? "bg-teal-500 text-slate-950"
-                  : "bg-slate-950 text-slate-300 hover:bg-slate-800"
+                  : "bg-[#0a0e13] text-[#8a93a3] hover:bg-[#1a212c]"
               }`}
             >
               Draw
@@ -224,10 +224,10 @@ export default function AgreementSignatureForm({
               type="button"
               onClick={() => switchMode("type")}
               disabled={isBusy || signed}
-              className={`px-3 py-1.5 text-xs font-black transition disabled:cursor-not-allowed ${
+              className={`px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed ${
                 mode === "type"
                   ? "bg-teal-500 text-slate-950"
-                  : "bg-slate-950 text-slate-300 hover:bg-slate-800"
+                  : "bg-[#0a0e13] text-[#8a93a3] hover:bg-[#1a212c]"
               }`}
             >
               Type
@@ -244,12 +244,12 @@ export default function AgreementSignatureForm({
             disabled={isBusy || signed}
             placeholder="Type full legal name"
             autoComplete="name"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none transition focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
         )}
       </div>
 
-      <label className="mt-5 flex cursor-pointer touch-manipulation items-start gap-3 rounded-xl border border-slate-700 bg-slate-950 p-4 transition active:scale-[0.99] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
+      <label className="mt-5 flex cursor-pointer touch-manipulation items-start gap-3 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 transition active:scale-[0.99] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
         <input
           type="checkbox"
           checked={accepted}
@@ -258,7 +258,7 @@ export default function AgreementSignatureForm({
           className="mt-1 h-4 w-4 cursor-pointer accent-teal-400 disabled:cursor-not-allowed"
         />
 
-        <span className="text-sm leading-6 text-slate-300">
+        <span className="text-sm leading-6 text-[#8a93a3]">
           I have read and agree to this agreement, and I consent to use electronic
           records and electronic signatures. I understand my electronic signature is
           the legal equivalent of my handwritten signature and legally binds me to

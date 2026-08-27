@@ -31,8 +31,8 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: "green" | 
         ? "border-orange-500/50 bg-orange-500/10 text-orange-300"
         : tone === "yellow"
           ? "border-yellow-500/50 bg-yellow-500/10 text-yellow-300"
-          : "border-slate-600 bg-slate-800/60 text-slate-300";
-  return <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${classes}`}>{children}</span>;
+          : "border-[#232b38] bg-[#1a212c] text-[#8a93a3]";
+  return <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${classes}`}>{children}</span>;
 }
 
 export default function PaymentInvoicePanel({
@@ -120,15 +120,15 @@ export default function PaymentInvoicePanel({
     setSaveLabel("Save Payment Status");
   }
 
-  const fieldClass = "box-border w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60";
+  const fieldClass = "box-border w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
-    <section className={`mb-6 w-full max-w-full overflow-hidden rounded-3xl border shadow-2xl shadow-black/20 ${isPaid ? "border-emerald-600/70 bg-emerald-950/20" : "border-orange-600/70 bg-orange-950/20"}`}>
-      <div className="border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1628] to-[#071224] p-4 sm:p-5">
+    <section className={`mb-6 w-full max-w-full overflow-hidden rounded-2xl border shadow-2xl shadow-black/20 ${isPaid ? "border-emerald-600/70 bg-emerald-950/20" : "border-orange-600/70 bg-orange-950/20"}`}>
+      <div className="border-b border-[#1a212c] bg-gradient-to-r from-[#10151e] via-[#0b1628] to-[#10151e] p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-teal-400">Invoice / Payment</p>
-            <h2 className={`mt-2 text-2xl font-black ${isPaid ? "text-emerald-300" : "text-orange-300"}`}>{isPaid ? "Payment Complete" : "Payment Required"}</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-teal-400">Invoice / Payment</p>
+            <h2 className={`mt-2 text-2xl font-semibold ${isPaid ? "text-emerald-300" : "text-orange-300"}`}>{isPaid ? "Payment Complete" : "Payment Required"}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge tone={isPaid ? "green" : isPartial ? "yellow" : "orange"}>{paymentStatus}</Badge>
               <Badge tone="slate">Invoice {money(invoiceAmountNumber)}</Badge>
@@ -137,7 +137,7 @@ export default function PaymentInvoicePanel({
             </div>
           </div>
 
-          <button type="button" onClick={() => setExpanded((current) => !current)} className="w-full rounded-2xl border border-slate-600 px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-slate-800 sm:w-auto">
+          <button type="button" onClick={() => setExpanded((current) => !current)} className="w-full rounded-2xl border border-[#232b38] px-5 py-3 text-sm font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c] sm:w-auto">
             {expanded ? "Hide Details" : "Edit Payment"}
           </button>
         </div>
@@ -151,40 +151,40 @@ export default function PaymentInvoicePanel({
         )}
 
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-3">
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Invoice</p>
-            <p className="mt-1 text-xl font-black text-white">{money(invoiceAmountNumber)}</p>
+          <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8a93a3]">Invoice</p>
+            <p className="mt-1 text-xl font-semibold text-white">{money(invoiceAmountNumber)}</p>
           </div>
-          <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-3">
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Paid</p>
-            <p className="mt-1 text-xl font-black text-emerald-300">{money(amountPaidNumber)}</p>
+          <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8a93a3]">Paid</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-300">{money(amountPaidNumber)}</p>
           </div>
-          <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-3">
-            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Due</p>
-            <p className={`mt-1 text-xl font-black ${isPaid ? "text-emerald-300" : "text-orange-300"}`}>{money(balanceDue)}</p>
+          <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8a93a3]">Due</p>
+            <p className={`mt-1 text-xl font-semibold ${isPaid ? "text-emerald-300" : "text-orange-300"}`}>{money(balanceDue)}</p>
           </div>
         </div>
 
         {expanded && (
-          <div className="mt-5 rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
+          <div className="mt-5 rounded-2xl border border-[#232b38] bg-[#131923] p-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Payment Status</p><select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} disabled={busy} className={fieldClass}>{PAYMENT_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
-              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Invoice Amount</p><input type="number" value={invoiceAmount} onChange={(e) => setInvoiceAmount(e.target.value)} disabled={busy} className={fieldClass} /></label>
-              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Amount Paid</p><input type="number" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} disabled={busy} className={fieldClass} /></label>
-              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Due Date</p><input type="date" value={invoiceDueDate} onChange={(e) => setInvoiceDueDate(e.target.value)} disabled={busy} className={fieldClass} /></label>
+              <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Payment Status</p><select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} disabled={busy} className={fieldClass}>{PAYMENT_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
+              <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Invoice Amount</p><input type="number" value={invoiceAmount} onChange={(e) => setInvoiceAmount(e.target.value)} disabled={busy} className={fieldClass} /></label>
+              <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Amount Paid</p><input type="number" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} disabled={busy} className={fieldClass} /></label>
+              <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Due Date</p><input type="date" value={invoiceDueDate} onChange={(e) => setInvoiceDueDate(e.target.value)} disabled={busy} className={fieldClass} /></label>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Payment Method</p><select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} disabled={busy} className={fieldClass}>{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method || "Not selected"}</option>)}</select></label>
-              <label><p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Notes</p><input value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} placeholder="Example: paid by check, waived, etc." disabled={busy} className={fieldClass} /></label>
+              <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Payment Method</p><select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} disabled={busy} className={fieldClass}>{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method || "Not selected"}</option>)}</select></label>
+              <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Notes</p><input value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} placeholder="Example: paid by check, waived, etc." disabled={busy} className={fieldClass} /></label>
             </div>
           </div>
         )}
 
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap">
-          <button type="button" onClick={markPaid} disabled={busy} className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-emerald-400 disabled:opacity-50 [touch-action:manipulation]">Mark Paid</button>
+          <button type="button" onClick={markPaid} disabled={busy} className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-emerald-400 disabled:opacity-50 [touch-action:manipulation]">Mark Paid</button>
           <button type="button" onClick={markUnpaid} disabled={busy} className="inline-flex items-center justify-center rounded-xl border border-orange-500 px-5 py-3 font-bold text-orange-300 transition active:scale-[0.98] hover:bg-orange-500/10 disabled:opacity-50 [touch-action:manipulation]">Mark Unpaid</button>
-          <button type="button" onClick={markWaived} disabled={busy} className="inline-flex items-center justify-center rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 disabled:opacity-50 [touch-action:manipulation]">Waive</button>
-          <button type="button" onClick={savePaymentStatus} disabled={busy} aria-busy={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:opacity-50 [touch-action:manipulation]">
+          <button type="button" onClick={markWaived} disabled={busy} className="inline-flex items-center justify-center rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition active:scale-[0.98] hover:bg-[#1a212c] disabled:opacity-50 [touch-action:manipulation]">Waive</button>
+          <button type="button" onClick={savePaymentStatus} disabled={busy} aria-busy={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:opacity-50 [touch-action:manipulation]">
             {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
             {isRefreshing ? "Updating..." : saveLabel}
           </button>

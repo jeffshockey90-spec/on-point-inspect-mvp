@@ -121,7 +121,7 @@ export default function ReportBuilderSectionTabs({
   return (
     <div className="mb-8">
       <div
-        className="sticky top-0 z-40 border-y border-[#232b38] bg-[#0f172a]/95 px-3 py-3 backdrop-blur xl:hidden"
+        className="sticky top-0 z-40 border-y border-[#232b38] bg-[#10151e]/95 px-3 py-3 backdrop-blur xl:hidden"
         aria-label="Report sections"
       >
         <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1">

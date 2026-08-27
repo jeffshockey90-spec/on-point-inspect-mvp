@@ -74,17 +74,17 @@ export default function LiveInspectionGraphPanel({
         className="flex w-full items-center justify-between gap-3 text-left"
       >
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
             House Digital Twin
           </p>
-          <h2 className="mt-1 text-lg font-black text-white">
+          <h2 className="mt-1 text-lg font-semibold text-white">
             {loading && !graph ? "Building inspection graph…" : `${graph?.score || 0}% Inspection Coverage`}
           </h2>
-          <p className="mt-1 text-xs leading-5 text-slate-300">
+          <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
             {graph?.summary || "Connecting findings, equipment, evidence, limitations, and section requirements."}
           </p>
         </div>
-        <span className="rounded-full border border-current/30 px-3 py-2 text-xs font-black">
+        <span className="rounded-full border border-current/30 px-3 py-2 text-xs font-semibold">
           {open ? "Hide" : "Open"}
         </span>
       </button>
@@ -92,8 +92,8 @@ export default function LiveInspectionGraphPanel({
       {current && (
         <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-black text-white">{current.section}</p>
-            <span className="text-sm font-black">{current.score}%</span>
+            <p className="text-sm font-semibold text-white">{current.section}</p>
+            <span className="text-sm font-semibold">{current.score}%</span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/40">
             <div className="h-full rounded-full bg-cyan-400" style={{ width: `${current.score}%` }} />
@@ -112,13 +112,13 @@ export default function LiveInspectionGraphPanel({
             {graph.sections.map((section) => (
               <div key={section.section} className="rounded-xl border border-white/10 bg-black/25 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-black text-white">{section.section}</p>
-                  <span className="text-xs font-black">{section.score}%</span>
+                  <p className="text-xs font-semibold text-white">{section.section}</p>
+                  <span className="text-xs font-semibold">{section.score}%</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/40">
                   <div className="h-full rounded-full bg-teal-400" style={{ width: `${section.score}%` }} />
                 </div>
-                <p className="mt-2 text-[11px] text-slate-300">
+                <p className="mt-2 text-[11px] text-[#8a93a3]">
                   {section.findingCount} findings · {section.photoCount} photos · {section.equipmentCount} equipment
                 </p>
                 {section.missingRequirements.length > 0 && (
@@ -132,19 +132,19 @@ export default function LiveInspectionGraphPanel({
 
           {graph.relationships.length > 0 && (
             <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-3">
-              <p className="text-xs font-black uppercase tracking-wide text-purple-200">
+              <p className="text-xs font-semibold uppercase tracking-wide text-purple-200">
                 Connected Intelligence
               </p>
               <div className="mt-3 space-y-2">
                 {graph.relationships.slice(0, compact ? 3 : 6).map((relationship) => (
                   <div key={relationship.id} className="rounded-lg bg-black/25 p-3">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-black text-white">{relationship.title}</p>
-                      <span className="text-[11px] font-black text-purple-200">
+                      <p className="text-sm font-semibold text-white">{relationship.title}</p>
+                      <span className="text-[11px] font-semibold text-purple-200">
                         {Math.round(relationship.confidence * 100)}%
                       </span>
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-slate-300">{relationship.explanation}</p>
+                    <p className="mt-1 text-xs leading-5 text-[#8a93a3]">{relationship.explanation}</p>
                     <p className="mt-1 text-xs font-bold leading-5 text-purple-100">{relationship.recommendation}</p>
                   </div>
                 ))}

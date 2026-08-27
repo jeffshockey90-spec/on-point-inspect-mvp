@@ -63,7 +63,7 @@ export default function DeleteDemoReportButton({
         onClick={deleteDemoReport}
         disabled={busy}
         aria-busy={busy}
-        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-500 px-3 py-2 text-xs font-black text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-500 px-3 py-2 text-xs font-semibold text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
       >
         {busy && (
           <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -71,7 +71,7 @@ export default function DeleteDemoReportButton({
         {busy ? "Deleting..." : label}
       </button>
 
-      {message && <p className="max-w-xs text-[11px] font-bold text-slate-500">{message}</p>}
+      {message && <p className="max-w-xs text-[11px] font-bold text-[#59626f]">{message}</p>}
     </div>
   );
 }

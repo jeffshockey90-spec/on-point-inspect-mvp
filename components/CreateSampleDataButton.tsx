@@ -45,7 +45,7 @@ export default function CreateSampleDataButton() {
         type="button"
         onClick={createSampleData}
         disabled={creating}
-        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-purple-400/60 bg-purple-500/10 px-5 py-3 text-sm font-black text-purple-200 transition hover:bg-purple-500/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-purple-400/60 bg-purple-500/10 px-5 py-3 text-sm font-semibold text-purple-200 transition hover:bg-purple-500/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {creating && (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

@@ -75,7 +75,7 @@ export default function EditableInspectionDetails({
   }
 
   return (
-    <section className="mt-10 rounded-2xl border border-slate-700 bg-slate-900/70 p-6 print:border-slate-400 print:bg-white print:text-black">
+    <section className="mt-10 rounded-2xl border border-[#232b38] bg-[#131923] p-6 print:border-slate-400 print:bg-white print:text-black">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <h2 className="text-2xl font-bold text-teal-400">
           Inspection Details
@@ -243,14 +243,14 @@ function DetailInput({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-bold text-slate-400 print:text-black">
+      <span className="mb-1 block text-sm font-bold text-[#8a93a3] print:text-black">
         {label}
       </span>
 
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none transition focus:border-teal-400 print:border-none print:bg-white print:p-0 print:text-black"
+        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none transition focus:border-teal-400 print:border-none print:bg-white print:p-0 print:text-black"
       />
     </label>
   );

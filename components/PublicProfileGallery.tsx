@@ -76,16 +76,16 @@ export default function PublicProfileGallery({
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="overflow-hidden rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-8">
+        <div className="overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-300">
                 Portfolio Gallery
               </p>
-              <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
                 Inspection Portfolio Gallery
               </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a93a3] sm:text-base">
                 Tap any photo to view the full gallery without making this page longer.
               </p>
             </div>
@@ -93,7 +93,7 @@ export default function PublicProfileGallery({
             <button
               type="button"
               onClick={() => openGallery(0)}
-              className="rounded-xl border border-teal-400/60 px-5 py-3 text-center font-black text-teal-200 transition hover:bg-teal-500 hover:text-slate-950"
+              className="rounded-xl border border-teal-400/60 px-5 py-3 text-center font-semibold text-teal-200 transition hover:bg-teal-500 hover:text-slate-950"
             >
               View All Photos ({cleanImages.length})
             </button>
@@ -103,7 +103,7 @@ export default function PublicProfileGallery({
             <button
               type="button"
               onClick={() => openGallery(0)}
-              className="group relative min-h-[320px] overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 text-left shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70"
+              className="group relative min-h-[320px] overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] text-left shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70"
             >
               <img
                 src={cleanImages[0].imageUrl}
@@ -114,15 +114,15 @@ export default function PublicProfileGallery({
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent p-5">
                 {cleanImages[0].category && (
-                  <span className="rounded-full border border-teal-300/60 bg-teal-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-teal-100">
+                  <span className="rounded-full border border-teal-300/60 bg-teal-500/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-teal-100">
                     {cleanImages[0].category}
                   </span>
                 )}
-                <h3 className="mt-3 text-2xl font-black text-white">
+                <h3 className="mt-3 text-2xl font-semibold text-white">
                   {cleanImages[0].title || "Portfolio Photo"}
                 </h3>
                 {cleanImages[0].caption && (
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-200">
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#e8ecf3]">
                     {cleanImages[0].caption}
                   </p>
                 )}
@@ -139,7 +139,7 @@ export default function PublicProfileGallery({
                     key={image.id}
                     type="button"
                     onClick={() => openGallery(realIndex)}
-                    className="group relative min-h-[150px] overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 text-left shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70"
+                    className="group relative min-h-[150px] overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] text-left shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70"
                   >
                     <img
                       src={image.imageUrl}
@@ -153,7 +153,7 @@ export default function PublicProfileGallery({
 
                     {isLastPreview && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/55">
-                        <span className="rounded-2xl border border-white/30 bg-white/10 px-5 py-3 text-xl font-black text-white backdrop-blur">
+                        <span className="rounded-2xl border border-white/30 bg-white/10 px-5 py-3 text-xl font-semibold text-white backdrop-blur">
                           +{remainingCount} More
                         </span>
                       </div>
@@ -161,7 +161,7 @@ export default function PublicProfileGallery({
 
                     {!isLastPreview && (
                       <div className="absolute inset-x-0 bottom-0 p-3">
-                        <p className="line-clamp-1 text-xs font-black text-white">
+                        <p className="line-clamp-1 text-xs font-semibold text-white">
                           {image.title || image.category || "Portfolio Photo"}
                         </p>
                       </div>
@@ -183,10 +183,10 @@ export default function PublicProfileGallery({
           <div className="mx-auto flex h-full max-w-7xl flex-col">
             <div className="flex items-center justify-between gap-3 pb-3">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
                   {activeIndex! + 1} / {cleanImages.length}
                 </p>
-                <h3 className="mt-1 truncate text-lg font-black text-white sm:text-2xl">
+                <h3 className="mt-1 truncate text-lg font-semibold text-white sm:text-2xl">
                   {activeImage.title || "Portfolio Photo"}
                 </h3>
               </div>
@@ -194,13 +194,13 @@ export default function PublicProfileGallery({
               <button
                 type="button"
                 onClick={closeGallery}
-                className="rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-200 transition hover:border-red-400 hover:bg-red-500 hover:text-white"
+                className="rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-[#e8ecf3] transition hover:border-red-400 hover:bg-red-500 hover:text-white"
               >
                 ✕ Close
               </button>
             </div>
 
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-3xl border border-slate-800 bg-slate-950">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#1a212c] bg-[#0a0e13]">
               <img
                 src={activeImage.imageUrl}
                 alt={activeImage.title || "Portfolio gallery photo"}
@@ -212,7 +212,7 @@ export default function PublicProfileGallery({
                   <button
                     type="button"
                     onClick={showPrevious}
-                    className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-2xl font-black text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:left-5 sm:h-14 sm:w-14"
+                    className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-2xl font-semibold text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:left-5 sm:h-14 sm:w-14"
                     aria-label="Previous photo"
                   >
                     ‹
@@ -221,7 +221,7 @@ export default function PublicProfileGallery({
                   <button
                     type="button"
                     onClick={showNext}
-                    className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-2xl font-black text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:right-5 sm:h-14 sm:w-14"
+                    className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-2xl font-semibold text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:right-5 sm:h-14 sm:w-14"
                     aria-label="Next photo"
                   >
                     ›
@@ -231,14 +231,14 @@ export default function PublicProfileGallery({
             </div>
 
             {(activeImage.caption || activeImage.category) && (
-              <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-950/85 p-4">
+              <div className="mt-3 rounded-2xl border border-[#1a212c] bg-[#0a0e13]/85 p-4">
                 {activeImage.category && (
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
                     {activeImage.category}
                   </p>
                 )}
                 {activeImage.caption && (
-                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                  <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
                     {activeImage.caption}
                   </p>
                 )}
@@ -255,7 +255,7 @@ export default function PublicProfileGallery({
                     className={`h-16 w-20 shrink-0 overflow-hidden rounded-xl border transition ${
                       index === activeIndex
                         ? "border-teal-300 opacity-100"
-                        : "border-slate-700 opacity-60 hover:opacity-100"
+                        : "border-[#232b38] opacity-60 hover:opacity-100"
                     }`}
                     aria-label={`Open photo ${index + 1}`}
                   >

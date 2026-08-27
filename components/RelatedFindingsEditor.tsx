@@ -114,10 +114,10 @@ export default function RelatedFindingsEditor({
     <div className="mb-4 rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-3 sm:p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-wide text-indigo-300">
+          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
             🔗 Related Findings
           </p>
-          <p className="mt-1 text-xs leading-5 text-slate-400">
+          <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
             Link findings you believe share a cause. The AI writes a client-friendly note so the
             report shows they may be related.
           </p>
@@ -125,7 +125,7 @@ export default function RelatedFindingsEditor({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="shrink-0 rounded-lg border border-indigo-500/50 px-3 py-1.5 text-xs font-black text-indigo-200 transition hover:bg-indigo-500/10"
+          className="shrink-0 rounded-lg border border-indigo-500/50 px-3 py-1.5 text-xs font-semibold text-indigo-200 transition hover:bg-indigo-500/10"
         >
           {open ? "Done" : linkedChips.length > 0 ? "Edit links" : "Link findings"}
         </button>
@@ -145,15 +145,15 @@ export default function RelatedFindingsEditor({
       )}
 
       {!open && linkedChips.length > 0 && finding.related_note && (
-        <p className="mt-2 text-xs leading-5 text-slate-300">{finding.related_note}</p>
+        <p className="mt-2 text-xs leading-5 text-[#8a93a3]">{finding.related_note}</p>
       )}
 
       {open && (
         <div className="mt-3 space-y-3">
           {others.length === 0 ? (
-            <p className="text-xs text-slate-400">No other findings to link yet.</p>
+            <p className="text-xs text-[#8a93a3]">No other findings to link yet.</p>
           ) : (
-            <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-slate-700 bg-slate-950/60 p-2">
+            <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-[#232b38] bg-[#131923] p-2">
               {others.map((f) => {
                 const id = String(f.id);
                 const checked = selectedIds.includes(id);
@@ -161,7 +161,7 @@ export default function RelatedFindingsEditor({
                   <label
                     key={id}
                     className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 transition ${
-                      checked ? "bg-indigo-500/10" : "hover:bg-slate-800/60"
+                      checked ? "bg-indigo-500/10" : "hover:bg-[#1a212c]"
                     }`}
                   >
                     <input
@@ -174,7 +174,7 @@ export default function RelatedFindingsEditor({
                       <span className="block truncate text-sm font-bold text-white">
                         {f.title || "Untitled finding"}
                       </span>
-                      <span className="block truncate text-[11px] text-slate-400">
+                      <span className="block truncate text-[11px] text-[#8a93a3]">
                         {f.section || "—"}
                       </span>
                     </span>
@@ -185,7 +185,7 @@ export default function RelatedFindingsEditor({
           )}
 
           <div>
-            <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
               Related observations note (shown to the client)
             </label>
             <textarea
@@ -193,7 +193,7 @@ export default function RelatedFindingsEditor({
               onChange={(e) => setNote(e.target.value)}
               rows={3}
               placeholder="Explain how these findings may be related, or draft it with AI below."
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-indigo-400"
+              className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] p-2 text-sm text-white outline-none placeholder:text-[#59626f] focus:border-indigo-400"
             />
           </div>
 
@@ -202,13 +202,13 @@ export default function RelatedFindingsEditor({
               value={aiHint}
               onChange={(e) => setAiHint(e.target.value)}
               placeholder="Tell AI how to word it (e.g. 'possible east-side settlement, stay non-alarming')"
-              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-indigo-400"
+              className="min-w-0 flex-1 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none placeholder:text-[#59626f] focus:border-indigo-400"
             />
             <button
               type="button"
               onClick={draftWithAi}
               disabled={aiBusy || selectedIds.length < 1}
-              className="rounded-lg border border-indigo-500/60 px-4 py-2 text-sm font-black text-indigo-200 transition hover:bg-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-indigo-500/60 px-4 py-2 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {aiBusy ? "Drafting…" : note ? "Redraft with AI" : "Draft with AI"}
             </button>
@@ -220,7 +220,7 @@ export default function RelatedFindingsEditor({
             type="button"
             onClick={save}
             disabled={saving}
-            className="w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-black text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save links"}
           </button>

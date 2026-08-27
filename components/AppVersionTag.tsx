@@ -31,7 +31,7 @@ export default function AppVersionTag() {
   const date = formatBuildDate();
 
   return (
-    <div className="mt-8 flex flex-col items-center gap-1 pb-4 text-center text-xs text-slate-500">
+    <div className="mt-8 flex flex-col items-center gap-1 pb-4 text-center text-xs text-[#59626f]">
       <p className="font-mono tracking-wide">{webBuildLabel()}</p>
       {native ? (
         <p className="font-mono tracking-wide">

@@ -825,7 +825,7 @@ export default function FieldPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#0f172a] p-10 text-white">
+        <main className="min-h-screen bg-[#10151e] p-10 text-white">
           Loading field workflow...
         </main>
       }
@@ -4524,7 +4524,7 @@ function FieldPageContent() {
 
   if (showOfflineReportViewer && selectedReport) {
     return (
-      <main className="min-h-screen bg-[#020617] p-3 pb-[calc(100px+env(safe-area-inset-bottom))] text-white sm:p-6">
+      <main className="min-h-screen bg-[#0a0e13] p-3 pb-[calc(100px+env(safe-area-inset-bottom))] text-white sm:p-6">
         <OfflineReportViewer
           inspectionId={String(selectedReport)}
           onClose={() => setShowOfflineReportViewer(false)}
@@ -4534,23 +4534,23 @@ function FieldPageContent() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#0f172a] p-4 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#10151e] p-4 text-white">
       <div className="mx-auto grid min-w-0 max-w-7xl gap-6 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 rounded-2xl bg-[#111827] p-5 shadow-2xl">
           <h1 className="mb-2 text-3xl font-bold text-teal-400">
             FLOW Field Workflow
           </h1>
 
-          <p className="mb-4 text-slate-400">
+          <p className="mb-4 text-[#8a93a3]">
             Capture findings, defect media, and section reference photos in the
             field. If service drops, items save locally and sync when you are
             back online.
           </p>
 
-          <div className="mb-4 rounded-xl border border-slate-700 bg-black/40 p-4 text-sm text-slate-300">
+          <div className="mb-4 rounded-xl border border-[#232b38] bg-black/40 p-4 text-sm text-[#8a93a3]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span
-                className={`font-black ${online ? "text-green-300" : "text-yellow-300"}`}
+                className={`font-semibold ${online ? "text-green-300" : "text-yellow-300"}`}
               >
                 {online ? "Online" : "Offline Mode"}
               </span>
@@ -4561,7 +4561,7 @@ function FieldPageContent() {
                 {offlineSummary.megabytes} MB
               </span>
             </div>
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-[#59626f]">
               Native iOS photo captures save a copy to your phone gallery when
               allowed. Videos recorded or chosen from the iPhone picker remain
               in Photos, then upload with visible progress and offline fallback
@@ -4574,7 +4574,7 @@ function FieldPageContent() {
           </div>
 
           {syncNotice && (
-            <div className="mb-5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-sm font-black text-emerald-200">
+            <div className="mb-5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-200">
               {syncNotice}
             </div>
           )}
@@ -4611,7 +4611,7 @@ function FieldPageContent() {
                     });
                   }
                 }}
-                className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                className="w-full rounded-xl border border-[#232b38] bg-black p-4 text-white"
               >
                 <option value="">Select Report</option>
                 {reports.map((report) => (
@@ -4632,16 +4632,16 @@ function FieldPageContent() {
               )}
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-700 bg-black/25">
-              <div className="overflow-x-auto border-b border-slate-700 bg-slate-950/80 p-1">
+            <div className="overflow-hidden rounded-2xl border border-[#232b38] bg-black/25">
+              <div className="overflow-x-auto border-b border-[#232b38] bg-[#131923] p-1">
                 <div className="grid min-w-[760px] grid-cols-5 gap-1">
                   <button
                     type="button"
                     onClick={() => setAssistantTab("live")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
                       assistantTab === "live"
                         ? "bg-cyan-400 text-black"
-                        : "text-slate-300 hover:bg-slate-800"
+                        : "text-[#8a93a3] hover:bg-[#1a212c]"
                     }`}
                   >
                     📹 Live Camera
@@ -4650,10 +4650,10 @@ function FieldPageContent() {
                   <button
                     type="button"
                     onClick={() => setAssistantTab("coach")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
                       assistantTab === "coach"
                         ? "bg-emerald-400 text-black"
-                        : "text-slate-300 hover:bg-slate-800"
+                        : "text-[#8a93a3] hover:bg-[#1a212c]"
                     }`}
                   >
                     🧭 Section Coach
@@ -4662,10 +4662,10 @@ function FieldPageContent() {
                   <button
                     type="button"
                     onClick={() => setAssistantTab("copilot")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
                       assistantTab === "copilot"
                         ? "bg-indigo-400 text-black"
-                        : "text-slate-300 hover:bg-slate-800"
+                        : "text-[#8a93a3] hover:bg-[#1a212c]"
                     }`}
                   >
                     ✨ AI Assistant
@@ -4674,10 +4674,10 @@ function FieldPageContent() {
                   <button
                     type="button"
                     onClick={() => setAssistantTab("review")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
                       assistantTab === "review"
                         ? "bg-purple-400 text-black"
-                        : "text-slate-300 hover:bg-slate-800"
+                        : "text-[#8a93a3] hover:bg-[#1a212c]"
                     }`}
                   >
                     🔎 Live Review
@@ -4686,10 +4686,10 @@ function FieldPageContent() {
                   <button
                     type="button"
                     onClick={() => setAssistantTab("code")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-black transition [touch-action:manipulation] ${
+                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
                       assistantTab === "code"
                         ? "bg-teal-400 text-black"
-                        : "text-slate-300 hover:bg-slate-800"
+                        : "text-[#8a93a3] hover:bg-[#1a212c]"
                     }`}
                   >
                     📖 Code
@@ -4752,10 +4752,10 @@ function FieldPageContent() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-700 bg-black/35 p-4">
+            <div className="rounded-2xl border border-[#232b38] bg-black/35 p-4">
               <label
                 htmlFor="field-workflow"
-                className="mb-2 block text-xs font-black uppercase tracking-[0.22em] text-slate-400"
+                className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-[#8a93a3]"
               >
                 Workflow
               </label>
@@ -4767,7 +4767,7 @@ function FieldPageContent() {
                   onChange={(event) =>
                     handleWorkflowChange(event.target.value as PhotoType)
                   }
-                  className={`min-h-[58px] w-full appearance-none rounded-xl border bg-slate-950 px-4 py-3 pr-12 text-base font-black outline-none transition focus:ring-2 [touch-action:manipulation] ${
+                  className={`min-h-[58px] w-full appearance-none rounded-xl border bg-[#0a0e13] px-4 py-3 pr-12 text-base font-semibold outline-none transition focus:ring-2 [touch-action:manipulation] ${
                     photoType === "finding"
                       ? "border-teal-400/70 text-teal-200 focus:border-teal-300 focus:ring-teal-400/25"
                       : photoType === "existing_finding"
@@ -4789,12 +4789,12 @@ function FieldPageContent() {
                   </option>
                 </select>
 
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xl text-slate-300">
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xl text-[#8a93a3]">
                   ▾
                 </span>
               </div>
 
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+              <p className="mt-2 text-sm leading-relaxed text-[#8a93a3]">
                 {photoType === "finding"
                   ? "Creates a new report finding and can include photos or video."
                   : photoType === "existing_finding"
@@ -4815,17 +4815,17 @@ function FieldPageContent() {
               onAddMedia={(files) => addFiles(files)}
             />
 
-            <div className="rounded-2xl border border-slate-700 bg-black/30 p-4">
+            <div className="rounded-2xl border border-[#232b38] bg-black/30 p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
                     Step 1
                   </p>
-                  <h2 className="text-xl font-black text-white">
+                  <h2 className="text-xl font-semibold text-white">
                     Capture Evidence First
                   </h2>
                 </div>
-                <span className="rounded-full border border-teal-500/50 bg-teal-500/10 px-3 py-1 text-xs font-black text-teal-200">
+                <span className="rounded-full border border-teal-500/50 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-200">
                   Photo / Video
                 </span>
               </div>
@@ -4851,11 +4851,11 @@ function FieldPageContent() {
                 Camera remains a separate tool below it.
               </p>
 
-              <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-700 bg-black/35 px-3 py-2">
-                <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+              <div className="mt-3 flex items-center justify-between rounded-xl border border-[#232b38] bg-black/35 px-3 py-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
                   Selected Media
                 </span>
-                <span className="rounded-full bg-teal-400 px-2.5 py-1 text-xs font-black text-black">
+                <span className="rounded-full bg-teal-400 px-2.5 py-1 text-xs font-semibold text-black">
                   {photos.length}
                 </span>
               </div>
@@ -4865,7 +4865,7 @@ function FieldPageContent() {
               ).length >= 2 && photoType === "finding" && (
                 <>
                   <div className="mt-3 rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/5 p-3">
-                    <label className="mb-1 block text-xs font-black uppercase tracking-wide text-fuchsia-200">
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-fuchsia-200">
                       Inspector Note for AI (optional)
                     </label>
                     <textarea
@@ -4873,7 +4873,7 @@ function FieldPageContent() {
                       onChange={(event) => setOrganizeNote(event.target.value)}
                       rows={2}
                       placeholder="Direct the AI — e.g. 'the panel photos are one finding, the water heater is separate' or 'note the double-tap in group 1'"
-                      className="w-full rounded-lg border border-slate-700 bg-black p-3 leading-6 text-white"
+                      className="w-full rounded-lg border border-[#232b38] bg-black p-3 leading-6 text-white"
                     />
                   </div>
 
@@ -4885,7 +4885,7 @@ function FieldPageContent() {
                       savingOrganizedMedia ||
                       !online
                     }
-                    className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-400 bg-fuchsia-500/15 px-4 py-3 text-sm font-black text-fuchsia-100 transition active:scale-[0.98] hover:bg-fuchsia-500/25 disabled:opacity-50"
+                    className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-400 bg-fuchsia-500/15 px-4 py-3 text-sm font-semibold text-fuchsia-100 transition active:scale-[0.98] hover:bg-fuchsia-500/25 disabled:opacity-50"
                   >
                     {organizingMedia && (
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -4923,13 +4923,13 @@ function FieldPageContent() {
             {photoType === "finding" && (
               <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
                 <div className="mb-3">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-300">
                     Step 2
                 </p>
-                <h2 className="text-xl font-black text-white">
+                <h2 className="text-xl font-semibold text-white">
                   Let AI Help Write It
                 </h2>
-                <p className="mt-1 text-sm text-slate-300">
+                <p className="mt-1 text-sm text-[#8a93a3]">
                   Take a photo first, analyze it as a defect, scan it as
                   equipment, dictate a finding, or type a rough note and
                   generate from the note.
@@ -5024,22 +5024,22 @@ function FieldPageContent() {
               <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4">
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
                       Equipment Detected
                     </p>
-                    <h2 className="mt-1 text-xl font-black text-white">
+                    <h2 className="mt-1 text-xl font-semibold text-white">
                       {cleanEquipmentValue(equipmentResult.manufacturer) ||
                         "Equipment"}{" "}
                       {cleanEquipmentValue(equipmentResult.equipmentType)}
                     </h2>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <p className="mt-1 text-sm text-[#8a93a3]">
                       {shouldCreateEquipmentFinding(equipmentResult)
                         ? "This will save to Equipment Inventory and create a report finding because the analyzer found a reportable condition."
                         : "This will save to Equipment Inventory only and will not count as a defect."}
                     </p>
                   </div>
 
-                  <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
+                  <span className="rounded-full border border-cyan-400/50 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-200">
                     {shouldCreateEquipmentFinding(equipmentResult)
                       ? "Equipment + Finding"
                       : "Inventory Only"}
@@ -5049,7 +5049,7 @@ function FieldPageContent() {
                 <EquipmentCard equipment={equipmentResult} />
 
                 {equipmentResult.clientSummary && (
-                  <div className="mt-4 rounded-xl border border-slate-700 bg-black/30 p-4 text-sm leading-6 text-slate-200">
+                  <div className="mt-4 rounded-xl border border-[#232b38] bg-black/30 p-4 text-sm leading-6 text-[#e8ecf3]">
                     {equipmentResult.clientSummary}
                   </div>
                 )}
@@ -5058,7 +5058,7 @@ function FieldPageContent() {
                   type="button"
                   onClick={() => void saveEquipmentFromFieldTool()}
                   disabled={savingEquipment || analyzingEquipment || saving}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-black transition active:scale-[0.98] hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
                 >
                   {savingEquipment && (
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -5071,10 +5071,10 @@ function FieldPageContent() {
             {photoType === "existing_finding" && (
               <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
                 <div className="mb-3">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-300">
                     Attach Without Duplicating
                   </p>
-                  <h2 className="mt-1 text-xl font-black text-white">
+                  <h2 className="mt-1 text-xl font-semibold text-white">
                     Select Existing Finding
                   </h2>
                   <p className="mt-1 text-sm text-purple-100/80">
@@ -5088,22 +5088,22 @@ function FieldPageContent() {
                     setExistingFindingSearch(event.target.value)
                   }
                   placeholder="Search title, section, or severity..."
-                  className="mb-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-purple-400"
+                  className="mb-4 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-purple-400"
                 />
 
                 {loadingExistingFindings ? (
-                  <div className="rounded-xl border border-slate-700 bg-black/40 p-4 text-sm font-bold text-slate-300">
+                  <div className="rounded-xl border border-[#232b38] bg-black/40 p-4 text-sm font-bold text-[#8a93a3]">
                     Loading report findings...
                   </div>
                 ) : groupedExistingFindings.length === 0 ? (
-                  <div className="rounded-xl border border-slate-700 bg-black/40 p-4 text-sm font-bold text-slate-300">
+                  <div className="rounded-xl border border-[#232b38] bg-black/40 p-4 text-sm font-bold text-[#8a93a3]">
                     No matching findings were found.
                   </div>
                 ) : (
                   <div className="max-h-[430px] space-y-4 overflow-y-auto pr-1">
                     {groupedExistingFindings.map(([groupSection, findings]) => (
                       <div key={groupSection}>
-                        <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-purple-200">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-purple-200">
                           {groupSection}
                         </p>
 
@@ -5122,24 +5122,24 @@ function FieldPageContent() {
                                 className={`w-full rounded-xl border p-3 text-left transition active:scale-[0.99] [touch-action:manipulation] ${
                                   selected
                                     ? "border-purple-300 bg-purple-500/30 ring-2 ring-purple-300/40"
-                                    : "border-slate-700 bg-black/50 hover:border-purple-500/60 hover:bg-black/70"
+                                    : "border-[#232b38] bg-black/50 hover:border-purple-500/60 hover:bg-black/70"
                                 }`}
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
-                                    <p className="break-words font-black text-white">
+                                    <p className="break-words font-semibold text-white">
                                       {finding.title || "Untitled Finding"}
                                     </p>
-                                    <p className="mt-1 text-xs font-bold text-slate-400">
+                                    <p className="mt-1 text-xs font-bold text-[#8a93a3]">
                                       {finding.severity || "No severity"}
                                     </p>
                                   </div>
 
                                   <span
-                                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                                       selected
                                         ? "bg-purple-300 text-purple-950"
-                                        : "border border-slate-600 text-slate-300"
+                                        : "border border-[#232b38] text-[#8a93a3]"
                                     }`}
                                   >
                                     {selected ? "Selected" : "Choose"}
@@ -5156,23 +5156,23 @@ function FieldPageContent() {
 
                 {selectedExistingFinding && (
                   <div className="mt-4 rounded-xl border border-purple-400/50 bg-black/40 p-3">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-purple-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-300">
                       Adding Media To
                     </p>
-                    <p className="mt-1 font-black text-white">
+                    <p className="mt-1 font-semibold text-white">
                       {selectedExistingFinding.title || "Untitled Finding"}
                     </p>
-                    <p className="mt-1 text-xs font-bold text-slate-400">
+                    <p className="mt-1 text-xs font-bold text-[#8a93a3]">
                       {selectedExistingFinding.section || "General"} ·{" "}
                       {selectedExistingFinding.severity || "No severity"}
                     </p>
 
                     <div className="mt-3">
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a93a3]">
                           Current Media
                         </p>
-                        <span className="text-xs font-bold text-slate-400">
+                        <span className="text-xs font-bold text-[#8a93a3]">
                           {loadingExistingFindingMedia
                             ? "Loading..."
                             : `${existingFindingMedia.length} item${
@@ -5182,7 +5182,7 @@ function FieldPageContent() {
                       </div>
 
                       {loadingExistingFindingMedia ? (
-                        <div className="rounded-lg border border-slate-700 p-3 text-xs font-bold text-slate-400">
+                        <div className="rounded-lg border border-[#232b38] p-3 text-xs font-bold text-[#8a93a3]">
                           Loading attached media...
                         </div>
                       ) : existingFindingMedia.length > 0 ? (
@@ -5195,7 +5195,7 @@ function FieldPageContent() {
                           ))}
                         </div>
                       ) : (
-                        <div className="rounded-lg border border-dashed border-slate-600 p-3 text-xs font-bold text-slate-400">
+                        <div className="rounded-lg border border-dashed border-[#232b38] p-3 text-xs font-bold text-[#8a93a3]">
                           No media is currently attached.
                         </div>
                       )}
@@ -5209,13 +5209,13 @@ function FieldPageContent() {
               <div className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-fuchsia-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fuchsia-300">
                       AI Media Organization
                     </p>
-                    <h2 className="mt-1 text-xl font-black text-white">
+                    <h2 className="mt-1 text-xl font-semibold text-white">
                       Review Photo Groups
                     </h2>
-                    <p className="mt-1 text-sm text-slate-300">
+                    <p className="mt-1 text-sm text-[#8a93a3]">
                       AI grouped related photos. Edit any assignment before
                       creating the findings.
                     </p>
@@ -5224,7 +5224,7 @@ function FieldPageContent() {
                   <button
                     type="button"
                     onClick={() => setMediaOrganizerOpen(false)}
-                    className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-black text-slate-200"
+                    className="rounded-xl border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#e8ecf3]"
                   >
                     Close
                   </button>
@@ -5236,14 +5236,14 @@ function FieldPageContent() {
                     return (
                     <div
                       key={group.id}
-                      className="overflow-hidden rounded-xl border border-slate-700 bg-black/40 p-3"
+                      className="overflow-hidden rounded-xl border border-[#232b38] bg-black/40 p-3"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="break-words font-black text-white">
+                          <p className="break-words font-semibold text-white">
                             {group.label}
                           </p>
-                          <p className="text-xs font-bold text-slate-400">
+                          <p className="text-xs font-bold text-[#8a93a3]">
                             {group.photoIndexes.length} photo
                             {group.photoIndexes.length === 1 ? "" : "s"} ·{" "}
                             {Math.round((group.confidence || 0) * 100)}%
@@ -5258,7 +5258,7 @@ function FieldPageContent() {
                                 .value as AIMediaGroup["classification"],
                             })
                           }
-                          className="w-full shrink-0 rounded-lg border border-slate-600 bg-black px-3 py-2 text-sm font-bold text-white sm:w-auto"
+                          className="w-full shrink-0 rounded-lg border border-[#232b38] bg-black px-3 py-2 text-sm font-bold text-white sm:w-auto"
                         >
                           <option value="finding">Finding</option>
                           <option value="reference">Reference</option>
@@ -5270,7 +5270,7 @@ function FieldPageContent() {
 
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         <label className="block min-w-0">
-                          <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Section</span>
+                          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">Section</span>
                           <select
                             value={group.section}
                             onChange={(event) =>
@@ -5278,7 +5278,7 @@ function FieldPageContent() {
                                 section: event.target.value,
                               })
                             }
-                            className="w-full rounded-lg border border-slate-600 bg-black p-2 text-white"
+                            className="w-full rounded-lg border border-[#232b38] bg-black p-2 text-white"
                           >
                             {activeSections.map((item) => (
                               <option key={item}>{item}</option>
@@ -5287,7 +5287,7 @@ function FieldPageContent() {
                         </label>
 
                         <label className="block min-w-0">
-                          <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Severity</span>
+                          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">Severity</span>
                           <select
                             value={group.severity}
                             onChange={(event) =>
@@ -5295,7 +5295,7 @@ function FieldPageContent() {
                                 severity: event.target.value,
                               })
                             }
-                            className="w-full rounded-lg border border-slate-600 bg-black p-2 text-white"
+                            className="w-full rounded-lg border border-[#232b38] bg-black p-2 text-white"
                           >
                             {SEVERITIES.map((item) => (
                               <option key={item}>{item}</option>
@@ -5306,7 +5306,7 @@ function FieldPageContent() {
 
                       {group.photoIndexes.length > 0 && (
                         <div className="mt-3">
-                          <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">
+                          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
                             Photos in this finding
                           </span>
                           <div className="flex flex-wrap gap-2">
@@ -5317,10 +5317,10 @@ function FieldPageContent() {
                                   <img
                                     src={mediaPreviewUrls[photoIndex]}
                                     alt=""
-                                    className="h-16 w-16 rounded-lg border border-slate-700 object-cover"
+                                    className="h-16 w-16 rounded-lg border border-[#232b38] object-cover"
                                   />
                                 ) : (
-                                  <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-[10px] text-slate-400">
+                                  <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-[#232b38] bg-[#1a212c] text-[10px] text-[#8a93a3]">
                                     media
                                   </div>
                                 )}
@@ -5335,7 +5335,7 @@ function FieldPageContent() {
                                       value === "__remove__" ? null : value,
                                     );
                                   }}
-                                  className="mt-1 w-16 rounded border border-slate-600 bg-black px-1 py-1 text-[10px] font-bold text-white"
+                                  className="mt-1 w-16 rounded border border-[#232b38] bg-black px-1 py-1 text-[10px] font-bold text-white"
                                 >
                                   <option value="">Move…</option>
                                   {mediaGroups
@@ -5356,7 +5356,7 @@ function FieldPageContent() {
                               </div>
                             ))}
                           </div>
-                          <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                          <p className="mt-1 text-[11px] leading-4 text-[#59626f]">
                             Use “Move…” under a photo to send it to another finding, or Remove to
                             leave it off.
                           </p>
@@ -5371,7 +5371,7 @@ function FieldPageContent() {
                           })
                         }
                         placeholder="Title"
-                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 font-black text-white"
+                        className="mt-3 w-full rounded-lg border border-[#232b38] bg-black p-3 font-semibold text-white"
                       />
 
                       <textarea
@@ -5382,7 +5382,7 @@ function FieldPageContent() {
                           })
                         }
                         rows={3}
-                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
+                        className="mt-3 w-full rounded-lg border border-[#232b38] bg-black p-3 text-white"
                         placeholder="Observation"
                       />
 
@@ -5394,7 +5394,7 @@ function FieldPageContent() {
                           })
                         }
                         rows={2}
-                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
+                        className="mt-3 w-full rounded-lg border border-[#232b38] bg-black p-3 text-white"
                         placeholder="Implication"
                       />
 
@@ -5406,7 +5406,7 @@ function FieldPageContent() {
                           })
                         }
                         rows={2}
-                        className="mt-3 w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
+                        className="mt-3 w-full rounded-lg border border-[#232b38] bg-black p-3 text-white"
                         placeholder="Recommendation"
                       />
 
@@ -5429,7 +5429,7 @@ function FieldPageContent() {
 
                       {/* Per-finding AI note — steer each defect independently */}
                       <div className="mt-3 rounded-lg border border-cyan-500/40 bg-cyan-500/5 p-3">
-                        <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-cyan-200">
+                        <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-cyan-200">
                           AI note for this finding (optional)
                         </label>
                         <textarea
@@ -5439,13 +5439,13 @@ function FieldPageContent() {
                           }
                           rows={2}
                           placeholder="Direct the AI for this defect only — e.g. 'call out the cracked heat exchanger'"
-                          className="w-full rounded-lg border border-slate-600 bg-black p-3 text-white"
+                          className="w-full rounded-lg border border-[#232b38] bg-black p-3 text-white"
                         />
                         <button
                           type="button"
                           onClick={() => void regenerateGroupWithAI(group)}
                           disabled={regenerating || Boolean(regeneratingGroupId)}
-                          className="mt-2 w-full rounded-lg bg-cyan-400 p-2.5 text-sm font-black text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                          className="mt-2 w-full rounded-lg bg-cyan-400 p-2.5 text-sm font-semibold text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                         >
                           {regenerating ? "Re-drafting…" : "🔄 Re-draft this finding with AI"}
                         </button>
@@ -5459,7 +5459,7 @@ function FieldPageContent() {
                   type="button"
                   onClick={saveOrganizedMediaGroups}
                   disabled={savingOrganizedMedia || organizingMedia}
-                  className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-fuchsia-400 px-4 py-3 font-black text-black disabled:opacity-50"
+                  className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-fuchsia-400 px-4 py-3 font-semibold text-black disabled:opacity-50"
                 >
                   {savingOrganizedMedia && (
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -5488,7 +5488,7 @@ function FieldPageContent() {
 
             {photoType === "reference_photo" && (
               <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm leading-6 text-cyan-100">
-                <p className="font-black text-cyan-300">Reference Photo Mode</p>
+                <p className="font-semibold text-cyan-300">Reference Photo Mode</p>
                 <p className="mt-1">
                   Photos saved here will appear under Section Reference Photos
                   in the report/share/client views. They are not counted as
@@ -5499,7 +5499,7 @@ function FieldPageContent() {
 
             {photoType === "limitation" && (
               <div className="rounded-xl border border-orange-500/40 bg-orange-950/20 p-4 text-sm leading-6 text-orange-100">
-                <p className="font-black text-orange-300">
+                <p className="font-semibold text-orange-300">
                   Section Limitation + Photo
                 </p>
                 <p className="mt-1">
@@ -5516,7 +5516,7 @@ function FieldPageContent() {
                     !online ||
                     !photos.some((photo) => photo.type.startsWith("image/"))
                   }
-                  className="mt-3 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-orange-400 px-4 py-2 text-sm font-black text-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                  className="mt-3 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-orange-400 px-4 py-2 text-sm font-semibold text-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {analyzingLimitation && (
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -5529,8 +5529,8 @@ function FieldPageContent() {
             )}
 
             {photoType !== "existing_finding" && (
-              <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
-                <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+              <div className="rounded-2xl border border-[#232b38] bg-black/20 p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
                   Step 3
               </p>
 
@@ -5539,7 +5539,7 @@ function FieldPageContent() {
                 <select
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
-                  className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                  className="w-full rounded-xl border border-[#232b38] bg-black p-4 text-white"
                 >
                   {activeSections.map((item) => (
                     <option key={item} value={item}>
@@ -5568,7 +5568,7 @@ function FieldPageContent() {
                         ? "Example: The rear roof slope was not fully visible due to dense tree coverage and could not be completely inspected."
                         : "Example: double tapped neutral in main panel, recommend electrician"
                   }
-                  className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
+                  className="w-full rounded-xl border border-[#232b38] bg-black p-4 leading-7 text-white"
                 />
                 {photoType === "finding" && (
                   <p className="mt-2 text-xs font-bold text-cyan-300">
@@ -5588,7 +5588,7 @@ function FieldPageContent() {
                       onChange={(event) => setLimitationHint(event.target.value)}
                       rows={2}
                       placeholder="Direct the AI — e.g. 'note the stored boxes blocking the crawlspace hatch' or 'snow covering the roof'"
-                      className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
+                      className="w-full rounded-xl border border-[#232b38] bg-black p-4 leading-7 text-white"
                     />
                     <button
                       type="button"
@@ -5611,7 +5611,7 @@ function FieldPageContent() {
                           : "✨ Draft limitation with AI"}
                     </button>
                     {!photos.some((photo) => photo.type.startsWith("image/")) && (
-                      <p className="mt-2 text-xs font-bold text-slate-400">
+                      <p className="mt-2 text-xs font-bold text-[#8a93a3]">
                         Add a limitation photo first, then draft.
                       </p>
                     )}
@@ -5625,7 +5625,7 @@ function FieldPageContent() {
                       value={title}
                       onChange={(event) => setTitle(event.target.value)}
                       placeholder="Example: Rear roof slope not fully visible"
-                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                      className="w-full rounded-xl border border-[#232b38] bg-black p-4 text-white"
                     />
                   </div>
 
@@ -5640,7 +5640,7 @@ function FieldPageContent() {
                       }
                       rows={3}
                       placeholder="Example: Reinspect when vegetation is trimmed or access improves."
-                      className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
+                      className="w-full rounded-xl border border-[#232b38] bg-black p-4 leading-7 text-white"
                     />
                   </div>
                 </div>
@@ -5649,8 +5649,8 @@ function FieldPageContent() {
             )}
 
             {photoType === "finding" && (
-              <div className="rounded-2xl border border-slate-700 bg-black/20 p-4">
-                <p className="mb-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+              <div className="rounded-2xl border border-[#232b38] bg-black/20 p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
                   Step 4
                 </p>
 
@@ -5660,7 +5660,7 @@ function FieldPageContent() {
                     <input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                      className="w-full rounded-xl border border-[#232b38] bg-black p-4 text-white"
                     />
                   </div>
 
@@ -5669,7 +5669,7 @@ function FieldPageContent() {
                     <select
                       value={severity}
                       onChange={(e) => setSeverity(e.target.value)}
-                      className="w-full rounded-xl border border-slate-700 bg-black p-4 text-white"
+                      className="w-full rounded-xl border border-[#232b38] bg-black p-4 text-white"
                     >
                       {SEVERITIES.map((item) => (
                         <option key={item} value={item}>
@@ -5770,7 +5770,7 @@ function FieldPageContent() {
               <button
                 type="button"
                 onClick={() => setVoiceOnlyOpen((current) => !current)}
-                className={`inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-black transition active:scale-[0.98] [touch-action:manipulation] ${
+                className={`inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
                   voiceOnlyOpen
                     ? "border-emerald-400 bg-emerald-400 text-black"
                     : "border-emerald-500/50 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
@@ -5838,10 +5838,10 @@ function UploadProgressPanel({ items }: { items: UploadProgressItem[] }) {
   return (
     <div className="mt-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
           Media Backup / Upload Queue
         </p>
-        <span className="rounded-full border border-cyan-400/40 px-3 py-1 text-xs font-black text-cyan-200">
+        <span className="rounded-full border border-cyan-400/40 px-3 py-1 text-xs font-semibold text-cyan-200">
           {items.length} item{items.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -5850,11 +5850,11 @@ function UploadProgressPanel({ items }: { items: UploadProgressItem[] }) {
         {items.map((item) => (
           <div
             key={item.id}
-            className="rounded-xl border border-slate-700 bg-black/35 p-3"
+            className="rounded-xl border border-[#232b38] bg-black/35 p-3"
           >
             <div className="mb-2 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-white">
+                <p className="truncate text-sm font-semibold text-white">
                   {item.type === "video"
                     ? "🎥"
                     : item.type === "thumbnail"
@@ -5862,12 +5862,12 @@ function UploadProgressPanel({ items }: { items: UploadProgressItem[] }) {
                       : "📷"}{" "}
                   {item.name}
                 </p>
-                <p className="mt-1 text-xs font-semibold text-slate-300">
+                <p className="mt-1 text-xs font-semibold text-[#8a93a3]">
                   {item.stage}
                 </p>
               </div>
               <span
-                className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${
+                className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                   item.status === "done"
                     ? "border-green-400/50 bg-green-500/10 text-green-300"
                     : item.status === "queued"
@@ -5887,7 +5887,7 @@ function UploadProgressPanel({ items }: { items: UploadProgressItem[] }) {
               </span>
             </div>
 
-            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+            <div className="h-2 overflow-hidden rounded-full bg-[#1a212c]">
               <div
                 className="h-full rounded-full bg-cyan-400 transition-all duration-300"
                 style={{
@@ -5922,7 +5922,7 @@ function ExistingFindingMediaPreview({
       href={mediaUrl || previewUrl || undefined}
       target="_blank"
       rel="noreferrer"
-      className="group relative aspect-square overflow-hidden rounded-lg border border-slate-700 bg-black"
+      className="group relative aspect-square overflow-hidden rounded-lg border border-[#232b38] bg-black"
       title={isVideo ? "Open attached video" : "Open attached photo"}
     >
       {previewUrl ? (
@@ -5939,7 +5939,7 @@ function ExistingFindingMediaPreview({
       )}
 
       {isVideo && (
-        <span className="absolute bottom-1 left-1 rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-black text-white">
+        <span className="absolute bottom-1 left-1 rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-semibold text-white">
           VIDEO
         </span>
       )}
@@ -6133,7 +6133,7 @@ function MediaPreview({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-700 bg-black">
+    <div className="overflow-hidden rounded-xl border border-[#232b38] bg-black">
       {isVideo ? (
         playingVideo && url ? (
           <video
@@ -6151,7 +6151,7 @@ function MediaPreview({
             onClick={() => {
               if (url) setPlayingVideo(true);
             }}
-            className="group relative block h-40 w-full overflow-hidden bg-slate-950 text-left"
+            className="group relative block h-40 w-full overflow-hidden bg-[#0a0e13] text-left"
             aria-label={`Play video ${file.name || ""}`.trim()}
           >
             {videoThumbnailUrl ? (
@@ -6178,12 +6178,12 @@ function MediaPreview({
               ▶
             </span>
 
-            <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white backdrop-blur">
+            <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur">
               Video
             </span>
 
             {videoDuration > 0 && (
-              <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-1 text-xs font-black tabular-nums text-white backdrop-blur">
+              <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-1 text-xs font-semibold tabular-nums text-white backdrop-blur">
                 {formatVideoDuration(videoDuration)}
               </span>
             )}
@@ -6195,23 +6195,23 @@ function MediaPreview({
         <div className="h-40 w-full bg-black" />
       )}
 
-      <div className="grid grid-cols-2 border-t border-slate-700">
+      <div className="grid grid-cols-2 border-t border-[#232b38]">
         {onMarkup ? (
           <button
             type="button"
             onClick={onMarkup}
-            className="min-h-[42px] border-r border-slate-700 px-3 py-2 text-xs font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 [touch-action:manipulation]"
+            className="min-h-[42px] border-r border-[#232b38] px-3 py-2 text-xs font-semibold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500/10 [touch-action:manipulation]"
           >
             ✏️ Mark Up
           </button>
         ) : (
-          <div className="border-r border-slate-700" />
+          <div className="border-r border-[#232b38]" />
         )}
 
         <button
           type="button"
           onClick={onRemove}
-          className="min-h-[42px] px-3 py-2 text-xs font-black text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
+          className="min-h-[42px] px-3 py-2 text-xs font-semibold text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 [touch-action:manipulation]"
         >
           Remove
         </button>
@@ -6236,7 +6236,7 @@ function TextArea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={5}
-        className="w-full rounded-xl border border-slate-700 bg-black p-4 leading-7 text-white"
+        className="w-full rounded-xl border border-[#232b38] bg-black p-4 leading-7 text-white"
       />
     </div>
   );

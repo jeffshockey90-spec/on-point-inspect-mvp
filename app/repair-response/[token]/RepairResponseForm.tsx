@@ -113,7 +113,7 @@ function getResponseStyle(value: string) {
     return "border-yellow-500/60 bg-yellow-500/10";
   }
 
-  return "border-slate-700 bg-[#0f172a]";
+  return "border-[#232b38] bg-[#10151e]";
 }
 
 function getResponseBadgeStyle(value: string) {
@@ -133,7 +133,7 @@ function getResponseBadgeStyle(value: string) {
     return "border-yellow-400/60 bg-yellow-500/15 text-yellow-100";
   }
 
-  return "border-slate-600 bg-slate-900 text-slate-300";
+  return "border-[#232b38] bg-[#131923] text-[#8a93a3]";
 }
 
 function getRequestedCredit(finding: Finding) {
@@ -460,18 +460,18 @@ export default function RepairResponseForm({
 
   return (
     <section className="space-y-5 pb-28 md:pb-0">
-      <div className="sticky top-0 z-40 -mx-4 rounded-b-2xl border-b border-slate-700 bg-[#020617]/95 p-3 shadow-xl backdrop-blur md:static md:mx-0 md:rounded-2xl md:border md:border-slate-700 md:bg-[#0f172a] md:p-4">
+      <div className="sticky top-0 z-40 -mx-4 rounded-b-2xl border-b border-[#232b38] bg-[#0a0e13]/95 p-3 shadow-xl backdrop-blur md:static md:mx-0 md:rounded-2xl md:border md:border-[#232b38] md:bg-[#10151e] md:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-teal-300">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-300">
               Response Progress
             </p>
-            <p className="mt-1 text-sm font-black text-white">
+            <p className="mt-1 text-sm font-semibold text-white">
               {answeredCount} of {findings.length} answered
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 text-xs font-black">
+          <div className="flex flex-wrap gap-2 text-xs font-semibold">
             <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-cyan-100">
               Requested {formatMoney(requestedCreditTotal)}
             </span>
@@ -481,7 +481,7 @@ export default function RepairResponseForm({
           </div>
         </div>
 
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-900 ring-1 ring-slate-700">
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#131923] ring-1 ring-slate-700">
           <div
             className="h-full rounded-full bg-teal-400 transition-all"
             style={{ width: `${progressPercent}%` }}
@@ -495,28 +495,28 @@ export default function RepairResponseForm({
         ) : null}
       </div>
 
-      <section className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5 shadow-xl">
+      <section className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5 shadow-xl">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
               Response Progress
             </p>
-            <h2 className="mt-2 text-2xl font-black text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-white">
               {answeredCount} / {findings.length} Answered
             </h2>
           </div>
           {locked ? (
-            <span className="w-fit rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-black text-emerald-200">
+            <span className="w-fit rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-200">
               Response Submitted
             </span>
           ) : (
-            <span className="w-fit rounded-full border border-yellow-400/60 bg-yellow-500/15 px-4 py-2 text-sm font-black text-yellow-100">
+            <span className="w-fit rounded-full border border-yellow-400/60 bg-yellow-500/15 px-4 py-2 text-sm font-semibold text-yellow-100">
               Waiting for Submission
             </span>
           )}
         </div>
 
-        <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#020617] ring-1 ring-slate-700">
+        <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#0a0e13] ring-1 ring-slate-700">
           <div
             className="h-full rounded-full bg-teal-400 transition-all"
             style={{ width: `${progressPercent}%` }}
@@ -525,19 +525,19 @@ export default function RepairResponseForm({
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-cyan-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">
               Requested Credit
             </p>
-            <p className="mt-2 text-2xl font-black text-white">
+            <p className="mt-2 text-2xl font-semibold text-white">
               {formatMoney(requestedCreditTotal)}
             </p>
           </div>
 
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-emerald-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-200">
               Seller Credit Offered
             </p>
-            <p className="mt-2 text-2xl font-black text-white">
+            <p className="mt-2 text-2xl font-semibold text-white">
               {formatMoney(sellerCreditTotal)}
             </p>
           </div>
@@ -555,17 +555,17 @@ export default function RepairResponseForm({
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-200">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-200">
                   {fullyExecuted ? "Fully Executed" : sellerSigned ? "Seller Signed" : "Addendum Ready"}
                 </p>
-                <h2 className="mt-2 text-2xl font-black text-white">
+                <h2 className="mt-2 text-2xl font-semibold text-white">
                   Executed Repair Request Addendum
                 </h2>
-                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300">
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-[#8a93a3]">
                   Includes seller responses, requested credits, offered credits, totals, signatures, and execution record.
                 </p>
 
-                <div className="mt-4 flex flex-wrap gap-2 text-xs font-black">
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
                   <span className={`rounded-full border px-3 py-1 ${
                     buyerSigned
                       ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
@@ -593,14 +593,14 @@ export default function RepairResponseForm({
                   href={`/api/repair-request-addendum/${encodeURIComponent(token)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 bg-[#020617] px-4 py-3 text-sm font-black text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 bg-[#0a0e13] px-4 py-3 text-sm font-semibold text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
                 >
                   Open
                 </a>
 
                 <a
                   href={`/api/repair-request-addendum/${encodeURIComponent(token)}?download=1`}
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-teal-400 bg-[#020617] px-4 py-3 text-sm font-black text-teal-200 transition hover:bg-teal-500/10 active:scale-[0.98]"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-teal-400 bg-[#0a0e13] px-4 py-3 text-sm font-semibold text-teal-200 transition hover:bg-teal-500/10 active:scale-[0.98]"
                 >
                   Download
                 </a>
@@ -610,7 +610,7 @@ export default function RepairResponseForm({
                   onClick={emailAddendum}
                   disabled={emailingAddendum || addendumRecipientCount === 0}
                   data-fast-click="true"
-                  className="min-h-[48px] rounded-xl border border-cyan-400 bg-[#020617] px-4 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="min-h-[48px] rounded-xl border border-cyan-400 bg-[#0a0e13] px-4 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {emailingAddendum ? "Emailing..." : `Email Selected (${addendumRecipientCount})`}
                 </button>
@@ -626,30 +626,30 @@ export default function RepairResponseForm({
                       setAddendumMessage(url);
                     }
                   }}
-                  className="min-h-[48px] rounded-xl border border-slate-500 bg-[#020617] px-4 py-3 text-sm font-black text-slate-200 transition hover:border-slate-300 hover:bg-slate-800 active:scale-[0.98]"
+                  className="min-h-[48px] rounded-xl border border-[#59626f] bg-[#0a0e13] px-4 py-3 text-sm font-semibold text-[#e8ecf3] transition hover:border-slate-300 hover:bg-[#1a212c] active:scale-[0.98]"
                 >
                   Copy Link
                 </button>
               </div>
             </div>
 
-            <div className="rounded-xl border border-purple-400/40 bg-[#020617] p-4">
+            <div className="rounded-xl border border-purple-400/40 bg-[#0a0e13] p-4">
               <button
                 type="button"
                 onClick={() => setShowRecipientPicker((prev) => !prev)}
                 className="flex w-full items-center justify-between gap-3 text-left"
               >
                 <span>
-                  <span className="block text-xs font-black uppercase tracking-wide text-purple-200">
+                  <span className="block text-xs font-semibold uppercase tracking-wide text-purple-200">
                     Email Recipients
                   </span>
-                  <span className="mt-1 block text-sm font-bold text-slate-300">
+                  <span className="mt-1 block text-sm font-bold text-[#8a93a3]">
                     {addendumRecipientCount
                       ? `${addendumRecipientCount} selected`
                       : "No recipients selected"}
                   </span>
                 </span>
-                <span className="rounded-full border border-purple-400/50 px-3 py-1 text-xs font-black text-purple-200">
+                <span className="rounded-full border border-purple-400/50 px-3 py-1 text-xs font-semibold text-purple-200">
                   {showRecipientPicker ? "Hide ▲" : "Show ▼"}
                 </span>
               </button>
@@ -672,21 +672,21 @@ export default function RepairResponseForm({
                             className={`relative flex min-h-[76px] w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition active:scale-[0.99] ${
                               checked
                                 ? "border-cyan-300 bg-cyan-500/15 text-cyan-100 shadow-[0_0_22px_rgba(6,182,212,0.16)]"
-                                : "border-slate-700 bg-[#071224] text-slate-300 hover:border-cyan-500"
+                                : "border-[#232b38] bg-[#071224] text-[#8a93a3] hover:border-cyan-500"
                             }`}
                           >
-                            <span className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-black ${
+                            <span className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-semibold ${
                               checked
                                 ? "border-cyan-300 bg-cyan-400 text-slate-950"
-                                : "border-slate-500 bg-[#020617] text-transparent"
+                                : "border-[#59626f] bg-[#0a0e13] text-transparent"
                             }`}>
                               ✓
                             </span>
                             <span className="min-w-0">
-                              <span className="block break-words text-sm font-black">
+                              <span className="block break-words text-sm font-semibold">
                                 {label}
                               </span>
-                              <span className="mt-1 block break-all text-xs font-bold text-slate-400">
+                              <span className="mt-1 block break-all text-xs font-bold text-[#8a93a3]">
                                 {email}
                               </span>
                             </span>
@@ -704,7 +704,7 @@ export default function RepairResponseForm({
                     <button
                       type="button"
                       onClick={() => setShowCustomAddendumEmail(true)}
-                      className="min-h-[48px] w-full rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                      className="min-h-[48px] w-full rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
                     >
                       + Add Recipient
                     </button>
@@ -715,7 +715,7 @@ export default function RepairResponseForm({
                         onChange={(event) => setCustomAddendumEmail(event.target.value)}
                         placeholder="Email address..."
                         type="email"
-                        className="h-[48px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
+                        className="h-[48px] w-full rounded-xl border border-[#232b38] bg-[#071224] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
                       />
                       <button
                         type="button"
@@ -732,7 +732,7 @@ export default function RepairResponseForm({
                           setShowCustomAddendumEmail(false);
                           setAddendumMessage("");
                         }}
-                        className="min-h-[48px] rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+                        className="min-h-[48px] rounded-xl border border-cyan-400 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 active:scale-[0.98]"
                       >
                         Add
                       </button>
@@ -742,7 +742,7 @@ export default function RepairResponseForm({
                           setCustomAddendumEmail("");
                           setShowCustomAddendumEmail(false);
                         }}
-                        className="min-h-[48px] rounded-xl border border-slate-600 bg-[#071224] px-5 py-3 text-sm font-black text-slate-300 transition hover:bg-slate-800 active:scale-[0.98]"
+                        className="min-h-[48px] rounded-xl border border-[#232b38] bg-[#071224] px-5 py-3 text-sm font-semibold text-[#8a93a3] transition hover:bg-[#1a212c] active:scale-[0.98]"
                       >
                         Cancel
                       </button>
@@ -777,24 +777,24 @@ export default function RepairResponseForm({
           >
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
                   Item #{itemNumber}
                 </p>
-                <h2 className="mt-2 break-words text-2xl font-black text-white">
+                <h2 className="mt-2 break-words text-2xl font-semibold text-white">
                   {finding.title || "Untitled Finding"}
                 </h2>
-                <p className="mt-1 break-words text-sm font-bold text-slate-400">
+                <p className="mt-1 break-words text-sm font-bold text-[#8a93a3]">
                   {finding.section || "Other"} · {finding.severity || "Recommended Repair"}
                 </p>
 
                 {parseMoneyValue(requestedCredit) > 0 ? (
-                  <p className="mt-3 w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-200">
+                  <p className="mt-3 w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-200">
                     Requested Credit: {formatMoney(requestedCredit)}
                   </p>
                 ) : null}
               </div>
 
-              <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black uppercase ${getResponseBadgeStyle(currentStatus)}`}>
+              <span className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold uppercase ${getResponseBadgeStyle(currentStatus)}`}>
                 {responseIcon(currentStatus)} {responseLabel(currentStatus)}
               </span>
             </div>
@@ -809,12 +809,12 @@ export default function RepairResponseForm({
                     [id]: true,
                   }))
                 }
-                className="mb-4 max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
+                className="mb-4 max-h-[360px] w-full rounded-xl border border-[#232b38] object-contain"
               />
             ) : null}
 
-            <div className="rounded-xl border border-slate-700 bg-[#020617] p-4 text-slate-200">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-[#e8ecf3]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Requested Action
               </p>
               <p className="mt-2 whitespace-pre-line break-words leading-7">
@@ -823,7 +823,7 @@ export default function RepairResponseForm({
             </div>
 
             <div className="mt-4">
-              <p className="mb-3 text-sm font-black text-white">Response</p>
+              <p className="mb-3 text-sm font-semibold text-white">Response</p>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 {RESPONSE_OPTIONS.map((option) => {
                   const active = currentStatus === option.value;
@@ -838,11 +838,11 @@ export default function RepairResponseForm({
                       className={`min-h-[74px] rounded-xl border px-3 py-3 text-left transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 ${
                         active
                           ? "border-teal-300 bg-teal-500/20 text-white shadow-[0_0_20px_rgba(20,184,166,0.18)]"
-                          : "border-slate-700 bg-[#020617] text-slate-300 hover:border-teal-500 hover:bg-teal-500/10"
+                          : "border-[#232b38] bg-[#0a0e13] text-[#8a93a3] hover:border-teal-500 hover:bg-teal-500/10"
                       }`}
                     >
                       <span className="block text-xl">{option.icon}</span>
-                      <span className="mt-1 block text-xs font-black uppercase leading-4">
+                      <span className="mt-1 block text-xs font-semibold uppercase leading-4">
                         {option.label}
                       </span>
                     </button>
@@ -853,7 +853,7 @@ export default function RepairResponseForm({
 
             {showCreditField ? (
               <label className="mt-4 block">
-                <span className="mb-2 block text-sm font-black text-white">
+                <span className="mb-2 block text-sm font-semibold text-white">
                   Seller Credit Amount
                 </span>
                 <input
@@ -862,13 +862,13 @@ export default function RepairResponseForm({
                   disabled={locked}
                   placeholder="$0"
                   inputMode="decimal"
-                  className="h-[52px] w-full rounded-xl border border-blue-500/60 bg-[#020617] px-3 text-lg font-black text-white outline-none focus:border-blue-300 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="h-[52px] w-full rounded-xl border border-blue-500/60 bg-[#0a0e13] px-3 text-lg font-semibold text-white outline-none focus:border-blue-300 disabled:cursor-not-allowed disabled:opacity-70"
                 />
               </label>
             ) : null}
 
             <label className="mt-4 block">
-              <span className="mb-2 block text-sm font-black text-white">
+              <span className="mb-2 block text-sm font-semibold text-white">
                 Notes
               </span>
               <textarea
@@ -877,7 +877,7 @@ export default function RepairResponseForm({
                 rows={3}
                 disabled={locked}
                 placeholder="Add repair notes, credit details, timing, or explanation..."
-                className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
+                className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
           </article>
@@ -887,18 +887,18 @@ export default function RepairResponseForm({
       <section className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-5 shadow-xl">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
               Electronic Signatures
             </p>
-            <h2 className="mt-2 text-2xl font-black text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-white">
               Sign Repair Request Response
             </h2>
-            <p className="mt-1 text-sm leading-6 text-slate-300">
+            <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
               Seller signature is required to submit. Buyer signature can be added here if available, or added later on the final addendum.
             </p>
           </div>
 
-          <span className={`w-fit rounded-full border px-4 py-2 text-sm font-black ${
+          <span className={`w-fit rounded-full border px-4 py-2 text-sm font-semibold ${
             sellerPrintedName.trim() && sellerSignature.trim()
               ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"
               : "border-yellow-400/60 bg-yellow-500/15 text-yellow-100"
@@ -912,12 +912,12 @@ export default function RepairResponseForm({
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-slate-700 bg-[#020617] p-4">
-            <p className="text-sm font-black uppercase tracking-wide text-slate-300">
+          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4">
+            <p className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
               Buyer Signature
             </p>
             <label className="mt-4 block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Buyer Printed Name
               </span>
               <input
@@ -928,11 +928,11 @@ export default function RepairResponseForm({
                 }}
                 disabled={locked}
                 placeholder="Buyer name"
-                className="h-[52px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 font-bold text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[52px] w-full rounded-xl border border-[#232b38] bg-[#071224] px-3 font-bold text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
             <label className="mt-4 block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Type Buyer Signature
               </span>
               <input
@@ -940,7 +940,7 @@ export default function RepairResponseForm({
                 onChange={(event) => setBuyerSignature(event.target.value)}
                 disabled={locked}
                 placeholder="Type full legal signature"
-                className="h-[64px] w-full rounded-xl border border-slate-700 bg-[#071224] px-4 text-2xl font-black italic text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[64px] w-full rounded-xl border border-[#232b38] bg-[#071224] px-4 text-2xl font-semibold italic text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
             {buyerSignature.trim() ? (
@@ -952,12 +952,12 @@ export default function RepairResponseForm({
             ) : null}
           </div>
 
-          <div className="rounded-xl border border-teal-500/50 bg-[#020617] p-4">
-            <p className="text-sm font-black uppercase tracking-wide text-teal-200">
+          <div className="rounded-xl border border-teal-500/50 bg-[#0a0e13] p-4">
+            <p className="text-sm font-semibold uppercase tracking-wide text-teal-200">
               Seller Signature Required
             </p>
             <label className="mt-4 block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Seller Printed Name
               </span>
               <input
@@ -968,11 +968,11 @@ export default function RepairResponseForm({
                 }}
                 disabled={locked}
                 placeholder="Seller name"
-                className="h-[52px] w-full rounded-xl border border-slate-700 bg-[#071224] px-3 font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[52px] w-full rounded-xl border border-[#232b38] bg-[#071224] px-3 font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
             <label className="mt-4 block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Type Seller Signature
               </span>
               <input
@@ -980,13 +980,13 @@ export default function RepairResponseForm({
                 onChange={(event) => setSellerSignature(event.target.value)}
                 disabled={locked}
                 placeholder="Type full legal signature"
-                className="h-[64px] w-full rounded-xl border border-teal-500/60 bg-[#071224] px-4 text-2xl font-black italic text-white outline-none focus:border-teal-300 disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[64px] w-full rounded-xl border border-teal-500/60 bg-[#071224] px-4 text-2xl font-semibold italic text-white outline-none focus:border-teal-300 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
             <p className={`mt-3 rounded-xl border px-3 py-2 text-xs leading-5 ${
               sellerSignedAt
                 ? "border-emerald-500/40 bg-emerald-500/10 font-bold text-emerald-100"
-                : "border-slate-700 bg-[#071224] text-slate-300"
+                : "border-[#232b38] bg-[#071224] text-[#8a93a3]"
             }`}>
               {sellerSignedAt
                 ? `Seller signed electronically on ${formatSignedDate(sellerSignedAt)}.`
@@ -996,13 +996,13 @@ export default function RepairResponseForm({
         </div>
       </section>
 
-      <div className="sticky bottom-[72px] z-50 -mx-5 mt-6 border-t border-slate-700 bg-[#020617]/95 p-4 backdrop-blur md:static md:bottom-auto md:mx-0 md:border-0 md:bg-transparent md:p-0">
+      <div className="sticky bottom-[72px] z-50 -mx-5 mt-6 border-t border-[#232b38] bg-[#0a0e13]/95 p-4 backdrop-blur md:static md:bottom-auto md:mx-0 md:border-0 md:bg-transparent md:p-0">
         <button
           type="button"
           onClick={submitResponse}
           disabled={!canSubmit}
           data-fast-click="true"
-          className="min-h-[60px] w-full rounded-xl border border-teal-500 bg-teal-500 px-5 py-4 text-lg font-black text-slate-950 shadow-xl transition hover:bg-teal-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-[60px] w-full rounded-xl border border-teal-500 bg-teal-500 px-5 py-4 text-lg font-semibold text-slate-950 shadow-xl transition hover:bg-teal-400 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {locked
             ? "Response Submitted"

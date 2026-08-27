@@ -12,7 +12,7 @@ export default function TemplatesPage() {
           Manage reusable inspection findings, favorite comments, and AI-generated templates.
         </p>
 
-        <div className="rounded-2xl border border-slate-800 bg-[#111827] p-6 shadow-lg">
+        <div className="rounded-2xl border border-[#1a212c] bg-[#111827] p-6 shadow-lg">
           <p className="mb-6 text-lg leading-8 text-gray-200">
             Open a report to insert favorite findings or manage report-specific templates.
           </p>

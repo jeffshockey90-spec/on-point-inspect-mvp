@@ -34,7 +34,7 @@ export default function StandardsOfPracticeEditor({
   }
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-cyan-500/30 bg-[#10151e] shadow-2xl shadow-black/20">
+    <section className="overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#10151e] shadow-2xl shadow-black/20">
       <div className="border-b border-[#1a212c]/90 p-5 sm:p-6 md:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">

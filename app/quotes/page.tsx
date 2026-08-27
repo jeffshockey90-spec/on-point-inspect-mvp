@@ -319,14 +319,14 @@ export default function QuotePage() {
   return (
     <main className="min-h-screen bg-[#050816] px-4 pb-24 pt-6 text-white md:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="rounded-3xl border border-zinc-800 bg-[#0b1220] p-6 md:p-8">
+        <section className="rounded-2xl border border-zinc-800 bg-[#10151e] p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.25em] text-teal-400">
                 FLOW
               </p>
 
-              <h1 className="mt-2 text-4xl font-black md:text-5xl">
+              <h1 className="mt-2 text-4xl font-semibold md:text-5xl">
                 Quote Calculator
               </h1>
 
@@ -338,7 +338,7 @@ export default function QuotePage() {
 
             <Link
               href="/settings/pricing"
-              className="shrink-0 rounded-xl border border-teal-500/60 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10"
+              className="shrink-0 rounded-xl border border-teal-500/60 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/10"
             >
               Manage My Pricing →
             </Link>
@@ -472,7 +472,7 @@ export default function QuotePage() {
                   Total Quote
                 </p>
 
-                <p className="mt-1 text-5xl font-black text-teal-400">
+                <p className="mt-1 text-5xl font-semibold text-teal-400">
                   ${quote.total}
                 </p>
               </div>

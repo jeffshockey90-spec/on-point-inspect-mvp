@@ -231,18 +231,18 @@ export default function LiveSectionCoach({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
             Section Coach
           </p>
           {!compact && (
-            <h2 className="mt-1 truncate text-xl font-black">{section}</h2>
+            <h2 className="mt-1 truncate text-xl font-semibold">{section}</h2>
           )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
           {review && (
             <span
-              className={`rounded-full border px-3 py-2 text-sm font-black ${scoreClasses(
+              className={`rounded-full border px-3 py-2 text-sm font-semibold ${scoreClasses(
                 review.score,
               )}`}
             >
@@ -255,7 +255,7 @@ export default function LiveSectionCoach({
             onClick={() => void refresh()}
             disabled={!online || loading || !inspectionId}
             aria-label="Refresh Section Coach"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/50 bg-black/20 text-lg font-black text-emerald-100 active:scale-95 disabled:opacity-40"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/50 bg-black/20 text-lg font-semibold text-emerald-100 active:scale-95 disabled:opacity-40"
           >
             {loading ? "…" : "↻"}
           </button>
@@ -264,7 +264,7 @@ export default function LiveSectionCoach({
             <button
               type="button"
               onClick={() => setOpen((current) => !current)}
-              className="min-h-10 rounded-xl border border-emerald-400/60 px-3 py-2 text-xs font-black text-emerald-100 active:scale-[0.98]"
+              className="min-h-10 rounded-xl border border-emerald-400/60 px-3 py-2 text-xs font-semibold text-emerald-100 active:scale-[0.98]"
             >
               {open ? "Collapse" : "Open"}
             </button>
@@ -281,12 +281,12 @@ export default function LiveSectionCoach({
           )}
 
           {review && (
-            <div className="rounded-xl border border-slate-700 bg-black/30 p-3">
-              <p className="text-sm font-bold leading-5 text-slate-200">
+            <div className="rounded-xl border border-[#232b38] bg-black/30 p-3">
+              <p className="text-sm font-bold leading-5 text-[#e8ecf3]">
                 {review.summary}
               </p>
 
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#1a212c]">
                 <div
                   className="h-full rounded-full bg-emerald-400 transition-[width] duration-300"
                   style={{
@@ -297,28 +297,28 @@ export default function LiveSectionCoach({
 
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-2">
-                  <p className="text-base font-black text-emerald-200">
+                  <p className="text-base font-semibold text-emerald-200">
                     {completedCount}
                   </p>
-                  <p className="text-[10px] font-bold text-slate-300">
+                  <p className="text-[10px] font-bold text-[#8a93a3]">
                     Verified
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-2 py-2">
-                  <p className="text-base font-black text-yellow-200">
+                  <p className="text-base font-semibold text-yellow-200">
                     {reminderCount}
                   </p>
-                  <p className="text-[10px] font-bold text-slate-300">
+                  <p className="text-[10px] font-bold text-[#8a93a3]">
                     Reminders
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-2">
-                  <p className="text-base font-black text-cyan-200">
+                  <p className="text-base font-semibold text-cyan-200">
                     {photoNeededCount}
                   </p>
-                  <p className="text-[10px] font-bold text-slate-300">
+                  <p className="text-[10px] font-bold text-[#8a93a3]">
                     Photos
                   </p>
                 </div>
@@ -328,7 +328,7 @@ export default function LiveSectionCoach({
 
           {importantIssues.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-yellow-200">
                 Before You Leave This Section
               </p>
 
@@ -340,7 +340,7 @@ export default function LiveSectionCoach({
                   )}`}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-base font-black">
+                    <p className="truncate text-base font-semibold">
                       □ {issue.title}
                     </p>
                     <p className="mt-1 text-sm leading-5 opacity-90">
@@ -364,7 +364,7 @@ export default function LiveSectionCoach({
                           section,
                         )
                       }
-                      className="min-h-11 rounded-lg border border-current bg-black/15 px-2 py-2 text-xs font-black active:scale-[0.97]"
+                      className="min-h-11 rounded-lg border border-current bg-black/15 px-2 py-2 text-xs font-semibold active:scale-[0.97]"
                     >
                       📷 Photo
                     </button>
@@ -379,7 +379,7 @@ export default function LiveSectionCoach({
                           section,
                         )
                       }
-                      className="min-h-11 rounded-lg border border-current bg-black/15 px-2 py-2 text-xs font-black active:scale-[0.97]"
+                      className="min-h-11 rounded-lg border border-current bg-black/15 px-2 py-2 text-xs font-semibold active:scale-[0.97]"
                     >
                       ⚠ Limit
                     </button>
@@ -387,7 +387,7 @@ export default function LiveSectionCoach({
                     <button
                       type="button"
                       onClick={() => void recordChecked(issue)}
-                      className="min-h-11 rounded-lg border border-current bg-black/15 px-2 py-2 text-xs font-black active:scale-[0.97]"
+                      className="min-h-11 rounded-lg border border-current bg-black/15 px-2 py-2 text-xs font-semibold active:scale-[0.97]"
                     >
                       ✓ Complete
                     </button>
@@ -396,14 +396,14 @@ export default function LiveSectionCoach({
               ))}
             </div>
           ) : review ? (
-            <div className="rounded-xl border border-emerald-400/50 bg-emerald-500/10 p-3 text-sm font-black text-emerald-100">
+            <div className="rounded-xl border border-emerald-400/50 bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-100">
               ✓ No blocking Section Coach items are currently detected.
             </div>
           ) : null}
 
           {review?.completedItems?.length ? (
-            <details className="rounded-xl border border-slate-700 bg-black/20 p-3">
-              <summary className="cursor-pointer text-sm font-black text-slate-200">
+            <details className="rounded-xl border border-[#232b38] bg-black/20 p-3">
+              <summary className="cursor-pointer text-sm font-semibold text-[#e8ecf3]">
                 Completed coverage ({review.completedItems.length})
               </summary>
               <div className="mt-3 flex flex-wrap gap-2">

@@ -48,11 +48,11 @@ export default async function DemoReportsPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[#020617] p-8 text-white">
+      <main className="min-h-screen bg-[#0a0e13] p-8 text-white">
         <h1 className="text-3xl font-bold text-red-400">
           Error loading demo reports
         </h1>
-        <p className="mt-4 text-slate-300">{error.message}</p>
+        <p className="mt-4 text-[#8a93a3]">{error.message}</p>
       </main>
     );
   }
@@ -60,7 +60,7 @@ export default async function DemoReportsPage() {
   const rows = inspections || [];
 
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -68,7 +68,7 @@ export default async function DemoReportsPage() {
               Demo Reports
             </h1>
 
-            <p className="mt-3 text-slate-300">
+            <p className="mt-3 text-[#8a93a3]">
               Sample and demo inspections are kept separate from normal saved inspections.
             </p>
           </div>
@@ -93,8 +93,8 @@ export default async function DemoReportsPage() {
         </div>
 
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
-            <p className="text-slate-300">
+          <div className="rounded-2xl border border-[#1a212c] bg-[#131923] p-8">
+            <p className="text-[#8a93a3]">
               No demo reports found. Use Save As Sample/Demo from a completed report and it will show here.
             </p>
           </div>
@@ -123,9 +123,9 @@ export default async function DemoReportsPage() {
               return (
                 <div
                   key={inspection.id}
-                  className="overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-900 shadow-xl"
+                  className="overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#131923] shadow-xl"
                 >
-                  <div className="relative flex h-56 items-center justify-center overflow-hidden bg-slate-950 text-slate-500">
+                  <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[#0a0e13] text-[#59626f]">
                     {propertyPhoto ? (
                       <img
                         src={propertyPhoto}
@@ -138,7 +138,7 @@ export default async function DemoReportsPage() {
                       <span>No Property Photo</span>
                     )}
 
-                    <span className="absolute left-3 top-3 rounded-full border border-cyan-400/70 bg-cyan-500/20 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-100 backdrop-blur">
+                    <span className="absolute left-3 top-3 rounded-full border border-cyan-400/70 bg-cyan-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-100 backdrop-blur">
                       Demo
                     </span>
                   </div>
@@ -148,13 +148,13 @@ export default async function DemoReportsPage() {
                       {inspection.property_address || "Untitled Demo Report"}
                     </h2>
 
-                    <p className="mt-3 text-slate-300">
+                    <p className="mt-3 text-[#8a93a3]">
                       {inspection.city || ""}
                       {inspection.state ? `, ${inspection.state}` : ""}{" "}
                       {inspection.zip || ""}
                     </p>
 
-                    <div className="mt-5 space-y-2 text-sm text-slate-300">
+                    <div className="mt-5 space-y-2 text-sm text-[#8a93a3]">
                       <p>
                         <span className="font-bold text-white">Client:</span>{" "}
                         {inspection.client_name || "Demo Client"}
@@ -185,7 +185,7 @@ export default async function DemoReportsPage() {
                       <FastLinkButton
                         href={`/reports/${inspection.id}`}
                         loadingText="Opening Editor..."
-                        className="rounded-xl border border-slate-700 px-5 py-3 text-center font-bold text-slate-200 hover:bg-slate-800"
+                        className="rounded-xl border border-[#232b38] px-5 py-3 text-center font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
                       >
                         Edit Demo
                       </FastLinkButton>

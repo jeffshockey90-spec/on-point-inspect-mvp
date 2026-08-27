@@ -43,7 +43,7 @@ export default function TimesheetExport({
       type="button"
       onClick={download}
       disabled={rows.length === 0}
-      className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-4 py-2.5 text-sm font-black text-slate-950 transition enabled:hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-40"
+      className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition enabled:hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-40"
     >
       <Download className="h-4 w-4" />
       Export CSV

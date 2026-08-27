@@ -58,27 +58,27 @@ export default function SecurityEventsPanel() {
   const quiet = data.available && data.summary.total7d === 0;
 
   return (
-    <section className="rounded-3xl border border-slate-800 bg-gradient-to-br from-[#0b1220] to-[#071827] p-5 shadow-xl sm:p-6 md:p-8">
+    <section className="rounded-2xl border border-[#1a212c] bg-gradient-to-br from-[#10151e] to-[#10151e] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-300">
             <ShieldAlert className="h-7 w-7" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-rose-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-rose-300">
               Security
             </p>
-            <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
+            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">
               Intrusion Attempts
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-[#8a93a3]">
               Blocked attempts to reach data by guessing ids. You&apos;re alerted on bursts.
             </p>
           </div>
         </div>
 
         <span
-          className={`rounded-full border px-3 py-1 text-xs font-black ${
+          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
             quiet
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
               : "border-rose-500/40 bg-rose-500/10 text-rose-300"
@@ -89,9 +89,9 @@ export default function SecurityEventsPanel() {
       </div>
 
       {!data.available ? (
-        <div className="mt-5 rounded-xl border border-slate-700 bg-[#020617]/70 p-4 text-sm leading-6 text-slate-300">
+        <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
           Logging table not found yet. Run{" "}
-          <span className="font-mono text-xs text-slate-400">
+          <span className="font-mono text-xs text-[#8a93a3]">
             supabase/add-security-events.sql
           </span>{" "}
           to start recording attempts.
@@ -111,34 +111,34 @@ export default function SecurityEventsPanel() {
             ].map((s) => (
               <div
                 key={s.k}
-                className="rounded-xl border border-slate-700 bg-[#020617]/70 p-3 text-center"
+                className="rounded-xl border border-[#232b38] bg-[#131923] p-3 text-center"
               >
-                <p className="text-2xl font-black text-rose-300">{s.v}</p>
-                <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                <p className="text-2xl font-semibold text-rose-300">{s.v}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#59626f]">
                   {s.k}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-slate-700">
+          <div className="mt-4 overflow-hidden rounded-xl border border-[#232b38]">
             <div className="max-h-72 overflow-y-auto">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-[#020617] text-[11px] uppercase tracking-wide text-slate-500">
+                <thead className="sticky top-0 bg-[#0a0e13] text-[11px] uppercase tracking-wide text-[#59626f]">
                   <tr>
                     <th className="px-3 py-2 font-bold">When</th>
                     <th className="px-3 py-2 font-bold">Attempt</th>
                     <th className="px-3 py-2 font-bold">IP</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-[#1a212c]">
                   {data.events.map((e) => (
-                    <tr key={e.id} className="text-slate-300">
-                      <td className="whitespace-nowrap px-3 py-2 text-slate-400">
+                    <tr key={e.id} className="text-[#8a93a3]">
+                      <td className="whitespace-nowrap px-3 py-2 text-[#8a93a3]">
                         {timeAgo(e.created_at)}
                       </td>
                       <td className="px-3 py-2 font-semibold text-white">{label(e.event_type)}</td>
-                      <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-400">
+                      <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-[#8a93a3]">
                         {e.ip || "unknown"}
                       </td>
                     </tr>
@@ -147,7 +147,7 @@ export default function SecurityEventsPanel() {
               </table>
             </div>
           </div>
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-[#59626f]">
             All of these were blocked — no data was exposed. Showing the most recent {data.events.length}.
           </p>
         </>

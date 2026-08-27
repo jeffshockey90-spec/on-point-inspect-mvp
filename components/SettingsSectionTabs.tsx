@@ -80,7 +80,7 @@ export default function SettingsSectionTabs({
   return (
     <div>
       <div
-        className="sticky top-0 z-40 -mx-3 border-y border-slate-700 bg-[#0f172a]/95 px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border"
+        className="sticky top-0 z-40 -mx-3 border-y border-[#232b38] bg-[#10151e]/95 px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border"
         aria-label="Settings sections"
       >
         <div className="-mx-3 flex gap-2 overflow-x-auto overscroll-x-contain px-3 pb-1 pr-6 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:px-0">
@@ -93,10 +93,10 @@ export default function SettingsSectionTabs({
                 type="button"
                 onClick={() => applyTab(key, false)}
                 aria-pressed={active}
-                className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-black transition duration-100 active:scale-[0.98] [touch-action:manipulation] ${
+                className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-semibold transition duration-100 active:scale-[0.98] [touch-action:manipulation] ${
                   active
                     ? "border-teal-400 bg-teal-500 text-slate-950"
-                    : "border-slate-700 bg-[#071224] text-slate-200"
+                    : "border-[#232b38] bg-[#071224] text-[#e8ecf3]"
                 }`}
               >
                 {label}

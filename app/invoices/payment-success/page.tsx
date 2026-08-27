@@ -22,16 +22,16 @@ export default async function InvoicePaymentSuccessPage({
   const tone = cancelled ? "#f59e0b" : "#14b8a6";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#020617] px-6 py-16 text-white">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-[#0f172a] p-8 text-center shadow-xl">
+    <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] px-6 py-16 text-white">
+      <div className="w-full max-w-lg rounded-2xl border border-[#232b38] bg-[#10151e] p-8 text-center shadow-xl">
         <div
           className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full text-3xl"
           style={{ background: `${tone}22`, color: tone }}
         >
           {cancelled ? "!" : "✓"}
         </div>
-        <h1 className="text-2xl font-black">{heading}</h1>
-        <p className="mt-3 leading-7 text-slate-300">{body}</p>
+        <h1 className="text-2xl font-semibold">{heading}</h1>
+        <p className="mt-3 leading-7 text-[#8a93a3]">{body}</p>
       </div>
     </main>
   );

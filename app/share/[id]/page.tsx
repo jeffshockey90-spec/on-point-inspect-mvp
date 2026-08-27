@@ -1002,11 +1002,11 @@ function ShareEquipmentLine({ label, value }: { label: string; value?: any }) {
   if (!isKnownEquipmentValue(value)) return null;
 
   return (
-    <div className="flex flex-col gap-1 border-b border-slate-800 py-2 sm:flex-row sm:items-start sm:justify-between">
-      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+    <div className="flex flex-col gap-1 border-b border-[#1a212c] py-2 sm:flex-row sm:items-start sm:justify-between">
+      <span className="text-xs font-bold uppercase tracking-wide text-[#59626f]">
         {label}
       </span>
-      <span className="whitespace-pre-line text-left text-sm font-semibold leading-6 text-slate-100 sm:max-w-[70%] sm:text-right">
+      <span className="whitespace-pre-line text-left text-sm font-semibold leading-6 text-[#e8ecf3] sm:max-w-[70%] sm:text-right">
         {String(value)}
       </span>
     </div>
@@ -1026,10 +1026,10 @@ function ShareEquipmentNoteBlock({
 
   return (
     <div className="mt-4 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
-      <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
+      <p className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
         {label}
       </p>
-      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
+      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#e8ecf3]">
         {clean}
       </p>
     </div>
@@ -1115,7 +1115,7 @@ function EquipmentStatusBadge({ value }: { value?: any }) {
   if (!isKnownEquipmentValue(value)) return null;
 
   return (
-    <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-black ${getEquipmentStatusClass(value)}`}>
+    <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-semibold ${getEquipmentStatusClass(value)}`}>
       <span className="mr-2 text-xs uppercase tracking-wide opacity-80">
         Equipment Status
       </span>
@@ -1186,7 +1186,7 @@ export default async function PublicSharePage({
 
   if (inspectionError || !inspection) {
     return (
-      <main className="min-h-screen bg-[#020617] p-10 text-white">
+      <main className="min-h-screen bg-[#0a0e13] p-10 text-white">
         Report not found.
       </main>
     );
@@ -1225,12 +1225,12 @@ export default async function PublicSharePage({
 
   if (!allowShareView) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] p-6 text-white">
-        <div className="max-w-md rounded-2xl border border-slate-700 bg-slate-900/60 p-8 text-center">
-          <h1 className="text-2xl font-black text-teal-300">
+      <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] p-6 text-white">
+        <div className="max-w-md rounded-2xl border border-[#232b38] bg-[#131923] p-8 text-center">
+          <h1 className="text-2xl font-semibold text-teal-300">
             Report not available yet
           </h1>
-          <p className="mt-3 leading-7 text-slate-300">
+          <p className="mt-3 leading-7 text-[#8a93a3]">
             This inspection report hasn&apos;t been released for viewing yet.
             Once your inspector completes delivery, this link will show your
             full report. Please contact your inspector if you believe this is a
@@ -1329,7 +1329,7 @@ export default async function PublicSharePage({
 
   if (findingsError) {
     return (
-      <main className="min-h-screen bg-[#020617] p-10 text-white">
+      <main className="min-h-screen bg-[#0a0e13] p-10 text-white">
         Error loading report findings.
       </main>
     );
@@ -2005,7 +2005,7 @@ export default async function PublicSharePage({
         }}
       />
 
-      <main className="min-h-screen w-full overflow-x-hidden bg-[#020617] p-4 text-white md:p-8">
+      <main className="min-h-screen w-full overflow-x-hidden bg-[#0a0e13] p-4 text-white md:p-8">
       {!isDemo && (
         <ReportTimeTracker
           inspectionId={String(inspectionId)}
@@ -2015,8 +2015,8 @@ export default async function PublicSharePage({
         />
       )}
 
-      <div className="mx-auto w-full max-w-[96rem] overflow-x-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
-        <section className="relative overflow-hidden border-b border-slate-800 bg-[#020617]">
+      <div className="mx-auto w-full max-w-[96rem] overflow-x-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] shadow-2xl">
+        <section className="relative overflow-hidden border-b border-[#1a212c] bg-[#0a0e13]">
           {propertyPhoto ? (
             <>
               <img
@@ -2027,27 +2027,27 @@ export default async function PublicSharePage({
                 fetchPriority="high"
                 className="h-[360px] w-full object-cover md:h-[520px]"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/35 to-black/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#10151e] via-[#10151e]/35 to-black/20" />
             </>
           ) : (
-            <div className="h-[320px] bg-gradient-to-br from-[#020617] via-[#071224] to-[#0f172a]" />
+            <div className="h-[320px] bg-gradient-to-br from-[#10151e] via-[#10151e] to-[#10151e]" />
           )}
 
           <div className="absolute inset-x-0 bottom-0 p-6 md:p-10">
             <div className="max-w-5xl">
-              <p className="text-xs font-black uppercase tracking-[0.38em] text-teal-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.38em] text-teal-300">
                 {branding.name}
               </p>
 
-              <h1 className="mt-4 text-4xl font-black tracking-tight text-white md:text-6xl">
+              <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-6xl">
                 Residential Home Inspection Report
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg font-semibold leading-8 text-slate-200">
+              <p className="mt-4 max-w-3xl text-lg font-semibold leading-8 text-[#e8ecf3]">
                 {address}
               </p>
 
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-[#8a93a3]">
                 Protecting Your Investment. One Inspection at a Time.
               </p>
             </div>
@@ -2057,7 +2057,7 @@ export default async function PublicSharePage({
         <div className="p-5 md:p-10">
           {isDemo && (
             <div className="mb-8 rounded-2xl border border-fuchsia-500/40 bg-fuchsia-950/30 p-5 text-fuchsia-100 print:hidden">
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-fuchsia-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300">
                 Demo Report
               </p>
               <p className="mt-2 text-sm leading-6 text-fuchsia-100/90">
@@ -2127,7 +2127,7 @@ export default async function PublicSharePage({
                 {canOpenEditableReport ? (
                   <Link
                     href={`/reports/${inspectionId}`}
-                    className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
+                    className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-white transition hover:bg-[#1a212c]"
                   >
                     Full Editable Report
                   </Link>
@@ -2136,16 +2136,16 @@ export default async function PublicSharePage({
             )}
           </div>
 
-          <section className="rounded-2xl border border-slate-700 bg-[#071224] p-6 shadow-xl">
+          <section className="rounded-2xl border border-[#232b38] bg-[#071224] p-6 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
                   Report Ready
                 </p>
-                <h2 className="mt-2 text-3xl font-black text-white">
+                <h2 className="mt-2 text-3xl font-semibold text-white">
                   Inspection Overview
                 </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
                   This report includes inspection information, limitations,
                   disclaimers, section reference photos, and documented findings.
                   Reference photos are documentation only and are not counted as defects.
@@ -2156,7 +2156,7 @@ export default async function PublicSharePage({
                 <p className="text-xs font-bold uppercase tracking-wide text-teal-300">
                   Total Defects
                 </p>
-                <p className="mt-1 text-5xl font-black text-white">
+                <p className="mt-1 text-5xl font-semibold text-white">
                   {defectTotals.total}
                 </p>
               </div>
@@ -2195,7 +2195,7 @@ export default async function PublicSharePage({
 
             {defectTotals.total > 0 && (
               <div className="mt-5">
-                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-800">
+                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#1a212c]">
                   {defectTotals.safety > 0 && (
                     <div
                       className="bg-red-500"
@@ -2225,7 +2225,7 @@ export default async function PublicSharePage({
                     />
                   )}
                 </div>
-                <p className="mt-2 text-xs font-semibold text-slate-500">
+                <p className="mt-2 text-xs font-semibold text-[#59626f]">
                   {defectTotals.total} total findings across {" "}
                   {[
                     defectTotals.safety > 0 && "safety",
@@ -2238,12 +2238,12 @@ export default async function PublicSharePage({
               </div>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-400">
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[#8a93a3]">
               <span>Click a defect type above to filter the findings list.</span>
               {activeDefectFilter !== "all" && (
                 <Link
                   href={isDemo ? `/demo/${inspectionId}#inspection-findings` : `${buildShareHref()}#inspection-findings`}
-                  className="rounded-full border border-slate-600 px-3 py-1 font-bold text-white hover:bg-slate-800"
+                  className="rounded-full border border-[#232b38] px-3 py-1 font-bold text-white hover:bg-[#1a212c]"
                 >
                   Clear filter: {activeDefectFilterLabel[activeDefectFilter]}
                 </Link>
@@ -2266,15 +2266,15 @@ export default async function PublicSharePage({
                   <p className="text-sm font-bold uppercase tracking-[0.3em] text-purple-300">
                     Important Report Disclaimers
                   </p>
-                  <h2 className="mt-2 text-3xl font-black text-white">
+                  <h2 className="mt-2 text-3xl font-semibold text-white">
                     Scope, Limitations, and Age-Based Notices
                   </h2>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
                     These disclaimers are part of the inspection report and should be reviewed with the same importance as the findings below.
                   </p>
                 </div>
 
-                <span className="rounded-full border border-purple-400/60 bg-purple-500/15 px-4 py-2 text-sm font-black text-purple-100">
+                <span className="rounded-full border border-purple-400/60 bg-purple-500/15 px-4 py-2 text-sm font-semibold text-purple-100">
                   {reportDisclaimers.length} notice{reportDisclaimers.length === 1 ? "" : "s"}
                 </span>
               </div>
@@ -2283,13 +2283,13 @@ export default async function PublicSharePage({
                 {reportDisclaimers.map((disclaimer: any) => (
                   <div
                     key={disclaimer.id}
-                    className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                    className="rounded-xl border border-[#232b38] bg-[#10151e] p-5"
                   >
                     <h3 className="text-xl font-bold text-white">
                       {disclaimer.topic}
                     </h3>
 
-                    <p className="mt-3 whitespace-pre-line leading-7 text-slate-300">
+                    <p className="mt-3 whitespace-pre-line leading-7 text-[#8a93a3]">
                       {disclaimer.disclaimer_text}
                     </p>
                   </div>
@@ -2305,15 +2305,15 @@ export default async function PublicSharePage({
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-cyan-300">
                   Report Reference
                 </p>
-                <h2 className="mt-2 text-3xl font-black text-white">
+                <h2 className="mt-2 text-3xl font-semibold text-white">
                   Standards of Practice
                 </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
                   These standards define the systems inspected and identify items that are outside the required scope of a residential home inspection.
                 </p>
               </div>
 
-              <span className="rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-black text-cyan-100">
+              <span className="rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-semibold text-cyan-100">
                 {standardsOfPractice.length} section{standardsOfPractice.length === 1 ? "" : "s"}
               </span>
             </div>
@@ -2323,20 +2323,20 @@ export default async function PublicSharePage({
                 <details
                   key={standard.title}
                   open
-                  className="group rounded-xl border border-slate-700 bg-[#0f172a] p-5 open:border-cyan-500/50"
+                  className="group rounded-xl border border-[#232b38] bg-[#10151e] p-5 open:border-cyan-500/50"
                 >
                   <summary className="cursor-pointer list-none">
                     <div className="flex items-center justify-between gap-4">
-                      <h3 className="text-lg font-black text-white">
+                      <h3 className="text-lg font-semibold text-white">
                         {standard.title}
                       </h3>
-                      <span className="rounded-full border border-cyan-500/40 px-3 py-1 text-xs font-black text-cyan-300">
+                      <span className="rounded-full border border-cyan-500/40 px-3 py-1 text-xs font-semibold text-cyan-300">
                         View
                       </span>
                     </div>
                   </summary>
 
-                  <div className="mt-4 space-y-3 border-t border-slate-800 pt-4 text-sm leading-7 text-slate-300">
+                  <div className="mt-4 space-y-3 border-t border-[#1a212c] pt-4 text-sm leading-7 text-[#8a93a3]">
                     {standard.body.split("\n\n").map((paragraph) => (
                       <p key={paragraph}>{paragraph}</p>
                     ))}
@@ -2357,52 +2357,52 @@ export default async function PublicSharePage({
                   <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
                     Client Summary
                   </p>
-                  <h2 className="mt-2 text-3xl font-black text-white">
+                  <h2 className="mt-2 text-3xl font-semibold text-white">
                     Key Findings Summary
                   </h2>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
                     This summary highlights notable findings by severity so clients and agents can quickly review the most important report items. The full report below remains the complete inspection record.
                   </p>
                 </div>
 
                 <a
                   href="#inspection-findings"
-                  className="rounded-xl border border-teal-500 px-4 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-black"
+                  className="rounded-xl border border-teal-500 px-4 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500 hover:text-black"
                 >
                   View Full Findings
                 </a>
               </div>
 
-              <div className="mt-6 overflow-x-auto overscroll-x-contain rounded-2xl border border-slate-700 bg-[#020617] p-2 print:hidden">
+              <div className="mt-6 overflow-x-auto overscroll-x-contain rounded-2xl border border-[#232b38] bg-[#0a0e13] p-2 print:hidden">
                 <div className="flex w-max min-w-full gap-2">
                   <a
                     href="#client-summary"
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-slate-700 px-4 py-3 text-sm font-black leading-none text-white transition hover:bg-slate-600"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-slate-700 px-4 py-3 text-sm font-semibold leading-none text-white transition hover:bg-slate-600"
                   >
                     <span className="text-base leading-none">☰</span><span>Summary</span>
                   </a>
                   <a
                     href="#client-summary-safety"
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-red-500/40 px-4 py-3 text-sm font-black leading-none text-red-300 transition hover:bg-red-500/10"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-red-500/40 px-4 py-3 text-sm font-semibold leading-none text-red-300 transition hover:bg-red-500/10"
                   >
                     <span className="text-base leading-none">⚠</span><span>Safety Hazards</span>
                   </a>
                   <a
                     href="#client-summary-repair"
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-teal-500/40 px-4 py-3 text-sm font-black leading-none text-teal-300 transition hover:bg-teal-500/10"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-teal-500/40 px-4 py-3 text-sm font-semibold leading-none text-teal-300 transition hover:bg-teal-500/10"
                   >
                     <span className="text-base leading-none">🔧</span><span>Recommendations</span>
                   </a>
                   <a
                     href="#client-summary-maintenance"
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-yellow-500/40 px-4 py-3 text-sm font-black leading-none text-yellow-300 transition hover:bg-yellow-500/10"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-yellow-500/40 px-4 py-3 text-sm font-semibold leading-none text-yellow-300 transition hover:bg-yellow-500/10"
                   >
                     <span className="text-base leading-none">⚙</span><span>Maintenance</span>
                   </a>
                   {Object.keys(limitationsBySection).length > 0 && (
                     <a
                       href="#report-limitations"
-                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-orange-500/40 px-4 py-3 text-sm font-black leading-none text-orange-300 transition hover:bg-orange-500/10"
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-orange-500/40 px-4 py-3 text-sm font-semibold leading-none text-orange-300 transition hover:bg-orange-500/10"
                     >
                       <span className="text-base leading-none">🚧</span><span>Limitations</span>
                     </a>
@@ -2410,7 +2410,7 @@ export default async function PublicSharePage({
                   {reportDisclaimers && reportDisclaimers.length > 0 && (
                     <a
                       href="#report-disclaimers"
-                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-purple-500/40 px-4 py-3 text-sm font-black leading-none text-purple-300 transition hover:bg-purple-500/10"
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-purple-500/40 px-4 py-3 text-sm font-semibold leading-none text-purple-300 transition hover:bg-purple-500/10"
                     >
                       <span className="text-base leading-none">📝</span><span>Disclaimers</span>
                     </a>
@@ -2418,14 +2418,14 @@ export default async function PublicSharePage({
                   {showStandardsInShare && (
                     <a
                       href="#standards-of-practice"
-                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-cyan-500/40 px-4 py-3 text-sm font-black leading-none text-cyan-300 transition hover:bg-cyan-500/10"
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-cyan-500/40 px-4 py-3 text-sm font-semibold leading-none text-cyan-300 transition hover:bg-cyan-500/10"
                     >
                       <span className="text-base leading-none">📘</span><span>Standards</span>
                     </a>
                   )}
                   <a
                     href="#inspection-findings"
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-blue-500/40 px-4 py-3 text-sm font-black leading-none text-blue-300 transition hover:bg-blue-500/10"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-blue-500/40 px-4 py-3 text-sm font-semibold leading-none text-blue-300 transition hover:bg-blue-500/10"
                   >
                     <span className="text-base leading-none">📄</span><span>Full Report</span>
                   </a>
@@ -2442,11 +2442,11 @@ export default async function PublicSharePage({
                 Executive Summary
               </h2>
 
-              <p className="mt-2 text-sm leading-6 text-slate-400">
+              <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
                 This client-friendly overview summarizes the report findings in plain language.
               </p>
 
-              <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-base leading-8 text-slate-100">
+              <div className="mt-5 whitespace-pre-line rounded-xl border border-[#232b38] bg-[#131923] p-5 text-base leading-8 text-[#e8ecf3]">
                 {inspection.executive_summary}
               </div>
             </section>
@@ -2458,24 +2458,24 @@ export default async function PublicSharePage({
                 <img
                   src={realtorBranding.photo_url}
                   alt={realtorBranding.name || "Your agent"}
-                  className="h-20 w-20 shrink-0 rounded-2xl border border-slate-700 object-cover"
+                  className="h-20 w-20 shrink-0 rounded-2xl border border-[#232b38] object-cover"
                 />
               )}
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-400">
                   Your Agent
                 </p>
-                <p className="mt-1 truncate text-xl font-black text-white">
+                <p className="mt-1 truncate text-xl font-semibold text-white">
                   {realtorBranding.name || inspection.realtor_name}
                 </p>
                 {realtorBranding.brokerage && (
-                  <p className="truncate text-sm text-slate-400">{realtorBranding.brokerage}</p>
+                  <p className="truncate text-sm text-[#8a93a3]">{realtorBranding.brokerage}</p>
                 )}
               </div>
             </section>
           )}
 
-          <details className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
+          <details className="mt-8 rounded-2xl border border-[#232b38] bg-[#071224] p-6">
             <summary className="cursor-pointer list-none">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -2483,7 +2483,7 @@ export default async function PublicSharePage({
                     Property Information
                   </h2>
 
-                  <p className="mt-2 text-sm text-slate-400">
+                  <p className="mt-2 text-sm text-[#8a93a3]">
                     Click to expand property details and inspection information.
                   </p>
                 </div>
@@ -2534,7 +2534,7 @@ export default async function PublicSharePage({
                       Equipment Inventory
                     </h2>
 
-                    <p className="mt-2 text-sm text-slate-400">
+                    <p className="mt-2 text-sm text-[#8a93a3]">
                       Click to expand major systems and equipment documented during the inspection. These records are informational and are not counted as defects unless a separate finding is included.
                     </p>
                   </div>
@@ -2553,7 +2553,7 @@ export default async function PublicSharePage({
                   return (
                     <div
                       key={item.id}
-                      className="rounded-xl border border-slate-700 bg-[#0f172a] p-4"
+                      className="rounded-xl border border-[#232b38] bg-[#10151e] p-4"
                     >
                       {equipmentImage && (
                         <img
@@ -2562,21 +2562,21 @@ export default async function PublicSharePage({
                           loading="lazy"
                 decoding="async"
                 fetchPriority="low"
-                className="mb-4 max-h-56 w-full rounded-xl border border-slate-700 object-contain"
+                className="mb-4 max-h-56 w-full rounded-xl border border-[#232b38] object-contain"
                         />
                       )}
 
-                      <p className="text-xs font-black uppercase tracking-wide text-cyan-300">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
                         {item.equipment_type || "Equipment"}
                       </p>
 
-                      <h3 className="mt-2 text-xl font-black text-white">
+                      <h3 className="mt-2 text-xl font-semibold text-white">
                         {[item.manufacturer, item.model].filter(Boolean).join(" ") || "Equipment Record"}
                       </h3>
 
                       <EquipmentStatusBadge value={getEquipmentStatusValue(item)} />
 
-                      <div className="mt-4 space-y-2 text-sm text-slate-300">
+                      <div className="mt-4 space-y-2 text-sm text-[#8a93a3]">
                         <ShareEquipmentLine label="Serial" value={item.serial} />
                         <ShareEquipmentLine label="Manufacture Year" value={item.manufacture_year} />
                         <ShareEquipmentLine label="Estimated Age" value={item.estimated_age} />
@@ -2628,7 +2628,7 @@ export default async function PublicSharePage({
                 Environmental Testing Reports
               </h2>
 
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-[#8a93a3]">
                 {hasMold && hasRadon
                   ? "Your mold and radon sampling reports."
                   : hasMold
@@ -2640,12 +2640,12 @@ export default async function PublicSharePage({
                 {hasMold && (
                   <a
                     href={`/environmental-share/${sharePathId}`}
-                    className="rounded-xl border border-purple-500 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                    className="rounded-xl border border-purple-500 bg-[#10151e] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
                   >
                     <span className="block text-lg">
                       View Mold Sampling Report
                     </span>
-                    <span className="mt-2 block text-sm font-medium text-slate-400">
+                    <span className="mt-2 block text-sm font-medium text-[#8a93a3]">
                       Sample count, lab status, and results summary.
                     </span>
                   </a>
@@ -2654,12 +2654,12 @@ export default async function PublicSharePage({
                 {hasRadon && (
                   <a
                     href={`/environmental-share/${sharePathId}`}
-                    className="rounded-xl border border-purple-500 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                    className="rounded-xl border border-purple-500 bg-[#10151e] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
                   >
                     <span className="block text-lg">
                       View Radon Sampling Report
                     </span>
-                    <span className="mt-2 block text-sm font-medium text-slate-400">
+                    <span className="mt-2 block text-sm font-medium text-[#8a93a3]">
                       Device readings and results summary.
                     </span>
                   </a>
@@ -2670,12 +2670,12 @@ export default async function PublicSharePage({
                     href={moldReportUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-xl border border-purple-500/50 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                    className="rounded-xl border border-purple-500/50 bg-[#10151e] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
                   >
                     <span className="block text-lg">
                       View Official Mold Lab Report
                     </span>
-                    <span className="mt-2 block text-sm font-medium text-slate-400">
+                    <span className="mt-2 block text-sm font-medium text-[#8a93a3]">
                       Open the raw third-party lab file.
                     </span>
                   </a>
@@ -2686,12 +2686,12 @@ export default async function PublicSharePage({
                     href={radonReportUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-xl border border-purple-500/50 bg-[#0f172a] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
+                    className="rounded-xl border border-purple-500/50 bg-[#10151e] p-5 font-bold text-purple-300 transition hover:bg-purple-500/10"
                   >
                     <span className="block text-lg">
                       View Official Radon Device Report
                     </span>
-                    <span className="mt-2 block text-sm font-medium text-slate-400">
+                    <span className="mt-2 block text-sm font-medium text-[#8a93a3]">
                       Open the raw third-party device file.
                     </span>
                   </a>
@@ -2701,12 +2701,12 @@ export default async function PublicSharePage({
           )}
 
           {(sectionStats.length > 0 || equipmentInventory.length > 0) && (
-            <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
+            <section className="mt-8 rounded-2xl border border-[#232b38] bg-[#071224] p-6">
               <h2 className="text-2xl font-bold text-teal-400">
                 Section Snapshot
               </h2>
 
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-[#8a93a3]">
                 Quick overview of findings and reference photos by report section.
               </p>
 
@@ -2717,10 +2717,10 @@ export default async function PublicSharePage({
                     href={`#section-${stat.section
                       .toLowerCase()
                       .replace(/[^a-z0-9]+/g, "-")}`}
-                    className="rounded-xl border border-slate-700 bg-[#0f172a] p-4 transition hover:border-teal-500/60 hover:bg-[#102033]"
+                    className="rounded-xl border border-[#232b38] bg-[#10151e] p-4 transition hover:border-teal-500/60 hover:bg-[#102033]"
                   >
-                    <p className="font-black text-white">{stat.section}</p>
-                    <p className="mt-2 text-sm text-slate-400">
+                    <p className="font-semibold text-white">{stat.section}</p>
+                    <p className="mt-2 text-sm text-[#8a93a3]">
                       {stat.defectCount} defect{stat.defectCount === 1 ? "" : "s"} •{" "}
                       {stat.referenceCount} reference photo
                       {stat.referenceCount === 1 ? "" : "s"}
@@ -2733,10 +2733,10 @@ export default async function PublicSharePage({
                     href="#equipment-inventory"
                     className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4 transition hover:border-cyan-400 hover:bg-cyan-500/20"
                   >
-                    <p className="font-black text-cyan-200">
+                    <p className="font-semibold text-cyan-200">
                       Equipment Inventory
                     </p>
-                    <p className="mt-2 text-sm text-slate-300">
+                    <p className="mt-2 text-sm text-[#8a93a3]">
                       {equipmentInventory.length} equipment record
                       {equipmentInventory.length === 1 ? "" : "s"} • informational only
                     </p>
@@ -2754,7 +2754,7 @@ export default async function PublicSharePage({
                     <h2 className="text-2xl font-extrabold text-teal-300">
                       Report Summary
                     </h2>
-                    <p className="mt-2 text-sm text-slate-400">
+                    <p className="mt-2 text-sm text-[#8a93a3]">
                       Click to expand the generated summary of notable findings and recommendations.
                     </p>
                   </div>
@@ -2764,21 +2764,21 @@ export default async function PublicSharePage({
                 </div>
               </summary>
 
-              <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-base leading-8 text-slate-100">
+              <div className="mt-5 whitespace-pre-line rounded-xl border border-[#232b38] bg-[#131923] p-5 text-base leading-8 text-[#e8ecf3]">
                 {inspection.report_summary}
               </div>
             </details>
           )}
 
           {Object.keys(checklistBySection).length > 0 && (
-            <details className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
+            <details className="mt-8 rounded-2xl border border-[#232b38] bg-[#071224] p-6">
               <summary className="cursor-pointer list-none">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-bold text-teal-400">
                       Inspection Information
                     </h2>
-                    <p className="mt-2 text-sm text-slate-400">
+                    <p className="mt-2 text-sm text-[#8a93a3]">
                       Click to expand selected inspection information, component types, materials, and system details.
                     </p>
                   </div>
@@ -2793,7 +2793,7 @@ export default async function PublicSharePage({
                   (section) => (
                     <div
                       key={section}
-                      className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                      className="rounded-xl border border-[#232b38] bg-[#10151e] p-5"
                     >
                       <h3 className="mb-4 text-xl font-bold text-white">
                         {section}
@@ -2803,11 +2803,11 @@ export default async function PublicSharePage({
                         {Object.entries(checklistBySection[section]).map(
                           ([groupTitle, rows]: any) => (
                             <div key={groupTitle}>
-                              <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+                              <p className="text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
                                 {groupTitle}
                               </p>
 
-                              <p className="mt-1 whitespace-pre-line text-slate-100">
+                              <p className="mt-1 whitespace-pre-line text-[#e8ecf3]">
                                 {(rows || [])
                                   .map((row: any) => row.custom_text || row.value)
                                   .filter((value: string) => value !== "__TEXT_VALUE__")
@@ -2837,27 +2837,27 @@ export default async function PublicSharePage({
                   <h2 className="mt-2 text-2xl font-bold text-yellow-300">
                     Limitations
                   </h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                  <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
                     Areas or components that could not be fully inspected are collapsed by default. Tap to review details and photos.
                   </p>
                 </div>
-                <span className="rounded-xl border border-yellow-500/40 px-4 py-2 text-sm font-black text-yellow-200">
+                <span className="rounded-xl border border-yellow-500/40 px-4 py-2 text-sm font-semibold text-yellow-200">
                   Show Limitations
                 </span>
               </summary>
 
-              <div className="mt-6 space-y-6 border-t border-slate-700 pt-6">
+              <div className="mt-6 space-y-6 border-t border-[#232b38] pt-6">
                 {activeSectionOrder.filter((section) => limitationsBySection[section]).map(
                   (section) => (
                     <details
                       key={section}
-                      className="rounded-xl border border-slate-700 bg-[#0f172a] p-5"
+                      className="rounded-xl border border-[#232b38] bg-[#10151e] p-5"
                     >
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                         <h3 className="text-xl font-bold text-white">
                           {section}
                         </h3>
-                        <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-black text-yellow-200">
+                        <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-200">
                           {(limitationsBySection[section] || []).length} item{(limitationsBySection[section] || []).length === 1 ? "" : "s"}
                         </span>
                       </summary>
@@ -2875,14 +2875,14 @@ export default async function PublicSharePage({
                           return (
                             <div
                               key={item.id}
-                              className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                              className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4"
                             >
                               <p className="font-bold text-yellow-200">
                                 {item.custom_text || item.label}
                               </p>
 
                               {limitationText && (
-                                <p className="mt-3 whitespace-pre-line leading-7 text-slate-300">
+                                <p className="mt-3 whitespace-pre-line leading-7 text-[#8a93a3]">
                                   {limitationText}
                                 </p>
                               )}
@@ -2910,7 +2910,7 @@ export default async function PublicSharePage({
                                         fullSrc={fullUrl}
                                         alt="Limitation photo"
                                         className="max-h-[260px] w-full object-cover"
-                                        buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                        buttonClassName="block w-full overflow-hidden rounded-xl border border-[#232b38] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                       />
                                     );
                                   })}
@@ -2938,7 +2938,7 @@ export default async function PublicSharePage({
               <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
                 Inspection Findings
               </p>
-              <h2 className="mt-2 text-4xl font-black text-white">
+              <h2 className="mt-2 text-4xl font-semibold text-white">
                 Findings By Section
               </h2>
             </div>
@@ -2948,13 +2948,13 @@ export default async function PublicSharePage({
                 initial={activeDefectFilter}
                 counts={severityFilterCounts}
               />
-              <div className="rounded-2xl border border-slate-700 bg-[#071224] px-5 py-3 text-sm text-slate-300">
+              <div className="rounded-2xl border border-[#232b38] bg-[#071224] px-5 py-3 text-sm text-[#8a93a3]">
                 {defectTotals.total} total defect{defectTotals.total === 1 ? "" : "s"} documented
               </div>
             </div>
 
             {groupedFindings.length === 0 ? (
-              <div className="rounded-2xl border border-slate-700 bg-[#071224] p-8 text-center text-slate-300">
+              <div className="rounded-2xl border border-[#232b38] bg-[#071224] p-8 text-center text-[#8a93a3]">
                 No findings saved yet.
               </div>
             ) : (
@@ -2969,10 +2969,10 @@ export default async function PublicSharePage({
                       id={`section-${group.section
                         .toLowerCase()
                         .replace(/[^a-z0-9]+/g, "-")}`}
-                      className="rounded-2xl border border-slate-700 bg-[#071224] p-6"
+                      className="rounded-2xl border border-[#232b38] bg-[#071224] p-6"
                     >
-                      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-700 pb-4">
-                        <h3 className="text-2xl font-black text-white">
+                      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#232b38] pb-4">
+                        <h3 className="text-2xl font-semibold text-white">
                           {group.section}
                         </h3>
 
@@ -2993,7 +2993,7 @@ export default async function PublicSharePage({
                             Section Reference Photos
                           </h4>
 
-                          <p className="mb-4 text-sm text-slate-400">
+                          <p className="mb-4 text-sm text-[#8a93a3]">
                             These photos document general section conditions and are not defect findings.
                           </p>
 
@@ -3006,7 +3006,7 @@ export default async function PublicSharePage({
                               return (
                                 <div
                                   key={photo.id || index}
-                                  className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
+                                  className="overflow-hidden rounded-xl border border-[#232b38] bg-[#0a0e13]"
                                 >
                                   <ExpandableReportImage
                                     src={photoUrl}
@@ -3018,7 +3018,7 @@ export default async function PublicSharePage({
                                   />
 
                                   {photo.caption && (
-                                    <p className="border-t border-slate-800 px-3 py-2 text-sm text-slate-300">
+                                    <p className="border-t border-[#1a212c] px-3 py-2 text-sm text-[#8a93a3]">
                                       {photo.caption}
                                     </p>
                                   )}
@@ -3031,7 +3031,7 @@ export default async function PublicSharePage({
                       )}
 
                       {group.findings.length === 0 && (
-                        <div className="rounded-xl border border-slate-700 bg-[#020617]/70 p-5 text-slate-300">
+                        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-5 text-[#8a93a3]">
                           No defect findings documented in this section.
                         </div>
                       )}
@@ -3054,11 +3054,11 @@ export default async function PublicSharePage({
                               data-sev={findingSeveritySlug(finding)}
                               className="scroll-mt-[180px] md:scroll-mt-[220px]"
                             >
-                              <details className="group overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl md:hidden">
+                              <details className="group overflow-hidden rounded-2xl border border-[#232b38] bg-[#10151e] shadow-xl md:hidden">
                                 <summary className="cursor-pointer list-none">
                                   <div className="flex gap-3 p-3">
                                     {image && (
-                                      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-[#020617]">
+                                      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[#232b38] bg-[#0a0e13]">
                                         {isVideo ? (
                                           <div className="relative h-full w-full bg-black">
                                             {previewImage ? (
@@ -3079,7 +3079,7 @@ export default async function PublicSharePage({
                                                 className="h-full w-full object-cover opacity-80"
                                               />
                                             )}
-                                            <span className="absolute inset-x-2 bottom-2 rounded-full border border-cyan-400 bg-black/75 px-2 py-1 text-center text-[10px] font-black uppercase tracking-wide text-cyan-300">
+                                            <span className="absolute inset-x-2 bottom-2 rounded-full border border-cyan-400 bg-black/75 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-cyan-300">
                                               Video
                                             </span>
                                           </div>
@@ -3090,7 +3090,7 @@ export default async function PublicSharePage({
                                             alt={title}
                                             badgeText="View"
                                             className="h-full w-full object-cover"
-                                            buttonClassName="block h-full w-full overflow-hidden bg-[#020617] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                            buttonClassName="block h-full w-full overflow-hidden bg-[#0a0e13] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                           />
                                         )}
                                       </div>
@@ -3099,24 +3099,24 @@ export default async function PublicSharePage({
                                     <div className="min-w-0 flex-1">
                                       <div className="mb-2 flex flex-wrap items-center gap-2">
                                         {finding.item_number && (
-                                          <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">
+                                          <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-200">
                                             Item #{finding.item_number}
                                           </span>
                                         )}
                                         <span
-                                          className="rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide"
+                                          className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
                                           style={severityBadgeStyle(severityConfig, finding.severity)}
                                         >
                                           {finding.severity || "Recommended Repair"}
                                         </span>
                                       </div>
 
-                                      <h4 className="line-clamp-2 break-words text-base font-black leading-tight text-white">
+                                      <h4 className="line-clamp-2 break-words text-base font-semibold leading-tight text-white">
                                         {title}
                                       </h4>
 
                                       {finding.location && (
-                                        <p className="mt-1 truncate text-xs font-bold text-slate-400">
+                                        <p className="mt-1 truncate text-xs font-bold text-[#8a93a3]">
                                           📍 {finding.location}
                                         </p>
                                       )}
@@ -3125,18 +3125,18 @@ export default async function PublicSharePage({
                                         {finding.section}
                                       </p>
 
-                                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-300">
+                                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#8a93a3]">
                                         {summary}
                                       </p>
 
-                                      <p className="mt-2 text-xs font-black text-cyan-300">
+                                      <p className="mt-2 text-xs font-semibold text-cyan-300">
                                         View Finding →
                                       </p>
                                     </div>
                                   </div>
                                 </summary>
 
-                                <div className="border-t border-slate-700 p-4">
+                                <div className="border-t border-[#232b38] p-4">
                                   {mediaList.length > 0 && (() => {
                                     const photoItems = mediaList.filter(
                                       (media: any) => !isVideoMedia(media, getMediaUrl(media))
@@ -3168,7 +3168,7 @@ export default async function PublicSharePage({
                                                 muted
                                                 playsInline
                                                 preload="metadata"
-                                                className="max-h-[520px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                                                className="max-h-[520px] w-full rounded-xl border border-[#232b38] bg-black object-contain"
                                               >
                                                 Your browser does not support video playback.
                                               </video>
@@ -3179,13 +3179,13 @@ export default async function PublicSharePage({
                                                 alt={media.caption || `Inspection finding photo ${mediaIndex + 1}`}
                                                 badgeText="Tap to enlarge"
                                                 className="max-h-[520px] w-full object-contain"
-                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-[#232b38] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                                 images={galleryImages}
                                                 index={photoIndex >= 0 ? photoIndex : 0}
                                               />
                                             )}
                                             {media.caption && (
-                                              <p className="mt-1 text-sm leading-6 text-slate-300 print:text-black">
+                                              <p className="mt-1 text-sm leading-6 text-[#8a93a3] print:text-black">
                                                 {media.caption}
                                               </p>
                                             )}
@@ -3230,34 +3230,34 @@ export default async function PublicSharePage({
                                 </div>
                               </details>
 
-                              <article className="hidden overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a] shadow-xl md:block">
-                                <div className="border-b border-slate-700 bg-[#020817] p-5">
+                              <article className="hidden overflow-hidden rounded-2xl border border-[#232b38] bg-[#10151e] shadow-xl md:block">
+                                <div className="border-b border-[#232b38] bg-[#0a0e13] p-5">
                                   <div className="flex flex-wrap items-start justify-between gap-4">
                                     <div>
                                       <div className="flex flex-wrap items-center gap-2">
                                         {finding.item_number && (
-                                          <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-200">
+                                          <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-200">
                                             Item #{finding.item_number}
                                           </span>
                                         )}
-                                        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                                        <span className="text-xs font-bold uppercase tracking-wide text-[#59626f]">
                                           {finding.section}
                                         </span>
                                       </div>
 
-                                      <h4 className="mt-2 text-2xl font-black text-teal-300">
+                                      <h4 className="mt-2 text-2xl font-semibold text-teal-300">
                                         {title}
                                       </h4>
 
                                       {finding.location && (
-                                        <p className="mt-1 text-sm font-bold text-slate-400">
+                                        <p className="mt-1 text-sm font-bold text-[#8a93a3]">
                                           📍 {finding.location}
                                         </p>
                                       )}
                                     </div>
 
                                     <span
-                                      className="rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide"
+                                      className="rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide"
                                       style={severityBadgeStyle(severityConfig, finding.severity)}
                                     >
                                       {finding.severity || "Recommended Repair"}
@@ -3301,7 +3301,7 @@ export default async function PublicSharePage({
                                                 muted
                                                 playsInline
                                                 preload="metadata"
-                                                className={`w-full rounded-xl border border-slate-700 bg-black object-contain ${
+                                                className={`w-full rounded-xl border border-[#232b38] bg-black object-contain ${
                                                   mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
                                                 }`}
                                               >
@@ -3316,13 +3316,13 @@ export default async function PublicSharePage({
                                                 className={`w-full object-contain ${
                                                   mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
                                                 }`}
-                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-[#232b38] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                                 images={galleryImages}
                                                 index={photoIndex >= 0 ? photoIndex : 0}
                                               />
                                             )}
                                             {media.caption && (
-                                              <p className="mt-1 text-sm leading-6 text-slate-300 print:text-black">
+                                              <p className="mt-1 text-sm leading-6 text-[#8a93a3] print:text-black">
                                                 {media.caption}
                                               </p>
                                             )}
@@ -3390,7 +3390,7 @@ export default async function PublicSharePage({
             />
           )}
 
-          <footer className="mt-12 border-t border-slate-700 pt-6 text-sm text-slate-400">
+          <footer className="mt-12 border-t border-[#232b38] pt-6 text-sm text-[#8a93a3]">
             <p>{branding.name} • Shared Report Portal</p>
           </footer>
         </div>
@@ -3426,11 +3426,11 @@ function ClientSummaryFindingCard({
 
   return (
     <details
-      className={`group overflow-hidden rounded-2xl border bg-[#020617] transition hover:-translate-y-0.5 hover:border-white/40 open:md:col-span-2 open:hover:translate-y-0 ${toneClass}`}
+      className={`group overflow-hidden rounded-2xl border bg-[#0a0e13] transition hover:-translate-y-0.5 hover:border-white/40 open:md:col-span-2 open:hover:translate-y-0 ${toneClass}`}
     >
       <summary className="cursor-pointer list-none">
         {mediaUrl && (
-          <div className="h-52 overflow-hidden border-b border-slate-800 bg-black">
+          <div className="h-52 overflow-hidden border-b border-[#1a212c] bg-black">
             {video ? (
               <div className="relative h-full w-full">
                 {previewUrl ? (
@@ -3444,12 +3444,12 @@ function ClientSummaryFindingCard({
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-black">
-                    <div className="rounded-full border border-cyan-400 bg-black/75 px-4 py-2 text-xs font-black uppercase tracking-wide text-cyan-300">
+                    <div className="rounded-full border border-cyan-400 bg-black/75 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-cyan-300">
                       ▶ Video
                     </div>
                   </div>
                 )}
-                <span className="absolute inset-x-4 bottom-4 rounded-full border border-cyan-400 bg-black/75 px-3 py-2 text-center text-xs font-black uppercase tracking-wide text-cyan-300">
+                <span className="absolute inset-x-4 bottom-4 rounded-full border border-cyan-400 bg-black/75 px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-cyan-300">
                   Tap to Expand Video
                 </span>
               </div>
@@ -3469,44 +3469,44 @@ function ClientSummaryFindingCard({
         <div className="p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             {finding.item_number && (
-              <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">
+              <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-200">
                 Item #{finding.item_number}
               </span>
             )}
             <span
-              className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide ${getSeverityClass(
+              className={`rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${getSeverityClass(
                 finding.severity
               )}`}
             >
               {finding.severity || "Recommended Repair"}
             </span>
-            <span className="rounded-full border border-slate-700 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-slate-300">
+            <span className="rounded-full border border-[#232b38] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#8a93a3]">
               {finding.section || "Report"}
             </span>
           </div>
 
-          <h4 className="line-clamp-2 text-lg font-black leading-tight text-white group-open:line-clamp-none">
+          <h4 className="line-clamp-2 text-lg font-semibold leading-tight text-white group-open:line-clamp-none">
             {title}
           </h4>
 
           {finding.location && (
-            <p className="mt-1 line-clamp-1 text-xs font-bold text-slate-400">
+            <p className="mt-1 line-clamp-1 text-xs font-bold text-[#8a93a3]">
               📍 {finding.location}
             </p>
           )}
 
-          <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300 group-open:line-clamp-none">
+          <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#8a93a3] group-open:line-clamp-none">
             {summary}
           </p>
 
-          <p className="mt-4 text-sm font-black text-cyan-300">
+          <p className="mt-4 text-sm font-semibold text-cyan-300">
             <span className="group-open:hidden">Tap to Expand →</span>
             <span className="hidden group-open:inline">Expanded Details</span>
           </p>
         </div>
       </summary>
 
-      <div className="border-t border-slate-800 p-4">
+      <div className="border-t border-[#1a212c] p-4">
         {mediaList.length > 0 && (() => {
           const photoItems = mediaList.filter(
             (item: any) => !isVideoMedia(item, getMediaUrl(item))
@@ -3536,7 +3536,7 @@ function ClientSummaryFindingCard({
                       muted
                       playsInline
                       preload="metadata"
-                      className="max-h-[360px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+                      className="max-h-[360px] w-full rounded-xl border border-[#232b38] bg-black object-contain"
                     >
                       Your browser does not support video playback.
                     </video>
@@ -3552,8 +3552,8 @@ function ClientSummaryFindingCard({
                     fullSrc={itemUrl}
                     alt={`Summary finding media ${mediaIndex + 1}`}
                     badgeText="Tap to enlarge"
-                    className="max-h-[360px] w-full rounded-xl border border-slate-700 object-contain"
-                    buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                    className="max-h-[360px] w-full rounded-xl border border-[#232b38] object-contain"
+                    buttonClassName="block w-full overflow-hidden rounded-xl border border-[#232b38] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                     images={galleryImages}
                     index={photoIndex >= 0 ? photoIndex : 0}
                   />
@@ -3575,7 +3575,7 @@ function ClientSummaryFindingCard({
           href={`#section-${String(finding.section || "other")
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")}`}
-          className="mt-4 inline-flex rounded-xl border border-cyan-500/50 px-4 py-3 text-sm font-black text-cyan-300 transition hover:bg-cyan-500 hover:text-black"
+          className="mt-4 inline-flex rounded-xl border border-cyan-500/50 px-4 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500 hover:text-black"
         >
           Open This Item In Full Report →
         </a>
@@ -3631,14 +3631,14 @@ function DefectSummaryCard({
     >
       <div className="flex items-center gap-2">
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${t.dot}`} />
-        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-300">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a93a3]">
           {label}
         </p>
       </div>
 
-      <p className={`mt-3 text-4xl font-black tabular-nums ${t.num}`}>{value}</p>
+      <p className={`mt-3 text-4xl font-semibold tabular-nums ${t.num}`}>{value}</p>
 
-      <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400 opacity-70 transition group-hover:opacity-100">
+      <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#8a93a3] opacity-70 transition group-hover:opacity-100">
         {active ? "Filtering ✓" : "Click to filter"}
       </p>
     </Link>
@@ -3647,8 +3647,8 @@ function DefectSummaryCard({
 
 function Info({ label, value }: { label: string; value?: any }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#0f172a] p-4">
-      <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+    <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-4">
+      <p className="text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
 
@@ -3663,9 +3663,9 @@ function InventoryLine({ label, value }: { label: string; value?: any }) {
   if (!isKnownEquipmentValue(value)) return null;
 
   return (
-    <div className="flex justify-between gap-3 border-b border-slate-800 pb-1">
-      <span className="font-bold text-slate-500">{label}</span>
-      <span className="text-right font-semibold text-slate-200">{value}</span>
+    <div className="flex justify-between gap-3 border-b border-[#1a212c] pb-1">
+      <span className="font-bold text-[#59626f]">{label}</span>
+      <span className="text-right font-semibold text-[#e8ecf3]">{value}</span>
     </div>
   );
 }
@@ -3688,15 +3688,15 @@ function FindingTextCard({
       ? "border-yellow-500/30 bg-yellow-500/10"
       : tone === "teal"
       ? "border-teal-500/30 bg-teal-500/10"
-      : "border-slate-700 bg-[#020817]";
+      : "border-[#232b38] bg-[#0a0e13]";
 
   return (
     <div className={`rounded-xl border p-4 ${classes}`}>
-      <p className="text-sm font-black uppercase tracking-wide text-white">
+      <p className="text-sm font-semibold uppercase tracking-wide text-white">
         {title}
       </p>
 
-      <p className="mt-2 whitespace-pre-line text-base leading-7 text-slate-200">
+      <p className="mt-2 whitespace-pre-line text-base leading-7 text-[#e8ecf3]">
         {value}
       </p>
     </div>

@@ -80,7 +80,7 @@ function severityTone(severity?: string) {
 
 function emptyState() {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4 text-sm leading-6 text-slate-300">
+    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
       <p className="font-bold text-white">Waiting for inspection activity.</p>
       <p className="mt-2">
         Add photos, scan equipment, dictate a finding, or generate from a note.
@@ -89,7 +89,7 @@ function emptyState() {
       </p>
 
       <div className="mt-4 rounded-xl border border-purple-500/30 bg-purple-500/10 p-3">
-        <p className="text-xs font-black uppercase tracking-wide text-purple-300">
+        <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
           What AI will look for
         </p>
 
@@ -113,11 +113,11 @@ function DetailBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-black/30 p-3">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+    <div className="rounded-xl border border-[#232b38] bg-black/30 p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
         {title}
       </p>
-      <div className="mt-2 text-sm leading-6 text-slate-200">{children}</div>
+      <div className="mt-2 text-sm leading-6 text-[#e8ecf3]">{children}</div>
     </div>
   );
 }
@@ -139,15 +139,15 @@ export default function AISecondInspector({
     <section className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-purple-500/40 bg-purple-950/20 p-4 shadow-xl">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-300">
             AI Second Inspector
           </p>
 
-          <h2 className="mt-1 text-2xl font-black text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-white">
             Live Review
           </h2>
 
-          <p className="mt-2 text-sm leading-6 text-slate-300">
+          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
             Real-time AI review for field photos, equipment scans, dictated notes,
             generated findings, and report wording. Inspector has final say.
           </p>
@@ -157,7 +157,7 @@ export default function AISecondInspector({
           <button
             type="button"
             onClick={onClear}
-            className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-black text-slate-300 transition hover:bg-slate-800"
+            className="rounded-xl border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#8a93a3] transition hover:bg-[#1a212c]"
           >
             Clear
           </button>
@@ -176,33 +176,33 @@ export default function AISecondInspector({
             const tone = confidenceTone(confidence);
 
             return (
-              <div className="rounded-2xl border border-slate-700 bg-[#020817]/90 p-4">
+              <div className="rounded-2xl border border-[#232b38] bg-[#0a0e13]/90 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-wide text-purple-300">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
                       Current AI Review
                     </p>
 
-                    <h3 className="mt-1 text-xl font-black text-white">
+                    <h3 className="mt-1 text-xl font-semibold text-white">
                       {activeSuggestion.title}
                     </h3>
 
-                    <p className="mt-1 text-xs leading-5 text-slate-400">
+                    <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
                       {sourceHelper(activeSuggestion.source)}
                     </p>
                   </div>
 
-                  <span className={`rounded-full border px-3 py-1 text-xs font-black ${tone.badge}`}>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone.badge}`}>
                     {sourceLabel(activeSuggestion.source)}
                   </span>
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <div className={`rounded-xl border p-3 ${tone.badge}`}>
-                    <p className="text-xs font-black uppercase tracking-wide opacity-80">
+                    <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
                       Confidence
                     </p>
-                    <p className="mt-1 text-3xl font-black">
+                    <p className="mt-1 text-3xl font-semibold">
                       {confidence || "—"}%
                     </p>
                     <p className="mt-1 text-xs font-bold opacity-90">
@@ -218,13 +218,13 @@ export default function AISecondInspector({
                   </div>
 
                   <div className={`rounded-xl border p-3 ${severityTone(activeSuggestion.severity)}`}>
-                    <p className="text-xs font-black uppercase tracking-wide opacity-80">
+                    <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
                       AI Classification
                     </p>
-                    <p className="mt-1 text-sm font-black">
+                    <p className="mt-1 text-sm font-semibold">
                       {activeSuggestion.section || "Section pending"}
                     </p>
-                    <p className="mt-1 text-lg font-black">
+                    <p className="mt-1 text-lg font-semibold">
                       {activeSuggestion.severity || "Severity pending"}
                     </p>
                   </div>
@@ -265,7 +265,7 @@ export default function AISecondInspector({
                   <button
                     type="button"
                     onClick={() => onAccept(activeSuggestion)}
-                    className="rounded-xl bg-purple-500 px-4 py-3 text-sm font-black text-white transition hover:bg-purple-400"
+                    className="rounded-xl bg-purple-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-400"
                   >
                     Accept Into Finding
                   </button>
@@ -273,7 +273,7 @@ export default function AISecondInspector({
                   <button
                     type="button"
                     onClick={() => onIgnore(activeSuggestion.id)}
-                    className="rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-300 transition hover:bg-slate-800"
+                    className="rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-[#8a93a3] transition hover:bg-[#1a212c]"
                   >
                     Ignore This
                   </button>
@@ -283,8 +283,8 @@ export default function AISecondInspector({
           })()}
 
           {suggestions.length > 1 && (
-            <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Other AI Suggestions
               </p>
 
@@ -299,21 +299,21 @@ export default function AISecondInspector({
                   return (
                     <div
                       key={suggestion.id}
-                      className="rounded-xl border border-slate-700 bg-black/30 p-3"
+                      className="rounded-xl border border-[#232b38] bg-black/30 p-3"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-sm font-black text-white">
+                          <p className="text-sm font-semibold text-white">
                             {suggestion.title}
                           </p>
-                          <p className="mt-1 text-xs text-slate-400">
+                          <p className="mt-1 text-xs text-[#8a93a3]">
                             {[suggestion.section, suggestion.severity]
                               .filter(Boolean)
                               .join(" • ")}
                           </p>
                         </div>
 
-                        <span className={`rounded-full border px-2 py-1 text-[10px] font-black ${tone.badge}`}>
+                        <span className={`rounded-full border px-2 py-1 text-[10px] font-semibold ${tone.badge}`}>
                           {confidence || "—"}%
                         </span>
                       </div>
@@ -322,14 +322,14 @@ export default function AISecondInspector({
                         <button
                           type="button"
                           onClick={() => onAccept(suggestion)}
-                          className="flex-1 rounded-lg bg-purple-500 px-3 py-2 text-xs font-black text-white hover:bg-purple-400"
+                          className="flex-1 rounded-lg bg-purple-500 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-400"
                         >
                           Accept
                         </button>
                         <button
                           type="button"
                           onClick={() => onIgnore(suggestion.id)}
-                          className="flex-1 rounded-lg border border-slate-600 px-3 py-2 text-xs font-black text-slate-300 hover:bg-slate-800"
+                          className="flex-1 rounded-lg border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#8a93a3] hover:bg-[#1a212c]"
                         >
                           Ignore
                         </button>
@@ -342,7 +342,7 @@ export default function AISecondInspector({
           )}
 
           <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3 text-xs leading-5 text-cyan-100">
-            <p className="font-black uppercase tracking-wide text-cyan-300">
+            <p className="font-semibold uppercase tracking-wide text-cyan-300">
               Learning note
             </p>
             <p className="mt-1">

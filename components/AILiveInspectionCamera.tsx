@@ -1137,11 +1137,11 @@ export default function AILiveInspectionCamera({
 
   const cameraUi = !open ? (
     <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
-      <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
         AI Capture Camera
       </p>
-      <h2 className="mt-1 text-xl font-black">Findings · Limitations · Equipment · Reference</h2>
-      <p className="mt-1 text-sm text-slate-300">
+      <h2 className="mt-1 text-xl font-semibold">Findings · Limitations · Equipment · Reference</h2>
+      <p className="mt-1 text-sm text-[#8a93a3]">
         Pick a category, capture a photo or video, and AI drafts it for your
         approval. Nothing saves until you accept it.
       </p>
@@ -1153,7 +1153,7 @@ export default function AILiveInspectionCamera({
           setCategory(null);
           window.setTimeout(() => void startCamera(facingMode), 50);
         }}
-        className="mt-4 min-h-[48px] w-full rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
+        className="mt-4 min-h-[48px] w-full rounded-xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-black transition active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
       >
         🤖 Open AI Camera
       </button>
@@ -1191,7 +1191,7 @@ export default function AILiveInspectionCamera({
       )}
 
       {focusMessage && (
-        <div className="pointer-events-none absolute left-1/2 top-[38%] z-[22] -translate-x-1/2 rounded-full bg-black/75 px-4 py-2 text-xs font-black text-yellow-200 backdrop-blur">
+        <div className="pointer-events-none absolute left-1/2 top-[38%] z-[22] -translate-x-1/2 rounded-full bg-black/75 px-4 py-2 text-xs font-semibold text-yellow-200 backdrop-blur">
           {focusMessage}
         </div>
       )}
@@ -1219,7 +1219,7 @@ export default function AILiveInspectionCamera({
 
         {activeCategoryMeta && (
           <span
-            className={`rounded-full border px-4 py-2 text-xs font-black ${activeCategoryMeta.idleClass} bg-black/70 backdrop-blur`}
+            className={`rounded-full border px-4 py-2 text-xs font-semibold ${activeCategoryMeta.idleClass} bg-black/70 backdrop-blur`}
           >
             {activeCategoryMeta.icon} {activeCategoryMeta.label}
           </span>
@@ -1299,7 +1299,7 @@ export default function AILiveInspectionCamera({
                   type="button"
                   onClick={() => setZoomOpen((o) => !o)}
                   aria-label="Zoom controls"
-                  className="flex h-10 min-w-[3.5rem] items-center justify-center gap-1 rounded-full border border-white/20 bg-black/60 px-3 text-xs font-black text-white backdrop-blur active:scale-95"
+                  className="flex h-10 min-w-[3.5rem] items-center justify-center gap-1 rounded-full border border-white/20 bg-black/60 px-3 text-xs font-semibold text-white backdrop-blur active:scale-95"
                 >
                   {displayZoom.toFixed(1)}× 🔍
                 </button>
@@ -1316,7 +1316,7 @@ export default function AILiveInspectionCamera({
                               type="button"
                               onClick={() => applyStop(v)}
                               aria-label={`${fmt(v)}x zoom`}
-                              className={`flex h-9 min-w-[2.25rem] items-center justify-center rounded-full px-2 text-xs font-black active:scale-95 ${
+                              className={`flex h-9 min-w-[2.25rem] items-center justify-center rounded-full px-2 text-xs font-semibold active:scale-95 ${
                                 active ? "bg-white text-black" : "text-white/90"
                               }`}
                             >
@@ -1356,7 +1356,7 @@ export default function AILiveInspectionCamera({
           className="absolute inset-x-0 bottom-0 z-20 px-4"
           style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
         >
-          <p className="mb-3 text-center text-xs font-black uppercase tracking-wide text-white/80">
+          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-white/80">
             What are you capturing?
           </p>
           <div className="grid grid-cols-2 gap-3">
@@ -1365,7 +1365,7 @@ export default function AILiveInspectionCamera({
                 key={cat.key}
                 type="button"
                 onClick={() => selectCategory(cat.key)}
-                className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl border-2 text-sm font-black shadow-xl backdrop-blur active:scale-[0.97] ${cat.idleClass} bg-black/55`}
+                className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl border-2 text-sm font-semibold shadow-xl backdrop-blur active:scale-[0.97] ${cat.idleClass} bg-black/55`}
               >
                 <span className="text-2xl leading-none">{cat.icon}</span>
                 {cat.label}
@@ -1411,7 +1411,7 @@ export default function AILiveInspectionCamera({
                   if (!recordingVideo) setCaptureMode("photo");
                 }}
                 disabled={recordingVideo}
-                className={`rounded-full px-4 py-2 text-xs font-black transition ${
+                className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
                   captureMode === "photo" ? "bg-white text-black" : "text-white"
                 } disabled:opacity-40`}
               >
@@ -1420,7 +1420,7 @@ export default function AILiveInspectionCamera({
               <button
                 type="button"
                 onClick={() => setCaptureMode("video")}
-                className={`rounded-full px-4 py-2 text-xs font-black transition ${
+                className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
                   captureMode === "video" ? "bg-red-500 text-white" : "text-white"
                 }`}
               >
@@ -1477,7 +1477,7 @@ export default function AILiveInspectionCamera({
       {stage === "drafting" && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/80 backdrop-blur-sm">
           <span className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
-          <p className="text-sm font-black text-cyan-200">
+          <p className="text-sm font-semibold text-cyan-200">
             AI is drafting your {activeCategoryMeta?.label.toLowerCase()}…
           </p>
         </div>
@@ -1486,7 +1486,7 @@ export default function AILiveInspectionCamera({
       {stage === "capture_error" && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/85 px-6 text-center backdrop-blur-sm">
           <p className="text-sm font-bold text-red-200">{draftError}</p>
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-[#8a93a3]">
             Your {capturedIsVideo ? "video" : "photo"} is safe — save it to the report now
             and finish the write-up later, or try the AI again.
           </p>
@@ -1497,7 +1497,7 @@ export default function AILiveInspectionCamera({
             type="button"
             onClick={handleSaveWithoutAi}
             disabled={saving}
-            className="w-full max-w-xs rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-black disabled:cursor-wait disabled:opacity-60"
+            className="w-full max-w-xs rounded-xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-black disabled:cursor-wait disabled:opacity-60"
           >
             {saving
               ? "Saving…"
@@ -1508,7 +1508,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={handleRetake}
               disabled={saving}
-              className="rounded-xl border border-slate-500 px-4 py-3 text-sm font-black text-white disabled:opacity-60"
+              className="rounded-xl border border-[#59626f] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
               Retake
             </button>
@@ -1520,7 +1520,7 @@ export default function AILiveInspectionCamera({
                 void runDraft(capturedFrameForAi, capturedFile)
               }
               disabled={saving}
-              className="rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-black disabled:opacity-60"
+              className="rounded-xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-black disabled:opacity-60"
             >
               Try AI Again
             </button>
@@ -1531,7 +1531,7 @@ export default function AILiveInspectionCamera({
       {stage === "collecting" && (
         <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
               {shots.length} shot{shots.length === 1 ? "" : "s"} ·{" "}
               {category === "finding"
                 ? "same defect"
@@ -1557,7 +1557,7 @@ export default function AILiveInspectionCamera({
                     </div>
                   )}
                   {s.isVideo && (
-                    <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-black text-white">
+                    <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                       ▶ VIDEO
                     </span>
                   )}
@@ -1566,12 +1566,12 @@ export default function AILiveInspectionCamera({
             </div>
             {category === "reference" ? (
               <>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
+                <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
                   Add as many reference photos of this area as you want, then save them all to
                   the section.
                 </p>
                 <div className="mt-3 rounded-xl border border-white/15 bg-black/40 p-3">
-                  <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
                     Section
                   </label>
                   <select
@@ -1589,7 +1589,7 @@ export default function AILiveInspectionCamera({
               </>
             ) : (
               <>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
+                <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
                   Add as many angles of the{" "}
                   <b className="text-white">
                     same {category === "limitation" ? "limitation" : "defect"}
@@ -1598,7 +1598,7 @@ export default function AILiveInspectionCamera({
                   {category === "limitation" ? "limitation" : "finding"}.
                 </p>
                 <div className="mt-3 rounded-xl border border-white/15 bg-black/40 p-3">
-                  <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
                     Note for AI (optional)
                   </label>
                   <textarea
@@ -1616,7 +1616,7 @@ export default function AILiveInspectionCamera({
             <button
               type="button"
               onClick={() => setStage("note_entry")}
-              className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-3 text-sm font-black text-cyan-200 [touch-action:manipulation]"
+              className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-200 [touch-action:manipulation]"
             >
               ＋ Take another photo{category === "finding" ? " or video" : ""}
             </button>
@@ -1626,7 +1626,7 @@ export default function AILiveInspectionCamera({
                 type="button"
                 onClick={() => void saveReferenceShots()}
                 disabled={saving}
-                className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 disabled:opacity-60 [touch-action:manipulation]"
+                className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-60 [touch-action:manipulation]"
               >
                 {saving
                   ? "Saving…"
@@ -1636,7 +1636,7 @@ export default function AILiveInspectionCamera({
               <button
                 type="button"
                 onClick={() => void analyzeShots()}
-                className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-slate-950 [touch-action:manipulation]"
+                className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-semibold text-slate-950 [touch-action:manipulation]"
               >
                 ✨ Analyze {shots.length} shot{shots.length === 1 ? "" : "s"} →{" "}
                 {category === "limitation" ? "limitation" : "finding"}
@@ -1647,7 +1647,7 @@ export default function AILiveInspectionCamera({
               onAttachToExisting &&
               (existingFindings?.length || 0) > 0 && (
                 <div className="rounded-xl border border-white/15 bg-black/40 p-3">
-                  <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
                     Or attach to a previous defect (no AI)
                   </label>
                   <div className="mt-2 flex gap-2">
@@ -1668,7 +1668,7 @@ export default function AILiveInspectionCamera({
                       type="button"
                       disabled={saving || !attachTargetId}
                       onClick={() => void attachTrayToExisting(attachTargetId)}
-                      className="rounded-lg border border-cyan-400/60 bg-cyan-500/10 px-4 py-2 text-sm font-black text-cyan-200 disabled:opacity-50 [touch-action:manipulation]"
+                      className="rounded-lg border border-cyan-400/60 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-200 disabled:opacity-50 [touch-action:manipulation]"
                     >
                       Attach
                     </button>
@@ -1682,7 +1682,7 @@ export default function AILiveInspectionCamera({
                 resetCaptureState();
                 setStage("note_entry");
               }}
-              className="w-full rounded-xl border border-slate-700 px-4 py-2.5 text-xs font-black text-slate-400 [touch-action:manipulation]"
+              className="w-full rounded-xl border border-[#232b38] px-4 py-2.5 text-xs font-semibold text-[#8a93a3] [touch-action:manipulation]"
             >
               Discard &amp; start over
             </button>
@@ -1728,13 +1728,13 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={openMarkup}
               disabled={saving}
-              className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-200 disabled:opacity-50"
+              className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 disabled:opacity-50"
             >
               🖊 Markup Photo (optional)
             </button>
 
             <div className="mt-4">
-              <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Section
               </label>
               <select
@@ -1751,7 +1751,7 @@ export default function AILiveInspectionCamera({
             </div>
 
             <div className="mt-4">
-              <label className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Caption (optional)
               </label>
               <input
@@ -1775,7 +1775,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={handleRetake}
               disabled={saving}
-              className="min-h-12 rounded-xl border border-slate-500 px-2 py-3 text-sm font-black text-white disabled:opacity-50"
+              className="min-h-12 rounded-xl border border-[#59626f] px-2 py-3 text-sm font-semibold text-white disabled:opacity-50"
             >
               Retake
             </button>
@@ -1785,7 +1785,7 @@ export default function AILiveInspectionCamera({
                 void handleAccept({ kind: "reference", caption: referenceCaption })
               }
               disabled={saving}
-              className="min-h-12 rounded-xl bg-emerald-400 px-2 py-3 text-sm font-black text-black disabled:opacity-50"
+              className="min-h-12 rounded-xl bg-emerald-400 px-2 py-3 text-sm font-semibold text-black disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save"}
             </button>
@@ -1794,13 +1794,13 @@ export default function AILiveInspectionCamera({
       )}
 
       {toast && (
-        <div className="pointer-events-none absolute left-1/2 top-24 z-40 -translate-x-1/2 rounded-full bg-emerald-500/90 px-4 py-2 text-xs font-black text-black shadow-2xl">
+        <div className="pointer-events-none absolute left-1/2 top-24 z-40 -translate-x-1/2 rounded-full bg-emerald-500/90 px-4 py-2 text-xs font-semibold text-black shadow-2xl">
           ✓ {toast}
         </div>
       )}
 
       {!online && (
-        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-[10px] font-black text-amber-300">
+        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-[10px] font-semibold text-amber-300">
           Offline — AI drafting needs a connection
         </div>
       )}

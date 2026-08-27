@@ -85,7 +85,7 @@ export default function SendAgreementButton({
         <button
           type="button"
           onClick={() => setShowRealtorOption(true)}
-          className="text-xs font-bold text-slate-400 underline underline-offset-2 hover:text-slate-200"
+          className="text-xs font-bold text-[#8a93a3] underline underline-offset-2 hover:text-[#e8ecf3]"
         >
           Realtor asked to forward it themselves?
         </button>

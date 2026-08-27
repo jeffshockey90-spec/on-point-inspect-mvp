@@ -150,7 +150,7 @@ export default function DashboardTour({
       <button
         type="button"
         onClick={restartTour}
-        className="fixed bottom-24 right-4 z-[150] flex items-center gap-2 rounded-full border border-teal-500/50 bg-[#0b1220] px-4 py-3 text-xs font-black uppercase tracking-wide text-teal-300 shadow-2xl shadow-black/40 transition hover:border-teal-300 hover:text-teal-200 active:scale-[0.97] xl:bottom-6"
+        className="fixed bottom-24 right-4 z-[150] flex items-center gap-2 rounded-full border border-teal-500/50 bg-[#10151e] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-teal-300 shadow-2xl shadow-black/40 transition hover:border-teal-300 hover:text-teal-200 active:scale-[0.97] xl:bottom-6"
       >
         <Compass className="h-4 w-4" strokeWidth={2.5} /> Take the Tour
       </button>
@@ -186,20 +186,20 @@ export default function DashboardTour({
       />
 
       <div
-        className="absolute z-[201] rounded-2xl border border-teal-500/40 bg-[#0b1220] p-5 shadow-2xl shadow-black/40"
+        className="absolute z-[201] rounded-2xl border border-teal-500/40 bg-[#10151e] p-5 shadow-2xl shadow-black/40"
         style={{ ...style, width: tooltipWidth }}
       >
-        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-teal-300">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-teal-300">
           Step {stepIndex + 1} of {STEPS.length}
         </p>
-        <h3 className="mt-2 text-lg font-black text-white">{step.title}</h3>
-        <p className="mt-2 text-sm leading-6 text-slate-300">{step.body}</p>
+        <h3 className="mt-2 text-lg font-semibold text-white">{step.title}</h3>
+        <p className="mt-2 text-sm leading-6 text-[#8a93a3]">{step.body}</p>
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={finishTour}
-            className="text-xs font-black uppercase tracking-wide text-slate-500 transition hover:text-slate-300"
+            className="text-xs font-semibold uppercase tracking-wide text-[#59626f] transition hover:text-[#8a93a3]"
           >
             Skip tour
           </button>
@@ -209,7 +209,7 @@ export default function DashboardTour({
               <button
                 type="button"
                 onClick={previousStep}
-                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-200 transition hover:border-teal-400"
+                className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400"
               >
                 Back
               </button>
@@ -217,7 +217,7 @@ export default function DashboardTour({
             <button
               type="button"
               onClick={nextStep}
-              className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-teal-400"
+              className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-400"
             >
               {stepIndex + 1 >= STEPS.length ? "Done" : "Next"}
             </button>

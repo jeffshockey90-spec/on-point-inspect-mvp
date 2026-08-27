@@ -49,7 +49,7 @@ export default function SendDemoReportButton({
   }
 
   const inputClass =
-    "w-full min-w-0 rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-fuchsia-400";
+    "w-full min-w-0 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-fuchsia-400";
 
   if (!open) {
     return (
@@ -66,8 +66,8 @@ export default function SendDemoReportButton({
   return (
     <div className="w-full max-w-md rounded-2xl border border-fuchsia-500/40 bg-fuchsia-950/20 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-black uppercase tracking-wide text-fuchsia-300">Send Demo Report</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-lg text-slate-400 hover:text-white" aria-label="Close">
+        <p className="text-sm font-semibold uppercase tracking-wide text-fuchsia-300">Send Demo Report</p>
+        <button type="button" onClick={() => setOpen(false)} className="text-lg text-[#8a93a3] hover:text-white" aria-label="Close">
           ×
         </button>
       </div>
@@ -90,7 +90,7 @@ export default function SendDemoReportButton({
           type="button"
           onClick={send}
           disabled={sending}
-          className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-500 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-fuchsia-400 disabled:cursor-wait disabled:opacity-70"
+          className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-fuchsia-400 disabled:cursor-wait disabled:opacity-70"
         >
           {sending ? (
             <>
@@ -101,7 +101,7 @@ export default function SendDemoReportButton({
             "Send"
           )}
         </button>
-        <span className="text-xs text-slate-400">Emails a "View Sample Report" link + your profile.</span>
+        <span className="text-xs text-[#8a93a3]">Emails a "View Sample Report" link + your profile.</span>
       </div>
     </div>
   );

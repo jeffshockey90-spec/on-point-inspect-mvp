@@ -21,11 +21,11 @@ function Badge({
           ? "border-teal-500/40 bg-teal-500/10 text-teal-300"
           : tone === "purple"
             ? "border-purple-500/40 bg-purple-500/10 text-purple-300"
-            : "border-slate-600 bg-slate-800/60 text-slate-300";
+            : "border-[#232b38] bg-[#1a212c] text-[#8a93a3]";
 
   return (
     <span
-      className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${classes}`}
+      className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${classes}`}
     >
       {children}
     </span>
@@ -307,16 +307,16 @@ export default function AgreementStatusPanel({
   return (
     <section
       id="agreement-status"
-      className="mb-6 w-full max-w-full overflow-hidden rounded-3xl border border-slate-700 bg-[#071224] shadow-2xl shadow-black/20"
+      className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[#232b38] bg-[#071224] shadow-2xl shadow-black/20"
     >
-      <div className="border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1628] to-[#071224] p-4 sm:p-5">
+      <div className="border-b border-[#1a212c] bg-gradient-to-r from-[#10151e] via-[#0b1628] to-[#10151e] p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-teal-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-teal-400">
               Agreement Status
             </p>
 
-            <h2 className="mt-2 text-2xl font-black text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-white">
               Signature Tracking
             </h2>
 
@@ -351,7 +351,7 @@ export default function AgreementStatusPanel({
                   type="button"
                   onClick={() => sendReminder()}
                   disabled={sendingReminder !== null || waiverBusy}
-                  className="w-full rounded-2xl border border-yellow-500/70 bg-yellow-500/10 px-5 py-3 text-sm font-black text-yellow-300 transition hover:bg-yellow-500 hover:text-slate-950 disabled:opacity-50 sm:w-auto"
+                  className="w-full rounded-2xl border border-yellow-500/70 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-300 transition hover:bg-yellow-500 hover:text-slate-950 disabled:opacity-50 sm:w-auto"
                 >
                   {sendingReminder === "all" ? "Sending..." : "Remind All"}
                 </button>
@@ -362,7 +362,7 @@ export default function AgreementStatusPanel({
                 type="button"
                 onClick={() => setShowWaiverForm((value) => !value)}
                 disabled={waiverBusy}
-                className="w-full rounded-2xl border border-purple-500/70 bg-purple-500/10 px-5 py-3 text-sm font-black text-purple-300 transition hover:bg-purple-500 hover:text-white disabled:opacity-50 sm:w-auto"
+                className="w-full rounded-2xl border border-purple-500/70 bg-purple-500/10 px-5 py-3 text-sm font-semibold text-purple-300 transition hover:bg-purple-500 hover:text-white disabled:opacity-50 sm:w-auto"
               >
                 Waive Agreement Requirement
               </button>
@@ -373,7 +373,7 @@ export default function AgreementStatusPanel({
 
       <div className="p-4 sm:p-5">
         {message && (
-          <div className="mb-4 rounded-2xl border border-slate-600 bg-slate-900/70 p-4 text-sm font-bold text-slate-200">
+          <div className="mb-4 rounded-2xl border border-[#232b38] bg-[#131923] p-4 text-sm font-bold text-[#e8ecf3]">
             {message}
           </div>
         )}
@@ -382,16 +382,16 @@ export default function AgreementStatusPanel({
           <div className="mb-4 rounded-2xl border border-purple-500/60 bg-purple-500/10 p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-300">
                   Agreement Requirement Waived
                 </p>
 
-                <p className="mt-2 text-sm leading-6 text-slate-200">
+                <p className="mt-2 text-sm leading-6 text-[#e8ecf3]">
                   <strong>Reason:</strong>{" "}
                   {waiver.agreement_waiver_reason || "No reason recorded"}
                 </p>
 
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-[#8a93a3]">
                   Waived by{" "}
                   {waiver.agreement_waived_by_name ||
                     waiver.agreement_waived_by ||
@@ -404,7 +404,7 @@ export default function AgreementStatusPanel({
                 type="button"
                 onClick={removeWaiver}
                 disabled={waiverBusy}
-                className="rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-black text-red-300 transition hover:bg-red-500 hover:text-white disabled:opacity-50"
+                className="rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500 hover:text-white disabled:opacity-50"
               >
                 {waiverBusy ? "Working..." : "Remove Waiver"}
               </button>
@@ -414,11 +414,11 @@ export default function AgreementStatusPanel({
 
         {showWaiverForm && !waiver.agreement_waived && (
           <div className="mb-4 rounded-2xl border border-purple-500/50 bg-purple-500/10 p-4">
-            <h3 className="text-lg font-black text-purple-300">
+            <h3 className="text-lg font-semibold text-purple-300">
               Waive Agreement Requirement
             </h3>
 
-            <p className="mt-2 text-sm leading-6 text-slate-300">
+            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
               This does not mark an agreement as signed. It records that the
               inspection company intentionally waived the signature requirement.
             </p>
@@ -428,7 +428,7 @@ export default function AgreementStatusPanel({
               onChange={(event) => setWaiverReason(event.target.value)}
               disabled={waiverBusy}
               placeholder="Required reason, example: Existing signed paper agreement retained in company records."
-              className="mt-4 min-h-[110px] w-full rounded-xl border border-purple-500/40 bg-slate-950 px-4 py-3 text-white outline-none focus:border-purple-300 disabled:opacity-60"
+              className="mt-4 min-h-[110px] w-full rounded-xl border border-purple-500/40 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-purple-300 disabled:opacity-60"
             />
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -455,7 +455,7 @@ export default function AgreementStatusPanel({
                 type="button"
                 onClick={waiveAgreement}
                 disabled={waiverBusy || !waiverReason.trim()}
-                className="rounded-xl bg-purple-500 px-5 py-3 text-sm font-black text-white hover:bg-purple-400 disabled:opacity-50"
+                className="rounded-xl bg-purple-500 px-5 py-3 text-sm font-semibold text-white hover:bg-purple-400 disabled:opacity-50"
               >
                 {waiverBusy ? "Saving..." : "Confirm Waiver"}
               </button>
@@ -468,7 +468,7 @@ export default function AgreementStatusPanel({
                   setMessage("");
                 }}
                 disabled={waiverBusy}
-                className="rounded-xl border border-slate-600 px-5 py-3 text-sm font-black text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                className="rounded-xl border border-[#232b38] px-5 py-3 text-sm font-semibold text-[#8a93a3] hover:bg-[#1a212c] disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -477,13 +477,13 @@ export default function AgreementStatusPanel({
         )}
 
         {loading && (
-          <p className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-4 text-sm text-slate-400">
+          <p className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 text-sm text-[#8a93a3]">
             Loading agreement status...
           </p>
         )}
 
         {!loading && requiredContacts.length === 0 && (
-          <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-4 text-sm leading-6 text-slate-400">
+          <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
             No required agreement signers added yet. Add clients in the Client /
             Realtor Contacts section and mark Agreement Required.
           </div>
@@ -498,12 +498,12 @@ export default function AgreementStatusPanel({
               return (
                 <article
                   key={contact.id}
-                  className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-4"
+                  className="rounded-2xl border border-[#232b38] bg-[#131923] p-4"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="break-words text-base font-black text-white">
+                        <p className="break-words text-base font-semibold text-white">
                           {contact.name}
                         </p>
 
@@ -530,7 +530,7 @@ export default function AgreementStatusPanel({
                         <Badge tone="slate">Required</Badge>
                       </div>
 
-                      <p className="mt-2 break-all text-sm text-slate-400">
+                      <p className="mt-2 break-all text-sm text-[#8a93a3]">
                         {contact.email}
                       </p>
 
@@ -545,7 +545,7 @@ export default function AgreementStatusPanel({
                       {signed && signedAgreement?.id && (
                         <Link
                           href={`/reports/${inspectionId}/signed-agreement/${signedAgreement.id}`}
-                          className="w-full rounded-xl border border-green-500/70 bg-green-500/10 px-4 py-2 text-center text-sm font-black text-green-300 transition hover:bg-green-500 hover:text-slate-950"
+                          className="w-full rounded-xl border border-green-500/70 bg-green-500/10 px-4 py-2 text-center text-sm font-semibold text-green-300 transition hover:bg-green-500 hover:text-slate-950"
                         >
                           View Signed Agreement
                         </Link>
@@ -556,7 +556,7 @@ export default function AgreementStatusPanel({
                           type="button"
                           onClick={() => sendReminder(contact.id)}
                           disabled={sendingReminder !== null || waiverBusy}
-                          className="w-full rounded-xl border border-yellow-500/70 px-4 py-2 text-sm font-black text-yellow-300 transition hover:bg-yellow-500/10 disabled:opacity-50"
+                          className="w-full rounded-xl border border-yellow-500/70 px-4 py-2 text-sm font-semibold text-yellow-300 transition hover:bg-yellow-500/10 disabled:opacity-50"
                         >
                           {sendingReminder === contact.id
                             ? "Sending..."

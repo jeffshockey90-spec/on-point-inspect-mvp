@@ -81,9 +81,9 @@ export default async function ClientPortalListPage() {
 
   if (inspectionIds.length === 0) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#020617] px-6 text-center text-white">
-        <p className="text-2xl font-black">No Reports Found</p>
-        <p className="max-w-md text-slate-400">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0a0e13] px-6 text-center text-white">
+        <p className="text-2xl font-semibold">No Reports Found</p>
+        <p className="max-w-md text-[#8a93a3]">
           We couldn&apos;t find any inspection reports linked to {user.email}. If you were expecting
           to see a report here, contact your inspector.
         </p>
@@ -106,12 +106,12 @@ export default async function ClientPortalListPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 pb-6 pt-4 text-white md:px-8 md:pb-8">
+    <main className="min-h-screen bg-[#0a0e13] px-4 pb-6 pt-4 text-white md:px-8 md:pb-8">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 mt-4">
-          <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">Client Portal</p>
-          <h1 className="mt-3 text-4xl font-black text-white">Your Reports</h1>
-          <p className="mt-3 max-w-2xl text-slate-400">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">Client Portal</p>
+          <h1 className="mt-3 text-4xl font-semibold text-white">Your Reports</h1>
+          <p className="mt-3 max-w-2xl text-[#8a93a3]">
             {inspections.length} inspection report{inspections.length === 1 ? "" : "s"} linked to{" "}
             {user.email}.
           </p>
@@ -126,18 +126,18 @@ export default async function ClientPortalListPage() {
               <a
                 key={id}
                 href={`/client-portal/${encodeURIComponent(id)}`}
-                className="block rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl transition hover:border-teal-500/50"
+                className="block rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl transition hover:border-teal-500/50"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xl font-black text-white">{getAddress(inspection)}</p>
-                    <p className="mt-2 text-sm text-slate-400">
+                    <p className="text-xl font-semibold text-white">{getAddress(inspection)}</p>
+                    <p className="mt-2 text-sm text-[#8a93a3]">
                       Inspection Date: {formatDate(getInspectionDate(inspection))}
                     </p>
                   </div>
 
                   <span
-                    className={`rounded-full border px-4 py-2 text-xs font-black uppercase ${
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase ${
                       published
                         ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
                         : "border-yellow-500/50 bg-yellow-500/10 text-yellow-300"

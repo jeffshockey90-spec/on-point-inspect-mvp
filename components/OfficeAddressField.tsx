@@ -22,7 +22,7 @@ export default function OfficeAddressField({ defaultValue }: { defaultValue: str
       value={address}
       onChange={(e) => setAddress(e.target.value)}
       placeholder="Where you drive from before each inspection"
-      className="w-full min-w-0 rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+      className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
     />
   );
 }

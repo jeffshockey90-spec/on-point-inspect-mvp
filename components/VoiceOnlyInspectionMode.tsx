@@ -270,13 +270,13 @@ export default function VoiceOnlyInspectionMode({
 
   return (
     <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-white">
-      <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
         Voice-Only Inspection
       </p>
-      <h2 className="mt-1 text-xl font-black">
+      <h2 className="mt-1 text-xl font-semibold">
         Walk, Narrate, and Auto-Save
       </h2>
-      <p className="mt-1 text-sm leading-6 text-slate-300">
+      <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
         Speak one finding at a time, then pause. AI drafts and saves it
         automatically while listening resumes.
       </p>
@@ -285,7 +285,7 @@ export default function VoiceOnlyInspectionMode({
         type="button"
         onClick={() => void toggleActive()}
         disabled={!online || !inspectionId}
-        className={`mt-4 min-h-[50px] w-full rounded-xl px-4 py-3 font-black transition active:scale-[0.98] disabled:opacity-50 ${
+        className={`mt-4 min-h-[50px] w-full rounded-xl px-4 py-3 font-semibold transition active:scale-[0.98] disabled:opacity-50 ${
           active
             ? "bg-red-500 text-white"
             : "bg-emerald-400 text-black"
@@ -294,8 +294,8 @@ export default function VoiceOnlyInspectionMode({
         {active ? "■ Stop Voice-Only Mode" : "🎙 Start Voice-Only Mode"}
       </button>
 
-      <div className="mt-3 rounded-xl border border-slate-700 bg-black/35 p-3">
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+      <div className="mt-3 rounded-xl border border-[#232b38] bg-black/35 p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
           Status
         </p>
         <p className="mt-1 font-bold text-white">{status}</p>
@@ -314,7 +314,7 @@ export default function VoiceOnlyInspectionMode({
 
       {savedFindings.length > 0 && (
         <div className="mt-4 space-y-2">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-300">
             Recently Saved
           </p>
           {savedFindings.map((finding) => (
@@ -322,8 +322,8 @@ export default function VoiceOnlyInspectionMode({
               key={finding.id}
               className="rounded-xl border border-emerald-500/30 bg-black/30 px-3 py-2"
             >
-              <p className="font-black">{finding.title}</p>
-              <p className="text-xs text-slate-300">
+              <p className="font-semibold">{finding.title}</p>
+              <p className="text-xs text-[#8a93a3]">
                 {finding.section} · {finding.severity}
               </p>
             </div>

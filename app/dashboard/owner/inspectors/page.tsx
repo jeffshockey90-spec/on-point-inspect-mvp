@@ -193,12 +193,12 @@ function getInspectionRevenue(inspection: any) {
 
 function RestrictedOwner() {
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-      <div className="mx-auto max-w-3xl rounded-3xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
-        <p className="text-sm font-black uppercase tracking-[0.35em] text-red-300">Owner Only</p>
-        <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
-        <p className="mt-4 text-slate-300">This owner tool is only available to the FLOW owner account.</p>
-        <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-black text-red-300 hover:bg-red-500/10">
+    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">Owner Only</p>
+        <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
+        <p className="mt-4 text-[#8a93a3]">This owner tool is only available to the FLOW owner account.</p>
+        <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10">
           Back to Dashboard
         </Link>
       </div>
@@ -209,31 +209,31 @@ function RestrictedOwner() {
 function OwnerNav() {
   return (
     <div className="flex flex-wrap gap-3">
-      <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-3 py-2 text-sm font-black text-teal-300 transition hover:bg-teal-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-3 py-2 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10 sm:px-4 sm:py-3 sm:text-base">
         Owner
       </Link>
-      <Link href="/dashboard/owner/users" className="rounded-xl border border-cyan-500 px-3 py-2 text-sm font-black text-cyan-300 transition hover:bg-cyan-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/users" className="rounded-xl border border-cyan-500 px-3 py-2 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/10 sm:px-4 sm:py-3 sm:text-base">
         👥 Users
       </Link>
-      <Link href="/dashboard/owner/devices" className="rounded-xl border border-purple-500 px-3 py-2 text-sm font-black text-purple-300 transition hover:bg-purple-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/devices" className="rounded-xl border border-purple-500 px-3 py-2 text-sm font-semibold text-purple-300 transition hover:bg-purple-500/10 sm:px-4 sm:py-3 sm:text-base">
         📱 Devices
       </Link>
-      <Link href="/dashboard/owner/revenue" className="rounded-xl border border-green-500 px-3 py-2 text-sm font-black text-green-300 transition hover:bg-green-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/revenue" className="rounded-xl border border-green-500 px-3 py-2 text-sm font-semibold text-green-300 transition hover:bg-green-500/10 sm:px-4 sm:py-3 sm:text-base">
         💰 Revenue
       </Link>
-      <Link href="/dashboard/owner/push" className="rounded-xl border border-yellow-500 px-3 py-2 text-sm font-black text-yellow-300 transition hover:bg-yellow-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/push" className="rounded-xl border border-yellow-500 px-3 py-2 text-sm font-semibold text-yellow-300 transition hover:bg-yellow-500/10 sm:px-4 sm:py-3 sm:text-base">
         🔔 Push Center
       </Link>
-      <Link href="/dashboard/owner/inspectors" className="rounded-xl border border-orange-500 px-3 py-2 text-sm font-black text-orange-300 transition hover:bg-orange-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/inspectors" className="rounded-xl border border-orange-500 px-3 py-2 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/10 sm:px-4 sm:py-3 sm:text-base">
         🧑‍ inspector
       </Link>
-      <Link href="/dashboard/owner/mail" className="rounded-xl border border-teal-500 px-3 py-2 text-sm font-black text-teal-300 transition hover:bg-teal-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/mail" className="rounded-xl border border-teal-500 px-3 py-2 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10 sm:px-4 sm:py-3 sm:text-base">
         📧 Mail
       </Link>
-      <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-3 py-2 text-sm font-black text-blue-300 transition hover:bg-blue-500/10 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-3 py-2 text-sm font-semibold text-blue-300 transition hover:bg-blue-500/10 sm:px-4 sm:py-3 sm:text-base">
         ⚡ Live
       </Link>
-      <Link href="/dashboard/owner/system" className="rounded-xl border border-slate-500 px-3 py-2 text-sm font-black text-slate-200 transition hover:bg-slate-700/30 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/system" className="rounded-xl border border-[#59626f] px-3 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:bg-slate-700/30 sm:px-4 sm:py-3 sm:text-base">
         🩺 System
       </Link>
     </div>
@@ -253,25 +253,25 @@ function MetricCard({ label, value, helper, tone }: { label: string; value: stri
 
   return (
     <div className={`min-w-0 rounded-2xl border p-4 shadow-xl sm:p-6 ${classes[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
+      <p className="mt-3 break-words text-3xl font-semibold text-white sm:text-4xl">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
     </div>
   );
 }
 
 function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-3 shadow-xl sm:p-6">
-      <h2 className="text-2xl font-black text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
+    <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] p-3 shadow-xl sm:p-6">
+      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
+      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-6 text-center text-slate-400">{text}</div>;
+  return <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">{text}</div>;
 }
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: Tone }) {
@@ -285,7 +285,7 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: Tone }) {
     red: "border-red-500/30 bg-red-500/10 text-red-300",
   };
 
-  return <span className={`rounded-full border px-2 py-1 text-xs font-black ${classes[tone]}`}>{children}</span>;
+  return <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${classes[tone]}`}>{children}</span>;
 }
 
 function MiniStat({ label, value, tone }: { label: string; value: string; tone: "white" | Tone }) {
@@ -301,9 +301,9 @@ function MiniStat({ label, value, tone }: { label: string; value: string; tone: 
   };
 
   return (
-    <div className="min-w-0 rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-      <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-1 break-words text-base font-black sm:text-lg ${valueClass[tone]}`}>{value}</p>
+    <div className="min-w-0 rounded-xl border border-[#232b38] bg-[#131923] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">{label}</p>
+      <p className={`mt-1 break-words text-base font-semibold sm:text-lg ${valueClass[tone]}`}>{value}</p>
     </div>
   );
 }
@@ -402,14 +402,14 @@ export default async function OwnerInspectorsPage() {
   const totalReports = rows.reduce((sum, row) => sum + row.reports, 0);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#020617] px-2 py-6 text-white md:px-6 md:py-10">
+    <main className="min-h-screen overflow-x-hidden bg-[#0a0e13] px-2 py-6 text-white md:px-6 md:py-10">
       <div className="mx-auto w-full max-w-7xl space-y-6 overflow-hidden md:space-y-8">
-        <section className="rounded-3xl border border-orange-500/40 bg-[#0f172a] p-4 shadow-2xl sm:p-6 md:p-8">
+        <section className="rounded-2xl border border-orange-500/40 bg-[#10151e] p-4 shadow-2xl sm:p-6 md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-orange-400">Owner Inspector Management</p>
-              <h1 className="mt-4 text-3xl font-black text-white sm:text-4xl md:text-5xl">Inspectors, Production & Activity</h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-orange-400">Owner Inspector Management</p>
+              <h1 className="mt-4 text-3xl font-semibold text-white sm:text-4xl md:text-5xl">Inspectors, Production & Activity</h1>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 Track inspector activity, report production, revenue, push setup, and recent usage.
               </p>
             </div>
@@ -438,16 +438,16 @@ export default async function OwnerInspectorsPage() {
               {rows.map((row) => (
                 <article
                   key={row.id}
-                  className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-[#020817]/70 p-3 shadow-xl sm:p-5"
+                  className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#232b38] bg-[#131923] p-3 shadow-xl sm:p-5"
                 >
                   <div className="grid w-full min-w-0 gap-4 xl:grid-cols-[1.2fr_1fr_1fr] xl:gap-5">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
                           Inspector
                         </p>
-                        <h3 className="mt-1 text-2xl font-black text-white">{row.name}</h3>
-                        <p className="mt-1 break-all text-sm text-slate-400">{row.email || "No email"}</p>
+                        <h3 className="mt-1 text-2xl font-semibold text-white">{row.name}</h3>
+                        <p className="mt-1 break-all text-sm text-[#8a93a3]">{row.email || "No email"}</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -456,8 +456,8 @@ export default async function OwnerInspectorsPage() {
                         <MiniStat label="30 Days" value={String(row.reports30)} tone="blue" />
                         <MiniStat label="Revenue" value={money(row.revenue)} tone="green" />
                         <MiniStat label="Average" value={money(row.average)} tone="orange" />
-                        <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-                          <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Push</p>
+                        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">Push</p>
                           <div className="mt-2 flex flex-wrap gap-1">
                             {row.nativePush && <Badge tone="purple">Native</Badge>}
                             {row.webPush && <Badge tone="teal">Web</Badge>}
@@ -466,15 +466,15 @@ export default async function OwnerInspectorsPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-                        <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">
+                      <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
                           Last Activity
                         </p>
-                        <p className="mt-1 text-sm font-bold text-slate-200">{formatDateTime(row.lastActivity)}</p>
+                        <p className="mt-1 text-sm font-bold text-[#e8ecf3]">{formatDateTime(row.lastActivity)}</p>
                       </div>
                     </div>
 
-                    <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950/40 p-2 sm:p-4">
+                    <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#232b38] bg-[#131923] p-2 sm:p-4">
                       <OwnerInspectorBillingControls
                         userId={row.id}
                         email={row.email}
@@ -492,8 +492,8 @@ export default async function OwnerInspectorsPage() {
                       />
                     </div>
 
-                    <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950/40 p-3 sm:p-4">
-                      <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                    <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#232b38] bg-[#131923] p-3 sm:p-4">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#59626f]">
                         Account Actions
                       </p>
                       <div className="min-w-0 overflow-hidden">

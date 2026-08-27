@@ -328,7 +328,7 @@ function getEmailLogStatus(log: any) {
     return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" };
   }
 
-  return { label: "Sent", tone: "border-[#232b38] bg-slate-800/60 text-[#8a93a3]" };
+  return { label: "Sent", tone: "border-[#232b38] bg-[#1a212c] text-[#8a93a3]" };
 }
 
 function getActivityIcon(log: any) {

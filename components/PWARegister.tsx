@@ -114,7 +114,7 @@ export default function PWARegister() {
             Add FLOW to your home screen
           </h3>
 
-          <p className="mt-2 text-sm text-slate-300">
+          <p className="mt-2 text-sm text-[#8a93a3]">
             On iPhone, tap Share, then Add to Home Screen.
             On Android, use Install App or Add to Home Screen.
           </p>
@@ -130,7 +130,7 @@ export default function PWARegister() {
 
             setShowInstallHelp(false);
           }}
-          className="rounded-xl border border-slate-600 px-3 py-1 text-sm font-bold text-slate-200 hover:bg-slate-800"
+          className="rounded-xl border border-[#232b38] px-3 py-1 text-sm font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
         >
           Hide
         </button>

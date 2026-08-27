@@ -122,7 +122,7 @@ export default function CreateDemoReportButton({
             type="button"
             onClick={() => openDemo()}
             disabled={busy}
-            className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-black text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             View Demo
           </button>
@@ -130,7 +130,7 @@ export default function CreateDemoReportButton({
           <button
             type="button"
             onClick={() => copyDemoLink()}
-            className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-black text-slate-200 transition hover:bg-slate-800"
+            className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c]"
           >
             {copied ? "Copied!" : "Copy Demo Link"}
           </button>
@@ -138,7 +138,7 @@ export default function CreateDemoReportButton({
       )}
 
       {message && (
-        <p className="max-w-xs text-xs font-bold text-slate-400">{message}</p>
+        <p className="max-w-xs text-xs font-bold text-[#8a93a3]">{message}</p>
       )}
     </div>
   );

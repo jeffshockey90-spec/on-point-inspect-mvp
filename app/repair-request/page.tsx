@@ -162,7 +162,7 @@ function getResponseStatusMeta(status: string) {
     RESPONSE_STATUS_OPTIONS[String(status || "")] || {
       label: "Not Answered",
       icon: "○",
-      tone: "border-slate-600 bg-slate-800/60 text-slate-300",
+      tone: "border-[#232b38] bg-[#1a212c] text-[#8a93a3]",
     }
   );
 }
@@ -1156,32 +1156,32 @@ function RepairRequestContent() {
 
   if (!inspectionId) {
     return (
-      <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
-        <h1 className="break-words text-3xl font-black text-teal-400">
+      <main className="min-h-screen bg-[#0a0e13] p-4 text-white md:p-8">
+        <h1 className="break-words text-3xl font-semibold text-teal-400">
           Repair Request Builder
         </h1>
-        <p className="mt-4 text-slate-300">Missing inspection ID.</p>
+        <p className="mt-4 text-[#8a93a3]">Missing inspection ID.</p>
       </main>
     );
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+      <main className="min-h-screen bg-[#0a0e13] p-4 text-white md:p-8">
         Loading repair request...
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#020617] p-4 pb-32 text-white md:p-8 md:pb-8">
+    <main className="min-h-screen overflow-x-hidden bg-[#0a0e13] p-4 pb-32 text-white md:p-8 md:pb-8">
       <div className="mx-auto max-w-7xl overflow-hidden">
         <div className="mb-6 space-y-3 print:hidden">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <FastLinkButton
               href={`/reports/${inspectionId}`}
               loadingText="Opening Report..."
-              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-slate-600 bg-[#020617] px-5 py-3 text-center font-bold text-white transition hover:border-slate-300 hover:bg-slate-900 active:scale-[0.98]"
+              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[#232b38] bg-[#0a0e13] px-5 py-3 text-center font-bold text-white transition hover:border-slate-300 hover:bg-[#131923] active:scale-[0.98]"
             >
               Back to Report
             </FastLinkButton>
@@ -1190,14 +1190,14 @@ function RepairRequestContent() {
               type="button"
               onClick={shareRepairRequestPdf}
               disabled={printingPdf}
-              data-fast-click="true" className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#020617] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 hover:shadow-[0_0_22px_rgba(20,184,166,0.18)] active:scale-[0.98] disabled:opacity-60"
+              data-fast-click="true" className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#0a0e13] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 hover:shadow-[0_0_22px_rgba(20,184,166,0.18)] active:scale-[0.98] disabled:opacity-60"
             >
               {printingPdf ? "Downloading..." : "Download Repair Request"}
             </button>
 
-            <div className="grid w-full grid-cols-1 gap-3 rounded-xl border border-cyan-500 bg-[#020617] p-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:col-span-2">
+            <div className="grid w-full grid-cols-1 gap-3 rounded-xl border border-cyan-500 bg-[#0a0e13] p-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:col-span-2">
               <label className="min-w-0">
-                <span className="mb-1 block px-1 text-[10px] font-black uppercase tracking-wide text-cyan-300">
+                <span className="mb-1 block px-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-300">
                   Send To
                 </span>
                 <select
@@ -1206,7 +1206,7 @@ function RepairRequestContent() {
                     setRecipientType(event.target.value);
                     setEmailMessage("");
                   }}
-                  className="h-[48px] w-full rounded-lg border border-slate-700 bg-[#020617] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
+                  className="h-[48px] w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400"
                 >
                   {recipientOptions.map((option) => (
                     <option
@@ -1223,7 +1223,7 @@ function RepairRequestContent() {
                 type="button"
                 onClick={emailRepairRequest}
                 disabled={emailingRepairRequest}
-                data-fast-click="true" className="min-h-[48px] w-full rounded-xl border border-cyan-500 bg-[#020617] px-5 py-3 font-bold text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/10 hover:shadow-[0_0_22px_rgba(6,182,212,0.18)] active:scale-[0.98] disabled:opacity-60 sm:mt-[18px] sm:w-auto"
+                data-fast-click="true" className="min-h-[48px] w-full rounded-xl border border-cyan-500 bg-[#0a0e13] px-5 py-3 font-bold text-cyan-300 transition hover:border-cyan-400 hover:bg-cyan-500/10 hover:shadow-[0_0_22px_rgba(6,182,212,0.18)] active:scale-[0.98] disabled:opacity-60 sm:mt-[18px] sm:w-auto"
               >
                 {emailingRepairRequest ? "Sending..." : "Email Repair Request"}
               </button>
@@ -1236,7 +1236,7 @@ function RepairRequestContent() {
                   }
                   placeholder="email@example.com"
                   type="email"
-                  className="h-[48px] w-full rounded-lg border border-slate-700 bg-[#020617] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400 sm:col-span-2"
+                  className="h-[48px] w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 text-sm font-bold text-white outline-none transition focus:border-cyan-400 sm:col-span-2"
                 />
               ) : null}
             </div>
@@ -1249,7 +1249,7 @@ function RepairRequestContent() {
               onClick={() =>
                 setSelectedIds(findings.map((finding) => String(finding.id)))
               }
-              className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#020617] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-xl border border-teal-500 bg-[#0a0e13] px-5 py-3 font-bold text-teal-300 transition hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.98]"
             >
               Select All
             </button>
@@ -1257,7 +1257,7 @@ function RepairRequestContent() {
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="min-h-[48px] w-full rounded-xl border border-red-500 bg-[#020617] px-5 py-3 font-bold text-red-300 transition hover:border-red-400 hover:bg-red-500/10 active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-xl border border-red-500 bg-[#0a0e13] px-5 py-3 font-bold text-red-300 transition hover:border-red-400 hover:bg-red-500/10 active:scale-[0.98]"
             >
               Clear All
             </button>
@@ -1265,7 +1265,7 @@ function RepairRequestContent() {
             <button
               type="button"
               onClick={selectSafetyOnly}
-              className="min-h-[48px] w-full rounded-xl border border-orange-500 bg-[#020617] px-5 py-3 font-bold text-orange-300 transition hover:border-orange-400 hover:bg-orange-500/10 active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-xl border border-orange-500 bg-[#0a0e13] px-5 py-3 font-bold text-orange-300 transition hover:border-orange-400 hover:bg-orange-500/10 active:scale-[0.98]"
             >
               Safety Only
             </button>
@@ -1274,7 +1274,7 @@ function RepairRequestContent() {
 
         {responsesLoaded && responseShares.length > 0 && (
           <div className="mb-6 space-y-4 rounded-2xl border border-purple-500/40 bg-purple-500/5 p-4 print:hidden md:p-5">
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-purple-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-purple-300">
               Seller / Agent Responses
             </p>
 
@@ -1287,22 +1287,22 @@ function RepairRequestContent() {
               return (
                 <div
                   key={share.id}
-                  className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                  className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="font-bold text-white">
                         {share.recipient_email || "Recipient"}
-                        <span className="ml-2 text-xs font-bold uppercase text-slate-500">
+                        <span className="ml-2 text-xs font-bold uppercase text-[#59626f]">
                           {share.recipient_type || ""}
                         </span>
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-[#59626f]">
                         Sent {share.created_at ? new Date(share.created_at).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : ""}
                       </p>
                     </div>
                     <span
-                      className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${
+                      className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${
                         hasResponded
                           ? "border-green-500/40 bg-green-500/10 text-green-300"
                           : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
@@ -1313,7 +1313,7 @@ function RepairRequestContent() {
                   </div>
 
                   {shareResponses.length > 0 && (
-                    <div className="mt-3 space-y-2 border-t border-slate-800 pt-3">
+                    <div className="mt-3 space-y-2 border-t border-[#1a212c] pt-3">
                       {shareResponses.map((item: any) => {
                         const finding = findings.find(
                           (f) => String(f.id) === String(item.finding_id),
@@ -1321,19 +1321,19 @@ function RepairRequestContent() {
                         const meta = getResponseStatusMeta(item.response_status);
 
                         return (
-                          <div key={item.id} className="rounded-lg bg-slate-900/60 p-3">
+                          <div key={item.id} className="rounded-lg bg-[#131923] p-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <p className="text-sm font-bold text-white">
                                 {finding?.title || finding?.recommendation || "Repair item"}
                               </p>
                               <span
-                                className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${meta.tone}`}
+                                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${meta.tone}`}
                               >
                                 {meta.icon} {meta.label}
                               </span>
                             </div>
                             {item.notes && (
-                              <p className="mt-1 text-sm text-slate-400">{item.notes}</p>
+                              <p className="mt-1 text-sm text-[#8a93a3]">{item.notes}</p>
                             )}
                           </div>
                         );
@@ -1358,16 +1358,16 @@ function RepairRequestContent() {
           </p>
         ) : null}
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl md:p-6">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl md:p-6">
           <p className="break-words text-sm font-bold uppercase tracking-[0.22em] text-teal-400 md:tracking-[0.3em]">
             {inspection?.company_name || "Your Home Inspection Company"}
           </p>
 
-          <h1 className="mt-3 break-words text-3xl font-black text-white md:text-4xl">
+          <h1 className="mt-3 break-words text-3xl font-semibold text-white md:text-4xl">
             Repair Request Summary
           </h1>
 
-          <p className="mt-3 break-words text-slate-300">
+          <p className="mt-3 break-words text-[#8a93a3]">
             {inspection?.property_address ||
               inspection?.address ||
               "Property address not entered"}
@@ -1387,14 +1387,14 @@ function RepairRequestContent() {
             Generate Realtor Summary
           </h2>
 
-          <div className="rounded-xl border border-slate-700 bg-[#020617] p-4 text-slate-200">
+          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-[#e8ecf3]">
             <p className="whitespace-pre-line break-words leading-7">
               {realtorSummary}
             </p>
           </div>
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-[#071224] p-5 md:p-6">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-[#1a212c] bg-[#071224] p-5 md:p-6">
           <h2 className="mb-3 break-words text-2xl font-bold text-teal-300">
             Request Language
           </h2>
@@ -1403,23 +1403,23 @@ function RepairRequestContent() {
             value={requestIntro}
             onChange={(e) => setRequestIntro(e.target.value)}
             rows={4}
-            className="w-full max-w-full rounded-xl border border-slate-700 bg-[#020617] p-4 text-white outline-none focus:border-teal-400"
+            className="w-full max-w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400"
           />
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a] p-5 print:hidden md:p-6">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 print:hidden md:p-6">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="break-words text-2xl font-bold text-teal-300">
                 Select Findings
               </h2>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-[#8a93a3]">
                 Select the items to include, then enter any requested credit beside each selected item. Photos stay out of this builder until download/email to keep the page fast.
               </p>
             </div>
             <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-right">
-              <p className="text-xs font-black uppercase tracking-wide text-teal-300">Running Total</p>
-              <p className="text-2xl font-black text-white">{formatMoney(selectedCreditTotal)}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">Running Total</p>
+              <p className="text-2xl font-semibold text-white">{formatMoney(selectedCreditTotal)}</p>
             </div>
           </div>
 
@@ -1429,7 +1429,7 @@ function RepairRequestContent() {
                 type="button"
                 onClick={runEstimates}
                 disabled={estimating}
-                className="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-black text-white transition hover:bg-indigo-400 disabled:opacity-60"
+                className="rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-60"
               >
                 {estimating ? "Estimating…" : "Estimate repair costs (AI)"}
               </button>
@@ -1441,13 +1441,13 @@ function RepairRequestContent() {
                   <button
                     type="button"
                     onClick={fillCreditsFromEstimates}
-                    className="rounded-xl border border-teal-500/50 px-3 py-2 text-xs font-black text-teal-300 transition hover:bg-teal-500/10"
+                    className="rounded-xl border border-teal-500/50 px-3 py-2 text-xs font-semibold text-teal-300 transition hover:bg-teal-500/10"
                   >
                     Fill credits from estimates
                   </button>
                 </>
               )}
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-[#8a93a3]">
                 Rough AI planning estimate — review before sending.
               </span>
               {estimateError && (
@@ -1463,10 +1463,10 @@ function RepairRequestContent() {
               return (
                 <label
                   key={finding.id}
-                  className={`block w-full max-w-full cursor-pointer overflow-hidden rounded-xl border bg-[#020617] p-4 transition [content-visibility:auto] [contain-intrinsic-size:130px] ${
+                  className={`block w-full max-w-full cursor-pointer overflow-hidden rounded-xl border bg-[#0a0e13] p-4 transition [content-visibility:auto] [contain-intrinsic-size:130px] ${
                     selected
                       ? "border-teal-400 ring-1 ring-teal-400/40"
-                      : "border-slate-700 hover:border-teal-500"
+                      : "border-[#232b38] hover:border-teal-500"
                   }`}
                 >
                   <div className="flex w-full max-w-full flex-col gap-4 sm:flex-row sm:items-start">
@@ -1479,7 +1479,7 @@ function RepairRequestContent() {
 
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <div className="mb-2 flex max-w-full flex-wrap gap-2">
-                        <span className="max-w-full break-words rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-cyan-300">
+                        <span className="max-w-full break-words rounded-full border border-cyan-500/60 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-300">
                           Item #{getFindingNumber(finding)}
                         </span>
 
@@ -1491,7 +1491,7 @@ function RepairRequestContent() {
                           {finding.severity || "Recommended Repair"}
                         </span>
 
-                        <span className="max-w-full break-words rounded-full border border-slate-600 px-3 py-1 text-xs font-bold uppercase text-slate-300">
+                        <span className="max-w-full break-words rounded-full border border-[#232b38] px-3 py-1 text-xs font-bold uppercase text-[#8a93a3]">
                           {finding.section || "Other"}
                         </span>
                       </div>
@@ -1500,14 +1500,14 @@ function RepairRequestContent() {
                         {finding.title || "Untitled Finding"}
                       </p>
 
-                      <p className="mt-1 line-clamp-3 break-words text-sm leading-6 text-slate-400">
+                      <p className="mt-1 line-clamp-3 break-words text-sm leading-6 text-[#8a93a3]">
                         {finding.recommendation || finding.observation || ""}
                       </p>
 
                       {selected && (
                         <>
                           <label className="mt-4 block max-w-xs">
-                            <span className="mb-1 block text-xs font-black uppercase tracking-wide text-teal-300">
+                            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-teal-300">
                               Requested Credit
                             </span>
                             <input
@@ -1518,7 +1518,7 @@ function RepairRequestContent() {
                               onClick={(event) => event.stopPropagation()}
                               placeholder="$0"
                               inputMode="decimal"
-                              className="h-[48px] w-full rounded-xl border border-slate-700 bg-[#020617] px-4 text-sm font-black text-white outline-none transition focus:border-teal-400"
+                              className="h-[48px] w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-sm font-semibold text-white outline-none transition focus:border-teal-400"
                             />
                           </label>
                           {estimates[String(finding.id)] &&
@@ -1545,7 +1545,7 @@ function RepairRequestContent() {
                   Math.min(prev + FINDING_RENDER_PAGE_SIZE, findings.length),
                 )
               }
-              className="mt-4 min-h-[48px] w-full rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 text-sm font-black text-cyan-300 transition hover:bg-cyan-500/20 active:scale-[0.98]"
+              className="mt-4 min-h-[48px] w-full rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20 active:scale-[0.98]"
             >
               Load {Math.min(FINDING_RENDER_PAGE_SIZE, hiddenFindingCount)} more finding
               {Math.min(FINDING_RENDER_PAGE_SIZE, hiddenFindingCount) === 1 ? "" : "s"}
@@ -1553,7 +1553,7 @@ function RepairRequestContent() {
           ) : null}
 
           {findings.length > visibleFindings.length ? (
-            <p className="mt-3 text-center text-xs font-bold text-slate-500">
+            <p className="mt-3 text-center text-xs font-bold text-[#59626f]">
               Showing {visibleFindings.length} of {findings.length} findings to keep this page fast.
             </p>
           ) : null}
@@ -1567,7 +1567,7 @@ export default function RepairRequestPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#020617] p-8 text-white">
+        <main className="min-h-screen bg-[#0a0e13] p-8 text-white">
           Loading repair request...
         </main>
       }
@@ -1579,8 +1579,8 @@ export default function RepairRequestPage() {
 
 function Info({ label, value }: { label: string; value?: any }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617] p-4">
-      <p className="break-words text-xs font-bold uppercase tracking-wide text-slate-400">
+    <div className="overflow-hidden rounded-xl border border-[#232b38] bg-[#0a0e13] p-4">
+      <p className="break-words text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
       <p className="mt-1 break-words font-bold text-white">
@@ -1593,7 +1593,7 @@ function Info({ label, value }: { label: string; value?: any }) {
 function ReportText({ title, text }: { title: string; text: string }) {
   return (
     <div className="mt-3">
-      <p className="break-words font-black text-slate-950">{title}:</p>
+      <p className="break-words font-semibold text-slate-950">{title}:</p>
       <p className="mt-1 whitespace-pre-line break-words leading-7 text-slate-700">
         {text}
       </p>

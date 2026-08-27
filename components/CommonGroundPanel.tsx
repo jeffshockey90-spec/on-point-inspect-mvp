@@ -55,13 +55,13 @@ export default function CommonGroundPanel({
   const locPct = data.local ? Math.round(data.local.pct * 100) : null;
 
   return (
-    <div className="mt-3 rounded-xl border border-slate-800 bg-[#0a1424] p-4">
+    <div className="mt-3 rounded-xl border border-[#1a212c] bg-[#0a1424] p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-teal-300">
+        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-300">
           <span className="inline-block h-4 w-4 rounded-[5px] bg-gradient-to-br from-teal-400 to-teal-600" />
           Common Ground
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#59626f]">
           AI Market Insight
         </span>
       </div>
@@ -69,52 +69,52 @@ export default function CommonGroundPanel({
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
         {/* How common */}
         <div>
-          <p className="mb-2 text-[10.5px] font-black uppercase tracking-wider text-slate-500">
+          <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-wider text-[#59626f]">
             How common is this?
           </p>
 
           <div className="mb-2 flex items-center gap-2.5">
-            <span className="w-[74px] text-xs font-semibold text-slate-300">Nationwide</span>
+            <span className="w-[74px] text-xs font-semibold text-[#8a93a3]">Nationwide</span>
             <span className="h-[7px] flex-1 overflow-hidden rounded-full bg-[#141f33]">
               <span className={`block h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(3, natPct)}%` }} />
             </span>
-            <span className={`w-[46px] text-right text-[13px] font-black tabular-nums ${t.text}`}>{natPct}%</span>
+            <span className={`w-[46px] text-right text-[13px] font-semibold tabular-nums ${t.text}`}>{natPct}%</span>
           </div>
 
           {locPct != null && data.local && (
             <div className="mb-2 flex items-center gap-2.5">
-              <span className="w-[74px] text-xs font-semibold text-slate-300">In {stateName(data.local.state)}</span>
+              <span className="w-[74px] text-xs font-semibold text-[#8a93a3]">In {stateName(data.local.state)}</span>
               <span className="h-[7px] flex-1 overflow-hidden rounded-full bg-[#141f33]">
                 <span className={`block h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(3, locPct)}%` }} />
               </span>
-              <span className={`w-[46px] text-right text-[13px] font-black tabular-nums ${t.text}`}>{locPct}%</span>
+              <span className={`w-[46px] text-right text-[13px] font-semibold tabular-nums ${t.text}`}>{locPct}%</span>
             </div>
           )}
 
-          <span className={`mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${t.chip}`}>
+          <span className={`mt-1 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${t.chip}`}>
             {t.label}
           </span>
         </div>
 
         {/* Ease of repair (+ optional cost) */}
-        <div className="md:border-l md:border-slate-800 md:pl-4">
-          <p className="mb-2 text-[10.5px] font-black uppercase tracking-wider text-slate-500">
+        <div className="md:border-l md:border-[#1a212c] md:pl-4">
+          <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-wider text-[#59626f]">
             Ease of repair
           </p>
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-[#0b1220] px-2.5 py-1.5 text-[11.5px] font-black text-slate-100">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#232b38] bg-[#10151e] px-2.5 py-1.5 text-[11.5px] font-semibold text-[#e8ecf3]">
             <span className={`h-[7px] w-[7px] rounded-full ${t.bar}`} />
             {data.ease.label}
           </span>
-          <p className="mt-2.5 text-[13px] leading-relaxed text-slate-400">{data.repairNote}</p>
+          <p className="mt-2.5 text-[13px] leading-relaxed text-[#8a93a3]">{data.repairNote}</p>
           {showCosts && (
             <div className="mt-3">
-              <p className="text-[10.5px] font-black uppercase tracking-wider text-slate-500">
+              <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#59626f]">
                 {data.cost.region ? `Typical cost in ${data.cost.region}` : "Typical cost"}
               </p>
-              <p className="mt-0.5 text-xl font-black tabular-nums text-teal-300">
+              <p className="mt-0.5 text-xl font-semibold tabular-nums text-teal-300">
                 {money(data.cost.low)}–{money(data.cost.high)}
               </p>
-              <p className="mt-0.5 text-[10.5px] leading-snug text-slate-500">
+              <p className="mt-0.5 text-[10.5px] leading-snug text-[#59626f]">
                 {data.cost.region
                   ? "Approximate range for your area — get a contractor quote for exact pricing."
                   : "Approximate range — get a contractor quote for exact pricing."}
@@ -126,7 +126,7 @@ export default function CommonGroundPanel({
 
       {data.standsOut && (
         <div className="-mx-4 -mb-4 mt-3 flex items-center gap-2.5 rounded-b-xl border-t border-rose-500/40 bg-gradient-to-r from-rose-500/10 to-transparent px-4 py-2.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-400 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-rose-950">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-400 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-rose-950">
             ⚑ Stands out
           </span>
           <p className="text-[13.5px] text-white">

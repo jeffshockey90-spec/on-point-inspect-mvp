@@ -168,7 +168,7 @@ export default function FindingActions({ finding }: { finding: any }) {
                 key={photo.id}
                 src={photo.public_url}
                 alt="Finding Photo"
-                className="h-52 w-full rounded-xl border border-slate-700 object-cover"
+                className="h-52 w-full rounded-xl border border-[#232b38] object-cover"
               />
             ))}
           </div>

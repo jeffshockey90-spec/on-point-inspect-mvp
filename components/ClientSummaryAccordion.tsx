@@ -240,7 +240,7 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
             muted
             playsInline
             preload="metadata"
-            className="max-h-[420px] w-full rounded-xl border border-slate-700 bg-black object-contain"
+            className="max-h-[420px] w-full rounded-xl border border-[#232b38] bg-black object-contain"
           >
             Your browser does not support video playback.
           </video>
@@ -251,8 +251,8 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
             fullSrc={itemUrl}
             alt={`${title} media ${current + 1}`}
             badgeText="Tap to enlarge"
-            className="max-h-[420px] w-full rounded-xl border border-slate-700 object-contain"
-            buttonClassName="block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            className="max-h-[420px] w-full rounded-xl border border-[#232b38] object-contain"
+            buttonClassName="block w-full overflow-hidden rounded-xl border border-[#232b38] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
             images={galleryImages}
             index={photoIndex >= 0 ? photoIndex : 0}
           />
@@ -264,7 +264,7 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
               type="button"
               aria-label="Previous"
               onClick={(e) => { e.stopPropagation(); go(-1); }}
-              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-black text-white active:scale-95"
+              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-semibold text-white active:scale-95"
             >
               ‹
             </button>
@@ -272,11 +272,11 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
               type="button"
               aria-label="Next"
               onClick={(e) => { e.stopPropagation(); go(1); }}
-              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-black text-white active:scale-95"
+              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-semibold text-white active:scale-95"
             >
               ›
             </button>
-            <span className="absolute right-2 top-2 z-10 rounded-full bg-black/75 px-2 py-1 text-[10px] font-black text-white">
+            <span className="absolute right-2 top-2 z-10 rounded-full bg-black/75 px-2 py-1 text-[10px] font-semibold text-white">
               {current + 1} / {media.length}
             </span>
           </>
@@ -375,7 +375,7 @@ function CompactSummaryCard({
       className={`overflow-hidden rounded-2xl border border-l-4 bg-[#0b1426] transition hover:bg-[#0e1830] ${toneStyle.border} ${toneStyle.stripe}`}
     >
       <div className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)]">
-        <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-slate-700 bg-slate-900 sm:h-[132px] sm:w-[132px]">
+        <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-[#232b38] bg-[#131923] sm:h-[132px] sm:w-[132px]">
           {!imageFailed && previewUrl && !isVideo ? (
             <ExpandableReportImage
               src={previewUrl}
@@ -383,7 +383,7 @@ function CompactSummaryCard({
               alt={title}
               badgeText={coverGallery.length > 1 ? `View ${coverGallery.length}` : "View"}
               className="h-full w-full object-cover"
-              buttonClassName="block h-full w-full overflow-hidden bg-slate-900 text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              buttonClassName="block h-full w-full overflow-hidden bg-[#131923] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
               images={coverGallery.length > 1 ? coverGallery : undefined}
               index={coverIndex}
             />
@@ -420,12 +420,12 @@ function CompactSummaryCard({
                   ▶
                 </span>
               </span>
-              <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-black text-cyan-200">
+              <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-semibold text-cyan-200">
                 VIDEO
               </span>
             </button>
           ) : (
-            <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-bold text-slate-500">
+            <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-bold text-[#59626f]">
               {isVideo ? "Video unavailable" : "Photo unavailable"}
             </div>
           )}
@@ -440,12 +440,12 @@ function CompactSummaryCard({
         >
           <div className="flex flex-wrap gap-2">
             {itemNumber && (
-              <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-black uppercase text-cyan-200">
+              <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-cyan-200">
                 Item #{itemNumber}
               </span>
             )}
             <span
-              className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase ${severityClass(
+              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${severityClass(
                 finding.severity,
               )}`}
             >
@@ -453,16 +453,16 @@ function CompactSummaryCard({
             </span>
           </div>
 
-          <h4 className="mt-3 line-clamp-2 text-lg font-black leading-tight text-white">
+          <h4 className="mt-3 line-clamp-2 text-lg font-semibold leading-tight text-white">
             {title}
           </h4>
-          <p className="mt-2 text-xs font-black uppercase tracking-wide text-teal-300">
+          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-teal-300">
             {finding.section || "Report"}
           </p>
-          <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-300">
+          <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#8a93a3]">
             {summary}
           </p>
-          <p className="mt-3 text-sm font-black text-cyan-300">
+          <p className="mt-3 text-sm font-semibold text-cyan-300">
             {open ? "Hide Details ↑" : "View Finding →"}
           </p>
         </button>
@@ -487,7 +487,7 @@ function CompactSummaryCard({
                 setVideoOpen(false);
               }}
               aria-label="Close video"
-              className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/80 text-2xl font-black text-white active:scale-95"
+              className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/80 text-2xl font-semibold text-white active:scale-95"
             >
               ×
             </button>
@@ -513,7 +513,7 @@ function CompactSummaryCard({
         )}
 
       {open && (
-        <div className="border-t border-slate-800 px-4 pb-4 pt-4">
+        <div className="border-t border-[#1a212c] px-4 pb-4 pt-4">
           {(() => {
             const allMedia = (Array.isArray(finding?.photos) ? finding.photos : []).filter(
               (item: any) => Boolean(getMediaUrl(item)),
@@ -527,10 +527,10 @@ function CompactSummaryCard({
           <div className="grid gap-3">
             {finding.observation && (
               <div className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-4">
-                <p className="text-xs font-black uppercase tracking-wide text-blue-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">
                   Observation
                 </p>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#e8ecf3]">
                   {finding.observation}
                 </p>
               </div>
@@ -538,10 +538,10 @@ function CompactSummaryCard({
 
             {finding.implication && (
               <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-4">
-                <p className="text-xs font-black uppercase tracking-wide text-yellow-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
                   Implication
                 </p>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#e8ecf3]">
                   {finding.implication}
                 </p>
               </div>
@@ -549,10 +549,10 @@ function CompactSummaryCard({
 
             {finding.recommendation && (
               <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 p-4">
-                <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
                   Recommendation
                 </p>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-100">
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#e8ecf3]">
                   {finding.recommendation}
                 </p>
               </div>
@@ -562,7 +562,7 @@ function CompactSummaryCard({
           <a
             href={fullFindingHref}
             data-fast-click="true"
-            className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-200 active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
+            className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-cyan-500 px-4 py-2 text-sm font-semibold text-cyan-200 active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
           >
             Open Full Report Finding
           </a>
@@ -611,7 +611,7 @@ function ShowMoreButton({
         onClick();
       }}
       data-fast-click="true"
-      className={`mt-4 min-h-12 w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-sm font-black text-white active:scale-[0.99] active:opacity-80 [touch-action:manipulation] ${
+      className={`mt-4 min-h-12 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3 text-sm font-semibold text-white active:scale-[0.99] active:opacity-80 [touch-action:manipulation] ${
         flash ? "animate-attention-flash" : ""
       }`}
     >
@@ -675,14 +675,14 @@ export default function ClientSummaryAccordion({
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-2xl font-black text-white">{group.title}</h3>
+                <h3 className="text-2xl font-semibold text-white">{group.title}</h3>
                 {group.description && (
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
                     {group.description}
                   </p>
                 )}
               </div>
-              <span className={`shrink-0 rounded-full border px-3 py-2 text-sm font-black ${toneStyle.count}`}>
+              <span className={`shrink-0 rounded-full border px-3 py-2 text-sm font-semibold ${toneStyle.count}`}>
                 {group.findings.length} item{group.findings.length === 1 ? "" : "s"}
               </span>
             </div>

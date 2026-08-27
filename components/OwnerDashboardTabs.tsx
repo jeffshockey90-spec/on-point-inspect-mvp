@@ -26,7 +26,7 @@ export default function OwnerDashboardTabs() {
   }, [tab]);
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 flex flex-wrap gap-2 border-b border-slate-800 bg-[#020617]/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+    <div className="sticky top-0 z-30 -mx-4 flex flex-wrap gap-2 border-b border-[#1a212c] bg-[#0a0e13]/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
       {TABS.map((t) => {
         const active = tab === t.key;
         return (
@@ -34,10 +34,10 @@ export default function OwnerDashboardTabs() {
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`rounded-xl border px-4 py-2 text-sm font-black transition ${
+            className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
               active
                 ? "border-teal-400 bg-teal-500/15 text-teal-200"
-                : "border-slate-700 bg-slate-900/50 text-slate-300 hover:border-slate-500"
+                : "border-[#232b38] bg-[#131923]/50 text-[#8a93a3] hover:border-[#59626f]"
             }`}
           >
             {t.label}

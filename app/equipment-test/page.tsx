@@ -31,7 +31,7 @@ export default function EquipmentTestPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-slate-950 p-6 text-white">
+        <main className="min-h-screen bg-[#0a0e13] p-6 text-white">
           Loading...
         </main>
       }
@@ -186,12 +186,12 @@ function EquipmentTestContent() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 p-6 text-white">
+    <main className="min-h-screen bg-[#0a0e13] p-6 text-white">
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
           <a
             href={inspectionId ? `/reports/${inspectionId}` : "/reports"}
-            className="mb-4 inline-block rounded-xl border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800"
+            className="mb-4 inline-block rounded-xl border border-[#232b38] px-4 py-2 text-sm font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
           >
             ← Back To Report
           </a>
@@ -200,7 +200,7 @@ function EquipmentTestContent() {
             AI Equipment Scanner
           </h1>
 
-          <p className="mt-2 text-slate-400">
+          <p className="mt-2 text-[#8a93a3]">
             Upload HVAC, electrical, or plumbing equipment photos.
           </p>
 
@@ -212,7 +212,7 @@ function EquipmentTestContent() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
+        <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-5">
           <input
             type="file"
             accept="image/*"
@@ -266,7 +266,7 @@ function EquipmentTestContent() {
         )}
 
         {result?.observation && (
-          <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
+          <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-5">
             <h2 className="text-xl font-bold">
               Suggested Inspection Finding
             </h2>
@@ -277,7 +277,7 @@ function EquipmentTestContent() {
                   Observation
                 </h3>
 
-                <p className="mt-1 text-slate-200">
+                <p className="mt-1 text-[#e8ecf3]">
                   {result.observation}
                 </p>
               </div>
@@ -287,7 +287,7 @@ function EquipmentTestContent() {
                   Implication
                 </h3>
 
-                <p className="mt-1 text-slate-200">
+                <p className="mt-1 text-[#e8ecf3]">
                   {result.implication}
                 </p>
               </div>
@@ -297,7 +297,7 @@ function EquipmentTestContent() {
                   Recommendation
                 </h3>
 
-                <p className="mt-1 text-slate-200">
+                <p className="mt-1 text-[#e8ecf3]">
                   {result.recommendation}
                 </p>
               </div>

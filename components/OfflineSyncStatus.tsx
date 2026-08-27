@@ -218,7 +218,7 @@ export default function OfflineSyncStatus() {
   }, []);
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-[#071224] p-4 text-white">
+    <div className="rounded-2xl border border-[#232b38] bg-[#071224] p-4 text-white">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-teal-400">
@@ -229,7 +229,7 @@ export default function OfflineSyncStatus() {
             {online ? "Online" : "Offline Mode"}
           </h3>
 
-          <p className="mt-1 text-sm text-slate-300">
+          <p className="mt-1 text-sm text-[#8a93a3]">
             {pendingCount > 0
               ? `${pendingCount} item${
                   pendingCount === 1 ? "" : "s"
@@ -238,7 +238,7 @@ export default function OfflineSyncStatus() {
           </p>
 
           {pendingCount > 0 && (
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-[#8a93a3]">
               {findingCount} finding{findingCount === 1 ? "" : "s"} •{" "}
               {referencePhotoCount} reference photo
               {referencePhotoCount === 1 ? "" : "s"} • about {megabytes} MB
@@ -285,7 +285,7 @@ export default function OfflineSyncStatus() {
           )}
 
           {lastSynced && (
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-[#8a93a3]">
               Last synced: {lastSynced}
             </p>
           )}
@@ -295,7 +295,7 @@ export default function OfflineSyncStatus() {
           )}
 
           {completionNotice && (
-            <p className="mt-1 text-xs font-black text-emerald-300">
+            <p className="mt-1 text-xs font-semibold text-emerald-300">
               {completionNotice}
             </p>
           )}
@@ -362,7 +362,7 @@ export default function OfflineSyncStatus() {
         </div>
       </div>
 
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#1a212c]">
         <div
           className={`${online ? "bg-teal-400" : "bg-yellow-400"} h-full`}
           style={{

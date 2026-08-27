@@ -21,7 +21,7 @@ export default function GlobalError({
       <body>
         <main style={{
           minHeight: "100vh",
-          background: "#020617",
+          background: "#0a0e13",
           color: "white",
           display: "flex",
           alignItems: "center",
@@ -33,8 +33,8 @@ export default function GlobalError({
             width: "100%",
             maxWidth: "720px",
             border: "1px solid rgba(239, 68, 68, 0.45)",
-            background: "#0b1220",
-            borderRadius: "24px",
+            background: "#10151e",
+            borderRadius: "16px",
             padding: "32px",
           }}>
             <p style={{

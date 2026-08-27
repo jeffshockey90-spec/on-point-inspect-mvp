@@ -1315,7 +1315,7 @@ export default async function SettingsPage({
             </div>
 
             <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-3">
-              <div className="rounded-2xl border border-[#232b38]/80 bg-[#020817] p-4">
+              <div className="rounded-2xl border border-[#232b38]/80 bg-[#0a0e13] p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
                   Manage
                 </p>
@@ -1333,7 +1333,7 @@ export default async function SettingsPage({
                 </FastLinkButton>
               </div>
 
-              <div className="rounded-2xl border border-[#232b38]/80 bg-[#020817] p-4">
+              <div className="rounded-2xl border border-[#232b38]/80 bg-[#0a0e13] p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
                   Public Access
                 </p>

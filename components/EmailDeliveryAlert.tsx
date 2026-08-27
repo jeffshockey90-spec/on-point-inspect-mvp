@@ -53,7 +53,7 @@ export default function EmailDeliveryAlert({
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" />
         <div className="min-w-0 text-sm">
-          <p className="font-black text-red-200">
+          <p className="font-semibold text-red-200">
             {bounces.length === 1 ? "An email bounced — the address may be wrong" : "Emails bounced — an address may be wrong"}
           </p>
           <p className="mt-1 leading-6 text-red-200/80">

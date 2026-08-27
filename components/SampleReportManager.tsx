@@ -173,23 +173,23 @@ export default function SampleReportManager({
     <section className="mb-8 max-w-full overflow-hidden rounded-2xl border border-teal-500/40 bg-teal-950/20 p-4 shadow-xl">
       <div className="flex max-w-full flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <p className="break-words text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+          <p className="break-words text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
             Public Profile Marketing
           </p>
-          <h2 className="mt-2 break-words text-2xl font-black text-white">
+          <h2 className="mt-2 break-words text-2xl font-semibold text-white">
             Sample Report
           </h2>
-          <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-slate-300">
+          <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-[#8a93a3]">
             Feature this report on your public inspector profile so clients and
             realtors can preview the quality of your work.
           </p>
         </div>
 
         <span
-          className={`w-fit shrink-0 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide ${
+          className={`w-fit shrink-0 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
             enabled
               ? "border-teal-400/60 bg-teal-500/15 text-teal-300"
-              : "border-slate-600 bg-slate-900 text-slate-400"
+              : "border-[#232b38] bg-[#131923] text-[#8a93a3]"
           }`}
         >
           {enabled ? "Visible on Profile" : "Not Public"}
@@ -197,7 +197,7 @@ export default function SampleReportManager({
       </div>
 
       <div className="mt-5 grid max-w-full gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <label className="flex min-w-0 max-w-full flex-col gap-3 rounded-2xl border border-slate-700 bg-[#020817] p-4 sm:flex-row sm:items-start">
+        <label className="flex min-w-0 max-w-full flex-col gap-3 rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 sm:flex-row sm:items-start">
           <input
             type="checkbox"
             checked={enabled}
@@ -205,10 +205,10 @@ export default function SampleReportManager({
             className="h-5 w-5 shrink-0 accent-teal-400 sm:mt-1"
           />
           <span className="block min-w-0 flex-1">
-            <span className="block break-words font-black text-white">
+            <span className="block break-words font-semibold text-white">
               Show on public profile
             </span>
-            <span className="mt-1 block break-words text-sm leading-6 text-slate-400">
+            <span className="mt-1 block break-words text-sm leading-6 text-[#8a93a3]">
               Adds this report to the Sample Reports section of your public
               profile.
             </span>
@@ -217,42 +217,42 @@ export default function SampleReportManager({
 
         <div className="grid min-w-0 max-w-full gap-3 md:grid-cols-2">
           <label className="block min-w-0">
-            <p className="mb-2 break-words text-xs font-black uppercase tracking-wide text-slate-400">
+            <p className="mb-2 break-words text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Sample Report Title
             </p>
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Example: Buyer Inspection Sample"
-              className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020817] p-3 text-white outline-none focus:border-teal-400"
+              className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
             />
           </label>
 
           <label className="block min-w-0">
-            <p className="mb-2 break-words text-xs font-black uppercase tracking-wide text-slate-400">
+            <p className="mb-2 break-words text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Short Description
             </p>
             <input
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Example: Full residential inspection with photos and summary."
-              className="w-full min-w-0 rounded-xl border border-slate-700 bg-[#020817] p-3 text-white outline-none focus:border-teal-400"
+              className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
             />
           </label>
         </div>
       </div>
 
       {publicShareUrl && (
-        <p className="mt-4 max-w-full break-all rounded-xl border border-slate-700 bg-[#020817] p-3 text-xs font-bold text-slate-300">
+        <p className="mt-4 max-w-full break-all rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-xs font-bold text-[#8a93a3]">
           Public sample link: {publicShareUrl}
         </p>
       )}
 
-      <div className="mt-4 rounded-2xl border border-teal-500/30 bg-[#020817] p-4">
-        <p className="break-words text-xs font-black uppercase tracking-wide text-teal-300">
+      <div className="mt-4 rounded-2xl border border-teal-500/30 bg-[#0a0e13] p-4">
+        <p className="break-words text-xs font-semibold uppercase tracking-wide text-teal-300">
           Tracking Link
         </p>
-        <p className="mt-1 break-words text-sm leading-6 text-slate-400">
+        <p className="mt-1 break-words text-sm leading-6 text-[#8a93a3]">
           Add the realtor&apos;s name to get a personalized link. When they open
           it, your view notification names them and shows their device.
         </p>
@@ -262,13 +262,13 @@ export default function SampleReportManager({
             value={viewerName}
             onChange={(event) => setViewerName(event.target.value)}
             placeholder="Recipient name (e.g. Jane Smith)"
-            className="w-full min-w-0 flex-1 rounded-xl border border-slate-700 bg-[#020817] p-3 text-white outline-none focus:border-teal-400"
+            className="w-full min-w-0 flex-1 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
           />
           <button
             type="button"
             onClick={copyTrackingLink}
             disabled={!publicShareUrl}
-            className="inline-flex w-full items-center justify-center rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {trackingCopied ? "Copied" : "Copy tracking link"}
           </button>
@@ -292,7 +292,7 @@ export default function SampleReportManager({
           type="button"
           onClick={saveSampleReport}
           disabled={saving}
-          className="inline-flex w-full items-center justify-center rounded-xl bg-teal-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-teal-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {saving ? "Saving..." : "Save Sample Report Settings"}
         </button>
@@ -301,7 +301,7 @@ export default function SampleReportManager({
           type="button"
           onClick={shareReport}
           disabled={!publicShareUrl}
-          className="inline-flex w-full items-center justify-center rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          className="inline-flex w-full items-center justify-center rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           {copied ? "Copied Link" : "Share / Copy Sample Link"}
         </button>

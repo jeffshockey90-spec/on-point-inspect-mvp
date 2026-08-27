@@ -44,7 +44,7 @@ export default function TimesheetOverrideCell({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-2 py-1 text-[11px] font-black text-slate-300 transition hover:border-teal-400 hover:text-teal-300"
+        className="inline-flex items-center gap-1 rounded-lg border border-[#232b38] px-2 py-1 text-[11px] font-semibold text-[#8a93a3] transition hover:border-teal-400 hover:text-teal-300"
       >
         <Pencil className="h-3 w-3" />
         {manual ? "Edit" : "Correct"}
@@ -62,13 +62,13 @@ export default function TimesheetOverrideCell({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="hrs"
-        className="w-16 rounded-lg border border-slate-600 bg-black px-2 py-1 text-right text-xs text-white outline-none focus:border-teal-400"
+        className="w-16 rounded-lg border border-[#232b38] bg-black px-2 py-1 text-right text-xs text-white outline-none focus:border-teal-400"
       />
       <button
         type="button"
         onClick={() => save(false)}
         disabled={saving}
-        className="rounded-lg bg-teal-500 px-2 py-1 text-[11px] font-black text-slate-950 disabled:opacity-50"
+        className="rounded-lg bg-teal-500 px-2 py-1 text-[11px] font-semibold text-slate-950 disabled:opacity-50"
       >
         Save
       </button>
@@ -77,7 +77,7 @@ export default function TimesheetOverrideCell({
           type="button"
           onClick={() => save(true)}
           disabled={saving}
-          className="rounded-lg border border-slate-700 px-2 py-1 text-[11px] font-black text-slate-400 hover:text-red-300"
+          className="rounded-lg border border-[#232b38] px-2 py-1 text-[11px] font-semibold text-[#8a93a3] hover:text-red-300"
         >
           Clear
         </button>
@@ -86,7 +86,7 @@ export default function TimesheetOverrideCell({
         type="button"
         onClick={() => setOpen(false)}
         disabled={saving}
-        className="text-[11px] font-black text-slate-500"
+        className="text-[11px] font-semibold text-[#59626f]"
       >
         ✕
       </button>

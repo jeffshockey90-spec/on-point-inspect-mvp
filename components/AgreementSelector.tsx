@@ -19,10 +19,10 @@ function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?:
         ? "border-green-500/40 bg-green-500/10 text-green-300"
         : tone === "yellow"
           ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
-          : "border-slate-600 bg-slate-800/60 text-slate-300";
+          : "border-[#232b38] bg-[#1a212c] text-[#8a93a3]";
 
   return (
-    <span className={`inline-flex max-w-full items-center rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${classes}`}>
+    <span className={`inline-flex max-w-full items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${classes}`}>
       {children}
     </span>
   );
@@ -146,20 +146,20 @@ export default function AgreementSelector({
   }, [templates]);
 
   return (
-    <section className="mb-6 w-full max-w-full overflow-hidden rounded-3xl border border-slate-700 bg-[#071224] shadow-2xl shadow-black/20">
-      <div className="border-b border-slate-800 bg-gradient-to-r from-[#0f172a] via-[#0b1628] to-[#071224] p-4 sm:p-5">
+    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[#232b38] bg-[#071224] shadow-2xl shadow-black/20">
+      <div className="border-b border-[#1a212c] bg-gradient-to-r from-[#10151e] via-[#0b1628] to-[#10151e] p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-teal-400">Agreements</p>
-            <h2 className="mt-2 text-2xl font-black text-white">Selected Agreements</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-teal-400">Agreements</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Selected Agreements</h2>
+            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
               See exactly which agreements are selected without the large empty agreement preview blocks.
             </p>
           </div>
 
           <a
             href="/agreements"
-            className="inline-flex w-full items-center justify-center rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950 sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500 hover:text-slate-950 sm:w-auto"
           >
             Agreement Library
           </a>
@@ -167,7 +167,7 @@ export default function AgreementSelector({
       </div>
 
       <div className="p-4 sm:p-5">
-        <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
+        <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap gap-2">
@@ -180,15 +180,15 @@ export default function AgreementSelector({
               <div className="mt-3 space-y-2">
                 {selectedTemplates.length > 0 ? (
                   selectedTemplates.map((template) => (
-                    <div key={template.id} className="rounded-xl border border-slate-700 bg-[#071224] px-4 py-3">
+                    <div key={template.id} className="rounded-xl border border-[#232b38] bg-[#071224] px-4 py-3">
                       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="min-w-0 break-words text-sm font-black text-white">{template.title}</p>
+                        <p className="min-w-0 break-words text-sm font-semibold text-white">{template.title}</p>
                         <div className="flex flex-wrap gap-2">
                           <Badge tone="green">Selected</Badge>
                           {template.is_default && <Badge tone="teal">Default</Badge>}
                         </div>
                       </div>
-                      {template.version && <p className="mt-1 text-xs text-slate-400">{template.version}</p>}
+                      {template.version && <p className="mt-1 text-xs text-[#8a93a3]">{template.version}</p>}
                     </div>
                   ))
                 ) : (
@@ -202,7 +202,7 @@ export default function AgreementSelector({
             <button
               type="button"
               onClick={() => setExpanded((current) => !current)}
-              className="w-full shrink-0 rounded-2xl border border-slate-600 px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-slate-800 sm:w-auto"
+              className="w-full shrink-0 rounded-2xl border border-[#232b38] px-5 py-3 text-sm font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c] sm:w-auto"
             >
               {expanded ? "Hide Options" : "Manage Agreements"}
             </button>
@@ -212,13 +212,13 @@ export default function AgreementSelector({
         {expanded && (
           <div className="mt-4 space-y-4">
             <label className="block">
-              <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#59626f]">
                 Agreement State
               </span>
               <select
                 value={agreementState}
                 onChange={(e) => handleStateChange(e.target.value)}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none focus:border-teal-400"
+                className="w-full rounded-2xl border border-[#232b38] bg-[#0a0e13] px-3 py-3 text-sm font-bold text-white outline-none focus:border-teal-400"
               >
                 {US_STATES.map((state) => (
                   <option key={state.code} value={state.code}>
@@ -229,8 +229,8 @@ export default function AgreementSelector({
             </label>
 
             {Object.entries(templatesByServiceType).map(([serviceType, serviceTemplates]) => (
-              <div key={serviceType} className="rounded-2xl border border-slate-700 bg-slate-950 p-4">
-                <h3 className="text-base font-black text-teal-300">{formatServiceType(serviceType)}</h3>
+              <div key={serviceType} className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4">
+                <h3 className="text-base font-semibold text-teal-300">{formatServiceType(serviceType)}</h3>
 
                 <div className="mt-3 grid w-full grid-cols-1 gap-3 md:grid-cols-2">
                   {serviceTemplates.map((template: any) => {
@@ -241,7 +241,7 @@ export default function AgreementSelector({
                         className={`block w-full min-w-0 cursor-pointer rounded-xl border p-4 transition ${
                           checked
                             ? "border-teal-400 bg-teal-500/10"
-                            : "border-slate-700 bg-[#071224] hover:border-teal-500"
+                            : "border-[#232b38] bg-[#071224] hover:border-teal-500"
                         }`}
                       >
                         <div className="flex min-w-0 items-start gap-3">
@@ -273,7 +273,7 @@ export default function AgreementSelector({
           type="button"
           onClick={() => saveAgreementSelection()}
           disabled={saving || selectedTemplateIds.length === 0}
-          className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-5 py-3 text-sm font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
+          className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-teal-500 px-5 py-3 text-sm font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
         >
           {savedLabel}
         </button>

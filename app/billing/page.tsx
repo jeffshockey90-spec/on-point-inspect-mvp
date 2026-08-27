@@ -91,15 +91,15 @@ export default async function BillingPage({
   const needsSubscription = !exempt && !active && used >= freeLimit;
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl space-y-6">
-        <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-8 shadow-2xl">
-          <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">FLOW Billing</p>
-          <h1 className="mt-4 text-4xl font-black text-white">Inspector Subscription</h1>
+        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-8 shadow-2xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">FLOW Billing</p>
+          <h1 className="mt-4 text-4xl font-semibold text-white">Inspector Subscription</h1>
           {/* On iOS the price shown must be the App Store price in the user's
               storefront and currency, which only StoreKit knows — so the web
               price is omitted here and IOSSubscribeButton renders the real one. */}
-          <p className="mt-4 max-w-2xl text-slate-300">
+          <p className="mt-4 max-w-2xl text-[#8a93a3]">
             {iosApp
               ? `Your first ${freeLimit} real inspections are free. After that, a subscription keeps your account active.`
               : `Your first ${freeLimit} real inspections are free. After that, FLOW is ${formatUsdFromCents(priceCents)}/month unless the owner has set custom pricing or exempted your account.`}
@@ -108,14 +108,14 @@ export default async function BillingPage({
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/support"
-              className="rounded-xl border border-blue-500 px-5 py-3 font-black text-blue-300 transition hover:bg-blue-500/10"
+              className="rounded-xl border border-blue-500 px-5 py-3 font-semibold text-blue-300 transition hover:bg-blue-500/10"
             >
               💬 Need Help? Contact Support
             </Link>
 
             <Link
               href="/settings"
-              className="rounded-xl border border-slate-600 px-5 py-3 font-black text-slate-200 transition hover:bg-slate-800"
+              className="rounded-xl border border-[#232b38] px-5 py-3 font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c]"
             >
               Back to Settings
             </Link>
@@ -135,30 +135,30 @@ export default async function BillingPage({
         )}
 
         <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5">
-            <p className="text-xs font-black uppercase text-slate-400">Free Inspections Used</p>
-            <p className="mt-3 text-3xl font-black text-white">{used}/{freeLimit}</p>
+          <div className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5">
+            <p className="text-xs font-semibold uppercase text-[#8a93a3]">Free Inspections Used</p>
+            <p className="mt-3 text-3xl font-semibold text-white">{used}/{freeLimit}</p>
           </div>
-          <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5">
-            <p className="text-xs font-black uppercase text-slate-400">Remaining</p>
-            <p className="mt-3 text-3xl font-black text-teal-300">{remaining}</p>
+          <div className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5">
+            <p className="text-xs font-semibold uppercase text-[#8a93a3]">Remaining</p>
+            <p className="mt-3 text-3xl font-semibold text-teal-300">{remaining}</p>
           </div>
           {!iosApp && (
-            <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5">
-              <p className="text-xs font-black uppercase text-slate-400">Monthly Price</p>
-              <p className="mt-3 text-3xl font-black text-green-300">{exempt ? "Free" : `${formatUsdFromCents(priceCents)}/mo`}</p>
+            <div className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5">
+              <p className="text-xs font-semibold uppercase text-[#8a93a3]">Monthly Price</p>
+              <p className="mt-3 text-3xl font-semibold text-green-300">{exempt ? "Free" : `${formatUsdFromCents(priceCents)}/mo`}</p>
             </div>
           )}
         </section>
 
-        <section className="rounded-3xl border border-slate-700 bg-[#0f172a] p-8 shadow-xl">
+        <section className="rounded-2xl border border-[#232b38] bg-[#10151e] p-8 shadow-xl">
           <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
-              <p className="text-sm font-black uppercase tracking-wide text-slate-400">Status</p>
-              <h2 className="mt-2 text-3xl font-black text-white">
+              <p className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">Status</p>
+              <h2 className="mt-2 text-3xl font-semibold text-white">
                 {exempt ? "Owner Exempt / Free" : active ? "Subscription Active" : needsSubscription ? "Subscription Required" : "Free Trial Active"}
               </h2>
-              <p className="mt-3 text-slate-300">
+              <p className="mt-3 text-[#8a93a3]">
                 {billingSource === "apple"
                   ? "Billed through the App Store"
                   : `Current Stripe status: ${profile?.subscription_status || "inactive"}`}
@@ -167,12 +167,12 @@ export default async function BillingPage({
 
             <div className="flex flex-col gap-3 sm:flex-row">
               {exempt ? (
-                <Link href="/dashboard" className="rounded-xl bg-teal-500 px-6 py-3 text-center font-black text-slate-950 hover:bg-teal-400">
+                <Link href="/dashboard" className="rounded-xl bg-teal-500 px-6 py-3 text-center font-semibold text-slate-950 hover:bg-teal-400">
                   Go to Dashboard
                 </Link>
               ) : active ? (
                 <>
-                  <Link href="/dashboard" className="rounded-xl bg-teal-500 px-6 py-3 text-center font-black text-slate-950 hover:bg-teal-400">
+                  <Link href="/dashboard" className="rounded-xl bg-teal-500 px-6 py-3 text-center font-semibold text-slate-950 hover:bg-teal-400">
                     Go to Dashboard
                   </Link>
                   <ManageSubscriptionButton flow="manage" billingSource={billingSource} />
@@ -187,7 +187,7 @@ export default async function BillingPage({
 
               <Link
                 href="/support"
-                className="rounded-xl border border-blue-500 px-6 py-3 text-center font-black text-blue-300 hover:bg-blue-500/10"
+                className="rounded-xl border border-blue-500 px-6 py-3 text-center font-semibold text-blue-300 hover:bg-blue-500/10"
               >
                 Contact Support
               </Link>

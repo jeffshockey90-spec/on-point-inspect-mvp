@@ -44,7 +44,7 @@ export default function SectionNotesEditor({
   if (editing) {
     return (
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3">
-        <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-amber-300">
+        <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-amber-300">
           Section note (shown to the client above this section)
         </label>
         <textarea
@@ -52,7 +52,7 @@ export default function SectionNotesEditor({
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
           placeholder="e.g. The attic was only partially accessible due to stored belongings."
-          className="w-full rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
+          className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
         />
         {error && <p className="mt-2 text-xs font-bold text-red-300">{error}</p>}
         <div className="mt-2 flex flex-wrap gap-2">
@@ -60,7 +60,7 @@ export default function SectionNotesEditor({
             type="button"
             onClick={save}
             disabled={saving}
-            className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 transition hover:bg-amber-300 disabled:opacity-60"
+            className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-slate-950 transition hover:bg-amber-300 disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save note"}
           </button>
@@ -72,7 +72,7 @@ export default function SectionNotesEditor({
               setError("");
             }}
             disabled={saving}
-            className="rounded-lg border border-slate-600 px-4 py-2 text-xs font-black text-slate-300 transition hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-lg border border-[#232b38] px-4 py-2 text-xs font-semibold text-[#8a93a3] transition hover:bg-[#1a212c] disabled:opacity-60"
           >
             Cancel
           </button>
@@ -89,7 +89,7 @@ export default function SectionNotesEditor({
           setDraft("");
           setEditing(true);
         }}
-        className="rounded-lg border border-dashed border-slate-600 px-3 py-2 text-xs font-black text-slate-400 transition hover:border-amber-400 hover:text-amber-200"
+        className="rounded-lg border border-dashed border-[#232b38] px-3 py-2 text-xs font-semibold text-[#8a93a3] transition hover:border-amber-400 hover:text-amber-200"
       >
         + Add section note
       </button>
@@ -106,7 +106,7 @@ export default function SectionNotesEditor({
             setDraft(notes);
             setEditing(true);
           }}
-          className="shrink-0 rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-black text-slate-300 transition hover:border-amber-400 hover:text-amber-200"
+          className="shrink-0 rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#8a93a3] transition hover:border-amber-400 hover:text-amber-200"
         >
           Edit
         </button>

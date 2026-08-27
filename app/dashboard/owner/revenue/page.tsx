@@ -429,18 +429,18 @@ export default async function OwnerRevenuePage() {
 
   if (!OWNER_EMAILS.includes(userEmail)) {
     return (
-      <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
-          <p className="text-sm font-black uppercase tracking-[0.35em] text-red-300">
+      <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">
             Owner Only
           </p>
-          <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
-          <p className="mt-4 text-slate-300">
+          <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
+          <p className="mt-4 text-[#8a93a3]">
             This revenue dashboard is only available to the FLOW owner account.
           </p>
           <Link
             href="/dashboard"
-            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-black text-red-300 hover:bg-red-500/10"
+            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10"
           >
             Back to Dashboard
           </Link>
@@ -548,18 +548,18 @@ export default async function OwnerRevenuePage() {
     .slice(0, 15);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-3xl border border-green-500/40 bg-[#0f172a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-green-500/40 bg-[#10151e] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-green-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-green-400">
                 Owner Revenue Dashboard
               </p>
-              <h1 className="mt-4 text-5xl font-black text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-white">
                 Revenue, Invoices & Business Growth
               </h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 Owner-only revenue center for paid reports, monthly trends, inspector production, invoices, service add-ons, and projected income.
               </p>
             </div>
@@ -567,21 +567,21 @@ export default async function OwnerRevenuePage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/dashboard/owner/users"
-                className="rounded-xl border border-cyan-500 px-5 py-3 font-black text-cyan-300 transition hover:bg-cyan-500/10"
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
               >
                 👥 Users
               </Link>
 
               <Link
                 href="/dashboard/owner/devices"
-                className="rounded-xl border border-purple-500 px-5 py-3 font-black text-purple-300 transition hover:bg-purple-500/10"
+                className="rounded-xl border border-purple-500 px-5 py-3 font-semibold text-purple-300 transition hover:bg-purple-500/10"
               >
                 📱 Devices
               </Link>
 
               <Link
                 href="/dashboard/owner"
-                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
               >
                 Owner Dashboard
               </Link>
@@ -617,10 +617,10 @@ export default async function OwnerRevenuePage() {
             ) : (
               <div className="space-y-5">
                 {monthlyRows.map((row) => (
-                  <div key={row.month} className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+                  <div key={row.month} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
                     <div className="mb-3 flex items-center justify-between gap-4">
-                      <p className="font-black text-white">{row.month}</p>
-                      <p className="text-sm font-black text-green-300">{money(row.revenue)}</p>
+                      <p className="font-semibold text-white">{row.month}</p>
+                      <p className="text-sm font-semibold text-green-300">{money(row.revenue)}</p>
                     </div>
 
                     <GrowthBar label="Revenue" value={row.revenue} max={maxMonthlyRevenue} tone="green" display={money(row.revenue)} />
@@ -679,17 +679,17 @@ export default async function OwnerRevenuePage() {
                   return (
                     <div
                       key={inspection.id}
-                      className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4"
+                      className="rounded-xl border border-[#232b38] bg-[#131923] p-4"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <p className="truncate font-black text-white">{address}</p>
-                          <p className="mt-1 text-sm text-slate-400">
+                          <p className="truncate font-semibold text-white">{address}</p>
+                          <p className="mt-1 text-sm text-[#8a93a3]">
                             Report #{inspection?.id} • {formatDateTime(getInspectionDate(inspection))}
                           </p>
                         </div>
 
-                        <p className="shrink-0 font-black text-green-300">
+                        <p className="shrink-0 font-semibold text-green-300">
                           {money(getInspectionRevenue(inspection))}
                         </p>
                       </div>
@@ -697,12 +697,12 @@ export default async function OwnerRevenuePage() {
                       <div className="mt-3 flex flex-wrap gap-2">
                         <Link
                           href={`/reports/${inspection.id}`}
-                          className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-black text-teal-300 transition hover:bg-teal-500/10"
+                          className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-teal-300 transition hover:bg-teal-500/10"
                         >
                           Open Report
                         </Link>
 
-                        <span className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs font-black text-green-300">
+                        <span className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs font-semibold text-green-300">
                           Paid
                         </span>
                       </div>
@@ -718,10 +718,10 @@ export default async function OwnerRevenuePage() {
           {invoices.length === 0 ? (
             <EmptyState text="No invoice records found." />
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-700">
+            <div className="overflow-hidden rounded-2xl border border-[#232b38]">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-800 text-sm">
-                  <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
+                <table className="min-w-full divide-y divide-[#1a212c] text-sm">
+                  <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
                     <tr>
                       <th className="px-4 py-3">Invoice</th>
                       <th className="px-4 py-3">Status</th>
@@ -732,19 +732,19 @@ export default async function OwnerRevenuePage() {
                     </tr>
                   </thead>
 
-                  <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
+                  <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
                     {invoices.slice(0, 100).map((invoice: any, index: number) => {
                       const amount = getInvoiceAmount(invoice);
                       const paid = getInvoicePaidAmount(invoice);
                       const balance = Math.max(0, amount - paid);
 
                       return (
-                        <tr key={invoice?.id || index} className="hover:bg-slate-900/70">
+                        <tr key={invoice?.id || index} className="hover:bg-[#131923]">
                           <td className="px-4 py-4">
-                            <p className="font-black text-white">
+                            <p className="font-semibold text-white">
                               {invoice?.invoice_number || invoice?.id || `Invoice ${index + 1}`}
                             </p>
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-[#59626f]">
                               Report #{invoice?.inspection_id || invoice?.report_id || "N/A"}
                             </p>
                           </td>
@@ -755,19 +755,19 @@ export default async function OwnerRevenuePage() {
                             </Badge>
                           </td>
 
-                          <td className="px-4 py-4 text-right font-black text-white">
+                          <td className="px-4 py-4 text-right font-semibold text-white">
                             {money(amount)}
                           </td>
 
-                          <td className="px-4 py-4 text-right font-black text-green-300">
+                          <td className="px-4 py-4 text-right font-semibold text-green-300">
                             {money(paid)}
                           </td>
 
-                          <td className="px-4 py-4 text-right font-black text-orange-300">
+                          <td className="px-4 py-4 text-right font-semibold text-orange-300">
                             {money(balance)}
                           </td>
 
-                          <td className="px-4 py-4 text-slate-300">
+                          <td className="px-4 py-4 text-[#8a93a3]">
                             {formatDateTime(invoice?.created_at)}
                           </td>
                         </tr>
@@ -811,11 +811,11 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
-      <p className="mt-3 text-4xl font-black text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
+      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
     </div>
   );
 }
@@ -830,9 +830,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-      <h2 className="text-2xl font-black text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
+    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
+      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
@@ -840,7 +840,7 @@ function Panel({
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-6 text-center text-slate-400">
+    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">
       {text}
     </div>
   );
@@ -870,10 +870,10 @@ function GrowthBar({
   return (
     <div className="mt-3">
       <div className="mb-1 flex justify-between text-xs">
-        <span className="font-bold text-slate-300">{label}</span>
-        <span className="text-slate-400">{display || value}</span>
+        <span className="font-bold text-[#8a93a3]">{label}</span>
+        <span className="text-[#8a93a3]">{display || value}</span>
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-[#020617]">
+      <div className="h-3 overflow-hidden rounded-full bg-[#0a0e13]">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
       </div>
     </div>
@@ -892,16 +892,16 @@ function SimpleBar({
   width: number;
 }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
       <div className="mb-2 flex items-center justify-between gap-4">
         <div>
-          <p className="font-black text-white">{label}</p>
-          <p className="mt-1 text-xs text-slate-500">{count}</p>
+          <p className="font-semibold text-white">{label}</p>
+          <p className="mt-1 text-xs text-[#59626f]">{count}</p>
         </div>
-        <p className="font-black text-green-300">{value}</p>
+        <p className="font-semibold text-green-300">{value}</p>
       </div>
 
-      <div className="h-3 overflow-hidden rounded-full bg-slate-900">
+      <div className="h-3 overflow-hidden rounded-full bg-[#131923]">
         <div className="h-full rounded-full bg-green-400" style={{ width: `${width}%` }} />
       </div>
     </div>
@@ -910,16 +910,16 @@ function SimpleBar({
 
 function InspectorRevenueCard({ row }: { row: InspectorRevenueRow }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="truncate font-black text-white">{row.inspectorName}</p>
-          <p className="mt-1 truncate text-sm text-slate-400">
+          <p className="truncate font-semibold text-white">{row.inspectorName}</p>
+          <p className="mt-1 truncate text-sm text-[#8a93a3]">
             {row.inspectorEmail || "No email"}
           </p>
         </div>
 
-        <p className="shrink-0 font-black text-green-300">{money(row.revenue)}</p>
+        <p className="shrink-0 font-semibold text-green-300">{money(row.revenue)}</p>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -928,7 +928,7 @@ function InspectorRevenueCard({ row }: { row: InspectorRevenueRow }) {
         <MiniStat label="Avg" value={money(row.averageValue)} />
       </div>
 
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-3 text-xs text-[#59626f]">
         Last report: {formatDateTime(row.lastReport)}
       </p>
     </div>
@@ -937,11 +937,11 @@ function InspectorRevenueCard({ row }: { row: InspectorRevenueRow }) {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-700 bg-[#020617] p-3">
-      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">
+    <div className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">
         {label}
       </p>
-      <p className="mt-1 font-black text-white">{value}</p>
+      <p className="mt-1 font-semibold text-white">{value}</p>
     </div>
   );
 }
@@ -964,7 +964,7 @@ function Badge({
   };
 
   return (
-    <span className={`rounded-full border px-2 py-1 text-xs font-black ${classes[tone]}`}>
+    <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${classes[tone]}`}>
       {children}
     </span>
   );

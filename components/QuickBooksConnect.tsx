@@ -67,12 +67,12 @@ export default function QuickBooksConnect() {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-900/40 p-5">
+    <div className="rounded-2xl border border-[#232b38] bg-[#131923]/40 p-5">
       <div className="flex items-start gap-3">
         <Receipt className="mt-0.5 h-6 w-6 shrink-0 text-green-300" />
         <div className="min-w-0 flex-1">
-          <p className="font-black text-white">QuickBooks</p>
-          <p className="mt-1 max-w-xl text-sm leading-6 text-slate-400">
+          <p className="font-semibold text-white">QuickBooks</p>
+          <p className="mt-1 max-w-xl text-sm leading-6 text-[#8a93a3]">
             Turn your inspections into QuickBooks invoices — each client becomes a
             customer and each billable inspection an invoice for its fee. Re-syncing
             updates the existing invoice instead of duplicating it.
@@ -86,7 +86,7 @@ export default function QuickBooksConnect() {
 
           {status?.connected ? (
             <div className="mt-4">
-              <p className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-200">
+              <p className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-200">
                 <Check className="h-3.5 w-3.5" />
                 Connected{status.company ? ` · ${status.company}` : ""}
               </p>
@@ -95,7 +95,7 @@ export default function QuickBooksConnect() {
                   type="button"
                   onClick={sync}
                   disabled={busy}
-                  className="inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-black text-slate-950 transition hover:bg-green-400 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-green-400 disabled:opacity-50"
                 >
                   <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
                   {busy ? "Syncing…" : "Sync inspections to invoices"}
@@ -104,12 +104,12 @@ export default function QuickBooksConnect() {
                   type="button"
                   onClick={disconnect}
                   disabled={busy}
-                  className="rounded-xl border border-slate-600 px-4 py-2.5 text-sm font-black text-slate-300 transition hover:border-red-400 hover:text-red-300 disabled:opacity-50"
+                  className="rounded-xl border border-[#232b38] px-4 py-2.5 text-sm font-semibold text-[#8a93a3] transition hover:border-red-400 hover:text-red-300 disabled:opacity-50"
                 >
                   Disconnect
                 </button>
               </div>
-              {syncMsg && <p className="mt-3 text-sm font-bold text-slate-300">{syncMsg}</p>}
+              {syncMsg && <p className="mt-3 text-sm font-bold text-[#8a93a3]">{syncMsg}</p>}
             </div>
           ) : status && !status.configured ? (
             <p className="mt-4 text-sm text-amber-300">
@@ -118,7 +118,7 @@ export default function QuickBooksConnect() {
           ) : (
             <a
               href="/api/quickbooks/connect"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-black text-slate-950 transition hover:bg-green-400"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-green-400"
             >
               <Receipt className="h-4 w-4" />
               Connect QuickBooks

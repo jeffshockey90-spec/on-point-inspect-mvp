@@ -274,18 +274,18 @@ export default async function OwnerDeviceAnalyticsPage() {
 
   if (!OWNER_EMAILS.includes(userEmail)) {
     return (
-      <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
-          <p className="text-sm font-black uppercase tracking-[0.35em] text-red-300">
+      <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">
             Owner Only
           </p>
-          <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
-          <p className="mt-4 text-slate-300">
+          <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
+          <p className="mt-4 text-[#8a93a3]">
             This device analytics page is only available to the FLOW owner account.
           </p>
           <Link
             href="/dashboard"
-            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-black text-red-300 hover:bg-red-500/10"
+            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10"
           >
             Back to Dashboard
           </Link>
@@ -372,18 +372,18 @@ export default async function OwnerDeviceAnalyticsPage() {
   ).slice(0, 14);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">
                 Owner Device Analytics
               </p>
-              <h1 className="mt-4 text-5xl font-black text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-white">
                 Installs, Devices & App Usage
               </h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 Internal usage analytics for app installs, active devices, platforms, app versions, push-enabled devices, and recent app activity.
               </p>
             </div>
@@ -391,14 +391,14 @@ export default async function OwnerDeviceAnalyticsPage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/dashboard/owner/users"
-                className="rounded-xl border border-cyan-500 px-5 py-3 font-black text-cyan-300 transition hover:bg-cyan-500/10"
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
               >
                 👥 Users
               </Link>
 
               <Link
                 href="/dashboard/owner"
-                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
               >
                 Owner Dashboard
               </Link>
@@ -452,10 +452,10 @@ export default async function OwnerDeviceAnalyticsPage() {
         </section>
 
         <Panel title="Recent Devices" subtitle="Latest unique devices detected by app analytics tracking.">
-          <div className="overflow-hidden rounded-2xl border border-slate-700">
+          <div className="overflow-hidden rounded-2xl border border-[#232b38]">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-800 text-sm">
-                <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
+              <table className="min-w-full divide-y divide-[#1a212c] text-sm">
+                <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
                   <tr>
                     <th className="px-4 py-3">Device</th>
                     <th className="px-4 py-3">Platform</th>
@@ -468,15 +468,15 @@ export default async function OwnerDeviceAnalyticsPage() {
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
+                <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
                   {deviceRows.slice(0, 100).map((device) => (
-                    <tr key={device.deviceId} className="hover:bg-slate-900/70">
+                    <tr key={device.deviceId} className="hover:bg-[#131923]">
                       <td className="px-4 py-4">
                         <div className="max-w-[320px]">
-                          <p className="truncate font-black text-white">
+                          <p className="truncate font-semibold text-white">
                             {device.deviceId}
                           </p>
-                          <p className="mt-1 truncate text-xs text-slate-500">
+                          <p className="mt-1 truncate text-xs text-[#59626f]">
                             {device.timezone}
                           </p>
                         </div>
@@ -488,11 +488,11 @@ export default async function OwnerDeviceAnalyticsPage() {
                         </Badge>
                       </td>
 
-                      <td className="px-4 py-4 text-slate-300">
+                      <td className="px-4 py-4 text-[#8a93a3]">
                         {device.appVersion}
                       </td>
 
-                      <td className="px-4 py-4 text-right font-black text-white">
+                      <td className="px-4 py-4 text-right font-semibold text-white">
                         {device.events}
                       </td>
 
@@ -512,16 +512,16 @@ export default async function OwnerDeviceAnalyticsPage() {
                       </td>
 
                       <td className="px-4 py-4">
-                        <span className="block max-w-[260px] truncate text-slate-300">
+                        <span className="block max-w-[260px] truncate text-[#8a93a3]">
                           {device.lastPath}
                         </span>
                       </td>
 
-                      <td className="px-4 py-4 text-slate-300">
+                      <td className="px-4 py-4 text-[#8a93a3]">
                         {formatDateTime(device.firstSeen)}
                       </td>
 
-                      <td className="px-4 py-4 text-slate-300">
+                      <td className="px-4 py-4 text-[#8a93a3]">
                         {formatDateTime(device.lastSeen)}
                       </td>
                     </tr>
@@ -529,7 +529,7 @@ export default async function OwnerDeviceAnalyticsPage() {
 
                   {deviceRows.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
+                      <td colSpan={8} className="px-4 py-10 text-center text-[#8a93a3]">
                         No device analytics found yet.
                       </td>
                     </tr>
@@ -571,11 +571,11 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
-      <p className="mt-3 text-4xl font-black text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
+      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
     </div>
   );
 }
@@ -590,9 +590,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-      <h2 className="text-2xl font-black text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
+    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
+      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
@@ -607,7 +607,7 @@ function StackList({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-6 text-center text-slate-400">
+      <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">
         No data yet.
       </div>
     );
@@ -619,15 +619,15 @@ function StackList({
         const width = Math.max(4, Math.round((row.count / Math.max(1, total)) * 100));
 
         return (
-          <div key={row.label} className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+          <div key={row.label} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
             <div className="mb-2 flex items-center justify-between gap-4">
-              <p className="min-w-0 truncate font-black text-white">{row.label}</p>
-              <p className="shrink-0 text-sm font-black text-teal-300">{row.count}</p>
+              <p className="min-w-0 truncate font-semibold text-white">{row.label}</p>
+              <p className="shrink-0 text-sm font-semibold text-teal-300">{row.count}</p>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-slate-900">
+            <div className="h-3 overflow-hidden rounded-full bg-[#131923]">
               <div className="h-full rounded-full bg-teal-400" style={{ width: `${width}%` }} />
             </div>
-            <p className="mt-1 text-xs text-slate-500">{percent(row.count, total)}</p>
+            <p className="mt-1 text-xs text-[#59626f]">{percent(row.count, total)}</p>
           </div>
         );
       })}
@@ -653,7 +653,7 @@ function Badge({
   };
 
   return (
-    <span className={`rounded-full border px-2 py-1 text-xs font-black ${classes[tone]}`}>
+    <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${classes[tone]}`}>
       {children}
     </span>
   );

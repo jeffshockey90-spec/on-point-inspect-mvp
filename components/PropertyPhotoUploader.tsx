@@ -131,11 +131,11 @@ export default function PropertyPhotoUploader({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-slate-700 p-4">
+    <form onSubmit={handleSubmit} className="border-t border-[#232b38] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-teal-300">Property Photo</p>
-          <p className="mt-1 text-xs leading-5 text-slate-400">
+          <p className="text-sm font-semibold text-teal-300">Property Photo</p>
+          <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
             Take or upload the correct house photo. iPhone photos are compressed before upload.
           </p>
         </div>
@@ -147,13 +147,13 @@ export default function PropertyPhotoUploader({
             name="property_photo"
             accept="image/*"
             disabled={uploading}
-            className="max-w-full rounded-xl border border-slate-700 bg-[#020617] px-3 py-2 text-xs font-bold text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:text-xs file:font-black file:text-black disabled:opacity-60"
+            className="max-w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-xs font-bold text-[#8a93a3] file:mr-3 file:rounded-lg file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-black disabled:opacity-60"
           />
 
           <button
             type="submit"
             disabled={uploading}
-            className="rounded-xl bg-teal-400 px-4 py-3 text-sm font-black text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl bg-teal-400 px-4 py-3 text-sm font-semibold text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {uploading ? "Uploading..." : "Change Photo"}
           </button>

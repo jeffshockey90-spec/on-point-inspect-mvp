@@ -83,19 +83,19 @@ export default function TimePreferencesSettings() {
   }
 
   return (
-    <section className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 sm:p-6 md:p-8">
-      <h2 className="text-xl font-black text-teal-300 sm:text-2xl">
+    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6 md:p-8">
+      <h2 className="text-xl font-semibold text-teal-300 sm:text-2xl">
         Time &amp; Location
       </h2>
 
-      <p className="mt-2 text-sm leading-6 text-slate-300">
+      <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
         Appointments, reports, notifications, mileage logs, and activity
         timestamps use your local time zone.
       </p>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <label className="block">
-          <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             Time zone
           </span>
 
@@ -105,7 +105,7 @@ export default function TimePreferencesSettings() {
               setTimeZone(event.target.value);
               setMessage("");
             }}
-            className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none transition focus:border-teal-400"
+            className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none transition focus:border-teal-400"
           >
             {!TIME_ZONES.some((zone) => zone.value === timeZone) && (
               <option value={timeZone}>{timeZone}</option>
@@ -117,11 +117,11 @@ export default function TimePreferencesSettings() {
             ))}
           </select>
 
-          <p className="mt-2 text-xs text-slate-500">{timeZone}</p>
+          <p className="mt-2 text-xs text-[#59626f]">{timeZone}</p>
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-400">
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             Clock format
           </span>
 
@@ -130,7 +130,7 @@ export default function TimePreferencesSettings() {
             onChange={(event) =>
               setTimeFormat(event.target.value === "12h" ? "12h" : "24h")
             }
-            className="w-full rounded-xl border border-slate-700 bg-[#020617] p-3 text-white outline-none transition focus:border-teal-400"
+            className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none transition focus:border-teal-400"
           >
             <option value="24h">24-hour (16:30)</option>
             <option value="12h">12-hour (4:30 PM)</option>
@@ -142,7 +142,7 @@ export default function TimePreferencesSettings() {
         <button
           type="button"
           onClick={useDeviceTimeZone}
-          className="rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:text-teal-300"
+          className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300"
         >
           Use Device Time Zone
         </button>
@@ -151,21 +151,21 @@ export default function TimePreferencesSettings() {
           type="button"
           disabled={busy}
           onClick={save}
-          className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy ? "Saving…" : "Save Time Settings"}
         </button>
 
         <a
           href="/mileage"
-          className="rounded-xl border border-teal-500/50 px-5 py-3 text-center font-black text-teal-300 transition hover:bg-teal-500/10"
+          className="rounded-xl border border-teal-500/50 px-5 py-3 text-center font-semibold text-teal-300 transition hover:bg-teal-500/10"
         >
           Open Mileage Tracker →
         </a>
       </div>
 
       {message && (
-        <p className="mt-3 text-sm font-bold text-slate-300">{message}</p>
+        <p className="mt-3 text-sm font-bold text-[#8a93a3]">{message}</p>
       )}
     </section>
   );

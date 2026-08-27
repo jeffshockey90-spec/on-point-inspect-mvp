@@ -162,7 +162,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
   }
 
   const inputClass =
-    "w-full min-w-0 rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-white outline-none focus:border-teal-400";
+    "w-full min-w-0 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-white outline-none focus:border-teal-400";
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -179,27 +179,27 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">Client name</span>
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Client name</span>
           <input className={inputClass} value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Client name" />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">Client email</span>
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Client email</span>
           <input className={inputClass} type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="client@email.com" />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">Invoice # (optional)</span>
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Invoice # (optional)</span>
           <input className={inputClass} value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="INV-1001" />
         </label>
         <label className="block">
-          <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">Due date</span>
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Due date</span>
           <input className={inputClass} type="date" value={dueDate || ""} onChange={(e) => setDueDate(e.target.value)} />
         </label>
       </div>
 
-      <div className="rounded-2xl border border-slate-700 bg-[#071224] p-4">
+      <div className="rounded-2xl border border-[#232b38] bg-[#071224] p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-lg font-black text-teal-300">Line items</h3>
-          <button type="button" onClick={addItem} className="rounded-lg border border-teal-500 px-3 py-1 text-xs font-black text-teal-300 hover:bg-teal-500/10">
+          <h3 className="text-lg font-semibold text-teal-300">Line items</h3>
+          <button type="button" onClick={addItem} className="rounded-lg border border-teal-500 px-3 py-1 text-xs font-semibold text-teal-300 hover:bg-teal-500/10">
             + Add line item
           </button>
         </div>
@@ -210,7 +210,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
             return (
               <div key={i} className="grid grid-cols-12 items-end gap-2">
                 <label className="col-span-12 min-w-0 sm:col-span-6">
-                  <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-500">Description</span>
+                  <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">Description</span>
                   {services.length > 0 ? (
                     <select
                       className={inputClass}
@@ -238,17 +238,17 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
                   ) : null}
                 </label>
                 <label className="col-span-4 min-w-0 sm:col-span-2">
-                  <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-500">Qty</span>
+                  <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">Qty</span>
                   <input className={inputClass} type="number" min="0" step="1" value={li.quantity} onChange={(e) => updateItem(i, { quantity: Number(e.target.value) })} />
                 </label>
                 <label className="col-span-4 min-w-0 sm:col-span-2">
-                  <span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-500">Unit price</span>
+                  <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">Unit price</span>
                   <input className={inputClass} type="number" min="0" step="0.01" value={li.unitPrice} onChange={(e) => updateItem(i, { unitPrice: Number(e.target.value) })} />
                 </label>
                 <div className="col-span-3 min-w-0 truncate pb-2 text-right font-bold text-white [font-variant-numeric:tabular-nums] sm:col-span-1">
                   {money(amount)}
                 </div>
-                <button type="button" onClick={() => removeItem(i)} disabled={items.length <= 1} className="col-span-1 min-w-0 pb-2 text-lg text-slate-400 hover:text-red-300 disabled:opacity-30" aria-label="Remove line item">
+                <button type="button" onClick={() => removeItem(i)} disabled={items.length <= 1} className="col-span-1 min-w-0 pb-2 text-lg text-[#8a93a3] hover:text-red-300 disabled:opacity-30" aria-label="Remove line item">
                   ×
                 </button>
               </div>
@@ -256,21 +256,21 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
           })}
         </div>
 
-        <div className="mt-4 flex justify-end border-t border-slate-700 pt-4">
+        <div className="mt-4 flex justify-end border-t border-[#232b38] pt-4">
           <div className="text-right">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">Total</p>
-            <p className="text-3xl font-black text-teal-300 [font-variant-numeric:tabular-nums]">{money(subtotal)}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Total</p>
+            <p className="text-3xl font-semibold text-teal-300 [font-variant-numeric:tabular-nums]">{money(subtotal)}</p>
           </div>
         </div>
       </div>
 
       <label className="block">
-        <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-400">Notes (optional)</span>
+        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Notes (optional)</span>
         <textarea className={`${inputClass} min-h-[80px]`} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Payment terms, thank-you note, etc." />
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 transition hover:bg-teal-400 disabled:cursor-wait disabled:opacity-70">
+        <button type="button" onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-wait disabled:opacity-70">
           {saving ? (
             <>
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -282,7 +282,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
             "Create Invoice"
           )}
         </button>
-        <button type="button" onClick={saveAndSend} disabled={saving || sending} className="inline-flex items-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-black text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-70">
+        <button type="button" onClick={saveAndSend} disabled={saving || sending} className="inline-flex items-center gap-2 rounded-xl border border-cyan-500 bg-cyan-500/10 px-6 py-3 font-semibold text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-70">
           {sending ? (
             <>
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -294,7 +294,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
             "Create & Send"
           )}
         </button>
-        <button type="button" onClick={() => router.push("/invoices")} className="rounded-xl border border-slate-600 px-6 py-3 font-bold text-slate-200 hover:bg-slate-800">
+        <button type="button" onClick={() => router.push("/invoices")} className="rounded-xl border border-[#232b38] px-6 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c]">
           Cancel
         </button>
       </div>

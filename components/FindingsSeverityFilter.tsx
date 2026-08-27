@@ -51,14 +51,14 @@ export default function FindingsSeverityFilter({
             type="button"
             onClick={() => apply(chip.key)}
             aria-pressed={isActive}
-            className={`rounded-xl border px-3.5 py-2 text-sm font-black transition ${
+            className={`rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
               isActive
                 ? "border-teal-400 bg-teal-500/20 text-teal-100"
-                : "border-slate-600 bg-slate-900/40 text-slate-300 hover:border-teal-500/60 hover:text-teal-200"
+                : "border-[#232b38] bg-[#131923]/40 text-[#8a93a3] hover:border-teal-500/60 hover:text-teal-200"
             }`}
           >
             {chip.label}
-            <span className={`ml-1.5 ${isActive ? "text-teal-300" : "text-slate-500"}`}>{count}</span>
+            <span className={`ml-1.5 ${isActive ? "text-teal-300" : "text-[#59626f]"}`}>{count}</span>
           </button>
         );
       })}

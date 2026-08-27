@@ -303,20 +303,20 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#020617] p-6 text-white">
-      <section className="w-full max-w-2xl rounded-2xl border border-slate-800 bg-[#0f172a] p-8 shadow-xl">
-        <p className="text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+    <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] p-6 text-white">
+      <section className="w-full max-w-2xl rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-xl">
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
           FLOW
         </p>
 
-        <h1 className="mt-4 text-4xl font-black text-white">
+        <h1 className="mt-4 text-4xl font-semibold text-white">
           {paid ? "Payment Successful" : "Payment Verification"}
         </h1>
 
-        <p className="mt-4 text-lg leading-8 text-slate-300">{message}</p>
+        <p className="mt-4 text-lg leading-8 text-[#8a93a3]">{message}</p>
 
         {paid && (
-          <div className="mt-6 space-y-3 rounded-xl border border-slate-700 bg-[#020817]/70 p-5">
+          <div className="mt-6 space-y-3 rounded-xl border border-[#232b38] bg-[#131923] p-5">
             <p className="font-bold text-white">
               Inspection Balance Paid: {money(balancePaid)}
             </p>
@@ -325,12 +325,12 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
               Online Payment Fee: {money(portalProcessingFee)}
             </p>
 
-            <p className="font-black text-green-300">
+            <p className="font-semibold text-green-300">
               Total Charged Online: {money(totalPaid)}
             </p>
 
             {verifiedStripeAccount && (
-              <p className="break-all text-xs text-slate-500">
+              <p className="break-all text-xs text-[#59626f]">
                 Paid through inspector Stripe account: {verifiedStripeAccount}
               </p>
             )}
@@ -341,7 +341,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
           {(portalToken || inspectionId) && (
             <Link
               href={`/client-portal/${portalToken || inspectionId}`}
-              className="w-full rounded-xl bg-teal-500 px-6 py-3 text-center font-black text-slate-950 hover:bg-teal-400 sm:w-auto"
+              className="w-full rounded-xl bg-teal-500 px-6 py-3 text-center font-semibold text-slate-950 hover:bg-teal-400 sm:w-auto"
             >
               Return to Client Portal
             </Link>
@@ -349,7 +349,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
 
           <Link
             href="/dashboard"
-            className="w-full rounded-xl border border-slate-700 px-6 py-3 text-center font-bold text-slate-200 hover:bg-slate-800 sm:w-auto"
+            className="w-full rounded-xl border border-[#232b38] px-6 py-3 text-center font-bold text-[#e8ecf3] hover:bg-[#1a212c] sm:w-auto"
           >
             Dashboard
           </Link>

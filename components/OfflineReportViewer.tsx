@@ -98,7 +98,7 @@ export default function OfflineReportViewer({
   if (!cache) {
     return (
       <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-5 text-red-100">
-        <h2 className="text-xl font-black">Offline report is not cached yet</h2>
+        <h2 className="text-xl font-semibold">Offline report is not cached yet</h2>
         <p className="mt-2 text-sm leading-6">
           Open this report once while online before the inspection, then the Field Tool can show the cached report with no signal.
         </p>
@@ -106,7 +106,7 @@ export default function OfflineReportViewer({
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 rounded-xl border border-red-300 px-4 py-2 font-black text-red-100"
+            className="mt-4 rounded-xl border border-red-300 px-4 py-2 font-semibold text-red-100"
           >
             Back to Field Tool
           </button>
@@ -122,11 +122,11 @@ export default function OfflineReportViewer({
     <div className="space-y-4 rounded-2xl border border-cyan-500/40 bg-[#071224] p-4 text-white">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
             Offline Report Viewer
           </p>
-          <h1 className="mt-1 text-2xl font-black">{label || `Inspection ${inspectionId}`}</h1>
-          <p className="mt-1 text-sm text-slate-300">
+          <h1 className="mt-1 text-2xl font-semibold">{label || `Inspection ${inspectionId}`}</h1>
+          <p className="mt-1 text-sm text-[#8a93a3]">
             Read-only cached report. Cached: {cachedAt}
           </p>
         </div>
@@ -135,7 +135,7 @@ export default function OfflineReportViewer({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-teal-500 px-4 py-2 font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black"
+            className="rounded-xl border border-teal-500 px-4 py-2 font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black"
           >
             Back to Field Tool
           </button>
@@ -147,7 +147,7 @@ export default function OfflineReportViewer({
       </div>
 
       {groupedFindings.length === 0 && (
-        <div className="rounded-xl border border-slate-700 bg-slate-950 p-4 text-slate-300">
+        <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-[#8a93a3]">
           No cached findings yet. Open the live report while online to preload the current findings.
         </div>
       )}
@@ -155,17 +155,17 @@ export default function OfflineReportViewer({
       {groupedFindings.map((group: any) => {
         const findings = group.findings || [];
         return (
-          <section key={group.section} className="overflow-hidden rounded-2xl border border-slate-700 bg-[#0f172a]">
-            <div className="border-b border-slate-700 px-4 py-3">
-              <h2 className="text-xl font-black text-teal-300">{group.section}</h2>
-              <p className="text-xs font-bold text-slate-400">
+          <section key={group.section} className="overflow-hidden rounded-2xl border border-[#232b38] bg-[#10151e]">
+            <div className="border-b border-[#232b38] px-4 py-3">
+              <h2 className="text-xl font-semibold text-teal-300">{group.section}</h2>
+              <p className="text-xs font-bold text-[#8a93a3]">
                 {findings.length} finding{findings.length === 1 ? "" : "s"}
               </p>
             </div>
 
             <div className="space-y-3 p-3">
               {findings.length === 0 && (
-                <p className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-400">
+                <p className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-[#8a93a3]">
                   No cached findings in this section.
                 </p>
               )}
@@ -176,19 +176,19 @@ export default function OfflineReportViewer({
                 const photoUrl = firstPhoto ? getPhotoUrl(firstPhoto) : "";
 
                 return (
-                  <article key={finding.id || `${group.section}-${finding.title}`} className="rounded-xl border border-slate-700 bg-[#071224] p-3">
+                  <article key={finding.id || `${group.section}-${finding.title}`} className="rounded-xl border border-[#232b38] bg-[#071224] p-3">
                     <div className="flex gap-3">
-                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-700 bg-black">
+                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[#232b38] bg-black">
                         {photoUrl ? (
                           isVideo(firstPhoto) ? (
-                            <div className="flex h-full w-full items-center justify-center text-xs font-black text-cyan-300">
+                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-cyan-300">
                               ▶ Video
                             </div>
                           ) : (
                             <img src={photoUrl} alt="Finding" className="h-full w-full object-cover" />
                           )
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase text-slate-500">
+                          <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase text-[#59626f]">
                             No Photo
                           </div>
                         )}
@@ -196,28 +196,28 @@ export default function OfflineReportViewer({
 
                       <div className="min-w-0 flex-1">
                         <div className="mb-2 flex flex-wrap gap-2">
-                          <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase ${getSeverityStyle(finding.severity)}`}>
+                          <span className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase ${getSeverityStyle(finding.severity)}`}>
                             {finding.severity || "Recommended Repair"}
                           </span>
                           {photos.length > 0 && (
-                            <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-[10px] font-black uppercase text-cyan-200">
+                            <span className="rounded-full border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-cyan-200">
                               {photos.length} media
                             </span>
                           )}
                         </div>
 
-                        <h3 className="break-words text-base font-black text-white">
+                        <h3 className="break-words text-base font-semibold text-white">
                           {finding.title || finding.finding_title || finding.defect_title || "Untitled Finding"}
                         </h3>
 
                         {finding.observation && (
-                          <p className="mt-2 text-sm leading-6 text-slate-300">{finding.observation}</p>
+                          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">{finding.observation}</p>
                         )}
                         {finding.implication && (
-                          <p className="mt-2 text-sm leading-6 text-slate-400"><b>Implication:</b> {finding.implication}</p>
+                          <p className="mt-2 text-sm leading-6 text-[#8a93a3]"><b>Implication:</b> {finding.implication}</p>
                         )}
                         {finding.recommendation && (
-                          <p className="mt-2 text-sm leading-6 text-slate-400"><b>Recommendation:</b> {finding.recommendation}</p>
+                          <p className="mt-2 text-sm leading-6 text-[#8a93a3]"><b>Recommendation:</b> {finding.recommendation}</p>
                         )}
                       </div>
                     </div>

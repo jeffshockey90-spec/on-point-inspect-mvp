@@ -82,7 +82,7 @@ export default function SeverityEditor() {
   const inputCls = "rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-white outline-none focus:border-teal-400";
 
   return (
-    <section className="space-y-5 rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4 shadow-xl sm:p-6">
+    <section className="space-y-5 rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 shadow-xl sm:p-6">
       <p className="text-xs font-bold uppercase tracking-wide text-[#59626f]">
         Order: top = least serious → bottom = most serious
       </p>

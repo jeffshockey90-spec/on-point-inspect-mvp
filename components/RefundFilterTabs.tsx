@@ -31,14 +31,14 @@ export default function RefundFilterTabs({ counts }: { counts: Counts }) {
             key={t.key}
             type="button"
             onClick={() => setFilter(t.key)}
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-black transition ${
+            className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
               active
                 ? "border-teal-400 bg-teal-500/15 text-teal-200"
-                : "border-slate-700 bg-slate-900/50 text-slate-300 hover:border-slate-500"
+                : "border-[#232b38] bg-[#131923]/50 text-[#8a93a3] hover:border-[#59626f]"
             }`}
           >
             {t.label}
-            <span className={`rounded-full px-2 py-0.5 text-[11px] font-black ${active ? "bg-teal-400/20 text-teal-100" : "bg-slate-800 text-slate-400"}`}>
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${active ? "bg-teal-400/20 text-teal-100" : "bg-[#1a212c] text-[#8a93a3]"}`}>
               {t.count}
             </span>
           </button>

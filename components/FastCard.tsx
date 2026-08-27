@@ -16,7 +16,7 @@ type FastCardProps = {
 };
 
 const baseClass =
-  "group block w-full rounded-2xl border border-slate-800 bg-[#0b1220] p-6 text-left shadow-lg transition duration-150 hover:-translate-y-0.5 hover:border-teal-500 hover:bg-[#13213a] active:scale-[0.985] active:border-teal-400 [touch-action:manipulation] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950";
+  "group block w-full rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 text-left shadow-lg transition duration-150 hover:-translate-y-0.5 hover:border-teal-500 hover:bg-[#13213a] active:scale-[0.985] active:border-teal-400 [touch-action:manipulation] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950";
 
 function CardInner({
   icon,
@@ -35,7 +35,7 @@ function CardInner({
       </h2>
 
       {description ? (
-        <p className="mt-3 min-h-[48px] text-sm leading-6 text-slate-400">
+        <p className="mt-3 min-h-[48px] text-sm leading-6 text-[#8a93a3]">
           {description}
         </p>
       ) : null}

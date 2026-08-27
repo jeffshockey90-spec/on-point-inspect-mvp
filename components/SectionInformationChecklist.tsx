@@ -1475,31 +1475,31 @@ function SectionInformationChecklist({
   const selectedCount = selections.filter((item) => item.value !== "__TEXT_VALUE__").length;
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-[#071224]">
+    <div className="rounded-2xl border border-[#232b38] bg-[#071224]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-800/50"
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-[#1a212c]/50"
       >
         <div>
-          <h3 className="text-xl font-black text-teal-300">Information</h3>
-          <p className="mt-1 text-sm text-slate-400">
+          <h3 className="text-xl font-semibold text-teal-300">Information</h3>
+          <p className="mt-1 text-sm text-[#8a93a3]">
             {selectedCount > 0 ? `${selectedCount} item${selectedCount === 1 ? "" : "s"} selected` : "No information selected"}
           </p>
         </div>
-        <span className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
+        <span className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3]">
           {open ? "Hide" : "Show"}
         </span>
       </button>
 
       {supportsWeather && (
-        <div className="flex flex-wrap items-center gap-3 border-t border-slate-700 px-5 py-3">
+        <div className="flex flex-wrap items-center gap-3 border-t border-[#232b38] px-5 py-3">
           <button
             type="button"
             onClick={autofillWeather}
             disabled={weatherLoading}
             aria-busy={weatherLoading}
-            className="inline-flex items-center gap-2 rounded-lg border border-sky-500 bg-sky-500/10 px-4 py-2 text-sm font-black text-sky-200 transition hover:bg-sky-500/20 disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-sky-500 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-200 transition hover:bg-sky-500/20 disabled:cursor-wait disabled:opacity-60"
           >
             {weatherLoading ? (
               <>
@@ -1510,7 +1510,7 @@ function SectionInformationChecklist({
               <>🌤 Auto-fill Weather</>
             )}
           </button>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-[#8a93a3]">
             Fills Temperature &amp; Weather Conditions from the inspection date &amp; property location.
           </span>
         </div>
@@ -1518,7 +1518,7 @@ function SectionInformationChecklist({
 
       {message && (
         <div
-          className={`border-t border-slate-700 px-5 py-3 text-sm font-bold ${
+          className={`border-t border-[#232b38] px-5 py-3 text-sm font-bold ${
             messageType === "success"
               ? "bg-emerald-950/30 text-emerald-300"
               : "bg-red-950/30 text-red-300"
@@ -1529,7 +1529,7 @@ function SectionInformationChecklist({
       )}
 
       {selectedCount > 0 && (
-        <div className="border-t border-slate-700 px-5 py-3">
+        <div className="border-t border-[#232b38] px-5 py-3">
           <div className="flex flex-wrap gap-2">
             {selections.filter((item) => item.value !== "__TEXT_VALUE__").map((item) => (
               <button
@@ -1546,20 +1546,20 @@ function SectionInformationChecklist({
       )}
 
       {open && (
-        <div className="space-y-5 border-t border-slate-700 p-5">
+        <div className="space-y-5 border-t border-[#232b38] p-5">
           {baseGroups.map((group) => {
             const options = getGroupOptions(group);
             const textValue = textValueByGroup[group.title] || "";
             const otherRows = selections.filter((item) => item.group_title === group.title && item.value === "OTHER");
 
             return (
-              <div key={group.title} className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
+              <div key={group.title} className="rounded-xl border border-[#232b38] bg-[#0a0e13]/50 p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                  <h4 className="text-lg font-black text-white">{group.title}</h4>
+                  <h4 className="text-lg font-semibold text-white">{group.title}</h4>
                   <button
                     type="button"
                     onClick={() => { setAddingOptionGroup(group.title); setNewOptionLabel(""); }}
-                    className="rounded-lg border border-teal-500 px-3 py-1 text-xs font-black text-teal-300 hover:bg-teal-500/10"
+                    className="rounded-lg border border-teal-500 px-3 py-1 text-xs font-semibold text-teal-300 hover:bg-teal-500/10"
                   >
                     + Add Option
                   </button>
@@ -1572,7 +1572,7 @@ function SectionInformationChecklist({
                       onChange={(event) => setTextValueByGroup((prev) => ({ ...prev, [group.title]: event.target.value }))}
                       onBlur={() => saveTextValue(group.title, textValueByGroup[group.title] || "")}
                       placeholder="#"
-                      className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+                      className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
                     />
                     {group.unitOptions && (
                       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -1614,20 +1614,20 @@ function SectionInformationChecklist({
                   ))}
                 </div>
 
-                <div className="mt-4 rounded-xl border border-slate-700 bg-[#020617] p-3">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">+ OTHER</p>
+                <div className="mt-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#8a93a3]">+ OTHER</p>
                   <div className="flex flex-col gap-2 md:flex-row">
                     <input
                       value={otherTextByGroup[group.title] || ""}
                       onChange={(event) => setOtherTextByGroup((prev) => ({ ...prev, [group.title]: event.target.value }))}
                       placeholder="Add custom item..."
-                      className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-white outline-none focus:border-teal-400"
+                      className="min-w-0 flex-1 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-white outline-none focus:border-teal-400"
                     />
                     <button
                       type="button"
                       onClick={() => addOther(group.title)}
                       disabled={saving || !(otherTextByGroup[group.title] || "").trim()}
-                      className="rounded-lg border border-teal-500 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-lg border border-teal-500 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Add
                     </button>
@@ -1658,11 +1658,11 @@ function SectionInformationChecklist({
           <input
             value={editingOption.nextLabel}
             onChange={(event) => setEditingOption((prev) => prev ? { ...prev, nextLabel: event.target.value } : prev)}
-            className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+            className="mt-4 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
           />
           <div className="mt-5 flex justify-end gap-3">
-            <button type="button" onClick={() => setEditingOption(null)} className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800">Cancel</button>
-            <button type="button" onClick={saveOptionEdit} disabled={saving} className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 hover:bg-teal-400 disabled:opacity-50">Save Option</button>
+            <button type="button" onClick={() => setEditingOption(null)} className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c]">Cancel</button>
+            <button type="button" onClick={saveOptionEdit} disabled={saving} className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-50">Save Option</button>
           </div>
         </Modal>
       )}
@@ -1673,11 +1673,11 @@ function SectionInformationChecklist({
             value={newOptionLabel}
             onChange={(event) => setNewOptionLabel(event.target.value)}
             placeholder="New option label..."
-            className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+            className="mt-4 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
           />
           <div className="mt-5 flex justify-end gap-3">
-            <button type="button" onClick={() => setAddingOptionGroup("")} className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800">Cancel</button>
-            <button type="button" onClick={() => addOption(addingOptionGroup)} disabled={saving || !newOptionLabel.trim()} className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 hover:bg-teal-400 disabled:opacity-50">Add Option</button>
+            <button type="button" onClick={() => setAddingOptionGroup("")} className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c]">Cancel</button>
+            <button type="button" onClick={() => addOption(addingOptionGroup)} disabled={saving || !newOptionLabel.trim()} className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-50">Add Option</button>
           </div>
         </Modal>
       )}
@@ -1701,16 +1701,16 @@ function ChecklistOptionButton({
   onDelete: () => void;
 }) {
   return (
-    <div className={`rounded-xl border transition ${selected ? "border-teal-400 bg-teal-500/15 text-teal-100" : "border-slate-600 bg-[#020617] text-white hover:border-teal-400"}`}>
+    <div className={`rounded-xl border transition ${selected ? "border-teal-400 bg-teal-500/15 text-teal-100" : "border-[#232b38] bg-[#0a0e13] text-white hover:border-teal-400"}`}>
       <button type="button" onClick={onClick} disabled={saving} className="flex w-full items-center gap-3 px-4 py-3 text-left disabled:cursor-not-allowed disabled:opacity-60">
         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 ${selected ? "border-teal-300 bg-teal-400 text-slate-950" : "border-white"}`}>
           {selected ? "✓" : ""}
         </span>
         <span className="min-w-0 flex-1 font-bold">{label}</span>
       </button>
-      <div className="flex border-t border-slate-700">
-        <button type="button" onClick={(event) => { event.stopPropagation(); onEdit(); }} className="flex-1 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800 hover:text-teal-300">Edit</button>
-        <button type="button" onClick={(event) => { event.stopPropagation(); onDelete(); }} className="flex-1 border-l border-slate-700 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-red-500/10 hover:text-red-300">Delete</button>
+      <div className="flex border-t border-[#232b38]">
+        <button type="button" onClick={(event) => { event.stopPropagation(); onEdit(); }} className="flex-1 px-3 py-2 text-xs font-bold text-[#8a93a3] hover:bg-[#1a212c] hover:text-teal-300">Edit</button>
+        <button type="button" onClick={(event) => { event.stopPropagation(); onDelete(); }} className="flex-1 border-l border-[#232b38] px-3 py-2 text-xs font-bold text-[#8a93a3] hover:bg-red-500/10 hover:text-red-300">Delete</button>
       </div>
     </div>
   );
@@ -1728,11 +1728,11 @@ function Modal({ title, subtitle, children, onClose }: any) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-2xl border border-slate-700 bg-[#0f172a] p-5 text-white shadow-2xl"
+        className="w-full max-w-lg rounded-2xl border border-[#232b38] bg-[#10151e] p-5 text-white shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <h3 className="text-2xl font-black text-teal-300">{title}</h3>
-        {subtitle && <p className="mt-2 text-sm text-slate-400">{subtitle}</p>}
+        <h3 className="text-2xl font-semibold text-teal-300">{title}</h3>
+        {subtitle && <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>}
         {children}
       </div>
     </div>,

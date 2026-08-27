@@ -14,11 +14,11 @@ export default function GlobalSearchButton() {
       onClick={() =>
         window.dispatchEvent(new CustomEvent("flow:open-command-palette"))
       }
-      className="fixed bottom-28 right-4 z-40 flex items-center gap-2 rounded-full border border-slate-700 bg-[#020617]/90 px-4 py-3 text-sm font-black text-slate-300 shadow-xl shadow-black/40 backdrop-blur transition active:scale-95 hover:border-teal-400/60 hover:text-teal-200 md:bottom-6 md:right-6 [touch-action:manipulation]"
+      className="fixed bottom-28 right-4 z-40 flex items-center gap-2 rounded-full border border-[#232b38] bg-[#0a0e13]/90 px-4 py-3 text-sm font-semibold text-[#8a93a3] shadow-xl shadow-black/40 backdrop-blur transition active:scale-95 hover:border-teal-400/60 hover:text-teal-200 md:bottom-6 md:right-6 [touch-action:manipulation]"
     >
       <Search className="h-4 w-4" strokeWidth={2.5} />
       <span className="hidden sm:inline">Search</span>
-      <kbd className="hidden rounded-md border border-slate-700 px-1.5 py-0.5 text-[11px] font-black text-slate-500 md:inline">
+      <kbd className="hidden rounded-md border border-[#232b38] px-1.5 py-0.5 text-[11px] font-semibold text-[#59626f] md:inline">
         ⌘K
       </kbd>
     </button>

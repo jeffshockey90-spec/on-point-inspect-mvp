@@ -104,18 +104,18 @@ export default function PushAlertsPanel() {
   }
 
   return (
-    <section className="rounded-3xl border border-slate-800 bg-gradient-to-br from-[#0b1220] to-[#071827] p-5 shadow-xl sm:p-6 md:p-8">
+    <section className="rounded-2xl border border-[#1a212c] bg-gradient-to-br from-[#10151e] to-[#10151e] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-300">
             <BellRing className="h-7 w-7" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-indigo-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-300">
               Notifications
             </p>
-            <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">Push Alerts</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">Push Alerts</h2>
+            <p className="mt-1 text-sm text-[#8a93a3]">
               {TOTAL} alerts wired up. Tap Test to send any one to your own devices.
             </p>
           </div>
@@ -125,7 +125,7 @@ export default function PushAlertsPanel() {
           type="button"
           onClick={testAll}
           disabled={testingAll}
-          className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-black text-white transition hover:bg-indigo-400 disabled:opacity-50"
+          className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-50"
         >
           {testingAll ? "Testing…" : `Test all (${TOTAL})`}
         </button>
@@ -140,21 +140,21 @@ export default function PushAlertsPanel() {
       <div className="mt-5 space-y-5">
         {CATALOG.map((g) => (
           <div key={g.group}>
-            <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-500">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
               {g.group}
             </p>
-            <div className="overflow-hidden rounded-xl border border-slate-700">
-              <div className="divide-y divide-slate-800">
+            <div className="overflow-hidden rounded-xl border border-[#232b38]">
+              <div className="divide-y divide-[#1a212c]">
                 {g.items.map((a) => {
                   const state = results[a.eventType];
                   return (
                     <div
                       key={a.eventType}
-                      className="flex items-center justify-between gap-3 bg-[#020617]/50 px-3 py-2.5"
+                      className="flex items-center justify-between gap-3 bg-[#0a0e13]/50 px-3 py-2.5"
                     >
                       <div className="min-w-0">
                         <p className="truncate font-bold text-white">{a.label}</p>
-                        <p className="truncate text-xs text-slate-500">Fires when {a.when}.</p>
+                        <p className="truncate text-xs text-[#59626f]">Fires when {a.when}.</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {state === "ok" && <span className="text-xs font-bold text-emerald-400">Sent ✓</span>}
@@ -163,7 +163,7 @@ export default function PushAlertsPanel() {
                           type="button"
                           onClick={() => sendTest(a)}
                           disabled={state === "sending" || testingAll}
-                          className="rounded-lg border border-indigo-500/50 px-3 py-1.5 text-xs font-black text-indigo-300 transition hover:bg-indigo-500/10 disabled:opacity-50"
+                          className="rounded-lg border border-indigo-500/50 px-3 py-1.5 text-xs font-semibold text-indigo-300 transition hover:bg-indigo-500/10 disabled:opacity-50"
                         >
                           {state === "sending" ? "…" : "Test"}
                         </button>
@@ -177,7 +177,7 @@ export default function PushAlertsPanel() {
         ))}
       </div>
 
-      <p className="mt-4 text-xs text-slate-500">
+      <p className="mt-4 text-xs text-[#59626f]">
         Tests go only to your own devices. If nothing arrives, enable push on this device with the
         &ldquo;Enable notifications&rdquo; button above.
       </p>

@@ -25,20 +25,20 @@ function LogTable({
   rows: LogRow[] | null;
 }) {
   return (
-    <section className="rounded-2xl border border-teal-800/50 bg-slate-900/80 p-5 shadow-lg">
+    <section className="rounded-2xl border border-teal-800/50 bg-[#131923]/80 p-5 shadow-lg">
       <h2 className="mb-4 text-xl font-bold text-teal-300">
         {title}
       </h2>
 
       {!rows || rows.length === 0 ? (
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-[#8a93a3]">
           No logs yet.
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-700 text-slate-300">
+              <tr className="border-b border-[#232b38] text-[#8a93a3]">
                 <th className="p-2">Date</th>
                 <th className="p-2">ID</th>
                 <th className="p-2">Details</th>
@@ -49,18 +49,18 @@ function LogTable({
               {rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-b border-slate-800 align-top text-slate-200"
+                  className="border-b border-[#1a212c] align-top text-[#e8ecf3]"
                 >
-                  <td className="whitespace-nowrap p-2 text-slate-400">
+                  <td className="whitespace-nowrap p-2 text-[#8a93a3]">
                     {formatDate(row.created_at)}
                   </td>
 
-                  <td className="p-2 text-slate-400">
+                  <td className="p-2 text-[#8a93a3]">
                     {row.id}
                   </td>
 
                   <td className="p-2">
-                    <pre className="max-h-56 overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-200">
+                    <pre className="max-h-56 overflow-auto rounded-xl bg-[#0a0e13] p-3 text-xs text-[#e8ecf3]">
                       {JSON.stringify(row, null, 2)}
                     </pre>
                   </td>
@@ -117,7 +117,7 @@ export default async function AdminLogsPage() {
     .limit(25);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white">
       <div className="mx-auto max-w-7xl space-y-8">
         <header>
           <p className="text-sm font-semibold uppercase tracking-wide text-teal-400">
@@ -128,7 +128,7 @@ export default async function AdminLogsPage() {
             System Logs
           </h1>
 
-          <p className="mt-2 max-w-3xl text-slate-400">
+          <p className="mt-2 max-w-3xl text-[#8a93a3]">
             Read-only production logging dashboard for app activity,
             audit trails, emails, Stripe payments, and AI requests.
           </p>

@@ -107,7 +107,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
 
       {open && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-semibold text-white">Fill Out W9</h2>
               <button

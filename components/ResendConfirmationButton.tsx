@@ -52,9 +52,9 @@ export default function ResendConfirmationButton({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-4">
-      <p className="text-sm font-black text-white">Resend Schedule Confirmation</p>
-      <p className="mt-1 text-xs text-slate-400">
+    <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4">
+      <p className="text-sm font-semibold text-white">Resend Schedule Confirmation</p>
+      <p className="mt-1 text-xs text-[#8a93a3]">
         Re-sends the &ldquo;Inspection Confirmed&rdquo; email — handy if a copy was delayed.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -62,7 +62,7 @@ export default function ResendConfirmationButton({
           value={target}
           onChange={(e) => setTarget(e.target.value as any)}
           disabled={busy}
-          className="min-h-[44px] rounded-xl border border-slate-700 bg-[#020617] px-3 py-2 text-sm font-bold text-white outline-none focus:border-teal-400 disabled:opacity-50"
+          className="min-h-[44px] rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm font-bold text-white outline-none focus:border-teal-400 disabled:opacity-50"
         >
           <option value="all">Everyone (client + realtor)</option>
           <option value="realtor">Realtor only</option>
@@ -72,7 +72,7 @@ export default function ResendConfirmationButton({
           type="button"
           onClick={resend}
           disabled={busy}
-          className="min-h-[44px] rounded-xl bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:opacity-50"
+          className="min-h-[44px] rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-400 disabled:opacity-50"
         >
           {busy ? "Resending…" : "Resend"}
         </button>

@@ -573,18 +573,18 @@ export default async function OwnerUsersPage() {
 
   if (!OWNER_EMAILS.includes(userEmail)) {
     return (
-      <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
-          <p className="text-sm font-black uppercase tracking-[0.35em] text-red-300">
+      <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">
             Owner Only
           </p>
-          <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
-          <p className="mt-4 text-slate-300">
+          <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
+          <p className="mt-4 text-[#8a93a3]">
             This user management dashboard is only available to the FLOW owner account.
           </p>
           <Link
             href="/dashboard"
-            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-black text-red-300 hover:bg-red-500/10"
+            className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10"
           >
             Back to Dashboard
           </Link>
@@ -657,18 +657,18 @@ export default async function OwnerUsersPage() {
   const topInspector = inspectors[0];
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">
                 Owner User Management
               </p>
-              <h1 className="mt-4 text-5xl font-black text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-white">
                 Inspectors & Users
               </h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 Owner-only view of app users, inspectors, report activity, revenue, push status, app versions, and recent usage.
               </p>
             </div>
@@ -676,14 +676,14 @@ export default async function OwnerUsersPage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/dashboard/owner"
-                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
               >
                 Owner Dashboard
               </Link>
 
               <Link
                 href="/dashboard"
-                className="rounded-xl border border-slate-600 px-5 py-3 font-black text-slate-200 transition hover:bg-slate-800"
+                className="rounded-xl border border-[#232b38] px-5 py-3 font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c]"
               >
                 Back to Dashboard
               </Link>
@@ -711,18 +711,18 @@ export default async function OwnerUsersPage() {
           <MetricCard label="Avg Reports/User" value={totalUsers > 0 ? String(Math.round(reportsTotal / totalUsers)) : "0"} helper="Average report activity per user." tone="yellow" />
         </section>
 
-        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black text-teal-300">
+              <h2 className="text-2xl font-semibold text-teal-300">
                 User Activity Table
               </h2>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-[#8a93a3]">
                 Sorted by recent activity, 30-day reports, revenue, and total reports.
               </p>
             </div>
 
-            <p className="rounded-full border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-xs font-black text-teal-300">
+            <p className="rounded-full border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-xs font-semibold text-teal-300">
               {userRows.length} users
             </p>
           </div>
@@ -739,13 +739,13 @@ export default async function OwnerUsersPage() {
                 <div
                   key={row.id}
                   data-user-role={userRoleCategory(row.role, row.reports)}
-                  className="rounded-2xl border border-slate-700 bg-[#020817]/70 p-4 shadow-lg"
+                  className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 shadow-lg"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="truncate font-black text-white">{row.name}</p>
-                      <p className="mt-1 truncate text-xs text-slate-400">{row.email || "No email"}</p>
-                      <p className="mt-1 truncate text-[11px] text-slate-600">{row.source}</p>
+                      <p className="truncate font-semibold text-white">{row.name}</p>
+                      <p className="mt-1 truncate text-xs text-[#8a93a3]">{row.email || "No email"}</p>
+                      <p className="mt-1 truncate text-[11px] text-[#59626f]">{row.source}</p>
 
                       <div className="mt-3 flex flex-wrap gap-2">
                         <Badge tone="teal">{row.role || "user"}</Badge>
@@ -765,8 +765,8 @@ export default async function OwnerUsersPage() {
                       <MiniStat label="Revenue" value={money(row.revenue)} tone="green" />
                       <MiniStat label="Findings" value={String(row.findings)} tone="orange" />
                       <MiniStat label="Photos" value={String(row.photos)} tone="purple" />
-                      <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Push</p>
+                      <div className="rounded-xl border border-[#1a212c] bg-[#0a0e13]/50 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">Push</p>
                         <div className="mt-2 flex flex-wrap gap-1">
                           {row.nativePush && <Badge tone="purple">Native</Badge>}
                           {row.webPush && <Badge tone="teal">Web</Badge>}
@@ -782,12 +782,12 @@ export default async function OwnerUsersPage() {
                       <FlowStat label="Published" count={row.published} iso={row.lastPublished} />
                       <FlowStat label="Sent" count={row.sent} iso={row.lastSent} />
                       <FlowStat label="Paid" count={row.paid} iso={row.lastPaid} tone="green" />
-                      <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Avg Charge</p>
-                        <p className="mt-1 text-sm font-black text-green-300">
+                      <div className="rounded-xl border border-[#1a212c] bg-[#0a0e13]/50 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">Avg Charge</p>
+                        <p className="mt-1 text-sm font-semibold text-green-300">
                           {row.paid > 0 ? money(row.revenue / row.paid) : "—"}
                         </p>
-                        <p className="mt-0.5 text-[10px] font-bold text-slate-500">
+                        <p className="mt-0.5 text-[10px] font-bold text-[#59626f]">
                           {row.paid > 0 ? `${money(row.revenue)} collected` : "no payments"}
                         </p>
                       </div>
@@ -795,19 +795,19 @@ export default async function OwnerUsersPage() {
                   )}
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[180px_180px_1fr]">
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Platform</p>
-                      <p className="mt-1 font-black text-slate-200">{row.platform}</p>
-                      <p className="mt-1 text-slate-500">Version: {row.appVersion}</p>
+                    <div className="rounded-xl border border-[#1a212c] bg-[#0a0e13]/50 p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">Platform</p>
+                      <p className="mt-1 font-semibold text-[#e8ecf3]">{row.platform}</p>
+                      <p className="mt-1 text-[#59626f]">Version: {row.appVersion}</p>
                     </div>
 
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Last Activity</p>
-                      <p className="mt-1 font-black text-slate-200">{formatDateTime(row.lastActivity || row.createdAt)}</p>
+                    <div className="rounded-xl border border-[#1a212c] bg-[#0a0e13]/50 p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">Last Activity</p>
+                      <p className="mt-1 font-semibold text-[#e8ecf3]">{formatDateTime(row.lastActivity || row.createdAt)}</p>
                     </div>
 
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                      <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-500">Actions</p>
+                    <div className="rounded-xl border border-[#1a212c] bg-[#0a0e13]/50 p-3">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">Actions</p>
                       <OwnerAccountActions userId={row.id} email={row.email} currentRole={row.role} compact />
                     </div>
                   </div>
@@ -884,11 +884,11 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
-      <p className="mt-3 text-4xl font-black text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
+      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
     </div>
   );
 }
@@ -903,9 +903,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-      <h2 className="text-2xl font-black text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
+    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
+      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
@@ -913,7 +913,7 @@ function Panel({
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-6 text-center text-slate-400">
+    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">
       {text}
     </div>
   );
@@ -937,7 +937,7 @@ function Badge({
   };
 
   return (
-    <span className={`rounded-full border px-2 py-1 text-xs font-black ${classes[tone]}`}>
+    <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${classes[tone]}`}>
       {children}
     </span>
   );
@@ -962,11 +962,11 @@ function MiniStat({
   } as const;
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">
+    <div className="rounded-xl border border-[#1a212c] bg-[#0a0e13]/50 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">
         {label}
       </p>
-      <p className={`mt-1 truncate text-sm font-black ${classes[tone]}`}>
+      <p className={`mt-1 truncate text-sm font-semibold ${classes[tone]}`}>
         {value}
       </p>
     </div>
@@ -989,18 +989,18 @@ function FlowStat({
   const d = count > 0 ? shortDate(iso) : null;
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">{label}</p>
+    <div className="rounded-xl border border-[#1a212c] bg-[#0a0e13]/50 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">{label}</p>
       <p
-        className={`mt-1 text-sm font-black ${
-          count === 0 ? "text-slate-600" : tone === "green" ? "text-green-300" : "text-slate-200"
+        className={`mt-1 text-sm font-semibold ${
+          count === 0 ? "text-[#59626f]" : tone === "green" ? "text-green-300" : "text-[#e8ecf3]"
         }`}
       >
         {count}
       </p>
       <p
         className={`mt-0.5 text-[10px] font-bold ${
-          count === 0 ? "text-slate-600" : d?.stale ? "text-amber-300" : "text-slate-500"
+          count === 0 ? "text-[#59626f]" : d?.stale ? "text-amber-300" : "text-[#59626f]"
         }`}
       >
         {count === 0 ? "—" : d ? d.label : "—"}
@@ -1019,12 +1019,12 @@ function RankRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-[#232b38] bg-[#131923] p-4">
       <div className="min-w-0">
-        <p className="truncate font-black text-white">{title}</p>
-        <p className="mt-1 truncate text-sm text-slate-400">{subtitle}</p>
+        <p className="truncate font-semibold text-white">{title}</p>
+        <p className="mt-1 truncate text-sm text-[#8a93a3]">{subtitle}</p>
       </div>
-      <p className="shrink-0 font-black text-teal-300">{value}</p>
+      <p className="shrink-0 font-semibold text-teal-300">{value}</p>
     </div>
   );
 }

@@ -64,28 +64,28 @@ export default function SmsStatusCard() {
       : "—";
 
   return (
-    <section className="rounded-3xl border border-slate-800 bg-gradient-to-br from-[#0b1220] to-[#071827] p-5 shadow-xl sm:p-6 md:p-8">
+    <section className="rounded-2xl border border-[#1a212c] bg-gradient-to-br from-[#10151e] to-[#10151e] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-teal-500/30 bg-teal-500/10 text-teal-300">
             <MessageSquare className="h-7 w-7" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
               Text Messaging
             </p>
-            <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">SMS Alerts</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">SMS Alerts</h2>
+            <p className="mt-1 text-sm text-[#8a93a3]">
               Confirmations, reminders, and report-ready texts to clients and agents.
             </p>
           </div>
         </div>
 
         <span
-          className={`rounded-full border px-3 py-1 text-xs font-black ${
+          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
             status.configured
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-              : "border-slate-600 bg-slate-800 text-slate-400"
+              : "border-[#232b38] bg-[#1a212c] text-[#8a93a3]"
           }`}
         >
           {status.configured ? "Active" : "Not set up"}
@@ -93,22 +93,22 @@ export default function SmsStatusCard() {
       </div>
 
       {!status.configured ? (
-        <div className="mt-5 rounded-xl border border-slate-700 bg-[#020617]/70 p-4 text-sm leading-6 text-slate-300">
+        <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
           Add your Twilio credentials to turn on texting:{" "}
-          <span className="font-mono text-xs text-slate-400">
+          <span className="font-mono text-xs text-[#8a93a3]">
             TWILIO_ACCOUNT_SID
           </span>
           ,{" "}
-          <span className="font-mono text-xs text-slate-400">TWILIO_AUTH_TOKEN</span>
+          <span className="font-mono text-xs text-[#8a93a3]">TWILIO_AUTH_TOKEN</span>
           , and{" "}
-          <span className="font-mono text-xs text-slate-400">TWILIO_PHONE_NUMBER</span>{" "}
+          <span className="font-mono text-xs text-[#8a93a3]">TWILIO_PHONE_NUMBER</span>{" "}
           in your Vercel environment variables. Everything else is already wired up.
         </div>
       ) : (
         <>
           {status.lowBalance && (
             <div className="mt-5 rounded-xl border border-amber-500/50 bg-amber-950/30 p-4 text-sm text-amber-200">
-              <p className="font-black">⚠ Low SMS balance</p>
+              <p className="font-semibold">⚠ Low SMS balance</p>
               <p className="mt-1 text-amber-200/90">
                 Your Twilio balance ({money(status.balance, status.currency)}) is below{" "}
                 {money(status.threshold, status.currency)}. Top up your Twilio account so
@@ -118,32 +118,32 @@ export default function SmsStatusCard() {
           )}
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-slate-700 bg-[#020617]/70 p-4">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Twilio Balance
               </p>
               <p
-                className={`mt-1 text-2xl font-black ${
+                className={`mt-1 text-2xl font-semibold ${
                   status.lowBalance ? "text-amber-300" : "text-teal-300"
                 }`}
               >
                 {status.balanceError ? "Unavailable" : money(status.balance, status.currency)}
               </p>
               {status.balanceError && (
-                <p className="mt-1 text-xs text-slate-500">{status.balanceError}</p>
+                <p className="mt-1 text-xs text-[#59626f]">{status.balanceError}</p>
               )}
             </div>
 
-            <div className="rounded-xl border border-slate-700 bg-[#020617]/70 p-4">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Sending From
               </p>
-              <p className="mt-1 text-lg font-black text-white">{status.from || "—"}</p>
+              <p className="mt-1 text-lg font-semibold text-white">{status.from || "—"}</p>
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl border border-slate-700 bg-[#020617]/70 p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          <div className="mt-4 rounded-xl border border-[#232b38] bg-[#131923] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Send a test text
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -152,13 +152,13 @@ export default function SmsStatusCard() {
                 value={testPhone}
                 onChange={(e) => setTestPhone(e.target.value)}
                 placeholder="+1 (240) 555-0134"
-                className="min-w-[180px] flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-teal-400"
+                className="min-w-[180px] flex-1 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-teal-400"
               />
               <button
                 type="button"
                 onClick={sendTest}
                 disabled={testSending || !testPhone.trim()}
-                className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-teal-400 disabled:opacity-50"
+                className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-400 disabled:opacity-50"
               >
                 {testSending ? "Sending..." : "Send test"}
               </button>

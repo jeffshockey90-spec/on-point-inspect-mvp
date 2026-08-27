@@ -98,7 +98,7 @@ export default function IOSSubscribeButton({ userId }: { userId: string }) {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-400">Loading subscription options...</p>;
+    return <p className="text-sm text-[#8a93a3]">Loading subscription options...</p>;
   }
 
   return (
@@ -109,14 +109,14 @@ export default function IOSSubscribeButton({ userId }: { userId: string }) {
           type="button"
           onClick={() => handlePurchase(pkg)}
           disabled={busy}
-          className="w-full rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl bg-teal-500 px-6 py-3 font-semibold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy ? "Working..." : `Subscribe ${pkg.priceString}/month`}
         </button>
       ))}
 
       {packages.length === 0 && !error && (
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-[#8a93a3]">
           Subscription options aren&apos;t available right now. Please try again shortly.
         </p>
       )}
@@ -125,7 +125,7 @@ export default function IOSSubscribeButton({ userId }: { userId: string }) {
         type="button"
         onClick={handleRestore}
         disabled={busy}
-        className="w-full rounded-xl border border-slate-600 px-6 py-3 font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-60"
+        className="w-full rounded-xl border border-[#232b38] px-6 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c] disabled:opacity-60"
       >
         Restore Purchases
       </button>

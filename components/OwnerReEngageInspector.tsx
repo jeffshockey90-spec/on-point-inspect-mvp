@@ -138,7 +138,7 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
         type="button"
         onClick={() => setOpen(true)}
         disabled={!email}
-        className="w-full rounded-xl border border-orange-500/50 px-4 py-2.5 text-sm font-black text-orange-300 transition hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-xl border border-orange-500/50 px-4 py-2.5 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-50"
         title={email ? "" : "No email on file"}
       >
         ✉️ Re-engage
@@ -149,8 +149,8 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
   return (
     <div className="space-y-3 rounded-xl border border-orange-500/40 bg-orange-950/10 p-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-black uppercase tracking-wide text-orange-300">Re-engage by email</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-xs font-bold text-slate-400 hover:text-slate-200">
+        <p className="text-xs font-semibold uppercase tracking-wide text-orange-300">Re-engage by email</p>
+        <button type="button" onClick={() => setOpen(false)} className="text-xs font-bold text-[#8a93a3] hover:text-[#e8ecf3]">
           Close
         </button>
       </div>
@@ -158,7 +158,7 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
       <select
         value={templateId}
         onChange={(e) => pick(e.target.value)}
-        className="w-full rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2 text-sm text-white outline-none focus:border-orange-400"
+        className="w-full rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm text-white outline-none focus:border-orange-400"
       >
         <option value="">Choose a message…</option>
         {TEMPLATES.map((t) => (
@@ -174,24 +174,24 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Subject"
-            className="w-full rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2 text-sm text-white outline-none focus:border-orange-400"
+            className="w-full rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm text-white outline-none focus:border-orange-400"
           />
           <textarea
             value={loading ? "Loading your latest updates…" : body}
             onChange={(e) => setBody(e.target.value)}
             rows={13}
             placeholder="Message"
-            className="w-full rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2 text-sm leading-6 text-white outline-none focus:border-orange-400"
+            className="w-full rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm leading-6 text-white outline-none focus:border-orange-400"
           />
-          <p className="text-[11px] text-slate-500">
-            Sends from FLOW to <span className="font-bold text-slate-300">{email}</span>; replies come back to you. An
+          <p className="text-[11px] text-[#59626f]">
+            Sends from FLOW to <span className="font-bold text-[#8a93a3]">{email}</span>; replies come back to you. An
             &quot;Open FLOW&quot; button is added automatically.
           </p>
           <button
             type="button"
             onClick={send}
             disabled={sending || loading || !subject.trim() || !body.trim()}
-            className="w-full rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-black text-slate-950 transition hover:bg-orange-400 disabled:opacity-60"
+            className="w-full rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-orange-400 disabled:opacity-60"
           >
             {sending ? "Sending…" : "Send email"}
           </button>

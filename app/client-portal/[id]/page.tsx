@@ -342,7 +342,7 @@ function radonClientInfo(avg: any) {
   if (!v) {
     return {
       label: "Pending",
-      cls: "border-slate-600 bg-slate-900 text-slate-300",
+      cls: "border-[#232b38] bg-[#131923] text-[#8a93a3]",
       summary: "Radon results have not been finalized yet.",
     };
   }
@@ -595,7 +595,7 @@ export default function ClientPortalPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] text-white">
         Loading client portal...
       </main>
     );
@@ -603,7 +603,7 @@ export default function ClientPortalPage() {
 
   if (!inspection) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#020617] px-6 text-center text-white">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0a0e13] px-6 text-center text-white">
         <p>
           {loadFailed
             ? "Couldn't load this report link. This may be a temporary connection issue, or the link may be invalid or expired."
@@ -665,13 +665,13 @@ export default function ClientPortalPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 pb-6 pt-4 text-white md:px-8 md:pb-8">
+    <main className="min-h-screen bg-[#0a0e13] px-4 pb-6 pt-4 text-white md:px-8 md:pb-8">
       <PortalAutoTranslate inspectionId={inspectionId} />
       <div className="mx-auto max-w-[80rem] space-y-6">
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-700 bg-[#0f172a] px-4 py-2 font-bold text-slate-100 transition active:scale-[0.98] hover:border-teal-500 hover:text-teal-300 [touch-action:manipulation]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#232b38] bg-[#10151e] px-4 py-2 font-bold text-[#e8ecf3] transition active:scale-[0.98] hover:border-teal-500 hover:text-teal-300 [touch-action:manipulation]"
           aria-label="Go back"
         >
           <span aria-hidden="true">←</span> Back
@@ -688,9 +688,9 @@ export default function ClientPortalPage() {
           </div>
         )}
 
-        <section className="overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl">
+        <section className="overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] shadow-2xl">
           {propertyPhoto && !propertyPhotoFailed && (
-            <div className="relative border-b border-slate-800 bg-black">
+            <div className="relative border-b border-[#1a212c] bg-black">
               <img
                 src={propertyPhoto}
                 alt="Property"
@@ -700,45 +700,45 @@ export default function ClientPortalPage() {
                 onError={() => setPropertyPhotoFailed(true)}
                 className="h-72 w-full object-cover md:h-96"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#10151e] via-transparent to-transparent" />
             </div>
           )}
 
           <div className="p-6 md:p-8">
-            <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-400">
               {companyBranding?.name || "Your Home Inspection Company"}
             </p>
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
               <div>
-                <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl">
+                <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
                   Client Portal
                 </h1>
 
-                <p className="mt-3 max-w-3xl text-lg leading-7 text-slate-300">
+                <p className="mt-3 max-w-3xl text-lg leading-7 text-[#8a93a3]">
                   {propertyAddress}
                 </p>
 
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-[#8a93a3]">
                   Protecting Your Investment. One Inspection at a Time.
                 </p>
               </div>
 
               {reportUnlocked ? (
                 <div className="rounded-2xl border border-green-500/40 bg-green-500/10 px-6 py-4 text-center">
-                  <p className="text-xs font-black uppercase tracking-wide text-green-300">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-green-300">
                     Report Access
                   </p>
-                  <p className="mt-1 text-2xl font-black text-green-300">
+                  <p className="mt-1 text-2xl font-semibold text-green-300">
                     Unlocked
                   </p>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 px-6 py-4 text-center">
-                  <p className="text-xs font-black uppercase tracking-wide text-yellow-300">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
                     Report Access
                   </p>
-                  <p className="mt-1 text-2xl font-black text-yellow-300">
+                  <p className="mt-1 text-2xl font-semibold text-yellow-300">
                     Locked
                   </p>
                 </div>
@@ -777,11 +777,11 @@ export default function ClientPortalPage() {
 
         {!reportUnlocked && (
           <section className="rounded-2xl border border-yellow-500/40 bg-yellow-950/20 p-6 shadow-xl">
-            <h2 className="text-2xl font-black text-yellow-300">
+            <h2 className="text-2xl font-semibold text-yellow-300">
               Report Access Requirements
             </h2>
 
-            <p className="mt-2 text-slate-300">
+            <p className="mt-2 text-[#8a93a3]">
               The report will unlock when all requirements below are complete.
             </p>
 
@@ -808,11 +808,11 @@ export default function ClientPortalPage() {
 
         {reportUnlocked && (
           <section className="rounded-2xl border border-green-500/40 bg-green-950/20 p-6 shadow-xl">
-            <h2 className="text-2xl font-black text-green-300">
+            <h2 className="text-2xl font-semibold text-green-300">
               Your Report Is Ready
             </h2>
 
-            <p className="mt-2 text-slate-300">
+            <p className="mt-2 text-[#8a93a3]">
               Agreement, payment, and report publishing are complete. You can now view or download your inspection report.
             </p>
 
@@ -847,15 +847,15 @@ export default function ClientPortalPage() {
 
         {reportUnlocked && inspection.executive_summary && (
           <section className="rounded-2xl border border-purple-500/40 bg-purple-950/20 p-6 shadow-xl">
-            <h2 className="text-2xl font-black text-purple-300">
+            <h2 className="text-2xl font-semibold text-purple-300">
               Executive Summary
             </h2>
 
-            <p className="mt-2 text-slate-300">
+            <p className="mt-2 text-[#8a93a3]">
               This client-friendly overview summarizes the report findings in plain language.
             </p>
 
-            <div className="mt-5 whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-sm leading-7 text-slate-100">
+            <div className="mt-5 whitespace-pre-line rounded-xl border border-[#232b38] bg-[#131923] p-5 text-sm leading-7 text-[#e8ecf3]">
               {inspection.executive_summary}
             </div>
           </section>
@@ -863,11 +863,11 @@ export default function ClientPortalPage() {
 
         {reportUnlocked && showEnvironmentalResults && (
           <section className="rounded-2xl border border-purple-500/40 bg-purple-950/20 p-6 shadow-xl">
-            <h2 className="text-2xl font-black text-purple-300">
+            <h2 className="text-2xl font-semibold text-purple-300">
               Environmental Test Results
             </h2>
 
-            <p className="mt-2 text-slate-300">
+            <p className="mt-2 text-[#8a93a3]">
               Your radon and/or mold testing results are summarized below.
             </p>
 
@@ -875,19 +875,19 @@ export default function ClientPortalPage() {
               {hasRadonService(inspection) && radonTest && (() => {
                 const info = radonClientInfo(radonTest.average_pci);
                 return (
-                  <div className="rounded-xl border border-slate-700 bg-[#0f172a] p-5">
+                  <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-sm font-black uppercase tracking-wide text-slate-400">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
                         Radon
                       </span>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-black ${info.cls}`}>
+                      <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${info.cls}`}>
                         {info.label}
                       </span>
                     </div>
-                    <p className="mt-3 text-3xl font-black text-white">
+                    <p className="mt-3 text-3xl font-semibold text-white">
                       {radonTest.average_pci ? `${radonTest.average_pci} pCi/L` : "Pending"}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">{info.summary}</p>
+                    <p className="mt-2 text-sm leading-6 text-[#8a93a3]">{info.summary}</p>
                     {radonReportUrl && (
                       <a
                         href={radonReportUrl}
@@ -903,16 +903,16 @@ export default function ClientPortalPage() {
               })()}
 
               {hasMoldService(inspection) && moldTest && (
-                <div className="rounded-xl border border-slate-700 bg-[#0f172a] p-5">
+                <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-sm font-black uppercase tracking-wide text-slate-400">
+                    <span className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
                       Mold
                     </span>
-                    <span className="rounded-full border border-slate-600 bg-slate-900 px-3 py-1 text-xs font-black text-slate-200">
+                    <span className="rounded-full border border-[#232b38] bg-[#131923] px-3 py-1 text-xs font-semibold text-[#e8ecf3]">
                       {moldTest.lab_status || "Pending"}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                  <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
                     {moldTest.findings ||
                       moldTest.notes ||
                       "Mold sampling was performed. See the official lab report for the full results."}
@@ -934,7 +934,7 @@ export default function ClientPortalPage() {
         )}
 
         <section className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl lg:col-span-2">
+          <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl lg:col-span-2">
             <h2 className="text-2xl font-bold text-teal-300">
               Inspection Details
             </h2>
@@ -955,7 +955,7 @@ export default function ClientPortalPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+          <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
             <h2 className="text-2xl font-bold text-teal-300">
               Payment Summary
             </h2>
@@ -1019,7 +1019,7 @@ export default function ClientPortalPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
           <h2 className="text-2xl font-bold text-teal-300">
             Client Actions
           </h2>
@@ -1070,7 +1070,7 @@ export default function ClientPortalPage() {
                   className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-4 font-bold text-teal-300 hover:bg-teal-500/10"
                 >
                   <span className="block text-lg">View Report</span>
-                  <span className="mt-1 block text-sm font-medium text-slate-400">
+                  <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
                     Open the client report.
                   </span>
                 </a>
@@ -1081,7 +1081,7 @@ export default function ClientPortalPage() {
                   className="rounded-xl border border-cyan-500 bg-[#071224] px-6 py-4 font-bold text-cyan-300 hover:bg-cyan-500/10"
                 >
                   <span className="block text-lg">Download PDF</span>
-                  <span className="mt-1 block text-sm font-medium text-slate-400">
+                  <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
                     Printable report version.
                   </span>
                 </a>
@@ -1092,7 +1092,7 @@ export default function ClientPortalPage() {
                   className="rounded-xl border border-orange-500 bg-[#071224] px-6 py-4 font-bold text-orange-300 hover:bg-orange-500/10"
                 >
                   <span className="block text-lg">Repair Request</span>
-                  <span className="mt-1 block text-sm font-medium text-slate-400">
+                  <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
                     Open repair request builder.
                   </span>
                 </a>
@@ -1103,13 +1103,13 @@ export default function ClientPortalPage() {
                   className="rounded-xl border border-emerald-500 bg-[#071224] px-6 py-4 font-bold text-emerald-300 hover:bg-emerald-500/10"
                 >
                   <span className="block text-lg">🏠 Home Maintenance Hub</span>
-                  <span className="mt-1 block text-sm font-medium text-slate-400">
+                  <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
                     Your systems, service life, and upkeep plan.
                   </span>
                 </a>
               </>
             ) : (
-              <div className="rounded-xl border border-slate-700 bg-[#020617] px-6 py-4 text-slate-400 md:col-span-3">
+              <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-6 py-4 text-[#8a93a3] md:col-span-3">
                 <p className="text-lg font-bold text-white">
                   Report Actions Locked
                 </p>
@@ -1133,7 +1133,7 @@ export default function ClientPortalPage() {
                 <span className="block text-lg">
                   {updatingReview ? "Saving Review..." : "Leave Review"}
                 </span>
-                <span className="mt-1 block text-sm font-medium text-slate-400">
+                <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
                   Mark review follow-up submitted.
                 </span>
               </span>
@@ -1142,7 +1142,7 @@ export default function ClientPortalPage() {
         </section>
 
         {checklistSections.length > 0 && (
-          <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
             <h2 className="text-2xl font-bold text-teal-300">
               Inspection Components
             </h2>
@@ -1151,9 +1151,9 @@ export default function ClientPortalPage() {
               {checklistSections.map((section) => (
                 <div
                   key={section}
-                  className="rounded-xl border border-slate-800 bg-[#020817]/70 p-5"
+                  className="rounded-xl border border-[#1a212c] bg-[#131923] p-5"
                 >
-                  <h3 className="text-xl font-black text-white">{section}</h3>
+                  <h3 className="text-xl font-semibold text-white">{section}</h3>
 
                   {sectionNotes[section] && (
                     <p className="mt-3 whitespace-pre-wrap rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-amber-100">
@@ -1166,13 +1166,13 @@ export default function ClientPortalPage() {
                       ([groupTitle, values]) => (
                         <div
                           key={groupTitle}
-                          className="rounded-xl border border-slate-700 bg-[#071224] p-4"
+                          className="rounded-xl border border-[#232b38] bg-[#071224] p-4"
                         >
-                          <p className="font-black text-teal-300">
+                          <p className="font-semibold text-teal-300">
                             {groupTitle}
                           </p>
 
-                          <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                          <ul className="mt-3 space-y-2 text-sm text-[#8a93a3]">
                             {(values as string[]).map((value) => (
                               <li key={`${groupTitle}-${getChecklistDedupeKey(value)}`}>
                                 ✓ {value}
@@ -1196,7 +1196,7 @@ export default function ClientPortalPage() {
           />
         )}
 
-        <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-500">
+        <footer className="border-t border-[#1a212c] py-6 text-center text-sm text-[#59626f]">
           {companyBranding?.name || "Your Home Inspection Company"} • Client Portal
         </footer>
       </div>
@@ -1222,22 +1222,22 @@ function StatusCard({
       className={`rounded-2xl border p-6 shadow-xl ${
         complete
           ? "border-green-500/40 bg-green-950/20"
-          : "border-slate-800 bg-[#0f172a]"
+          : "border-[#1a212c] bg-[#10151e]"
       }`}
     >
-      <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+      <p className="text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
         {title}
       </p>
 
       <p
-        className={`mt-2 text-3xl font-black ${
+        className={`mt-2 text-3xl font-semibold ${
           complete ? "text-green-300" : "text-yellow-300"
         }`}
       >
         {complete ? "✓" : "•"} {status}
       </p>
 
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-[#8a93a3]">
         {complete ? completeLabel : incompleteLabel}
       </p>
     </div>
@@ -1262,7 +1262,7 @@ function RequirementRow({
       <p className="font-bold">
         {complete ? "✓ Complete" : "• Waiting"}
       </p>
-      <p className="mt-1 text-sm text-slate-300">{label}</p>
+      <p className="mt-1 text-sm text-[#8a93a3]">{label}</p>
     </div>
   );
 }
@@ -1296,7 +1296,7 @@ function ActionLink({
   const content = (
     <span>
       <span className="block text-lg">{title}</span>
-      <span className="mt-2 block text-sm font-medium text-slate-400">
+      <span className="mt-2 block text-sm font-medium text-[#8a93a3]">
         {description}
       </span>
     </span>
@@ -1328,7 +1328,7 @@ function ActionLink({
 function Info({ label, value }: { label: string; value?: any }) {
   return (
     <div>
-      <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+      <p className="text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
 
@@ -1356,12 +1356,12 @@ function PaymentLine({
       : "text-teal-300";
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
 
-      <p className={`mt-2 text-2xl font-black ${color}`}>{value}</p>
+      <p className={`mt-2 text-2xl font-semibold ${color}`}>{value}</p>
     </div>
   );
 }

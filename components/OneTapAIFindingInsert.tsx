@@ -370,7 +370,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4">
-          <div className="my-8 w-full max-w-5xl rounded-2xl border border-slate-700 bg-[#0b1220] p-5 text-white shadow-2xl md:p-7">
+          <div className="my-8 w-full max-w-5xl rounded-2xl border border-[#232b38] bg-[#10151e] p-5 text-white shadow-2xl md:p-7">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
@@ -381,7 +381,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                   One-Tap AI Finding
                 </h2>
 
-                <p className="mt-2 text-sm text-slate-300">
+                <p className="mt-2 text-sm text-[#8a93a3]">
                   Upload a photo, let AI draft the finding, review it, then insert it directly into this report.
                 </p>
               </div>
@@ -390,7 +390,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 type="button"
                 onClick={closeModal}
                 disabled={busy}
-                className="rounded-xl border border-slate-600 px-4 py-2 font-bold text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                className="rounded-xl border border-[#232b38] px-4 py-2 font-bold text-[#e8ecf3] transition active:scale-[0.98] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
                 Close
               </button>
@@ -410,7 +410,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
               </div>
             )}
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+            <section className="rounded-2xl border border-[#1a212c] bg-[#131923] p-5">
               <h3 className="mb-4 text-xl font-bold text-teal-400">
                 Photo
               </h3>
@@ -421,7 +421,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 <img
                   src={previewUrl}
                   alt="Preview"
-                  className="mt-5 max-h-[420px] w-full rounded-xl border border-slate-700 object-contain"
+                  className="mt-5 max-h-[420px] w-full rounded-xl border border-[#232b38] object-contain"
                 />
               )}
 
@@ -429,12 +429,12 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 <video
                   src={previewUrl}
                   controls
-                  className="mt-5 max-h-[420px] w-full rounded-xl border border-slate-700 bg-black"
+                  className="mt-5 max-h-[420px] w-full rounded-xl border border-[#232b38] bg-black"
                 />
               )}
 
               {file && (
-                <p className="mt-3 rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300">
+                <p className="mt-3 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-[#8a93a3]">
                   Selected: {file.name} {isVideo ? "• Video will be saved as report media. AI analysis is photo-only." : ""}
                 </p>
               )}
@@ -445,7 +445,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 rows={3}
                 placeholder="Optional note for AI... Example: damaged roof panel, loose toilet, water stain under sink, missing GFCI, etc."
                 disabled={busy}
-                className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-5 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
               />
 
               <button
@@ -462,7 +462,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
               </button>
             </section>
 
-            <section className="mt-5 rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+            <section className="mt-5 rounded-2xl border border-[#1a212c] bg-[#131923] p-5">
               <h3 className="mb-4 text-xl font-bold text-teal-400">
                 Review Finding
               </h3>
@@ -473,14 +473,14 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Finding title"
                   disabled={busy}
-                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
                 <select
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
                   disabled={busy}
-                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {SECTIONS.map((item) => (
                     <option key={item}>{item}</option>
@@ -491,7 +491,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                   value={severity}
                   onChange={(e) => setSeverity(e.target.value)}
                   disabled={busy}
-                  className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+                  className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
                 >
                   {SEVERITIES.map((item) => (
                     <option key={item}>{item}</option>
@@ -624,7 +624,7 @@ function FieldTextArea({
 }) {
   return (
     <label className="mt-5 block">
-      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-400">
+      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
 
@@ -633,7 +633,7 @@ function FieldTextArea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );

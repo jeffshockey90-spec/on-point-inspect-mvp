@@ -315,13 +315,13 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5 transition duration-150 active:scale-[0.995]">
+    <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-5 transition duration-150 active:scale-[0.995]">
       <h2 className="mb-4 text-xl font-bold text-teal-400">
         Equipment Details
       </h2>
 
       {(imageUrl || videoUrl) && (
-        <div className="mb-4 overflow-hidden rounded-xl border border-slate-700 bg-black">
+        <div className="mb-4 overflow-hidden rounded-xl border border-[#232b38] bg-black">
           {isVideo && videoUrl ? (
             <video
               src={videoUrl}
@@ -346,7 +346,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
       )}
 
       {isKnownEquipmentValue(equipmentStatus) && (
-        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-black ${getStatusClass(equipmentStatus)}`}>
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-semibold ${getStatusClass(equipmentStatus)}`}>
           <span className="mr-2 text-xs uppercase tracking-wide opacity-80">
             Equipment Status
           </span>
@@ -405,13 +405,13 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
           .map(([label, value]) => (
             <div
               key={label}
-              className="grid gap-1 rounded-xl border border-slate-700 bg-slate-950 p-3 transition duration-150 active:scale-[0.995] sm:grid-cols-[170px_1fr] sm:items-center"
+              className="grid gap-1 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 transition duration-150 active:scale-[0.995] sm:grid-cols-[170px_1fr] sm:items-center"
             >
-              <span className="text-sm font-bold text-slate-400">
+              <span className="text-sm font-bold text-[#8a93a3]">
                 {label}
               </span>
 
-              <span className="text-left font-semibold text-slate-100 sm:text-right">
+              <span className="text-left font-semibold text-[#e8ecf3] sm:text-right">
                 {String(value)}
               </span>
             </div>
@@ -422,10 +422,10 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {maintenanceSchedule && (
             <div className="rounded-xl border border-emerald-500/35 bg-emerald-500/10 p-4">
-              <p className="text-xs font-black uppercase tracking-wide text-emerald-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
                 Maintenance Schedule
               </p>
-              <p className="mt-2 text-sm leading-6 text-slate-100">
+              <p className="mt-2 text-sm leading-6 text-[#e8ecf3]">
                 {maintenanceSchedule}
               </p>
             </div>
@@ -433,10 +433,10 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
 
           {knownFailurePatterns.length > 0 && (
             <div className="rounded-xl border border-yellow-500/35 bg-yellow-500/10 p-4">
-              <p className="text-xs font-black uppercase tracking-wide text-yellow-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
                 Common Failure Patterns
               </p>
-              <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-100">
+              <ul className="mt-2 space-y-1 text-sm leading-6 text-[#e8ecf3]">
                 {knownFailurePatterns.slice(0, 5).map((item) => (
                   <li key={item}>• {item}</li>
                 ))}
@@ -446,10 +446,10 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
 
           {recallAwareness && (
             <div className="rounded-xl border border-purple-500/35 bg-purple-500/10 p-4 lg:col-span-2">
-              <p className="text-xs font-black uppercase tracking-wide text-purple-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
                 Recall Awareness
               </p>
-              <p className="mt-2 text-sm leading-6 text-slate-100">
+              <p className="mt-2 text-sm leading-6 text-[#e8ecf3]">
                 {recallAwareness}
               </p>
             </div>
@@ -458,7 +458,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
       )}
 
       {typicalRange && (
-        <p className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs leading-5 text-slate-400">
+        <p className="mt-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-xs leading-5 text-[#8a93a3]">
           Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
         </p>
       )}

@@ -166,7 +166,7 @@ function ToggleSwitch({
       className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition ${
         checked
           ? "border-teal-400/60 bg-teal-500"
-          : "border-slate-600 bg-slate-800"
+          : "border-[#232b38] bg-[#1a212c]"
       } ${disabled ? "opacity-50" : ""}`}
     >
       <span
@@ -307,18 +307,18 @@ export default function ScheduleReminderSettings() {
   }
 
   return (
-    <section className="mb-6 overflow-hidden rounded-3xl border border-teal-500/30 bg-[#0b1220] shadow-2xl shadow-black/20">
-      <div className="flex flex-col gap-4 border-b border-slate-800 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+    <section className="mb-6 overflow-hidden rounded-2xl border border-teal-500/30 bg-[#10151e] shadow-2xl shadow-black/20">
+      <div className="flex flex-col gap-4 border-b border-[#1a212c] px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
         <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
             Notifications
           </p>
 
-          <h2 className="mt-2 text-xl font-black text-white sm:text-2xl">
+          <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">
             Inspection, mileage and radon alerts
           </h2>
 
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
             Manage scheduled reminders, property arrival and departure alerts,
             mileage prompts, and radon notifications.
           </p>
@@ -328,10 +328,10 @@ export default function ScheduleReminderSettings() {
           type="button"
           disabled={loading || saving}
           onClick={toggleMaster}
-          className={`shrink-0 rounded-xl border px-4 py-3 text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${
+          className={`shrink-0 rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${
             mainEnabled
               ? "border-teal-400/50 bg-teal-500 text-slate-950 hover:bg-teal-400"
-              : "border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500"
+              : "border-[#232b38] bg-[#0a0e13] text-[#8a93a3] hover:border-[#59626f]"
           }`}
         >
           {loading
@@ -347,11 +347,11 @@ export default function ScheduleReminderSettings() {
       <div className="space-y-6 px-5 py-5 sm:px-6">
         {GROUPS.map((group) => (
           <section key={group.title}>
-            <h3 className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#59626f]">
               {group.title}
             </h3>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/40">
+            <div className="overflow-hidden rounded-2xl border border-[#1a212c] bg-[#131923]">
               {group.options.map((option, index) => {
                 const checked = mainEnabled && settings[option.key];
                 const isSaving = savingKey === option.key;
@@ -364,15 +364,15 @@ export default function ScheduleReminderSettings() {
                     aria-checked={checked}
                     disabled={!mainEnabled || loading || saving}
                     onClick={() => toggleSetting(option.key)}
-                    className={`flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-slate-900/80 disabled:cursor-not-allowed ${
-                      index > 0 ? "border-t border-slate-800" : ""
+                    className={`flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-[#131923]/80 disabled:cursor-not-allowed ${
+                      index > 0 ? "border-t border-[#1a212c]" : ""
                     }`}
                   >
                     <span className="min-w-0">
-                      <span className="block text-sm font-black text-white sm:text-base">
+                      <span className="block text-sm font-semibold text-white sm:text-base">
                         {option.title}
                       </span>
-                      <span className="mt-0.5 block text-xs leading-5 text-slate-400 sm:text-sm">
+                      <span className="mt-0.5 block text-xs leading-5 text-[#8a93a3] sm:text-sm">
                         {option.description}
                       </span>
                       {isSaving ? (
@@ -394,17 +394,17 @@ export default function ScheduleReminderSettings() {
         ))}
 
         <section>
-          <h3 className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#59626f]">
             Location detection
           </h3>
 
-          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/40">
+          <div className="overflow-hidden rounded-2xl border border-[#1a212c] bg-[#131923]">
             <div className="flex w-full items-center justify-between gap-4 px-4 py-3">
               <span className="min-w-0">
-                <span className="block text-sm font-black text-white sm:text-base">
+                <span className="block text-sm font-semibold text-white sm:text-base">
                   Geofence radius
                 </span>
-                <span className="mt-0.5 block text-xs leading-5 text-slate-400 sm:text-sm">
+                <span className="mt-0.5 block text-xs leading-5 text-[#8a93a3] sm:text-sm">
                   How close counts as &ldquo;at the property&rdquo; for arrival
                   and departure detection
                 </span>
@@ -419,7 +419,7 @@ export default function ScheduleReminderSettings() {
                 value={settings.geofence_radius_meters}
                 disabled={!mainEnabled || loading || saving}
                 onChange={(event) => changeRadius(Number(event.target.value))}
-                className="shrink-0 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {GEOFENCE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -438,12 +438,12 @@ export default function ScheduleReminderSettings() {
           </div>
         </section>
 
-        <p className="text-xs leading-5 text-slate-500">
+        <p className="text-xs leading-5 text-[#59626f]">
           New accounts and previously unset preferences default to On.
         </p>
 
         {message ? (
-          <p className="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm font-bold text-slate-200">
+          <p className="rounded-xl border border-[#232b38] bg-[#131923] px-3 py-2 text-sm font-bold text-[#e8ecf3]">
             {message}
           </p>
         ) : null}

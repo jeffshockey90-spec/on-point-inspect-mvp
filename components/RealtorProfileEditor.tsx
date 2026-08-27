@@ -55,11 +55,11 @@ export default function RealtorProfileEditor({
   return (
     <div className="w-full">
       <div className="flex items-center gap-4">
-        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-700 bg-[#020617]">
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13]">
           {avatar ? (
             <img src={avatar} alt="Realtor" className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-2xl font-black text-teal-300">
+            <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-teal-300">
               {initials}
             </div>
           )}
@@ -67,10 +67,10 @@ export default function RealtorProfileEditor({
 
         <div className="min-w-0">
           {profile.name ? (
-            <p className="truncate text-lg font-black text-white">{profile.name}</p>
+            <p className="truncate text-lg font-semibold text-white">{profile.name}</p>
           ) : null}
           {profile.brokerage ? (
-            <p className="truncate text-sm text-slate-400">{profile.brokerage}</p>
+            <p className="truncate text-sm text-[#8a93a3]">{profile.brokerage}</p>
           ) : null}
           {canEdit && !editing && (
             <button
@@ -85,7 +85,7 @@ export default function RealtorProfileEditor({
       </div>
 
       {canEdit && editing && (
-        <div className="mt-4 space-y-3 rounded-2xl border border-slate-700 bg-[#0b1220] p-4">
+        <div className="mt-4 space-y-3 rounded-2xl border border-[#232b38] bg-[#10151e] p-4">
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -102,7 +102,7 @@ export default function RealtorProfileEditor({
               onChange={pickFile}
               className="hidden"
             />
-            {file && <span className="text-xs text-slate-400">{file.name}</span>}
+            {file && <span className="text-xs text-[#8a93a3]">{file.name}</span>}
           </div>
 
           <input
@@ -110,14 +110,14 @@ export default function RealtorProfileEditor({
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name"
             disabled={saving}
-            className="w-full rounded-lg border border-slate-700 bg-black p-2.5 text-sm text-white outline-none focus:border-teal-400 disabled:opacity-60"
+            className="w-full rounded-lg border border-[#232b38] bg-black p-2.5 text-sm text-white outline-none focus:border-teal-400 disabled:opacity-60"
           />
           <input
             value={brokerage}
             onChange={(e) => setBrokerage(e.target.value)}
             placeholder="Brokerage (optional)"
             disabled={saving}
-            className="w-full rounded-lg border border-slate-700 bg-black p-2.5 text-sm text-white outline-none focus:border-teal-400 disabled:opacity-60"
+            className="w-full rounded-lg border border-[#232b38] bg-black p-2.5 text-sm text-white outline-none focus:border-teal-400 disabled:opacity-60"
           />
 
           {error && <p className="text-sm font-semibold text-red-400">{error}</p>}
@@ -146,7 +146,7 @@ export default function RealtorProfileEditor({
                 setBrokerage(profile.brokerage || "");
               }}
               disabled={saving}
-              className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
+              className="rounded-lg border border-[#232b38] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1a212c] disabled:opacity-60"
             >
               Cancel
             </button>

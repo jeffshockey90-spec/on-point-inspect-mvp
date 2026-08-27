@@ -931,11 +931,11 @@ function PublicProfileAnalyticsOverview({
           </h3>
 
           <div className="mt-5 space-y-3">
-            <div className="flex items-center justify-between rounded-xl border border-[#1a212c] bg-[#020817] p-3">
+            <div className="flex items-center justify-between rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
               <span className="text-sm font-bold text-[#8a93a3]">Contact Clicks</span>
               <span className="text-lg font-semibold text-white">{analytics.contactClicks30}</span>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-[#1a212c] bg-[#020817] p-3">
+            <div className="flex items-center justify-between rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
               <span className="text-sm font-bold text-[#8a93a3]">Share Clicks</span>
               <span className="text-lg font-semibold text-white">{analytics.shareClicks30}</span>
             </div>

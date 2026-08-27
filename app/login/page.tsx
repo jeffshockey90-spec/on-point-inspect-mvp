@@ -72,7 +72,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(20,200,210,0.10),transparent_55%)]" />
       </div>
 
-      <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#131923] p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         <div className="flex justify-center">
           <img
             src="/flow-logo-mark.png"
@@ -81,17 +81,17 @@ export default function LoginPage() {
           />
         </div>
 
-        <p className="mt-3 text-center text-sm font-bold uppercase tracking-[0.22em] text-slate-300">
+        <p className="mt-3 text-center text-sm font-bold uppercase tracking-[0.22em] text-[#8a93a3]">
           Capture. <span className="text-teal-400">Organize.</span> Complete.
         </p>
 
-        <p className="mt-3 text-center text-sm text-slate-400">
+        <p className="mt-3 text-center text-sm text-[#8a93a3]">
           Inspector, Client, and Realtor access
         </p>
 
         <form onSubmit={handleLogin} className="mt-7 space-y-4">
           <div>
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+            <label className="text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
               Email
             </label>
 
@@ -100,12 +100,12 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+              className="mt-1.5 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
             />
           </div>
 
           <div>
-            <label className="text-xs font-bold uppercase tracking-wide text-slate-400">
+            <label className="text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
               Password
             </label>
 
@@ -114,7 +114,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+              className="mt-1.5 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
             />
 
             <div className="mt-2 text-right">
@@ -141,7 +141,7 @@ export default function LoginPage() {
             {loading ? "Signing In..." : "Sign In"}
           </button>
 
-          <p className="text-center text-sm text-slate-400">
+          <p className="text-center text-sm text-[#8a93a3]">
             Need an account?{" "}
             <a href="/signup" className="font-semibold text-teal-400 hover:underline">
               Create one
@@ -150,7 +150,7 @@ export default function LoginPage() {
         </form>
       </div>
 
-      <p className="absolute bottom-6 left-0 right-0 text-center text-xs text-slate-600">
+      <p className="absolute bottom-6 left-0 right-0 text-center text-xs text-[#59626f]">
         Secure inspection management for modern home inspectors
       </p>
     </main>

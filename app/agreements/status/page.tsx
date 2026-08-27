@@ -21,7 +21,7 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   signed: { label: "All signed", cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" },
   partial: { label: "Partly signed", cls: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300" },
   unsigned: { label: "Unsigned", cls: "border-red-500/40 bg-red-500/10 text-red-300" },
-  none: { label: "No signer set", cls: "border-slate-600 bg-slate-800/60 text-slate-400" },
+  none: { label: "No signer set", cls: "border-[#232b38] bg-[#1a212c] text-[#8a93a3]" },
 };
 
 export default async function AgreementStatusPage() {
@@ -84,13 +84,13 @@ export default async function AgreementStatusPage() {
   ).length;
 
   return (
-    <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+    <main className="min-h-screen bg-[#0a0e13] p-4 text-white md:p-8">
       <div className="mx-auto max-w-[96rem]">
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-800 bg-[#0b1220] p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.3em] text-[#14c8d2]">FLOW</p>
             <h1 className="mt-3 text-4xl font-extrabold">Agreement Signing Status</h1>
-            <p className="mt-2 text-slate-400">
+            <p className="mt-2 text-[#8a93a3]">
               {pendingCount > 0
                 ? `${pendingCount} inspection${pendingCount === 1 ? "" : "s"} still need a signature.`
                 : "Every inspection with a required signer is signed."}
@@ -98,15 +98,15 @@ export default async function AgreementStatusPage() {
           </div>
           <Link
             href="/agreements"
-            className="inline-flex items-center justify-center rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
+            className="inline-flex items-center justify-center rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
           >
             Agreement Library
           </Link>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-[#0b1220]">
+        <div className="overflow-x-auto rounded-2xl border border-[#1a212c] bg-[#10151e]">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-slate-800 text-xs font-black uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-[#1a212c] text-xs font-semibold uppercase tracking-wide text-[#59626f]">
               <tr>
                 <th className="px-4 py-3">Property / Client</th>
                 <th className="px-4 py-3">Inspection</th>
@@ -119,7 +119,7 @@ export default async function AgreementStatusPage() {
               {rows.map(({ insp, signers, total, signed, status }) => {
                 const meta = STATUS_META[status];
                 return (
-                  <tr key={String(insp.id)} className="border-b border-slate-800/60 align-top">
+                  <tr key={String(insp.id)} className="border-b border-[#1a212c]/60 align-top">
                     <td className="px-4 py-3">
                       <Link
                         href={`/reports/${insp.id}`}
@@ -127,14 +127,14 @@ export default async function AgreementStatusPage() {
                       >
                         {insp.property_address || insp.address || "Property"}
                       </Link>
-                      <p className="mt-0.5 text-xs text-slate-400">{insp.client_name || "Client"}</p>
+                      <p className="mt-0.5 text-xs text-[#8a93a3]">{insp.client_name || "Client"}</p>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">
+                    <td className="px-4 py-3 text-[#8a93a3]">
                       {insp.inspection_date ? formatDateOnly(insp.inspection_date) : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${meta.cls}`}
+                        className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${meta.cls}`}
                       >
                         {total > 0 && status !== "signed"
                           ? `${signed}/${total} signed`
@@ -143,7 +143,7 @@ export default async function AgreementStatusPage() {
                     </td>
                     <td className="px-4 py-3">
                       {signers.length === 0 ? (
-                        <span className="text-xs text-slate-500">—</span>
+                        <span className="text-xs text-[#59626f]">—</span>
                       ) : (
                         <div className="flex flex-wrap gap-1.5">
                           {signers.map((s, i) => (
@@ -152,7 +152,7 @@ export default async function AgreementStatusPage() {
                               className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
                                 s.agreement_signed
                                   ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                                  : "border-slate-600 bg-slate-800/60 text-slate-300"
+                                  : "border-[#232b38] bg-[#1a212c] text-[#8a93a3]"
                               }`}
                             >
                               {s.agreement_signed ? "✓" : "•"} {s.name || s.email || s.role || "Signer"}
@@ -165,7 +165,7 @@ export default async function AgreementStatusPage() {
                       {status === "unsigned" || status === "partial" ? (
                         <AgreementStatusResend inspectionId={String(insp.id)} />
                       ) : (
-                        <span className="text-xs text-slate-500">—</span>
+                        <span className="text-xs text-[#59626f]">—</span>
                       )}
                     </td>
                   </tr>
@@ -174,7 +174,7 @@ export default async function AgreementStatusPage() {
 
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={5} className="px-4 py-10 text-center text-[#8a93a3]">
                     No inspections yet.
                   </td>
                 </tr>

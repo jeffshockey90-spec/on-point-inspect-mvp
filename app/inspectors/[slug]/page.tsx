@@ -316,19 +316,19 @@ export default async function PublicInspectorProfilePage({
   const shownCertifications = certifications.slice(0, 4);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#020617] pb-24 text-white sm:pb-0">
+    <main className="min-h-screen overflow-x-hidden bg-[#0a0e13] pb-24 text-white sm:pb-0">
       <PublicProfileAnalyticsTracker companyId={company.id} profileSlug={slug} />
-      <section className="relative overflow-hidden border-b border-slate-800">
+      <section className="relative overflow-hidden border-b border-[#1a212c]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.24),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.16),transparent_42%)]" />
         <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-teal-500/10 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-          <div className="rounded-[2rem] border border-teal-500/25 bg-[#07111f]/95 p-4 shadow-2xl shadow-black/40 sm:p-7 lg:p-9">
+          <div className="rounded-2xl border border-teal-500/25 bg-[#07111f]/95 p-4 shadow-2xl shadow-black/40 sm:p-7 lg:p-9">
             <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
               <div>
                 <div className="flex flex-wrap items-center gap-5">
                   {logoUrl ? (
-                    <div className="flex min-h-28 min-w-28 max-w-[260px] items-center justify-center rounded-3xl border border-slate-700 bg-black/35 p-4 shadow-xl">
+                    <div className="flex min-h-28 min-w-28 max-w-[260px] items-center justify-center rounded-2xl border border-[#232b38] bg-black/35 p-4 shadow-xl">
                       <img
                         src={logoUrl}
                         alt={`${companyName} logo`}
@@ -337,7 +337,7 @@ export default async function PublicInspectorProfilePage({
                     </div>
                   ) : (
                     <div
-                      className="flex h-24 w-24 items-center justify-center rounded-3xl text-3xl font-black text-slate-950"
+                      className="flex h-24 w-24 items-center justify-center rounded-2xl text-3xl font-semibold text-slate-950"
                       style={{ backgroundColor: brandColor }}
                     >
                       {getInitials(companyName)}
@@ -355,18 +355,18 @@ export default async function PublicInspectorProfilePage({
                   )}
                 </div>
 
-                <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-teal-200">
+                <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-200">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-400 text-[10px] text-slate-950">
                     ✓
                   </span>
                   Verified FLOWor
                 </div>
 
-                <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight text-white sm:text-6xl">
+                <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-6xl">
                   {companyName}
                 </h1>
 
-                <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
+                <p className="mt-4 max-w-2xl text-lg leading-8 text-[#8a93a3]">
                   {headline}
                 </p>
 
@@ -374,7 +374,7 @@ export default async function PublicInspectorProfilePage({
                   {serviceAreas.slice(0, 5).map((area) => (
                     <span
                       key={area}
-                      className="rounded-full border border-slate-700 bg-slate-950/80 px-3 py-2 text-xs font-black text-slate-200"
+                      className="rounded-full border border-[#232b38] bg-[#131923] px-3 py-2 text-xs font-semibold text-[#e8ecf3]"
                     >
                       {area}
                     </span>
@@ -385,7 +385,7 @@ export default async function PublicInspectorProfilePage({
                   <Link
                     href={bookingHref}
                     data-public-profile-event="booking_click"
-                    className="rounded-xl bg-teal-500 px-6 py-4 text-center font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:bg-teal-400"
+                    className="rounded-xl bg-teal-500 px-6 py-4 text-center font-semibold text-slate-950 shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:bg-teal-400"
                   >
                     Request Inspection
                   </Link>
@@ -393,7 +393,7 @@ export default async function PublicInspectorProfilePage({
                   {company.phone && (
                     <a
                       href={`tel:${company.phone}`}
-                      className="rounded-xl border border-slate-700 px-6 py-4 text-center font-bold text-slate-200 transition hover:-translate-y-0.5 hover:border-teal-400 hover:text-teal-300"
+                      className="rounded-xl border border-[#232b38] px-6 py-4 text-center font-bold text-[#e8ecf3] transition hover:-translate-y-0.5 hover:border-teal-400 hover:text-teal-300"
                     >
                       Call Inspector
                     </a>
@@ -421,16 +421,16 @@ export default async function PublicInspectorProfilePage({
                   />
                 </div>
 
-                <div className="rounded-3xl border border-slate-800 bg-slate-950/55 p-5 shadow-xl sm:p-7">
+                <div className="rounded-2xl border border-[#1a212c] bg-[#0a0e13]/55 p-5 shadow-xl sm:p-7">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.28em] text-teal-300">
+                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-teal-300">
                         Reputation
                       </p>
-                      <h2 className="mt-3 text-3xl font-black text-white">
+                      <h2 className="mt-3 text-3xl font-semibold text-white">
                         ★★★★★ {ratingLabel}
                       </h2>
-                      <p className="mt-3 text-sm leading-6 text-slate-300">
+                      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
                         {googleReviewCount > 0
                           ? `${googleReviewCount} Google reviews synced to this public profile.`
                           : "Sample reports, credentials, service areas, and direct booking links are available before a client reaches out."}
@@ -443,7 +443,7 @@ export default async function PublicInspectorProfilePage({
                         target="_blank"
                         rel="noreferrer"
                         data-public-profile-event="review_click"
-                        className="shrink-0 rounded-xl border border-yellow-300/50 bg-yellow-400/10 px-5 py-3 text-center font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
+                        className="shrink-0 rounded-xl border border-yellow-300/50 bg-yellow-400/10 px-5 py-3 text-center font-semibold text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
                       >
                         View Reviews →
                       </a>
@@ -452,9 +452,9 @@ export default async function PublicInspectorProfilePage({
                 </div>
 
                 {company.public_profile_bio && (
-                  <div className="rounded-3xl border border-slate-800 bg-slate-950/55 p-5 shadow-xl sm:p-7">
-                    <h2 className="text-2xl font-black text-teal-300">About</h2>
-                    <p className="mt-4 max-h-56 overflow-auto whitespace-pre-line pr-2 text-base leading-8 text-slate-300">
+                  <div className="rounded-2xl border border-[#1a212c] bg-[#0a0e13]/55 p-5 shadow-xl sm:p-7">
+                    <h2 className="text-2xl font-semibold text-teal-300">About</h2>
+                    <p className="mt-4 max-h-56 overflow-auto whitespace-pre-line pr-2 text-base leading-8 text-[#8a93a3]">
                       {company.public_profile_bio}
                     </p>
                   </div>
@@ -468,7 +468,7 @@ export default async function PublicInspectorProfilePage({
                       return (
                         <span
                           key={certification}
-                          className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-xs font-black text-teal-100"
+                          className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-xs font-semibold text-teal-100"
                         >
                           <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-teal-400 text-[10px] text-slate-950">
                             {badge.icon}
@@ -520,16 +520,16 @@ export default async function PublicInspectorProfilePage({
 
       {sampleReports.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-          <div className="overflow-hidden rounded-3xl border border-teal-500/35 bg-[#0b1220] p-5 shadow-2xl shadow-black/30 sm:p-8">
+          <div className="overflow-hidden rounded-2xl border border-teal-500/35 bg-[#10151e] p-5 shadow-2xl shadow-black/30 sm:p-8">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-300">
                   Sample Reports
                 </p>
-                <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
+                <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
                   See Example Reports
                 </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a93a3] sm:text-base">
                   Review example inspection reports from {companyName} to see
                   report style, photos, summaries, and overall detail before
                   requesting an inspection.
@@ -539,7 +539,7 @@ export default async function PublicInspectorProfilePage({
               <Link
                 href={bookingHref}
                 data-public-profile-event="booking_click"
-                className="rounded-xl bg-teal-500 px-6 py-4 text-center font-black text-slate-950 transition hover:bg-teal-400"
+                className="rounded-xl bg-teal-500 px-6 py-4 text-center font-semibold text-slate-950 transition hover:bg-teal-400"
               >
                 Request Inspection
               </Link>
@@ -560,21 +560,21 @@ export default async function PublicInspectorProfilePage({
       )}
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 sm:py-12 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-8">
-          <h2 className="text-2xl font-black text-teal-300">
+        <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-8">
+          <h2 className="text-2xl font-semibold text-teal-300">
             Services Offered
           </h2>
 
           {services.length === 0 ? (
-            <p className="mt-4 text-slate-400">Services will be added soon.</p>
+            <p className="mt-4 text-[#8a93a3]">Services will be added soon.</p>
           ) : (
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {services.map((service) => (
                 <div
                   key={service}
-                  className="flex items-center gap-3 rounded-2xl border border-teal-500/25 bg-teal-500/10 p-4 font-bold text-slate-100 transition hover:border-teal-400/70 hover:bg-teal-500/15"
+                  className="flex items-center gap-3 rounded-2xl border border-teal-500/25 bg-teal-500/10 p-4 font-bold text-[#e8ecf3] transition hover:border-teal-400/70 hover:bg-teal-500/15"
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-lg">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0a0e13] text-lg">
                     {getServiceIcon(service)}
                   </span>
                   <span>{service}</span>
@@ -584,15 +584,15 @@ export default async function PublicInspectorProfilePage({
           )}
         </div>
 
-        <div className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-8">
-          <h2 className="text-2xl font-black text-teal-300">Contact</h2>
+        <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-8">
+          <h2 className="text-2xl font-semibold text-teal-300">Contact</h2>
 
           <div className="mt-6 space-y-3 text-sm">
             {company.email && (
               <a
                 href={`mailto:${company.email}`}
                 data-public-profile-event="email_click"
-                className="block rounded-2xl border border-slate-700 bg-slate-950 p-4 font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300"
+                className="block rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 font-bold text-[#e8ecf3] hover:border-teal-400 hover:text-teal-300"
               >
                 Email: {company.email}
               </a>
@@ -602,7 +602,7 @@ export default async function PublicInspectorProfilePage({
               <a
                 href={`tel:${company.phone}`}
                 data-public-profile-event="phone_click"
-                className="block rounded-2xl border border-slate-700 bg-slate-950 p-4 font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300"
+                className="block rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 font-bold text-[#e8ecf3] hover:border-teal-400 hover:text-teal-300"
               >
                 Phone: {company.phone}
               </a>
@@ -614,7 +614,7 @@ export default async function PublicInspectorProfilePage({
                 data-public-profile-event="website_click"
                 target="_blank"
                 rel="noreferrer"
-                className="block rounded-2xl border border-slate-700 bg-slate-950 p-4 font-bold text-slate-200 hover:border-teal-400 hover:text-teal-300"
+                className="block rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 font-bold text-[#e8ecf3] hover:border-teal-400 hover:text-teal-300"
               >
                 Website
               </a>
@@ -647,11 +647,11 @@ export default async function PublicInspectorProfilePage({
         </div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-teal-500/25 bg-[#020617]/95 p-3 backdrop-blur sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-teal-500/25 bg-[#0a0e13]/95 p-3 backdrop-blur sm:hidden">
         <Link
           href={bookingHref}
           data-public-profile-event="booking_click"
-          className="block rounded-xl bg-teal-500 px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-teal-500/20"
+          className="block rounded-xl bg-teal-500 px-5 py-4 text-center font-semibold text-slate-950 shadow-lg shadow-teal-500/20"
         >
           Request Inspection
         </Link>
@@ -675,16 +675,16 @@ function GoogleReviewsSection({
   leaveReviewHref: string;
 }) {
   return (
-    <div className="rounded-3xl border border-yellow-400/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-yellow-950/20 p-5 shadow-2xl shadow-black/30 sm:p-8">
+    <div className="rounded-2xl border border-yellow-400/30 bg-gradient-to-br from-[#10151e] via-[#10151e] to-yellow-950/20 p-5 shadow-2xl shadow-black/30 sm:p-8">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-yellow-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-yellow-300">
             Google Reviews
           </p>
-          <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">
+          <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
             ★★★★★ {rating ? `${rating} Rating` : "Verified Reputation"}
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a93a3] sm:text-base">
             {reviewCount > 0
               ? `${reviewCount} Google reviews help clients and realtors see this inspector's reputation before booking.`
               : "Read recent Google reviews and see what clients say before requesting an inspection."}
@@ -701,7 +701,7 @@ function GoogleReviewsSection({
               target="_blank"
               rel="noreferrer"
               data-public-profile-event="review_click"
-              className="rounded-xl border border-yellow-300/50 px-5 py-3 text-center font-black text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
+              className="rounded-xl border border-yellow-300/50 px-5 py-3 text-center font-semibold text-yellow-100 transition hover:bg-yellow-300 hover:text-slate-950"
             >
               View on Google
             </a>
@@ -712,7 +712,7 @@ function GoogleReviewsSection({
               target="_blank"
               rel="noreferrer"
               data-public-profile-event="review_click"
-              className="rounded-xl bg-yellow-300 px-5 py-3 text-center font-black text-slate-950 transition hover:bg-yellow-200"
+              className="rounded-xl bg-yellow-300 px-5 py-3 text-center font-semibold text-slate-950 transition hover:bg-yellow-200"
             >
               Leave Review
             </a>
@@ -723,17 +723,17 @@ function GoogleReviewsSection({
       {reviews.length > 0 && (
         <div className="mt-7 grid gap-4 lg:grid-cols-3">
           {reviews.slice(0, 3).map((review) => (
-            <article key={review.id} className="rounded-2xl border border-slate-700 bg-slate-950/80 p-5 shadow-xl">
+            <article key={review.id} className="rounded-2xl border border-[#232b38] bg-[#131923] p-5 shadow-xl">
               <div className="flex items-center gap-3">
                 {review.author_photo_url ? (
                   <img src={review.author_photo_url} alt="" className="h-11 w-11 rounded-full object-cover" />
                 ) : (
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow-300 text-sm font-black text-slate-950">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow-300 text-sm font-semibold text-slate-950">
                     {getInitials(review.author_name)}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="truncate font-black text-white">{review.author_name || "Google Reviewer"}</p>
+                  <p className="truncate font-semibold text-white">{review.author_name || "Google Reviewer"}</p>
                   <p className="text-xs font-bold text-yellow-200">
                     {"★".repeat(Math.max(0, Math.min(5, Number(review.rating || 5))))}
                   </p>
@@ -741,12 +741,12 @@ function GoogleReviewsSection({
               </div>
 
               {review.review_text && (
-                <p className="mt-4 line-clamp-5 text-sm leading-6 text-slate-300">
+                <p className="mt-4 line-clamp-5 text-sm leading-6 text-[#8a93a3]">
                   “{review.review_text}”
                 </p>
               )}
 
-              <p className="mt-4 text-xs font-bold text-slate-500">
+              <p className="mt-4 text-xs font-bold text-[#59626f]">
                 {review.relative_publish_time_description || "Google review"}
               </p>
             </article>
@@ -765,9 +765,9 @@ function PortfolioStat({
   label: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 text-center shadow-lg transition hover:-translate-y-0.5 hover:border-teal-400/50">
-      <p className="text-3xl font-black text-white">{value}</p>
-      <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-teal-300">
+    <div className="rounded-2xl border border-[#1a212c] bg-[#131923] p-4 text-center shadow-lg transition hover:-translate-y-0.5 hover:border-teal-400/50">
+      <p className="text-3xl font-semibold text-white">{value}</p>
+      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300">
         {label}
       </p>
     </div>
@@ -792,9 +792,9 @@ function FeaturedSampleReport({
     `A featured sample report from ${companyName} showing photos, findings, summaries, and client-friendly report details.`;
 
   return (
-    <div className="group overflow-hidden rounded-[2rem] border border-teal-500/45 bg-[#07111f] shadow-2xl shadow-black/40">
+    <div className="group overflow-hidden rounded-2xl border border-teal-500/45 bg-[#07111f] shadow-2xl shadow-black/40">
       <div className="grid lg:grid-cols-[1.35fr_0.85fr]">
-        <div className="relative min-h-[320px] overflow-hidden bg-slate-950 sm:min-h-[440px]">
+        <div className="relative min-h-[320px] overflow-hidden bg-[#0a0e13] sm:min-h-[440px]">
           {coverUrl ? (
             <img
               src={coverUrl}
@@ -805,39 +805,39 @@ function FeaturedSampleReport({
             />
           ) : (
             <div className="flex h-full min-h-[320px] items-center justify-center bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.25),transparent_45%)] sm:min-h-[440px]">
-              <div className="rounded-3xl border border-teal-500/30 bg-teal-500/10 px-8 py-6 text-center">
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-[#14c8d2]">
+              <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 px-8 py-6 text-center">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#14c8d2]">
                   FLOW
                 </p>
-                <p className="mt-2 text-2xl font-black text-white">
+                <p className="mt-2 text-2xl font-semibold text-white">
                   Featured Report
                 </p>
               </div>
             </div>
           )}
 
-          <div className="absolute left-4 top-4 rounded-full border border-teal-300/60 bg-teal-500 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-950 shadow-lg">
+          <div className="absolute left-4 top-4 rounded-full border border-teal-300/60 bg-teal-500 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-950 shadow-lg">
             ⭐ Featured Report
           </div>
         </div>
 
         <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-teal-300">
+            <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-teal-300">
               {sampleType}
             </span>
             {sampleDate && (
-              <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-300">
+              <span className="rounded-full border border-[#232b38] bg-[#0a0e13] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
                 {sampleDate}
               </span>
             )}
           </div>
 
-          <h2 className="mt-5 text-4xl font-black leading-tight text-white sm:text-5xl">
+          <h2 className="mt-5 text-4xl font-semibold leading-tight text-white sm:text-5xl">
             {sample.title || "Featured Sample Inspection Report"}
           </h2>
 
-          <p className="mt-4 text-base leading-8 text-slate-300">
+          <p className="mt-4 text-base leading-8 text-[#8a93a3]">
             {description}
           </p>
 
@@ -847,7 +847,7 @@ function FeaturedSampleReport({
                 href={sampleHref}
                 data-public-profile-event="sample_report_click"
                 data-sample-report-id={sample.id}
-                className="rounded-xl bg-teal-500 px-5 py-4 text-center font-black text-slate-950 transition hover:bg-teal-400"
+                className="rounded-xl bg-teal-500 px-5 py-4 text-center font-semibold text-slate-950 transition hover:bg-teal-400"
               >
                 View Featured Report
               </Link>
@@ -856,7 +856,7 @@ function FeaturedSampleReport({
             <Link
               href={bookingHref}
               data-public-profile-event="booking_click"
-              className="rounded-xl border border-slate-700 px-5 py-4 text-center font-black text-slate-200 transition hover:border-teal-400 hover:text-teal-300"
+              className="rounded-xl border border-[#232b38] px-5 py-4 text-center font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300"
             >
               Request Inspection
             </Link>
@@ -877,7 +877,7 @@ function SampleReportCard({ sample }: { sample: any }) {
     "View this sample inspection report to see photos, findings, summary details, and client-friendly layout.";
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-slate-700 bg-[#020817] shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70">
+    <article className="overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70">
       {coverUrl ? (
         <img
           src={coverUrl}
@@ -888,32 +888,32 @@ function SampleReportCard({ sample }: { sample: any }) {
         />
       ) : (
         <div className="flex h-48 items-center justify-center bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.22),transparent_45%)] sm:h-56">
-          <div className="rounded-3xl border border-teal-500/30 bg-teal-500/10 px-6 py-4 text-center">
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-[#14c8d2]">
+          <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 px-6 py-4 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#14c8d2]">
               FLOW
             </p>
-            <p className="mt-2 text-xl font-black text-white">Sample Report</p>
+            <p className="mt-2 text-xl font-semibold text-white">Sample Report</p>
           </div>
         </div>
       )}
 
       <div className="p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-teal-300">
+          <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-teal-300">
             {sampleType}
           </span>
           {sampleDate && (
-            <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-300">
+            <span className="rounded-full border border-[#232b38] bg-[#0a0e13] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
               {sampleDate}
             </span>
           )}
         </div>
 
-        <h3 className="mt-4 text-2xl font-black leading-tight text-white sm:text-3xl">
+        <h3 className="mt-4 text-2xl font-semibold leading-tight text-white sm:text-3xl">
           {sample.title || "Sample Inspection Report"}
         </h3>
 
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300">
+        <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#8a93a3]">
           {description}
         </p>
 
@@ -923,7 +923,7 @@ function SampleReportCard({ sample }: { sample: any }) {
               href={sampleHref}
               data-public-profile-event="sample_report_click"
               data-sample-report-id={sample.id}
-              className="rounded-xl bg-teal-500 px-5 py-3 text-center font-black text-slate-950 transition hover:bg-teal-400"
+              className="rounded-xl bg-teal-500 px-5 py-3 text-center font-semibold text-slate-950 transition hover:bg-teal-400"
             >
               View Report
             </Link>
@@ -942,16 +942,16 @@ function SampleReportCard({ sample }: { sample: any }) {
 
 function CertificationBadges({ certifications }: { certifications: string[] }) {
   return (
-    <div className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-8">
-      <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-300">
+    <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-300">
         Credentials
       </p>
-      <h2 className="mt-3 text-2xl font-black text-white">
+      <h2 className="mt-3 text-2xl font-semibold text-white">
         Certifications & Badges
       </h2>
 
       {certifications.length === 0 ? (
-        <p className="mt-4 text-sm leading-6 text-slate-400">
+        <p className="mt-4 text-sm leading-6 text-[#8a93a3]">
           Certifications coming soon.
         </p>
       ) : (
@@ -964,14 +964,14 @@ function CertificationBadges({ certifications }: { certifications: string[] }) {
                 key={certification}
                 className="flex items-center gap-3 rounded-2xl border border-teal-500/25 bg-teal-500/10 p-4 transition hover:-translate-y-0.5 hover:border-teal-400/70 hover:bg-teal-500/15"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-teal-300/40 bg-slate-950 text-sm font-black text-teal-200">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-teal-300/40 bg-[#0a0e13] text-sm font-semibold text-teal-200">
                   {badge.icon}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-black text-white">
+                  <p className="text-sm font-semibold text-white">
                     {certification}
                   </p>
-                  <p className="mt-1 text-xs font-bold text-slate-400">
+                  <p className="mt-1 text-xs font-bold text-[#8a93a3]">
                     {badge.description}
                   </p>
                 </div>
@@ -994,17 +994,17 @@ function InfoList({
   emptyText: string;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-800 bg-[#0b1220]/90 p-5 shadow-xl sm:p-8">
-      <h2 className="text-2xl font-black text-teal-300">{title}</h2>
+    <div className="rounded-2xl border border-[#1a212c] bg-[#10151e]/90 p-5 shadow-xl sm:p-8">
+      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
 
       {items.length === 0 ? (
-        <p className="mt-4 text-sm leading-6 text-slate-400">{emptyText}</p>
+        <p className="mt-4 text-sm leading-6 text-[#8a93a3]">{emptyText}</p>
       ) : (
         <div className="mt-5 flex flex-wrap gap-2">
           {items.map((item) => (
             <span
               key={item}
-              className="rounded-full border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-bold text-slate-200"
+              className="rounded-full border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm font-bold text-[#e8ecf3]"
             >
               {item}
             </span>

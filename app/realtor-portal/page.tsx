@@ -244,9 +244,9 @@ export default async function RealtorPortalPage({
 
   if (!lookupEmail) {
     return (
-      <main className="min-h-screen bg-[#020617] px-5 py-10 text-white">
-        <section className="mx-auto max-w-4xl rounded-3xl border border-red-500/40 bg-red-500/10 p-8">
-          <h1 className="text-3xl font-black text-red-200">Realtor Portal</h1>
+      <main className="min-h-screen bg-[#0a0e13] px-5 py-10 text-white">
+        <section className="mx-auto max-w-4xl rounded-2xl border border-red-500/40 bg-red-500/10 p-8">
+          <h1 className="text-3xl font-semibold text-red-200">Realtor Portal</h1>
           <p className="mt-3 text-red-100">
             Your account does not have an email address attached.
           </p>
@@ -402,7 +402,7 @@ export default async function RealtorPortalPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#020617] px-5 py-10 text-white md:px-8">
+    <main className="min-h-screen bg-[#0a0e13] px-5 py-10 text-white md:px-8">
       {portalTranslated && <UiAutoTranslate map={realtorUiMap} />}
       <div className="mx-auto mb-4 flex max-w-6xl justify-end">
         <ReportLanguageSwitcher
@@ -413,7 +413,7 @@ export default async function RealtorPortalPage({
       <div className="mx-auto max-w-7xl">
         {isOwnerPreview && (
           <div className="mb-6 rounded-2xl border border-purple-500/50 bg-purple-500/10 px-6 py-4">
-            <p className="inline-flex items-center gap-1.5 text-sm font-black uppercase tracking-wide text-purple-300">
+            <p className="inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-purple-300">
               <Eye className="h-4 w-4" strokeWidth={2.5} /> Owner Preview Mode
             </p>
             <p className="mt-1 text-sm text-purple-100">
@@ -423,8 +423,8 @@ export default async function RealtorPortalPage({
           </div>
         )}
 
-        <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-6 shadow-2xl md:p-8">
-          <div className="mb-6 border-b border-slate-800 pb-6">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-2xl md:p-8">
+          <div className="mb-6 border-b border-[#1a212c] pb-6">
             <RealtorProfileEditor
               initial={realtorProfile}
               canEdit={!isOwnerPreview}
@@ -433,15 +433,15 @@ export default async function RealtorPortalPage({
 
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
                 FLOW
               </p>
 
-              <h1 className="mt-4 text-4xl font-black text-white md:text-5xl">
+              <h1 className="mt-4 text-4xl font-semibold text-white md:text-5xl">
                 Realtor Portal
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 Reports, downloads, repair requests, seller responses, and addenda linked to your realtor account.
               </p>
 
@@ -450,7 +450,7 @@ export default async function RealtorPortalPage({
               </p>
             </div>
 
-            <div className="rounded-xl border border-slate-700 bg-[#020617] px-5 py-3 text-sm font-bold text-slate-300">
+            <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-5 py-3 text-sm font-bold text-[#8a93a3]">
               Realtor Portal
             </div>
           </div>
@@ -469,31 +469,31 @@ export default async function RealtorPortalPage({
           <section className="mt-8 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-5 shadow-xl">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-200">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-200">
                   Repair Request Credit Summary
                 </p>
-                <h2 className="mt-2 text-2xl font-black text-white">
+                <h2 className="mt-2 text-2xl font-semibold text-white">
                   {formatMoney(totalDifference)} Difference
                 </h2>
               </div>
-              <p className={`w-fit rounded-full border px-4 py-2 text-sm font-black ${totalDifference < 0 ? "border-red-400/60 bg-red-500/15 text-red-200" : "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"}`}>
+              <p className={`w-fit rounded-full border px-4 py-2 text-sm font-semibold ${totalDifference < 0 ? "border-red-400/60 bg-red-500/15 text-red-200" : "border-emerald-400/60 bg-emerald-500/15 text-emerald-200"}`}>
                 {totalDifference < 0 ? "Seller offered less than requested" : "Seller met or exceeded requested credits"}
               </p>
             </div>
           </section>
         ) : null}
 
-        <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <h2 className="text-2xl font-black text-teal-300">My Linked Reports</h2>
+        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-teal-300">My Linked Reports</h2>
 
-          <p className="mt-2 text-sm leading-6 text-slate-400">
+          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
             A report appears here when your account email matches the buyer&apos;s agent, realtor, transaction coordinator, or inspection contact email.
           </p>
 
           <div className="mt-6 space-y-4">
             {inspections.length === 0 ? (
               <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-6 text-yellow-100">
-                <p className="font-black">No linked reports found yet.</p>
+                <p className="font-semibold">No linked reports found yet.</p>
                 <p className="mt-2 text-sm leading-6">
                   Make sure the email on this account exactly matches the realtor email saved on the inspection contact.
                 </p>
@@ -524,39 +524,39 @@ export default async function RealtorPortalPage({
                 return (
                   <article
                     key={id}
-                    className="rounded-2xl border border-slate-700 bg-[#020617] p-5 transition duration-150 hover:border-teal-500/60 hover:bg-[#071224] hover:shadow-[0_0_24px_rgba(20,184,166,0.12)] active:scale-[0.995]"
+                    className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-5 transition duration-150 hover:border-teal-500/60 hover:bg-[#071224] hover:shadow-[0_0_24px_rgba(20,184,166,0.12)] active:scale-[0.995]"
                   >
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap gap-2">
-                          <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-black uppercase text-teal-200">
+                          <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-semibold uppercase text-teal-200">
                             {getReportStatus(inspection)}
                           </span>
 
                           {latestShare ? (
-                            <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${getStatusBadge(latestStatus)}`}>
+                            <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${getStatusBadge(latestStatus)}`}>
                               Latest: {getStatusLabel(latestStatus)}
                             </span>
                           ) : (
-                            <span className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs font-black uppercase text-slate-300">
+                            <span className="rounded-full border border-[#232b38] bg-[#1a212c] px-3 py-1 text-xs font-semibold uppercase text-[#8a93a3]">
                               No repair request sent yet
                             </span>
                           )}
 
                           {shares.length ? (
-                            <span className="rounded-full border border-orange-500/50 bg-orange-500/10 px-3 py-1 text-xs font-black uppercase text-orange-200">
+                            <span className="rounded-full border border-orange-500/50 bg-orange-500/10 px-3 py-1 text-xs font-semibold uppercase text-orange-200">
                               {shares.length} Repair Request{shares.length === 1 ? "" : "s"}
                             </span>
                           ) : null}
                         </div>
 
-                        <h3 className="mt-3 break-words text-2xl font-black text-white">
+                        <h3 className="mt-3 break-words text-2xl font-semibold text-white">
                           {address}
                         </h3>
 
-                        <p className="mt-2 text-slate-300">{getClientName(inspection)}</p>
+                        <p className="mt-2 text-[#8a93a3]">{getClientName(inspection)}</p>
 
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-[#59626f]">
                           {formatDate(getInspectionDate(inspection))}
                         </p>
 
@@ -573,7 +573,7 @@ export default async function RealtorPortalPage({
                         <FastLinkButton
                           href={`/share/${id}?role=realtor&email=${encodeURIComponent(lookupEmail)}`}
                           loadingText="Opening Report..."
-                          className="rounded-xl border border-teal-500 px-4 py-3 text-center font-black text-teal-300 hover:bg-teal-500/10"
+                          className="rounded-xl border border-teal-500 px-4 py-3 text-center font-semibold text-teal-300 hover:bg-teal-500/10"
                         >
                           View Report
                         </FastLinkButton>
@@ -582,7 +582,7 @@ export default async function RealtorPortalPage({
                           href={`/api/realtor-report-download/${encodeURIComponent(downloadId)}?type=full`}
                           filename={`inspection-report-${id}-full.pdf`}
                           preparingText="Preparing Full Report..."
-                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 px-4 py-3 text-center font-black text-emerald-300 transition hover:bg-emerald-500/10 active:scale-[0.98]"
+                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 px-4 py-3 text-center font-semibold text-emerald-300 transition hover:bg-emerald-500/10 active:scale-[0.98]"
                         >
                           <>Full Report Download</>
                         </ReportDownloadButton>
@@ -591,7 +591,7 @@ export default async function RealtorPortalPage({
                           href={`/api/realtor-report-download/${encodeURIComponent(downloadId)}?type=agent`}
                           filename={`inspection-report-${id}-agent.pdf`}
                           preparingText="Preparing Agent Report..."
-                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-lime-500 px-4 py-3 text-center font-black text-lime-300 transition hover:bg-lime-500/10 active:scale-[0.98]"
+                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-lime-500 px-4 py-3 text-center font-semibold text-lime-300 transition hover:bg-lime-500/10 active:scale-[0.98]"
                         >
                           <>Agent Report Download</>
                         </ReportDownloadButton>
@@ -599,7 +599,7 @@ export default async function RealtorPortalPage({
                         <FastLinkButton
                           href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(lookupEmail)}`}
                           loadingText="Opening Builder..."
-                          className="rounded-xl border border-cyan-500 px-4 py-3 text-center font-black text-cyan-300 hover:bg-cyan-500/10"
+                          className="rounded-xl border border-cyan-500 px-4 py-3 text-center font-semibold text-cyan-300 hover:bg-cyan-500/10"
                         >
                           Build Repair Request
                         </FastLinkButton>
@@ -611,19 +611,19 @@ export default async function RealtorPortalPage({
                         <summary className="cursor-pointer list-none">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">
+                              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-orange-200">
                                 Repair Request History
                               </p>
-                              <p className="mt-1 text-sm font-bold text-slate-300">
+                              <p className="mt-1 text-sm font-bold text-[#8a93a3]">
                                 Previous repair requests are collapsed by default. Open this section to review saved requests, responses, addenda, and downloads.
                               </p>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="w-fit rounded-full border border-orange-400/60 bg-orange-500/15 px-3 py-1 text-xs font-black text-orange-100">
+                              <span className="w-fit rounded-full border border-orange-400/60 bg-orange-500/15 px-3 py-1 text-xs font-semibold text-orange-100">
                                 {shares.length} total
                               </span>
-                              <span className="w-fit rounded-full border border-orange-400/60 bg-[#020617] px-3 py-1 text-xs font-black text-orange-100">
+                              <span className="w-fit rounded-full border border-orange-400/60 bg-[#0a0e13] px-3 py-1 text-xs font-semibold text-orange-100">
                                 <span className="group-open:hidden">View History</span>
                                 <span className="hidden group-open:inline">Hide History</span>
                               </span>
@@ -646,26 +646,26 @@ export default async function RealtorPortalPage({
                             return (
                               <details
                                 key={share.id || share.token}
-                                className="group overflow-hidden rounded-2xl border border-slate-700 bg-[#020617] transition hover:border-orange-400/60"
+                                className="group overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] transition hover:border-orange-400/60"
                               >
                                 <summary className="flex cursor-pointer list-none flex-col gap-4 p-4 transition hover:bg-[#071224] sm:flex-row sm:items-center sm:justify-between">
                                   <div className="min-w-0">
                                     <div className="flex flex-wrap gap-2">
-                                      <span className="rounded-full border border-orange-400/60 bg-orange-500/10 px-3 py-1 text-xs font-black uppercase text-orange-200">
+                                      <span className="rounded-full border border-orange-400/60 bg-orange-500/10 px-3 py-1 text-xs font-semibold uppercase text-orange-200">
                                         {requestNumber}
                                       </span>
-                                      <span className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${getStatusBadge(status)}`}>
+                                      <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${getStatusBadge(status)}`}>
                                         {getStatusLabel(status)}
                                       </span>
-                                      <span className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs font-black uppercase text-slate-300">
+                                      <span className="rounded-full border border-[#232b38] bg-[#1a212c] px-3 py-1 text-xs font-semibold uppercase text-[#8a93a3]">
                                         {selectedCount} item{selectedCount === 1 ? "" : "s"}
                                       </span>
                                     </div>
 
-                                    <p className="mt-2 break-words text-sm font-bold text-slate-300">
+                                    <p className="mt-2 break-words text-sm font-bold text-[#8a93a3]">
                                       Sent to: <span className="text-white">{share.recipient_email || "Recipient"}</span>
                                     </p>
-                                    <p className="mt-1 text-xs font-bold text-slate-500">
+                                    <p className="mt-1 text-xs font-bold text-[#59626f]">
                                       Created {formatDate(share.created_at)}
                                       {share.responded_at ? ` • Responded ${formatDate(share.responded_at)}` : ""}
                                     </p>
@@ -676,25 +676,25 @@ export default async function RealtorPortalPage({
                                     <MiniMoneyCard label="Seller" value={responses.length ? formatMoney(seller) : "—"} />
                                     <MiniMoneyCard label="Difference" value={responses.length ? formatMoney(difference) : "—"} negative={difference < 0} />
                                     <div className="rounded-xl border border-orange-400/40 bg-orange-500/10 p-3 text-center">
-                                      <p className="text-[10px] font-black uppercase tracking-wide text-orange-200">Open</p>
+                                      <p className="text-[10px] font-semibold uppercase tracking-wide text-orange-200">Open</p>
                                       <p className="mt-1 flex justify-center text-white transition group-open:rotate-180"><ChevronDown className="h-5 w-5" strokeWidth={2.5} /></p>
                                     </div>
                                   </div>
                                 </summary>
 
-                                <div className="border-t border-slate-800 p-4">
+                                <div className="border-t border-[#1a212c] p-4">
                                   <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
-                                    <div className="rounded-2xl border border-slate-700 bg-[#071224] p-4">
-                                      <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-200">
+                                    <div className="rounded-2xl border border-[#232b38] bg-[#071224] p-4">
+                                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-orange-200">
                                         Linked Addendum + Seller Response
                                       </p>
-                                      <p className="mt-2 break-words text-sm font-bold text-slate-300">
+                                      <p className="mt-2 break-words text-sm font-bold text-[#8a93a3]">
                                         Created by: <span className="text-white">{getRepairRequestCreatorLabel(share)}</span>
                                       </p>
-                                      <p className="mt-1 break-words text-sm font-bold text-slate-300">
+                                      <p className="mt-1 break-words text-sm font-bold text-[#8a93a3]">
                                         Report: <span className="text-white">{address}</span>
                                       </p>
-                                      <p className="mt-1 text-xs font-bold text-slate-500">
+                                      <p className="mt-1 text-xs font-bold text-[#59626f]">
                                         This repair request, response, addendum, and downloads are linked to report #{id}.
                                       </p>
 
@@ -719,7 +719,7 @@ export default async function RealtorPortalPage({
                                     <FastLinkButton
                                       href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(lookupEmail)}&selected=${encodeURIComponent(Array.isArray(share.selected_finding_ids) ? share.selected_finding_ids.join(",") : "")}&share=${encodeURIComponent(String(share.id || ""))}`}
                                       loadingText="Opening Request..."
-                                      className="rounded-xl border border-cyan-500 px-4 py-3 text-center text-sm font-black text-cyan-300 hover:bg-cyan-500/10"
+                                      className="rounded-xl border border-cyan-500 px-4 py-3 text-center text-sm font-semibold text-cyan-300 hover:bg-cyan-500/10"
                                     >
                                       Open Request
                                     </FastLinkButton>
@@ -727,7 +727,7 @@ export default async function RealtorPortalPage({
                                     <FastLinkButton
                                       href={`/repair-response/${share.token}`}
                                       loadingText="Opening Response..."
-                                      className="rounded-xl border border-purple-500 px-4 py-3 text-center text-sm font-black text-purple-300 hover:bg-purple-500/10"
+                                      className="rounded-xl border border-purple-500 px-4 py-3 text-center text-sm font-semibold text-purple-300 hover:bg-purple-500/10"
                                     >
                                       Open Response
                                     </FastLinkButton>
@@ -736,14 +736,14 @@ export default async function RealtorPortalPage({
                                       href={`/api/repair-request-addendum/${encodeURIComponent(share.token)}`}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 px-4 py-3 text-center text-sm font-black text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
+                                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-purple-400 px-4 py-3 text-center text-sm font-semibold text-purple-200 transition hover:bg-purple-500/10 active:scale-[0.98]"
                                     >
                                       {status === "responded" ? "View Addendum" : "Preview Addendum"}
                                     </a>
 
                                     <a
                                       href={`/api/repair-request-addendum/${encodeURIComponent(share.token)}?download=1`}
-                                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-orange-400 px-4 py-3 text-center text-sm font-black text-orange-200 transition hover:bg-orange-500/10 active:scale-[0.98]"
+                                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-orange-400 px-4 py-3 text-center text-sm font-semibold text-orange-200 transition hover:bg-orange-500/10 active:scale-[0.98]"
                                     >
                                       Download Addendum
                                     </a>
@@ -795,8 +795,8 @@ function RepairTimeline({
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-[#071224] p-4">
-      <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">Timeline</p>
+    <div className="rounded-2xl border border-[#232b38] bg-[#071224] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">Timeline</p>
       <div className="mt-4 space-y-3">
         {steps.map((step) => (
           <div key={step.label} className="flex items-start gap-3">
@@ -806,10 +806,10 @@ function RepairTimeline({
               }`}
             />
             <div>
-              <p className={`text-sm font-black ${step.done ? "text-white" : "text-slate-500"}`}>
+              <p className={`text-sm font-semibold ${step.done ? "text-white" : "text-[#59626f]"}`}>
                 {step.label}
               </p>
-              <p className="text-xs font-bold text-slate-500">
+              <p className="text-xs font-bold text-[#59626f]">
                 {step.value ? formatDate(step.value) : step.done ? "Completed" : "Waiting"}
               </p>
             </div>
@@ -823,17 +823,17 @@ function RepairTimeline({
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl transition duration-150 hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.985]">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-3 break-words text-3xl font-black text-white">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
+      <p className="mt-3 break-words text-3xl font-semibold text-white">{value}</p>
     </div>
   );
 }
 
 function MiniMoneyCard({ label, value, negative = false }: { label: string; value: string; negative?: boolean }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#0f172a] p-3">
-      <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-1 text-lg font-black ${negative ? "text-red-300" : "text-white"}`}>{value}</p>
+    <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">{label}</p>
+      <p className={`mt-1 text-lg font-semibold ${negative ? "text-red-300" : "text-white"}`}>{value}</p>
     </div>
   );
 }

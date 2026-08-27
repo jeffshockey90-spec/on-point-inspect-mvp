@@ -655,7 +655,7 @@ export default function MarketingImageStudio({
   return (
     <div className="min-h-screen bg-[#0a0e13] px-4 py-6 text-white sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[390px_1fr]">
-        <aside className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl">
+        <aside className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-300">
             Marketing Studio
           </p>
@@ -880,7 +880,7 @@ export default function MarketingImageStudio({
           </div>
         </aside>
 
-        <main className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl sm:p-6">
+        <main className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl sm:p-6">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold">Preview</h2>
@@ -907,15 +907,15 @@ export default function MarketingImageStudio({
             }
             className={
               draggingPhoto
-                ? "mx-auto aspect-square w-full max-w-[760px] overflow-hidden rounded-3xl border-2 border-dashed border-teal-300 bg-[#131923] shadow-2xl"
-                : "mx-auto aspect-square w-full max-w-[760px] overflow-hidden rounded-3xl border border-white/10 bg-[#131923] shadow-2xl"
+                ? "mx-auto aspect-square w-full max-w-[760px] overflow-hidden rounded-2xl border-2 border-dashed border-teal-300 bg-[#131923] shadow-2xl"
+                : "mx-auto aspect-square w-full max-w-[760px] overflow-hidden rounded-2xl border border-white/10 bg-[#131923] shadow-2xl"
             }
           >
             <canvas ref={canvasRef} className="h-full w-full" />
             {!photo ? (
               <div className="-mt-full flex aspect-square h-full w-full items-center justify-center p-8 text-center">
                 <div>
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-teal-400/15 text-4xl">
+                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-teal-400/15 text-4xl">
                     🏠
                   </div>
                   <p className="text-lg font-semibold">Select a report photo or upload one</p>

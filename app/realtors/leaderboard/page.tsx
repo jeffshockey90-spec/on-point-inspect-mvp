@@ -236,20 +236,20 @@ export default async function RealtorLeaderboardPage() {
   const topRealtor = activeRealtors[0] || null;
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-8">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-8">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">
                 Realtor Analytics
               </p>
 
-              <h1 className="mt-4 text-4xl font-black text-white md:text-5xl">
+              <h1 className="mt-4 text-4xl font-semibold text-white md:text-5xl">
                 Referral Leaderboard
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 See which realtor relationships are driving inspections, revenue,
                 paid revenue, and outstanding balances for FLOW.
               </p>
@@ -272,7 +272,7 @@ export default async function RealtorLeaderboardPage() {
 
               <Link
                 href="/dashboard"
-                className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
+                className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-white transition hover:bg-[#1a212c]"
               >
                 Dashboard
               </Link>
@@ -296,15 +296,15 @@ export default async function RealtorLeaderboardPage() {
           <section className="mt-8 rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl">
             <div className="flex flex-wrap items-center justify-between gap-5">
               <div>
-                <p className="text-sm font-black uppercase tracking-wide text-teal-300">
+                <p className="text-sm font-semibold uppercase tracking-wide text-teal-300">
                   Top Referral Partner
                 </p>
 
-                <h2 className="mt-2 text-3xl font-black text-white">
+                <h2 className="mt-2 text-3xl font-semibold text-white">
                   {topRealtor.realtor.name}
                 </h2>
 
-                <p className="mt-2 text-slate-300">
+                <p className="mt-2 text-[#8a93a3]">
                   {topRealtor.referralCount} referral
                   {topRealtor.referralCount === 1 ? "" : "s"} •{" "}
                   {money(topRealtor.revenue)} generated
@@ -313,7 +313,7 @@ export default async function RealtorLeaderboardPage() {
 
               <Link
                 href={`/realtors/${topRealtor.realtor.id}`}
-                className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition hover:bg-teal-400"
+                className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-teal-400"
               >
                 View Realtor
               </Link>
@@ -321,25 +321,25 @@ export default async function RealtorLeaderboardPage() {
           </section>
         )}
 
-        <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black text-teal-300">
+              <h2 className="text-2xl font-semibold text-teal-300">
                 Top Realtors
               </h2>
 
-              <p className="mt-2 text-sm leading-6 text-slate-400">
+              <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
                 Sorted by referral count first, then total revenue.
               </p>
             </div>
 
-            <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-4 py-2 text-sm font-black text-teal-300">
+            <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-teal-300">
               {activeRealtors.length} active
             </span>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-800">
-            <div className="hidden grid-cols-[70px_1.6fr_0.7fr_0.9fr_0.9fr_0.9fr_1fr] gap-4 border-b border-slate-800 bg-[#020817] px-5 py-3 text-xs font-black uppercase tracking-wide text-slate-400 lg:grid">
+          <div className="mt-6 overflow-hidden rounded-2xl border border-[#1a212c]">
+            <div className="hidden grid-cols-[70px_1.6fr_0.7fr_0.9fr_0.9fr_0.9fr_1fr] gap-4 border-b border-[#1a212c] bg-[#0a0e13] px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#8a93a3] lg:grid">
               <div>Rank</div>
               <div>Realtor</div>
               <div>Referrals</div>
@@ -350,11 +350,11 @@ export default async function RealtorLeaderboardPage() {
             </div>
 
             {activeRealtors.length === 0 ? (
-              <div className="bg-[#020817]/70 p-8 text-center text-slate-400">
+              <div className="bg-[#131923] p-8 text-center text-[#8a93a3]">
                 No realtor referrals are linked yet.
               </div>
             ) : (
-              <div className="divide-y divide-slate-800">
+              <div className="divide-y divide-[#1a212c]">
                 {activeRealtors.map((item, index) => (
                   <LeaderboardRow
                     key={item.realtor.id}
@@ -368,12 +368,12 @@ export default async function RealtorLeaderboardPage() {
         </section>
 
         {noReferralRealtors.length > 0 && (
-          <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-            <h2 className="text-2xl font-black text-slate-200">
+          <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+            <h2 className="text-2xl font-semibold text-[#e8ecf3]">
               Realtors With No Linked Referrals Yet
             </h2>
 
-            <p className="mt-2 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
               These contacts are in your CRM but do not currently match any inspections
               by realtor ID, email, or name.
             </p>
@@ -383,15 +383,15 @@ export default async function RealtorLeaderboardPage() {
                 <Link
                   key={item.realtor.id}
                   href={`/realtors/${item.realtor.id}`}
-                  className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4 transition hover:border-teal-500/60"
+                  className="rounded-xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-teal-500/60"
                 >
-                  <p className="font-black text-white">{item.realtor.name}</p>
+                  <p className="font-semibold text-white">{item.realtor.name}</p>
 
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-[#8a93a3]">
                     {item.realtor.email || "No email saved"}
                   </p>
 
-                  <p className="mt-3 text-xs font-black uppercase tracking-wide text-yellow-300">
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-yellow-300">
                     No linked inspections
                   </p>
                 </Link>
@@ -414,14 +414,14 @@ function StatCard({
   helper?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5 shadow-xl">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+    <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
 
-      <p className="mt-3 text-3xl font-black text-white">{value}</p>
+      <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
 
-      {helper && <p className="mt-2 text-sm leading-6 text-slate-400">{helper}</p>}
+      {helper && <p className="mt-2 text-sm leading-6 text-[#8a93a3]">{helper}</p>}
     </div>
   );
 }
@@ -433,14 +433,14 @@ function LeaderboardRow({ item, rank }: { item: any; rank: number }) {
   return (
     <Link
       href={`/realtors/${item.realtor.id}`}
-      className="block bg-[#020817]/70 px-5 py-5 transition hover:bg-[#071224] lg:grid lg:grid-cols-[70px_1.6fr_0.7fr_0.9fr_0.9fr_0.9fr_1fr] lg:items-center lg:gap-4"
+      className="block bg-[#131923] px-5 py-5 transition hover:bg-[#071224] lg:grid lg:grid-cols-[70px_1.6fr_0.7fr_0.9fr_0.9fr_0.9fr_1fr] lg:items-center lg:gap-4"
     >
-      <div className="text-2xl font-black text-white">{medal}</div>
+      <div className="text-2xl font-semibold text-white">{medal}</div>
 
       <div className="mt-3 lg:mt-0">
-        <p className="text-lg font-black text-white">{item.realtor.name}</p>
+        <p className="text-lg font-semibold text-white">{item.realtor.name}</p>
 
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-[#8a93a3]">
           {item.realtor.email || "No email saved"}
         </p>
       </div>
@@ -460,11 +460,11 @@ function LeaderboardRow({ item, rank }: { item: any; rank: number }) {
 function MobileMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="mt-4 lg:mt-0">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-500 lg:hidden">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f] lg:hidden">
         {label}
       </p>
 
-      <p className="mt-1 font-black text-teal-300 lg:mt-0">{value}</p>
+      <p className="mt-1 font-semibold text-teal-300 lg:mt-0">{value}</p>
     </div>
   );
 }

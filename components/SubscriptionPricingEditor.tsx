@@ -75,25 +75,25 @@ export default function SubscriptionPricingEditor() {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-700 bg-[#0f172a] p-6 shadow-xl">
+    <section className="rounded-2xl border border-[#232b38] bg-[#10151e] p-6 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             Subscription Pricing
           </p>
 
           {loading ? (
-            <p className="mt-3 text-lg text-slate-400">Loading...</p>
+            <p className="mt-3 text-lg text-[#8a93a3]">Loading...</p>
           ) : pricing ? (
             <>
-              <p className="mt-3 text-3xl font-black text-white">
+              <p className="mt-3 text-3xl font-semibold text-white">
                 {money(pricing.standardPriceCents)}
-                <span className="ml-2 text-sm font-bold text-slate-400">/mo standard</span>
+                <span className="ml-2 text-sm font-bold text-[#8a93a3]">/mo standard</span>
               </p>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-[#8a93a3]">
                 {money(pricing.foundingMemberPriceCents)}/mo founding-member rate
               </p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-[#59626f]">
                 Live on /pricing and the actual Stripe checkout - changing this changes what new
                 subscribers get charged.
               </p>
@@ -109,7 +109,7 @@ export default function SubscriptionPricingEditor() {
             setEditing((current) => !current);
             setError("");
           }}
-          className="rounded-xl border border-slate-500 px-4 py-2 text-sm font-black text-slate-200 transition hover:bg-slate-700/30"
+          className="rounded-xl border border-[#59626f] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:bg-slate-700/30"
         >
           {editing ? "Cancel" : "Edit Pricing"}
         </button>
@@ -118,7 +118,7 @@ export default function SubscriptionPricingEditor() {
       {editing && (
         <div className="mt-6 grid gap-3 sm:grid-cols-3 sm:items-end">
           <label className="text-sm">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Standard price ($/mo)
             </span>
             <input
@@ -132,7 +132,7 @@ export default function SubscriptionPricingEditor() {
           </label>
 
           <label className="text-sm">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Founding-member price ($/mo)
             </span>
             <input
@@ -149,7 +149,7 @@ export default function SubscriptionPricingEditor() {
             type="button"
             onClick={save}
             disabled={saving}
-            className="rounded-xl bg-emerald-400 px-4 py-2.5 font-black text-black disabled:opacity-50"
+            className="rounded-xl bg-emerald-400 px-4 py-2.5 font-semibold text-black disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save"}
           </button>

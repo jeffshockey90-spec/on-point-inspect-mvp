@@ -43,7 +43,7 @@ export default function SupportUnreadBadge({ className = "", pollMs = 30000 }: P
 
   return (
     <span
-      className={`inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-black leading-none text-white shadow-lg shadow-red-500/30 ${className}`}
+      className={`inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-semibold leading-none text-white shadow-lg shadow-red-500/30 ${className}`}
       aria-label={`${count} unread support messages`}
     >
       {count > 99 ? "99+" : count}

@@ -8,7 +8,7 @@ export default function Loading() {
     <div className="flex min-h-[70vh] items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-teal-500/25 border-t-teal-400" />
-        <p className="text-xs font-black uppercase tracking-[0.35em] text-teal-400">Loading</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-400">Loading</p>
       </div>
     </div>
   );

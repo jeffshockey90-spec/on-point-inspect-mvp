@@ -65,7 +65,7 @@ export default function SubscriptionCheckoutButton({
         type="button"
         onClick={startCheckout}
         disabled={loading}
-        className="rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="rounded-xl bg-teal-500 px-6 py-3 font-semibold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? "Opening Checkout..." : `Subscribe ${priceLabel}`}
       </button>

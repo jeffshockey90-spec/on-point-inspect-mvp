@@ -124,11 +124,11 @@ export default function OwnerInspectorBillingControls({
   }
 
   return (
-    <div className="h-auto min-h-0 w-full min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-[#020617]/70 p-4">
+    <div className="h-auto min-h-0 w-full min-w-0 overflow-hidden rounded-2xl border border-[#232b38] bg-[#131923] p-4">
       <div className="min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Billing</p>
-        <p className="mt-1 break-words text-xl font-black text-white">{priceLabel}</p>
-        <p className="mt-1 break-words text-sm font-bold leading-6 text-slate-400">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">Billing</p>
+        <p className="mt-1 break-words text-xl font-semibold text-white">{priceLabel}</p>
+        <p className="mt-1 break-words text-sm font-bold leading-6 text-[#8a93a3]">
           Status: {statusText} · Free used: {used}/{limit}
         </p>
       </div>
@@ -195,12 +195,12 @@ export default function OwnerInspectorBillingControls({
         type="button"
         onClick={saveBilling}
         disabled={busy}
-        className="mt-4 min-h-[48px] w-full rounded-xl bg-teal-500 px-4 py-3 text-center font-black text-slate-950 transition hover:bg-teal-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-4 min-h-[48px] w-full rounded-xl bg-teal-500 px-4 py-3 text-center font-semibold text-slate-950 transition hover:bg-teal-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {busy ? "Saving Billing..." : "Save Billing"}
       </button>
 
-      {message ? <p className="mt-3 break-words text-xs font-bold text-slate-400">{message}</p> : null}
+      {message ? <p className="mt-3 break-words text-xs font-bold text-[#8a93a3]">{message}</p> : null}
     </div>
   );
 }
@@ -223,24 +223,24 @@ function ToggleRow({
       type="button"
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-left transition hover:border-teal-400/50 disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex w-full items-center gap-3 rounded-xl border border-[#232b38] bg-[#131923] p-3 text-left transition hover:border-teal-400/50 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <span
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm font-black ${
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border text-sm font-semibold ${
           checked
             ? "border-teal-400 bg-teal-400 text-slate-950"
-            : "border-slate-500 bg-white text-transparent"
+            : "border-[#59626f] bg-white text-transparent"
         }`}
       >
         {checked ? "✓" : ""}
       </span>
 
       <span className="block min-w-0">
-        <span className="block break-words text-sm font-black leading-5 text-white">
+        <span className="block break-words text-sm font-semibold leading-5 text-white">
           {title}
         </span>
 
-        <span className="mt-1 block break-words text-xs font-bold leading-5 text-slate-400">
+        <span className="mt-1 block break-words text-xs font-bold leading-5 text-[#8a93a3]">
           {helper}
         </span>
       </span>
@@ -268,7 +268,7 @@ function Input({
       placeholder={placeholder}
       inputMode={inputMode || "text"}
       disabled={disabled}
-      className="min-h-[46px] w-full min-w-0 rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-base font-bold text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+      className="min-h-[46px] w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-base font-bold text-white outline-none transition placeholder:text-[#59626f] focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
     />
   );
 }

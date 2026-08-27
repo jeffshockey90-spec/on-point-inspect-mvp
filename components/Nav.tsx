@@ -561,7 +561,7 @@ export default function Navbar() {
 
         <div className="shrink-0 border-t border-[#1a212c] p-3">
           <div className="flex items-center gap-3 rounded-[10px] border border-[#1a212c] bg-[#10151e] px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1ac5b4]/12 text-xs font-black text-[#1ac5b4]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1ac5b4]/12 text-xs font-semibold text-[#1ac5b4]">
               {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
             </div>
 
@@ -593,7 +593,7 @@ export default function Navbar() {
       </aside>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-[100] border-t border-zinc-800 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur xl:hidden [transform:translateZ(0)] [will-change:transform]"
+        className="fixed inset-x-0 bottom-0 z-[100] border-t border-zinc-800 bg-[#10151e]/95 shadow-2xl shadow-black/60 backdrop-blur xl:hidden [transform:translateZ(0)] [will-change:transform]"
         style={{ bottom: 0, paddingBottom: "env(safe-area-inset-bottom)", transform: "translateZ(0)" }}
       >
         <div className="flex h-[78px] w-full flex-row flex-nowrap items-center justify-between">
@@ -615,10 +615,10 @@ export default function Navbar() {
                   active
                     ? "bg-teal-500/15 text-teal-300"
                     : opening
-                      ? "bg-slate-800/70 text-teal-300 opacity-80"
+                      ? "bg-[#1a212c] text-teal-300 opacity-80"
                       : item.href === "/dashboard/owner"
                         ? "text-yellow-300 hover:bg-yellow-500/10"
-                        : "text-zinc-300 hover:bg-slate-800/70 hover:text-teal-300"
+                        : "text-zinc-300 hover:bg-[#1a212c] hover:text-teal-300"
                 }`}
               >
                 <span className="flex w-full items-center justify-center leading-none">
@@ -628,7 +628,7 @@ export default function Navbar() {
                     <ItemIcon className="h-5 w-5" strokeWidth={2.25} />
                   )}
                 </span>
-                <span className="mt-1 flex w-full items-center justify-center gap-1 text-center text-[10px] font-black leading-none whitespace-nowrap">
+                <span className="mt-1 flex w-full items-center justify-center gap-1 text-center text-[10px] font-semibold leading-none whitespace-nowrap">
                   {opening ? "Opening" : item.mobileLabel}
                   {!opening && item.mobileLabel === "Support" && <SupportUnreadBadge className="min-h-4 min-w-4 px-1 text-[9px]" />}
                 </span>
@@ -650,7 +650,7 @@ export default function Navbar() {
                 "🚪"
               )}
             </span>
-            <span className="mt-1 block w-full text-center text-[10px] font-black leading-none whitespace-nowrap">
+            <span className="mt-1 block w-full text-center text-[10px] font-semibold leading-none whitespace-nowrap">
               {loggingOut ? "Leaving" : "Logout"}
             </span>
           </button>
@@ -660,7 +660,7 @@ export default function Navbar() {
       {userEmail && !isOwner && !isPortalRoute(pathname) && (
         <Link
           href="/support"
-          className="fixed bottom-40 right-4 z-[150] flex items-center gap-2 rounded-full border border-amber-400/60 bg-[#0b1220] px-4 py-3 text-xs font-black uppercase tracking-wide text-amber-300 shadow-2xl shadow-black/40 transition hover:border-amber-300 hover:text-amber-200 active:scale-[0.97] xl:bottom-20"
+          className="fixed bottom-40 right-4 z-[150] flex items-center gap-2 rounded-full border border-amber-400/60 bg-[#10151e] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-amber-300 shadow-2xl shadow-black/40 transition hover:border-amber-300 hover:text-amber-200 active:scale-[0.97] xl:bottom-20"
         >
           💡 Suggest
         </Link>

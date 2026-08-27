@@ -314,13 +314,13 @@ export default function InspectorAvailabilitySettings() {
   }
 
   return (
-    <section className="mb-6 rounded-3xl border border-teal-500/30 bg-teal-950/10 p-5 sm:p-6">
+    <section className="mb-6 rounded-2xl border border-teal-500/30 bg-teal-950/10 p-5 sm:p-6">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-teal-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">
           Public Scheduling
         </p>
 
-        <h2 className="mt-2 text-xl font-black text-teal-200 sm:text-2xl">
+        <h2 className="mt-2 text-xl font-semibold text-teal-200 sm:text-2xl">
           Booking Availability
         </h2>
 
@@ -343,7 +343,7 @@ export default function InspectorAvailabilitySettings() {
             <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-zinc-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                     Public Booking
                   </p>
                   <p className="mt-2 text-sm leading-6 text-zinc-300">
@@ -380,7 +380,7 @@ export default function InspectorAvailabilitySettings() {
               </div>
 
               <p
-                className={`mt-4 text-sm font-black ${
+                className={`mt-4 text-sm font-semibold ${
                   bookingEnabled ? "text-emerald-300" : "text-zinc-500"
                 }`}
               >
@@ -389,7 +389,7 @@ export default function InspectorAvailabilitySettings() {
             </div>
 
             <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5">
-              <p className="text-xs font-black uppercase tracking-wide text-zinc-500">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Available Days
               </p>
 
@@ -407,7 +407,7 @@ export default function InspectorAvailabilitySettings() {
                       type="button"
                       aria-pressed={selected}
                       onClick={() => toggleDay(day.id)}
-                      className={`min-w-12 rounded-full border px-3 py-2 text-xs font-black transition ${
+                      className={`min-w-12 rounded-full border px-3 py-2 text-xs font-semibold transition ${
                         selected
                           ? "border-teal-300 bg-teal-400 text-black"
                           : "border-zinc-700 bg-zinc-950 text-zinc-300 hover:border-teal-500/60"
@@ -421,7 +421,7 @@ export default function InspectorAvailabilitySettings() {
             </div>
 
             <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5 lg:col-span-2">
-              <p className="text-xs font-black uppercase tracking-wide text-zinc-500">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Default Times
               </p>
 
@@ -449,7 +449,7 @@ export default function InspectorAvailabilitySettings() {
                 <button
                   type="button"
                   onClick={addTime}
-                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10"
+                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10"
                 >
                   + Add Time
                 </button>
@@ -460,7 +460,7 @@ export default function InspectorAvailabilitySettings() {
                   defaultTimes.map((time) => (
                     <div
                       key={time}
-                      className="inline-flex items-center gap-2 rounded-full border border-teal-500/40 bg-teal-500/10 py-2 pl-4 pr-2 text-sm font-black text-teal-200"
+                      className="inline-flex items-center gap-2 rounded-full border border-teal-500/40 bg-teal-500/10 py-2 pl-4 pr-2 text-sm font-semibold text-teal-200"
                     >
                       <span>{formatTime(time, timeFormat)}</span>
                       <button
@@ -482,7 +482,7 @@ export default function InspectorAvailabilitySettings() {
             </div>
 
             <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5 lg:col-span-2">
-              <p className="text-xs font-black uppercase tracking-wide text-zinc-500">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Blocked Dates
               </p>
 
@@ -511,7 +511,7 @@ export default function InspectorAvailabilitySettings() {
                 <button
                   type="button"
                   onClick={addBlockedDate}
-                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-black text-teal-300 transition hover:bg-teal-500/10"
+                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10"
                 >
                   + Block Date
                 </button>
@@ -525,7 +525,7 @@ export default function InspectorAvailabilitySettings() {
                       className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/80 px-4 py-3"
                     >
                       <div className="min-w-0">
-                        <p className="font-black text-white">
+                        <p className="font-semibold text-white">
                           {formatDate(date, timeZone)}
                         </p>
                         <p className="mt-1 text-xs text-zinc-500">{date}</p>
@@ -534,7 +534,7 @@ export default function InspectorAvailabilitySettings() {
                       <button
                         type="button"
                         onClick={() => removeBlockedDate(date)}
-                        className="shrink-0 rounded-lg border border-red-500/30 px-3 py-2 text-xs font-black text-red-300 transition hover:bg-red-500/10"
+                        className="shrink-0 rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/10"
                       >
                         Remove
                       </button>
@@ -572,7 +572,7 @@ export default function InspectorAvailabilitySettings() {
               type="button"
               onClick={save}
               disabled={saving}
-              className="w-full rounded-xl bg-teal-400 px-5 py-4 text-sm font-black text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-52"
+              className="w-full rounded-xl bg-teal-400 px-5 py-4 text-sm font-semibold text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-52"
             >
               {saving ? "Saving Availability…" : "Save Availability"}
             </button>

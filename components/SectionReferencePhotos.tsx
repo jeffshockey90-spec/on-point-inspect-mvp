@@ -299,7 +299,7 @@ function SectionReferencePhotos({
       className={`rounded-2xl border bg-[#071224] transition ${
         draggingOver
           ? "border-cyan-400 ring-2 ring-cyan-400/40"
-          : "border-slate-700"
+          : "border-[#232b38]"
       }`}
     >
       <div className="flex w-full flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -308,11 +308,11 @@ function SectionReferencePhotos({
           onClick={() => setOpen((prev) => !prev)}
           className="min-w-0 flex-1 text-left transition active:scale-[0.99] [touch-action:manipulation]"
         >
-          <h3 className="text-xl font-black text-cyan-300">
+          <h3 className="text-xl font-semibold text-cyan-300">
             Section Reference Photos
           </h3>
 
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-[#8a93a3]">
             {draggingOver
               ? "Drop photos here to add them to this section"
               : loadingPhotos
@@ -327,7 +327,7 @@ function SectionReferencePhotos({
 
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
           <label
-            className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-cyan-500 px-4 py-2 text-sm font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
+            className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-cyan-500 px-4 py-2 text-sm font-semibold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
               uploading ? "cursor-not-allowed opacity-60" : ""
             }`}
           >
@@ -350,7 +350,7 @@ function SectionReferencePhotos({
           <button
             type="button"
             onClick={() => setOpen((prev) => !prev)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200 transition active:scale-[0.98] hover:bg-slate-800 [touch-action:manipulation]"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition active:scale-[0.98] hover:bg-[#1a212c] [touch-action:manipulation]"
           >
             {loadingPhotos && <SmallSpinner />}
             {open ? "Hide" : "Show"}
@@ -359,7 +359,7 @@ function SectionReferencePhotos({
       </div>
 
       {photos.length > 0 && !open && (
-        <div className="border-t border-slate-700 px-5 py-3">
+        <div className="border-t border-[#232b38] px-5 py-3">
           <div className="flex flex-wrap gap-2">
             {photos.slice(0, 6).map((photo, index) => (
               <span
@@ -374,13 +374,13 @@ function SectionReferencePhotos({
       )}
 
       {open && (
-        <div className="space-y-5 border-t border-slate-700 p-5">
-          <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
-            <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+        <div className="space-y-5 border-t border-[#232b38] p-5">
+          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13]/50 p-4">
+            <p className="text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
               Add Reference Photo
             </p>
 
-            <p className="mt-1 text-sm text-slate-300">
+            <p className="mt-1 text-sm text-[#8a93a3]">
               These photos are for section documentation only. They are not
               findings, defects, repair request items, or severity-counted issues.
               You can also drag and drop photos onto this panel.
@@ -391,7 +391,7 @@ function SectionReferencePhotos({
               onChange={(event) => setCaption(event.target.value)}
               disabled={uploading}
               placeholder="Optional caption, example: Front elevation, Water heater location, Main panel overview..."
-              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-4 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
 
             <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -400,7 +400,7 @@ function SectionReferencePhotos({
                   type="button"
                   onClick={takeNativeReferencePhoto}
                   disabled={uploading}
-                  className="rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-center font-black text-emerald-300 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                  className="rounded-xl border border-emerald-500 bg-emerald-500/10 p-4 text-center font-semibold text-emerald-300 transition active:scale-[0.98] hover:bg-emerald-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
                 >
                   <span className="inline-flex items-center justify-center gap-2">
                     {uploading && <SmallSpinner />}
@@ -410,7 +410,7 @@ function SectionReferencePhotos({
               )}
 
               <label
-                className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-black text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
+                className={`rounded-xl border border-cyan-500 bg-cyan-500/10 p-4 text-center font-semibold text-cyan-300 transition active:scale-[0.98] hover:bg-cyan-500 hover:text-slate-950 [touch-action:manipulation] ${
                   uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
                 }`}
               >
@@ -433,7 +433,7 @@ function SectionReferencePhotos({
               </label>
 
               <label
-                className={`rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-slate-950 [touch-action:manipulation] ${
+                className={`rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-slate-950 [touch-action:manipulation] ${
                   uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
                 }`}
               >
@@ -456,14 +456,14 @@ function SectionReferencePhotos({
             </div>
 
             {isNativeApp() && (
-              <p className="mt-3 text-xs text-slate-400">
+              <p className="mt-3 text-xs text-[#8a93a3]">
                 Use “Take + Save Gallery” to save a copy to the device Photos app.
               </p>
             )}
           </div>
 
           {photos.length === 0 ? (
-            <div className="rounded-xl border border-slate-700 bg-[#020617] p-5 text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-5 text-[#8a93a3]">
               No reference photos added for this section yet.
             </div>
           ) : (
@@ -481,7 +481,7 @@ function SectionReferencePhotos({
                 return (
                   <div
                     key={photo.id}
-                    className="overflow-hidden rounded-xl border border-slate-700 bg-[#020617]"
+                    className="overflow-hidden rounded-xl border border-[#232b38] bg-[#0a0e13]"
                   >
                     {previewUrl ? (
                       <ExpandableReportImage
@@ -493,12 +493,12 @@ function SectionReferencePhotos({
                         badgeText="Tap to enlarge"
                       />
                     ) : (
-                      <div className="flex h-48 items-center justify-center bg-slate-950 text-slate-500">
+                      <div className="flex h-48 items-center justify-center bg-[#0a0e13] text-[#59626f]">
                         No preview
                       </div>
                     )}
 
-                    <div className="space-y-3 border-t border-slate-800 p-3">
+                    <div className="space-y-3 border-t border-[#1a212c] p-3">
                       <input
                         value={photo.caption || ""}
                         onChange={(event) =>
@@ -506,12 +506,12 @@ function SectionReferencePhotos({
                         }
                         disabled={isDeleting || uploading}
                         placeholder={`Reference photo ${index + 1}`}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                       />
 
                       <div className="flex flex-wrap justify-between gap-2 text-xs font-bold">
                         {previewUrl && (
-                          <span className="rounded-lg border border-slate-600 px-3 py-2 text-slate-200">
+                          <span className="rounded-lg border border-[#232b38] px-3 py-2 text-[#e8ecf3]">
                             Tap photo to expand
                           </span>
                         )}
@@ -520,7 +520,7 @@ function SectionReferencePhotos({
                           type="button"
                           onClick={() => deletePhoto(photo)}
                           disabled={isDeleting || uploading}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-600 px-3 py-2 font-black text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-600 px-3 py-2 font-semibold text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                         >
                           {isDeleting && <SmallSpinner />}
                           {isDeleting ? "Deleting..." : "Delete"}

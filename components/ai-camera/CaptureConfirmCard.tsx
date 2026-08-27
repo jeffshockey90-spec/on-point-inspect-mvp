@@ -41,7 +41,7 @@ type Props = {
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400";
-const labelClass = "text-[11px] font-black uppercase tracking-wide text-slate-400";
+const labelClass = "text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]";
 
 function Field({
   label,
@@ -85,10 +85,10 @@ function ReadRow({ label, value }: { label: string; value: unknown }) {
   if (!isKnownValue(value)) return null;
   return (
     <div className="flex items-start justify-between gap-3 border-b border-white/5 py-1.5 last:border-b-0">
-      <span className="shrink-0 text-[11px] font-black uppercase tracking-wide text-slate-400">
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </span>
-      <span className="text-right text-sm font-semibold text-slate-100">
+      <span className="text-right text-sm font-semibold text-[#e8ecf3]">
         {String(value)}
       </span>
     </div>
@@ -209,7 +209,7 @@ export default function CaptureConfirmCard({
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
       <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
           Confirm {CATEGORY_LABEL[draft.kind]}
         </p>
       </div>
@@ -234,7 +234,7 @@ export default function CaptureConfirmCard({
 
         {extraPreviewUrls && extraPreviewUrls.length > 1 && (
           <div className="mt-2">
-            <p className="text-[11px] font-black uppercase tracking-wide text-cyan-300">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-300">
               {extraPreviewUrls.length} photos in this finding
             </p>
             <div className="mt-1 flex gap-2 overflow-x-auto">
@@ -255,7 +255,7 @@ export default function CaptureConfirmCard({
             type="button"
             onClick={onMarkup}
             disabled={busy}
-            className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-200 disabled:opacity-50"
+            className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 disabled:opacity-50"
           >
             🖊 Markup Photo (optional)
           </button>
@@ -266,7 +266,7 @@ export default function CaptureConfirmCard({
             type="button"
             onClick={onAddAngle}
             disabled={busy}
-            className="mt-2 w-full rounded-xl border border-teal-400/60 bg-teal-500/10 px-4 py-2.5 text-sm font-black text-teal-200 disabled:opacity-50"
+            className="mt-2 w-full rounded-xl border border-teal-400/60 bg-teal-500/10 px-4 py-2.5 text-sm font-semibold text-teal-200 disabled:opacity-50"
           >
             ＋ Add another angle to this defect
           </button>
@@ -309,7 +309,7 @@ export default function CaptureConfirmCard({
                   setShowNote(true);
                 }}
                 disabled={busy}
-                className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-black text-cyan-200 disabled:opacity-50"
+                className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-200 disabled:opacity-50"
               >
                 ✍️ Adjust write-up from inspector note
               </button>
@@ -328,7 +328,7 @@ export default function CaptureConfirmCard({
                     type="button"
                     onClick={() => setShowNote(false)}
                     disabled={busy}
-                    className="rounded-lg border border-slate-500 px-3 py-2 text-sm font-black text-white disabled:opacity-50"
+                    className="rounded-lg border border-[#59626f] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -336,7 +336,7 @@ export default function CaptureConfirmCard({
                     type="button"
                     onClick={() => onRegenerate?.(note)}
                     disabled={busy}
-                    className="rounded-lg bg-cyan-400 px-3 py-2 text-sm font-black text-black disabled:opacity-50"
+                    className="rounded-lg bg-cyan-400 px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"
                   >
                     🔄 Regenerate
                   </button>
@@ -466,7 +466,7 @@ export default function CaptureConfirmCard({
           {edited.kind === "equipment" && (
             <>
               {edited.equipmentStatus && isKnownValue(edited.equipmentStatus) && (
-                <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-sm font-black text-cyan-200">
+                <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-200">
                   {String(edited.equipmentStatus)}
                 </div>
               )}
@@ -513,7 +513,7 @@ export default function CaptureConfirmCard({
 
               {/* Full equipment intelligence the analyzer returned (read-only). */}
               <div className="rounded-xl border border-white/10 bg-black/40 p-3">
-                <p className="mb-1.5 text-[11px] font-black uppercase tracking-wide text-cyan-300">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-cyan-300">
                   AI Equipment Intelligence
                 </p>
                 <div>
@@ -554,7 +554,7 @@ export default function CaptureConfirmCard({
                 {isKnownValue(edited.maintenanceSchedule) && (
                   <div className="mt-3">
                     <p className={labelClass}>Maintenance Schedule</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-200">
+                    <p className="mt-1 text-sm leading-6 text-[#e8ecf3]">
                       {String(edited.maintenanceSchedule)}
                     </p>
                   </div>
@@ -564,7 +564,7 @@ export default function CaptureConfirmCard({
                   edited.knownFailurePatterns.length > 0 && (
                     <div className="mt-3">
                       <p className={labelClass}>Common Failure Patterns</p>
-                      <ul className="mt-1 space-y-0.5 text-sm leading-6 text-slate-200">
+                      <ul className="mt-1 space-y-0.5 text-sm leading-6 text-[#e8ecf3]">
                         {edited.knownFailurePatterns.slice(0, 5).map((item) => (
                           <li key={String(item)}>• {String(item)}</li>
                         ))}
@@ -575,7 +575,7 @@ export default function CaptureConfirmCard({
                 {isKnownValue(edited.recallAwareness) && (
                   <div className="mt-3">
                     <p className={labelClass}>Recall Awareness</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-200">
+                    <p className="mt-1 text-sm leading-6 text-[#e8ecf3]">
                       {String(edited.recallAwareness)}
                     </p>
                   </div>
@@ -665,10 +665,10 @@ export default function CaptureConfirmCard({
 
           {sectionFills.length > 0 && (
             <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 p-3">
-              <p className="text-[11px] font-black uppercase tracking-wide text-teal-300">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-teal-300">
                 Fill section info from this photo
               </p>
-              <p className="mt-0.5 text-[11px] leading-4 text-slate-400">
+              <p className="mt-0.5 text-[11px] leading-4 text-[#8a93a3]">
                 Auto-fills the report&apos;s system-info fields. Uncheck anything you don&apos;t want. Won&apos;t overwrite fields you&apos;ve already set.
               </p>
               <div className="mt-2 space-y-1.5">
@@ -683,20 +683,20 @@ export default function CaptureConfirmCard({
                       className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-left"
                     >
                       <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-xs font-black ${
-                          on ? "border-teal-400 bg-teal-400 text-black" : "border-slate-500 text-transparent"
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-xs font-semibold ${
+                          on ? "border-teal-400 bg-teal-400 text-black" : "border-[#59626f] text-transparent"
                         }`}
                       >
                         ✓
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                        <span className="block text-[11px] font-bold uppercase tracking-wide text-[#8a93a3]">
                           {f.section} · {f.groupTitle}
                         </span>
-                        <span className="block truncate text-sm font-black text-white">
+                        <span className="block truncate text-sm font-semibold text-white">
                           {display}
                           {!f.matched && f.kind === "option" && (
-                            <span className="ml-1.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-black text-amber-300">
+                            <span className="ml-1.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
                               NEW
                             </span>
                           )}
@@ -725,7 +725,7 @@ export default function CaptureConfirmCard({
           type="button"
           onClick={onRetake}
           disabled={busy}
-          className="min-h-12 rounded-xl border border-slate-500 px-2 py-3 text-sm font-black text-white disabled:opacity-50"
+          className="min-h-12 rounded-xl border border-[#59626f] px-2 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           Retake
         </button>
@@ -746,7 +746,7 @@ export default function CaptureConfirmCard({
             }
           }}
           disabled={busy}
-          className="min-h-12 rounded-xl bg-emerald-400 px-2 py-3 text-sm font-black text-black disabled:opacity-50"
+          className="min-h-12 rounded-xl bg-emerald-400 px-2 py-3 text-sm font-semibold text-black disabled:opacity-50"
         >
           {busy
             ? "Saving…"

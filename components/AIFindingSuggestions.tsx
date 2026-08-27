@@ -38,7 +38,7 @@ export default function AIFindingSuggestions({
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-teal-700 bg-slate-900 p-4">
+    <div className="mt-4 rounded-2xl border border-teal-700 bg-[#131923] p-4">
       <button
         onClick={analyzeImage}
         className="rounded-xl bg-teal-600 px-4 py-2 text-white hover:bg-teal-500"
@@ -47,7 +47,7 @@ export default function AIFindingSuggestions({
       </button>
 
       {finding && (
-        <div className="mt-4 space-y-3 text-sm text-slate-200">
+        <div className="mt-4 space-y-3 text-sm text-[#e8ecf3]">
           <div>
             <strong>Section:</strong> {finding.section}
           </div>

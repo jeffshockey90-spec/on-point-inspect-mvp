@@ -50,10 +50,10 @@ export default function InspectionContextEditor({
     <section className="rounded-2xl border border-indigo-500/40 bg-indigo-950/20 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-black uppercase tracking-wide text-indigo-300">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-300">
             AI Context for this inspection
           </h3>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-[#8a93a3]">
             Anything the AI should know while writing findings on this report —
             e.g. &quot;vacant ~2 years&quot;, &quot;recent flip&quot;, &quot;seller disclosed a prior
             roof leak&quot;, &quot;utilities were off&quot;. Applies to every AI write-up here.
@@ -66,7 +66,7 @@ export default function InspectionContextEditor({
               setSaved(false);
               setEditing(true);
             }}
-            className="shrink-0 rounded-lg border border-indigo-400/50 px-3 py-1.5 text-xs font-black text-indigo-200 hover:border-indigo-300 hover:text-white"
+            className="shrink-0 rounded-lg border border-indigo-400/50 px-3 py-1.5 text-xs font-semibold text-indigo-200 hover:border-indigo-300 hover:text-white"
           >
             {value.trim() ? "Edit" : "Add context"}
           </button>
@@ -81,14 +81,14 @@ export default function InspectionContextEditor({
             rows={4}
             maxLength={2000}
             placeholder="e.g. Home was vacant ~2 years; seller disclosed a prior roof leak in the northeast bedroom; utilities were on but water heater breaker was off at arrival."
-            className="w-full rounded-xl border border-slate-700 bg-black/40 p-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none"
+            className="w-full rounded-xl border border-[#232b38] bg-black/40 p-3 text-sm text-white placeholder:text-[#59626f] focus:border-indigo-400 focus:outline-none"
           />
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={save}
               disabled={busy}
-              className="rounded-lg bg-indigo-500 px-4 py-2 text-xs font-black text-white hover:bg-indigo-400 disabled:opacity-50"
+              className="rounded-lg bg-indigo-500 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save context"}
             </button>
@@ -102,7 +102,7 @@ export default function InspectionContextEditor({
                 setError("");
               }}
               disabled={busy}
-              className="text-xs font-black text-slate-400 hover:text-white disabled:opacity-50"
+              className="text-xs font-semibold text-[#8a93a3] hover:text-white disabled:opacity-50"
             >
               Cancel
             </button>
@@ -110,11 +110,11 @@ export default function InspectionContextEditor({
           {error && <p className="text-xs font-bold text-rose-400">{error}</p>}
         </div>
       ) : value.trim() ? (
-        <p className="mt-3 whitespace-pre-wrap rounded-xl border border-slate-800 bg-black/30 p-3 text-sm text-slate-200">
+        <p className="mt-3 whitespace-pre-wrap rounded-xl border border-[#1a212c] bg-black/30 p-3 text-sm text-[#e8ecf3]">
           {value}
         </p>
       ) : (
-        <p className="mt-3 text-xs italic text-slate-500">
+        <p className="mt-3 text-xs italic text-[#59626f]">
           No extra context yet — the AI is using the property record and this
           inspection&apos;s findings automatically.
         </p>

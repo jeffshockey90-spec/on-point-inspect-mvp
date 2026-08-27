@@ -34,12 +34,12 @@ export default function AIInsightCard({
   }) =>
     items && items.length ? (
       <div className="mt-4">
-        <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-slate-400">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8a93a3]">
           {title}
         </h3>
         <ul className="space-y-1">
           {items.map((item, i) => (
-            <li key={i} className="text-sm text-slate-200">
+            <li key={i} className="text-sm text-[#e8ecf3]">
               ✓ {item}
             </li>
           ))}
@@ -48,22 +48,22 @@ export default function AIInsightCard({
     ) : null;
 
   return (
-    <div className="rounded-2xl border border-cyan-500/30 bg-slate-900 p-5 shadow-lg">
+    <div className="rounded-2xl border border-cyan-500/30 bg-[#131923] p-5 shadow-lg">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
             AI Intelligence
           </p>
-          <h2 className="mt-1 text-xl font-black text-white">
+          <h2 className="mt-1 text-xl font-semibold text-white">
             {insight.title || "Inspection Brain"}
           </h2>
         </div>
 
         <div className="text-right">
-          <div className="text-3xl font-black text-cyan-300">
+          <div className="text-3xl font-semibold text-cyan-300">
             {confidence}%
           </div>
-          <div className="text-xs uppercase text-slate-400">
+          <div className="text-xs uppercase text-[#8a93a3]">
             Confidence
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function AIInsightCard({
       <Section title="Evidence Used" items={insight.evidence} />
       <Section title="Learning" items={insight.learning} />
 
-      <div className="mt-5 border-t border-slate-700 pt-3 text-xs text-slate-500">
+      <div className="mt-5 border-t border-[#232b38] pt-3 text-xs text-[#59626f]">
         AI Version: {insight.version || "Inspection Brain v2"}
       </div>
     </div>

@@ -180,7 +180,7 @@ export default function PortfolioGalleryManager({
   }
 
   return (
-    <section className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-[#0b1220] via-[#0b1220] to-emerald-950/10 p-5 shadow-xl sm:p-6 md:p-8">
+    <section className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-[#10151e] via-[#10151e] to-emerald-950/10 p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300">
@@ -276,7 +276,7 @@ export default function PortfolioGalleryManager({
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Example: Drone roof overview"
-                  className="w-full rounded-xl border border-[#232b38] bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
+                  className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-emerald-400"
                 />
               </label>
 
@@ -287,7 +287,7 @@ export default function PortfolioGalleryManager({
                 <select
                   value={category}
                   onChange={(event) => setCategory(event.target.value)}
-                  className="w-full rounded-xl border border-[#232b38] bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
+                  className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-emerald-400"
                 >
                   {categories.map((item) => (
                     <option key={item} value={item}>{item}</option>
@@ -305,7 +305,7 @@ export default function PortfolioGalleryManager({
                 onChange={(event) => setCaption(event.target.value)}
                 rows={3}
                 placeholder="Optional caption shown under the image."
-                className="w-full rounded-xl border border-[#232b38] bg-[#020817] p-3 text-white outline-none focus:border-emerald-400"
+                className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-emerald-400"
               />
             </label>
 
@@ -329,7 +329,7 @@ export default function PortfolioGalleryManager({
           </h3>
           <div className="mt-4 grid gap-2 text-sm font-bold text-[#8a93a3]">
             {["Clean exterior shots", "Drone roof photos", "Historic or luxury homes", "High-quality system photos", "Interesting inspection details"].map((tip) => (
-              <div key={tip} className="rounded-xl border border-[#1a212c] bg-[#020817] p-3">
+              <div key={tip} className="rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
                 ✓ {tip}
               </div>
             ))}

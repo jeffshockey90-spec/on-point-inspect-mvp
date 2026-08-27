@@ -67,11 +67,11 @@ function quickQuestions() {
 
 function SmallStat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
-      <p className="mt-1 text-xl font-black text-white">{value}</p>
+      <p className="mt-1 text-xl font-semibold text-white">{value}</p>
     </div>
   );
 }
@@ -80,9 +80,9 @@ function IssueCard({ issue }: { issue: CopilotIssue }) {
   return (
     <div className={`rounded-xl border p-3 ${issueTone(issue.severity)}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="text-sm font-black">{issue.title}</p>
+        <p className="text-sm font-semibold">{issue.title}</p>
         {issue.section && (
-          <span className="rounded-full border border-current/30 px-2 py-1 text-[10px] font-black opacity-90">
+          <span className="rounded-full border border-current/30 px-2 py-1 text-[10px] font-semibold opacity-90">
             {issue.section}
           </span>
         )}
@@ -92,7 +92,7 @@ function IssueCard({ issue }: { issue: CopilotIssue }) {
       <button
         type="button"
         onClick={() => jumpToIssue(issue)}
-        className="mt-3 rounded-lg border border-current/40 px-3 py-1.5 text-xs font-black transition active:scale-[0.98] hover:bg-white/10"
+        className="mt-3 rounded-lg border border-current/40 px-3 py-1.5 text-xs font-semibold transition active:scale-[0.98] hover:bg-white/10"
       >
         Open Section
       </button>
@@ -320,13 +320,13 @@ export default function InspectionCopilotPanel({
     <section ref={rootRef} className="rounded-2xl border border-indigo-500/40 bg-indigo-950/20 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">
             Inspection Copilot
           </p>
-          <h2 className="mt-1 text-2xl font-black text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-white">
             Live AI Inspector Assistant
           </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-300">
+          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
             Watches the full inspection for missing items, contradictions, related findings, confidence changes, and publish readiness.
           </p>
         </div>
@@ -336,7 +336,7 @@ export default function InspectionCopilotPanel({
             type="button"
             onClick={reviewMyInspection}
             disabled={loading || !inspectionId}
-            className="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-black transition active:scale-[0.98] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-black transition active:scale-[0.98] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Reviewing..." : "Review My Inspection"}
           </button>
@@ -345,7 +345,7 @@ export default function InspectionCopilotPanel({
             type="button"
             onClick={() => loadCopilot(question)}
             disabled={loading || !inspectionId}
-            className="rounded-xl bg-indigo-500 px-4 py-3 text-sm font-black text-white transition active:scale-[0.98] hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Checking..." : "Refresh Copilot"}
           </button>
@@ -359,11 +359,11 @@ export default function InspectionCopilotPanel({
       )}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className={`rounded-xl border p-4 ${result ? scoreTone(score) : "border-slate-700 bg-[#020817]/70 text-slate-300"}`}>
-          <p className="text-xs font-black uppercase tracking-wide opacity-80">
+        <div className={`rounded-xl border p-4 ${result ? scoreTone(score) : "border-[#232b38] bg-[#131923] text-[#8a93a3]"}`}>
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
             Copilot Score
           </p>
-          <p className="mt-1 text-3xl font-black">
+          <p className="mt-1 text-3xl font-semibold">
             {result ? score : "—"}
             {result && <span className="text-base opacity-80"> / 100</span>}
           </p>
@@ -377,19 +377,19 @@ export default function InspectionCopilotPanel({
         <SmallStat label="Equipment" value={result?.equipmentCount ?? "—"} />
       </div>
 
-      <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
+      <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             Ask Copilot
           </p>
           {voiceSupported && (
             <button
               type="button"
               onClick={toggleVoiceReplies}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-black transition ${
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
                 voiceReplies
                   ? "border-indigo-400 bg-indigo-500/20 text-indigo-200"
-                  : "border-slate-600 text-slate-400 hover:text-slate-200"
+                  : "border-[#232b38] text-[#8a93a3] hover:text-[#e8ecf3]"
               }`}
             >
               {voiceReplies ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
@@ -404,7 +404,7 @@ export default function InspectionCopilotPanel({
               type="button"
               onClick={() => askCopilot(item)}
               disabled={loading || !inspectionId}
-              className="rounded-full border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-black text-indigo-200 transition hover:bg-indigo-500/20 disabled:opacity-60"
+              className="rounded-full border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-200 transition hover:bg-indigo-500/20 disabled:opacity-60"
             >
               {item}
             </button>
@@ -422,14 +422,14 @@ export default function InspectionCopilotPanel({
               }
             }}
             placeholder="Ask (or tap the mic): what still needs inspected, any contradictions, is it ready to publish..."
-            className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-black px-3 py-3 text-sm text-white outline-none focus:border-indigo-400"
+            className="min-w-0 flex-1 rounded-xl border border-[#232b38] bg-black px-3 py-3 text-sm text-white outline-none focus:border-indigo-400"
           />
           {voiceSupported && (
             <button
               type="button"
               onClick={toggleListening}
               aria-label={listening ? "Stop listening" : "Ask by voice"}
-              className={`shrink-0 rounded-xl px-4 py-3 text-sm font-black text-white transition ${
+              className={`shrink-0 rounded-xl px-4 py-3 text-sm font-semibold text-white transition ${
                 listening
                   ? "animate-pulse bg-red-500 hover:bg-red-400"
                   : "bg-indigo-500 hover:bg-indigo-400"
@@ -442,7 +442,7 @@ export default function InspectionCopilotPanel({
             type="button"
             onClick={() => askCopilot()}
             disabled={loading || !inspectionId}
-            className="rounded-xl bg-white px-4 py-3 text-sm font-black text-black transition hover:bg-slate-200 disabled:opacity-60"
+            className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-slate-200 disabled:opacity-60"
           >
             Ask
           </button>
@@ -457,12 +457,12 @@ export default function InspectionCopilotPanel({
 
       {result && (
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+          <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-black uppercase tracking-wide text-slate-400">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Things To Review
               </h3>
-              <span className="rounded-full border border-slate-600 bg-black/30 px-2 py-1 text-xs font-black text-slate-300">
+              <span className="rounded-full border border-[#232b38] bg-black/30 px-2 py-1 text-xs font-semibold text-[#8a93a3]">
                 {topIssues.length}
               </span>
             </div>
@@ -480,12 +480,12 @@ export default function InspectionCopilotPanel({
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+          <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-black uppercase tracking-wide text-slate-400">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Missing Systems
               </h3>
-              <span className="rounded-full border border-slate-600 bg-black/30 px-2 py-1 text-xs font-black text-slate-300">
+              <span className="rounded-full border border-[#232b38] bg-black/30 px-2 py-1 text-xs font-semibold text-[#8a93a3]">
                 {result.missingSystems.length}
               </span>
             </div>
@@ -499,7 +499,7 @@ export default function InspectionCopilotPanel({
                 {result.missingSystems.map((system) => (
                   <span
                     key={system}
-                    className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs font-black text-yellow-200"
+                    className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-yellow-200"
                   >
                     {system}
                   </span>
@@ -507,10 +507,10 @@ export default function InspectionCopilotPanel({
               </div>
             )}
 
-            <h3 className="mt-5 text-sm font-black uppercase tracking-wide text-slate-400">
+            <h3 className="mt-5 text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
               Suggestions
             </h3>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-[#8a93a3]">
               {result.suggestions.map((item, index) => (
                 <li key={index}>✓ {item}</li>
               ))}
@@ -521,24 +521,24 @@ export default function InspectionCopilotPanel({
 
       {result?.relatedFindings?.length ? (
         <div className="mt-5 rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4">
-          <h3 className="text-sm font-black uppercase tracking-wide text-cyan-300">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
             Possible Related Findings
           </h3>
 
           <div className="mt-3 grid gap-3">
             {result.relatedFindings.map((cluster) => (
-              <div key={cluster.id} className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
+              <div key={cluster.id} className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="font-black text-white">{cluster.title}</p>
-                  <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-xs font-black text-cyan-200">
+                  <p className="font-semibold text-white">{cluster.title}</p>
+                  <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-xs font-semibold text-cyan-200">
                     {cluster.confidence}% confidence
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-6 text-slate-300">{cluster.explanation}</p>
+                <p className="mt-2 text-sm leading-6 text-[#8a93a3]">{cluster.explanation}</p>
                 <div className="mt-3 grid gap-2">
                   {cluster.findings.map((finding, index) => (
-                    <div key={`${cluster.id}-${finding.id || index}`} className="rounded-lg border border-slate-700 bg-black/30 px-3 py-2 text-xs text-slate-300">
-                      <span className="font-black text-cyan-200">{finding.section || "General"}</span>
+                    <div key={`${cluster.id}-${finding.id || index}`} className="rounded-lg border border-[#232b38] bg-black/30 px-3 py-2 text-xs text-[#8a93a3]">
+                      <span className="font-semibold text-cyan-200">{finding.section || "General"}</span>
                       {" — "}
                       {finding.title}
                     </div>

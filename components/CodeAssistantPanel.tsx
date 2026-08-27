@@ -40,7 +40,7 @@ function renderAnswer(answer: string) {
       const boldMatch = part.match(/^\*\*([^*]+)\*\*$/);
       if (boldMatch) {
         return (
-          <strong key={partIndex} className="font-black text-white">
+          <strong key={partIndex} className="font-semibold text-white">
             {boldMatch[1]}
           </strong>
         );
@@ -132,15 +132,15 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-teal-300">
             Code Assistant
           </p>
           {!compact && (
-            <h2 className="mt-1 text-xl font-black">
+            <h2 className="mt-1 text-xl font-semibold">
               Building-code &amp; standards helper
             </h2>
           )}
-          <p className={`text-slate-300 ${compact ? "mt-1 text-xs" : "mt-2 text-sm leading-6"}`}>
+          <p className={`text-[#8a93a3] ${compact ? "mt-1 text-xs" : "mt-2 text-sm leading-6"}`}>
             Ask a plain-language code question. Answers reference general model-code
             (IRC) context — always verify with the local AHJ.
           </p>
@@ -159,17 +159,17 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
           }}
           placeholder="e.g. What's the required handrail height?"
           rows={compact ? 2 : 3}
-          className="w-full resize-none rounded-xl border border-slate-700 bg-black/40 px-4 py-3 text-sm font-medium text-white placeholder:text-slate-500 focus:border-teal-400 focus:outline-none"
+          className="w-full resize-none rounded-xl border border-[#232b38] bg-black/40 px-4 py-3 text-sm font-medium text-white placeholder:text-[#59626f] focus:border-teal-400 focus:outline-none"
         />
 
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#59626f]">
             {loading ? "Thinking…" : "Ctrl/⌘ + Enter to ask"}
           </span>
           <button
             type="submit"
             disabled={loading || !question.trim()}
-            className="min-h-11 rounded-xl bg-teal-400 px-6 py-2 text-sm font-black text-slate-950 transition hover:bg-teal-300 active:scale-[0.98] disabled:opacity-40"
+            className="min-h-11 rounded-xl bg-teal-400 px-6 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-300 active:scale-[0.98] disabled:opacity-40"
           >
             {loading ? "Asking…" : "Ask"}
           </button>
@@ -177,7 +177,7 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
       </form>
 
       <div className="mt-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8a93a3]">
           Try one
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -209,13 +209,13 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
           {history.map((item) => (
             <article
               key={item.id}
-              className="rounded-xl border border-slate-700 bg-black/30 p-4"
+              className="rounded-xl border border-[#232b38] bg-black/30 p-4"
             >
-              <p className="flex gap-2 text-sm font-black text-teal-200">
+              <p className="flex gap-2 text-sm font-semibold text-teal-200">
                 <span className="shrink-0 text-teal-400">Q</span>
                 <span className="min-w-0">{item.question}</span>
               </p>
-              <div className="mt-3 space-y-1.5 text-sm leading-6 text-slate-200">
+              <div className="mt-3 space-y-1.5 text-sm leading-6 text-[#e8ecf3]">
                 {renderAnswer(item.answer)}
               </div>
             </article>
@@ -224,7 +224,7 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
       )}
 
       {history.length === 0 && !error && (
-        <p className="mt-5 rounded-xl border border-dashed border-slate-700 bg-black/20 p-4 text-center text-xs font-bold text-slate-500">
+        <p className="mt-5 rounded-xl border border-dashed border-[#232b38] bg-black/20 p-4 text-center text-xs font-bold text-[#59626f]">
           Answers are general model-code guidance for inspectors, not legal advice.
           Adopted editions and local amendments vary — confirm with the AHJ.
         </p>

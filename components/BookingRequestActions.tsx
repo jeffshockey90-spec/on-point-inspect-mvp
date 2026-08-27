@@ -50,7 +50,7 @@ export default function BookingRequestActions({ requestId }: Props) {
           type="button"
           onClick={() => runAction("confirm")}
           disabled={!!loadingAction}
-          className="rounded-xl bg-teal-400 px-4 py-2 text-sm font-black text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-teal-400 px-4 py-2 text-sm font-semibold text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loadingAction === "confirm" ? "Creating Inspection..." : "Confirm + Create Inspection"}
         </button>
@@ -59,7 +59,7 @@ export default function BookingRequestActions({ requestId }: Props) {
           type="button"
           onClick={() => runAction("decline")}
           disabled={!!loadingAction}
-          className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-2 text-sm font-black text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loadingAction === "decline" ? "Declining..." : "Decline"}
         </button>

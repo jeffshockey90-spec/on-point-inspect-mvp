@@ -99,14 +99,14 @@ export default async function RealtorsPage() {
   const topRealtor = [...realtors].sort((a: any, b: any) => b.totalReferrals - a.totalReferrals || b.revenueGenerated - a.revenueGenerated)[0];
 
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
       <div className="mx-auto max-w-[96rem]">
-        <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">FLOW</p>
-              <h1 className="mt-4 text-5xl font-black text-white">Realtor Contacts</h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">Store realtor contact info once, then select them when creating inspections. Report emails include realtors automatically; agreement emails stay client-only.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">FLOW</p>
+              <h1 className="mt-4 text-5xl font-semibold text-white">Realtor Contacts</h1>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">Store realtor contact info once, then select them when creating inspections. Report emails include realtors automatically; agreement emails stay client-only.</p>
             </div>
             <Link href="/" className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10">Back to Dashboard</Link>
           </div>
@@ -119,30 +119,30 @@ export default async function RealtorsPage() {
           <StatCard label="Top Referrer" value={topRealtor?.name || "N/A"} helper={topRealtor ? `${topRealtor.totalReferrals} referral${topRealtor.totalReferrals === 1 ? "" : "s"}` : "No referrals yet"} />
         </section>
 
-        <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <h2 className="text-2xl font-black text-teal-300">Add Realtor</h2>
+        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-teal-300">Add Realtor</h2>
           <form action={addRealtor} className="mt-5 grid gap-4 md:grid-cols-4">
-            <input name="name" required placeholder="Name" className="rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white" />
-            <input name="email" placeholder="Email" className="rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white" />
-            <input name="phone" placeholder="Phone" className="rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white" />
-            <input name="last_contact_date" type="date" className="rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white" />
+            <input name="name" required placeholder="Name" className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white" />
+            <input name="email" placeholder="Email" className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white" />
+            <input name="phone" placeholder="Phone" className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white" />
+            <input name="last_contact_date" type="date" className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white" />
             <button type="submit" className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 md:col-span-4">Save Realtor</button>
           </form>
         </section>
 
         <section className="mt-8 grid gap-4">
           {realtors.length === 0 ? (
-            <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 text-slate-400">No realtor contacts saved yet.</div>
+            <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 text-[#8a93a3]">No realtor contacts saved yet.</div>
           ) : (
             realtors.map((realtor: any) => (
-              <article key={realtor.id} className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+              <article key={realtor.id} className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
                 <div className="flex flex-wrap items-start justify-between gap-5">
                   <div>
-                    <h2 className="text-2xl font-black text-white">{realtor.name}</h2>
-                    <p className="mt-2 text-slate-300">{realtor.email || "No email"}</p>
-                    <p className="text-slate-400">{realtor.phone || "No phone"}</p>
-                    <p className="mt-2 text-sm text-slate-500">Last Contact: {formatDate(realtor.last_contact_date)}</p>
-                    {realtor.lastInspection && <p className="mt-2 text-sm text-slate-400">Last Inspection: {realtor.lastInspection.property_address || realtor.lastInspection.address || "Untitled Inspection"}</p>}
+                    <h2 className="text-2xl font-semibold text-white">{realtor.name}</h2>
+                    <p className="mt-2 text-[#8a93a3]">{realtor.email || "No email"}</p>
+                    <p className="text-[#8a93a3]">{realtor.phone || "No phone"}</p>
+                    <p className="mt-2 text-sm text-[#59626f]">Last Contact: {formatDate(realtor.last_contact_date)}</p>
+                    {realtor.lastInspection && <p className="mt-2 text-sm text-[#8a93a3]">Last Inspection: {realtor.lastInspection.property_address || realtor.lastInspection.address || "Untitled Inspection"}</p>}
                   </div>
                   <div className="grid gap-3 text-right sm:grid-cols-3">
                     <Stat label="Referrals" value={String(realtor.totalReferrals)} />
@@ -167,9 +167,9 @@ export default async function RealtorsPage() {
 }
 
 function StatCard({ label, value, helper }: { label: string; value: string; helper?: string }) {
-  return <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl"><p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p><p className="mt-3 text-3xl font-black text-white">{value}</p>{helper && <p className="mt-2 text-sm text-slate-400">{helper}</p>}</div>;
+  return <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl"><p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p><p className="mt-3 text-3xl font-semibold text-white">{value}</p>{helper && <p className="mt-2 text-sm text-[#8a93a3]">{helper}</p>}</div>;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border border-slate-700 bg-[#020817]/80 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p><p className="mt-2 text-xl font-black text-teal-300">{value}</p></div>;
+  return <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#8a93a3]">{label}</p><p className="mt-2 text-xl font-semibold text-teal-300">{value}</p></div>;
 }

@@ -257,7 +257,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
   const moldResult = moldTest?.result || "Pending";
 
   return (
-    <main className="min-h-screen bg-[#020617] p-4 text-white print:bg-white print:p-0 print:text-slate-950 md:p-8">
+    <main className="min-h-screen bg-[#0a0e13] p-4 text-white print:bg-white print:p-0 print:text-slate-950 md:p-8">
       <style>{`
         @media print {
           @page {
@@ -280,8 +280,8 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
         }
       `}</style>
 
-      <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-slate-800 bg-[#0f172a] shadow-2xl print:rounded-none print:border-0 print:bg-white print:shadow-none">
-        <div className="print-hide flex flex-wrap gap-3 border-b border-slate-800 bg-[#020617] p-5">
+      <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] shadow-2xl print:rounded-none print:border-0 print:bg-white print:shadow-none">
+        <div className="print-hide flex flex-wrap gap-3 border-b border-[#1a212c] bg-[#0a0e13] p-5">
           <PrintButton
             label="Print / Save PDF"
             className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
@@ -302,7 +302,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
           </Link>
         </div>
 
-        <section className="avoid-break overflow-hidden bg-[#020617] print:bg-white">
+        <section className="avoid-break overflow-hidden bg-[#0a0e13] print:bg-white">
           {propertyPhoto && (
             <img
               src={propertyPhoto}
@@ -311,20 +311,20 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
             />
           )}
 
-          <div className="bg-slate-950 p-8 text-white print:bg-slate-950">
-            <p className="text-sm font-black uppercase tracking-[0.32em] text-teal-300">
+          <div className="bg-[#0a0e13] p-8 text-white print:bg-[#0a0e13]">
+            <p className="text-sm font-semibold uppercase tracking-[0.32em] text-teal-300">
               {branding.name}
             </p>
 
-            <h1 className="mt-4 text-5xl font-black tracking-tight">
+            <h1 className="mt-4 text-5xl font-semibold tracking-tight">
               {reportTitle}
             </h1>
 
-            <p className="mt-3 text-lg font-semibold text-slate-300">
+            <p className="mt-3 text-lg font-semibold text-[#8a93a3]">
               {address}
             </p>
 
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-[#8a93a3]">
               Protecting Your Investment. One Inspection at a Time.
             </p>
           </div>
@@ -344,15 +344,15 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
             <div className="rounded-2xl border border-slate-300 p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-black uppercase tracking-[0.28em] text-teal-700">
+                  <p className="text-sm font-semibold uppercase tracking-[0.28em] text-teal-700">
                     Radon Testing Results
                   </p>
-                  <h2 className="mt-2 text-3xl font-black text-slate-950">
+                  <h2 className="mt-2 text-3xl font-semibold text-slate-950">
                     Radon Summary
                   </h2>
                 </div>
 
-                <span className={`rounded-full border px-4 py-2 text-sm font-black ${resultClass(radonResult)}`}>
+                <span className={`rounded-full border px-4 py-2 text-sm font-semibold ${resultClass(radonResult)}`}>
                   {radonResult}
                 </span>
               </div>
@@ -369,7 +369,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
               </div>
 
               <div className="mt-6 rounded-xl border border-slate-300 bg-slate-50 p-5">
-                <h3 className="text-xl font-black text-slate-950">
+                <h3 className="text-xl font-semibold text-slate-950">
                   Client Summary
                 </h3>
                 <p className="mt-3 whitespace-pre-line leading-7 text-slate-700">
@@ -379,7 +379,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 
               {radonTest?.notes && (
                 <div className="mt-5 rounded-xl border border-slate-300 bg-white p-5">
-                  <h3 className="text-xl font-black text-slate-950">Notes</h3>
+                  <h3 className="text-xl font-semibold text-slate-950">Notes</h3>
                   <p className="mt-3 whitespace-pre-line leading-7 text-slate-700">
                     {radonTest.notes}
                   </p>
@@ -394,15 +394,15 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
             <div className="rounded-2xl border border-slate-300 p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-black uppercase tracking-[0.28em] text-teal-700">
+                  <p className="text-sm font-semibold uppercase tracking-[0.28em] text-teal-700">
                     Mold Sampling Results
                   </p>
-                  <h2 className="mt-2 text-3xl font-black text-slate-950">
+                  <h2 className="mt-2 text-3xl font-semibold text-slate-950">
                     Mold Summary
                   </h2>
                 </div>
 
-                <span className={`rounded-full border px-4 py-2 text-sm font-black ${resultClass(moldResult)}`}>
+                <span className={`rounded-full border px-4 py-2 text-sm font-semibold ${resultClass(moldResult)}`}>
                   {moldResult}
                 </span>
               </div>
@@ -431,7 +431,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
               </div>
 
               <div className="mt-6 rounded-xl border border-slate-300 bg-slate-50 p-5">
-                <h3 className="text-xl font-black text-slate-950">
+                <h3 className="text-xl font-semibold text-slate-950">
                   Client Summary
                 </h3>
                 <p className="mt-3 whitespace-pre-line leading-7 text-slate-700">
@@ -441,7 +441,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 
               {moldTest?.findings && (
                 <div className="mt-5 rounded-xl border border-slate-300 bg-white p-5">
-                  <h3 className="text-xl font-black text-slate-950">
+                  <h3 className="text-xl font-semibold text-slate-950">
                     Lab Findings / Summary
                   </h3>
                   <p className="mt-3 whitespace-pre-line leading-7 text-slate-700">
@@ -452,7 +452,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 
               {moldTest?.notes && (
                 <div className="mt-5 rounded-xl border border-slate-300 bg-white p-5">
-                  <h3 className="text-xl font-black text-slate-950">Notes</h3>
+                  <h3 className="text-xl font-semibold text-slate-950">Notes</h3>
                   <p className="mt-3 whitespace-pre-line leading-7 text-slate-700">
                     {moldTest.notes}
                   </p>
@@ -477,7 +477,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 
         <section className="bg-white p-8 text-slate-950">
           <div className="rounded-2xl border border-slate-300 bg-slate-50 p-6">
-            <h2 className="text-2xl font-black text-slate-950">
+            <h2 className="text-2xl font-semibold text-slate-950">
               Environmental Testing Disclaimer
             </h2>
             <p className="mt-3 leading-7 text-slate-700">
@@ -497,7 +497,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 function Info({ label, value }: { label: string; value?: any }) {
   return (
     <div className="rounded-xl border border-slate-300 bg-slate-50 p-4">
-      <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
         {label}
       </p>
       <p className="mt-2 text-base font-bold text-slate-950">

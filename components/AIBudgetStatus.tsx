@@ -79,7 +79,7 @@ export default function AIBudgetStatus() {
   }
 
   const tone = !status
-    ? "border-slate-700 bg-[#0f172a]"
+    ? "border-[#232b38] bg-[#10151e]"
     : status.low
       ? "border-red-500/50 bg-red-950/20"
       : status.remainingUsd < status.thresholdUsd * 2
@@ -90,23 +90,23 @@ export default function AIBudgetStatus() {
     <section className={`rounded-2xl border p-6 shadow-xl ${tone}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             AI Budget (OpenAI Balance)
           </p>
 
           {loading ? (
-            <p className="mt-3 text-lg text-slate-400">Loading...</p>
+            <p className="mt-3 text-lg text-[#8a93a3]">Loading...</p>
           ) : status ? (
             <>
-              <p className="mt-3 text-4xl font-black text-white">
+              <p className="mt-3 text-4xl font-semibold text-white">
                 {money(status.remainingUsd)}
-                <span className="ml-2 text-sm font-bold text-slate-400">remaining</span>
+                <span className="ml-2 text-sm font-bold text-[#8a93a3]">remaining</span>
               </p>
-              <p className="mt-3 text-sm leading-6 text-slate-400">
+              <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
                 {money(status.spentSinceSetUsd)} spent since balance was last set &middot; alert threshold {money(status.thresholdUsd)}
               </p>
               {status.low && (
-                <p className="mt-2 text-sm font-black text-red-300">
+                <p className="mt-2 text-sm font-semibold text-red-300">
                   ⚠️ Balance is at or below your alert threshold.
                 </p>
               )}
@@ -122,7 +122,7 @@ export default function AIBudgetStatus() {
             setEditing((current) => !current);
             setError("");
           }}
-          className="rounded-xl border border-slate-500 px-4 py-2 text-sm font-black text-slate-200 transition hover:bg-slate-700/30"
+          className="rounded-xl border border-[#59626f] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:bg-slate-700/30"
         >
           {editing ? "Cancel" : "Update Balance"}
         </button>
@@ -131,7 +131,7 @@ export default function AIBudgetStatus() {
       {editing && (
         <div className="mt-6 grid gap-3 sm:grid-cols-3 sm:items-end">
           <label className="text-sm">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Current OpenAI balance ($)
             </span>
             <input
@@ -146,7 +146,7 @@ export default function AIBudgetStatus() {
           </label>
 
           <label className="text-sm">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Alert me when under ($)
             </span>
             <input
@@ -163,7 +163,7 @@ export default function AIBudgetStatus() {
             type="button"
             onClick={save}
             disabled={saving}
-            className="rounded-xl bg-emerald-400 px-4 py-2.5 font-black text-black disabled:opacity-50"
+            className="rounded-xl bg-emerald-400 px-4 py-2.5 font-semibold text-black disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save"}
           </button>

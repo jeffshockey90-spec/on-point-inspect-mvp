@@ -20,7 +20,7 @@ export default async function DeveloperSettingsPage() {
   return (
     <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl space-y-8">
-        <section className="rounded-3xl border border-cyan-500/40 bg-[#0f172a] p-6 shadow-2xl md:p-8">
+        <section className="rounded-2xl border border-cyan-500/40 bg-[#0f172a] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-400">

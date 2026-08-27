@@ -779,29 +779,29 @@ function SectionLimitations({
 
   return (
     <>
-    <div className="rounded-2xl border border-slate-700 bg-[#071224]">
+    <div className="rounded-2xl border border-[#232b38] bg-[#071224]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-800/50"
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-[#1a212c]/50"
       >
         <div>
-          <h3 className="text-xl font-black text-teal-300">Limitations</h3>
-          <p className="mt-1 text-sm text-slate-400">
+          <h3 className="text-xl font-semibold text-teal-300">Limitations</h3>
+          <p className="mt-1 text-sm text-[#8a93a3]">
             {selectedCount > 0
               ? `${selectedCount} limitation${selectedCount === 1 ? "" : "s"} selected`
               : "No limitations selected"}
           </p>
         </div>
 
-        <span className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
+        <span className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3]">
           {open ? "Hide" : "Show"}
         </span>
       </button>
 
       {selectedLimitations.length > 0 && (
-        <div className="border-t border-slate-700 px-5 py-4">
-          <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+        <div className="border-t border-[#232b38] px-5 py-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#8a93a3]">
             Saved limitation preview
           </p>
 
@@ -819,15 +819,15 @@ function SectionLimitations({
               return (
                 <div
                   key={item.id}
-                  className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                  className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="break-words font-black text-yellow-200">
+                      <p className="break-words font-semibold text-yellow-200">
                         {label}
                       </p>
                       {comment && (
-                        <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-300">
+                        <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-[#8a93a3]">
                           {comment}
                         </p>
                       )}
@@ -836,7 +836,7 @@ function SectionLimitations({
                     <button
                       type="button"
                       onClick={() => removeLimitation(item.id)}
-                      className="rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-black text-red-200 hover:bg-red-500/20"
+                      className="rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-200 hover:bg-red-500/20"
                       title="Remove limitation"
                     >
                       Remove
@@ -860,7 +860,7 @@ function SectionLimitations({
                             key={photo.id}
                             type="button"
                             onClick={() => setExpandedPhotoUrl(photoUrl)}
-                            className="group relative block h-36 w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                            className="group relative block h-36 w-full overflow-hidden rounded-xl border border-[#232b38] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                             title="Tap to enlarge limitation photo"
                           >
                             <img
@@ -869,7 +869,7 @@ function SectionLimitations({
                               loading="lazy"
                               className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                             />
-                            <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white">
+                            <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
                               Tap to enlarge
                             </span>
                           </button>
@@ -885,7 +885,7 @@ function SectionLimitations({
       )}
 
       {message && (
-        <div className="border-t border-slate-700 px-5 pt-4">
+        <div className="border-t border-[#232b38] px-5 pt-4">
           <div
             className={`rounded-xl border px-4 py-3 text-sm font-bold ${
               messageType === "success"
@@ -899,9 +899,9 @@ function SectionLimitations({
       )}
 
       {open && (
-        <div className="space-y-5 border-t border-slate-700 p-5">
+        <div className="space-y-5 border-t border-[#232b38] p-5">
           <div>
-            <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">
+            <p className="mb-3 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
               Select limitation conditions
             </p>
 
@@ -920,7 +920,7 @@ function SectionLimitations({
                       className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                         selected
                           ? "border-teal-400 bg-teal-500/15 text-teal-100"
-                          : "border-slate-600 bg-[#020617] text-white hover:border-teal-400 hover:bg-teal-500/10"
+                          : "border-[#232b38] bg-[#0a0e13] text-white hover:border-teal-400 hover:bg-teal-500/10"
                       } disabled:cursor-not-allowed disabled:opacity-60`}
                     >
                       <span
@@ -946,7 +946,7 @@ function SectionLimitations({
                 Saved Limitation Templates
               </p>
 
-              <p className="mb-4 text-sm text-slate-300">
+              <p className="mb-4 text-sm text-[#8a93a3]">
                 Select a title here. The full saved limitation text is inserted into the report.
               </p>
 
@@ -963,7 +963,7 @@ function SectionLimitations({
                       className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                         selected
                           ? "border-cyan-300 bg-cyan-500/20 text-cyan-100"
-                          : "border-slate-600 bg-[#020617] text-white hover:border-cyan-400 hover:bg-cyan-500/10"
+                          : "border-[#232b38] bg-[#0a0e13] text-white hover:border-cyan-400 hover:bg-cyan-500/10"
                       } disabled:cursor-not-allowed disabled:opacity-60`}
                       title={template.limitation_text}
                     >
@@ -986,8 +986,8 @@ function SectionLimitations({
           )}
 
           {selectedLimitations.length > 0 && (
-            <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
-              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#0a0e13]/50 p-4">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
                 Limitation Photos
               </p>
 
@@ -999,12 +999,12 @@ function SectionLimitations({
                   return (
                     <div
                       key={limitation.id}
-                      className="rounded-xl border border-slate-700 bg-[#020617] p-4"
+                      className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="font-black text-teal-300">{label}</p>
+                        <p className="font-semibold text-teal-300">{label}</p>
 
-                        <label className="cursor-pointer rounded-xl border border-teal-500 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10">
+                        <label className="cursor-pointer rounded-xl border border-teal-500 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/10">
                           {uploadingForId === limitation.id
                             ? "Uploading..."
                             : "Upload Photo"}
@@ -1037,7 +1037,7 @@ function SectionLimitations({
                             return (
                               <div
                                 key={photo.id}
-                                className="overflow-hidden rounded-xl border border-slate-700 bg-black"
+                                className="overflow-hidden rounded-xl border border-[#232b38] bg-black"
                               >
                                 <button
                                   type="button"
@@ -1051,7 +1051,7 @@ function SectionLimitations({
                                     loading="lazy"
                                     className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                                   />
-                                  <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white">
+                                  <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
                                     Tap to enlarge
                                   </span>
                                 </button>
@@ -1059,7 +1059,7 @@ function SectionLimitations({
                                 <button
                                   type="button"
                                   onClick={() => deleteLimitationPhoto(photo)}
-                                  className="w-full border-t border-slate-700 bg-slate-950 px-3 py-2 text-xs font-black text-red-300 hover:bg-red-500/10"
+                                  className="w-full border-t border-[#232b38] bg-[#0a0e13] px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10"
                                 >
                                   Delete Photo
                                 </button>
@@ -1075,8 +1075,8 @@ function SectionLimitations({
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
-            <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">
+          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13]/50 p-4">
+            <p className="mb-3 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
               + Other Limitation
             </p>
 
@@ -1085,14 +1085,14 @@ function SectionLimitations({
                 value={customText}
                 onChange={(event) => setCustomText(event.target.value)}
                 placeholder="Enter custom limitation..."
-                className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+                className="min-w-0 flex-1 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
               />
 
               <button
                 type="button"
                 onClick={addCustomLimitation}
                 disabled={saving || !customText.trim()}
-                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Add Other
               </button>
@@ -1104,7 +1104,7 @@ function SectionLimitations({
               AI Limitation Note
             </p>
 
-            <p className="mt-1 text-sm text-slate-300">
+            <p className="mt-1 text-sm text-[#8a93a3]">
               Add your rough note, then let AI turn it into a professional limitation comment.
             </p>
 
@@ -1113,7 +1113,7 @@ function SectionLimitations({
               onChange={(event) => setAiNotes(event.target.value)}
               rows={3}
               placeholder="Example: attic only viewed from opening due to limited access and stored items..."
-              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] p-4 text-white outline-none focus:border-purple-400"
+              className="mt-4 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-purple-400"
             />
 
             <div className="mt-3 flex flex-wrap gap-3">
@@ -1121,7 +1121,7 @@ function SectionLimitations({
                 type="button"
                 onClick={generateAiLimitationComment}
                 disabled={generating || saving || !aiNotes.trim()}
-                className="rounded-xl bg-purple-500 px-5 py-3 font-black text-white hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-purple-500 px-5 py-3 font-semibold text-white hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {generating ? "Generating..." : "AI Fill Limitation Comment"}
               </button>
@@ -1130,7 +1130,7 @@ function SectionLimitations({
                 type="button"
                 onClick={saveAiLimitationComment}
                 disabled={saving || !generatedComment.trim()}
-                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Save AI Note
               </button>
@@ -1139,7 +1139,7 @@ function SectionLimitations({
                 type="button"
                 onClick={saveGeneratedCommentToLibrary}
                 disabled={saving || !generatedComment.trim()}
-                className="rounded-xl border border-cyan-500 px-5 py-3 font-black text-cyan-300 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-cyan-300 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Save To Library
               </button>
@@ -1150,7 +1150,7 @@ function SectionLimitations({
               onChange={(event) => setGeneratedComment(event.target.value)}
               rows={4}
               placeholder="AI limitation comment will appear here..."
-              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] p-4 text-white outline-none focus:border-purple-400"
+              className="mt-4 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-purple-400"
             />
           </div>
         </div>
@@ -1167,7 +1167,7 @@ function SectionLimitations({
         <button
           type="button"
           aria-label="Close expanded limitation photo"
-          className="absolute right-4 top-4 rounded-full border border-white/30 bg-black/80 px-4 py-2 text-sm font-black text-white shadow-xl"
+          className="absolute right-4 top-4 rounded-full border border-white/30 bg-black/80 px-4 py-2 text-sm font-semibold text-white shadow-xl"
           onClick={(event) => {
             event.stopPropagation();
             setExpandedPhotoUrl("");
@@ -1179,7 +1179,7 @@ function SectionLimitations({
         <img
           src={expandedPhotoUrl}
           alt="Expanded limitation"
-          className="max-h-[88vh] max-w-[94vw] rounded-2xl border border-slate-600 bg-black object-contain shadow-2xl"
+          className="max-h-[88vh] max-w-[94vw] rounded-2xl border border-[#232b38] bg-black object-contain shadow-2xl"
           onClick={(event) => event.stopPropagation()}
         />
       </div>

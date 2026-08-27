@@ -90,18 +90,18 @@ export default async function OwnerRefundsPage() {
   const totalRefunded = rows.filter((r) => r.type === "refund").reduce((s, r) => s + r.amount, 0);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-5xl space-y-6">
-        <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl md:p-8">
+        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.3em] text-teal-400">Payments</p>
-              <h1 className="mt-3 text-4xl font-black">Refunds &amp; Disputes</h1>
-              <p className="mt-3 text-slate-300">
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-400">Payments</p>
+              <h1 className="mt-3 text-4xl font-semibold">Refunds &amp; Disputes</h1>
+              <p className="mt-3 text-[#8a93a3]">
                 Every refund and chargeback synced from Stripe. {money(totalRefunded)} refunded across {counts.refund} refund{counts.refund === 1 ? "" : "s"}.
               </p>
             </div>
-            <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10">
+            <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 hover:bg-teal-500/10">
               Back to Owner Dashboard
             </Link>
           </div>
@@ -110,14 +110,14 @@ export default async function OwnerRefundsPage() {
         <RefundFilterTabs counts={counts} />
 
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-8 text-center text-slate-400">
+          <div className="rounded-2xl border border-[#232b38] bg-[#10151e] p-8 text-center text-[#8a93a3]">
             No refunds or disputes recorded yet. They appear here the moment Stripe reports one.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a]">
+          <div className="overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e]">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-800 text-sm">
-                <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
+              <table className="min-w-full divide-y divide-[#1a212c] text-sm">
+                <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
                   <tr>
                     <th className="px-4 py-3">Type</th>
                     <th className="px-4 py-3">Inspection</th>
@@ -126,24 +126,24 @@ export default async function OwnerRefundsPage() {
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
+                <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
                   {rows.map((row) => (
-                    <tr key={row.id} data-refund-type={row.type} className="hover:bg-slate-900/70">
+                    <tr key={row.id} data-refund-type={row.type} className="hover:bg-[#131923]">
                       <td className="px-4 py-3">
-                        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase ${row.type === "dispute" ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-orange-500/40 bg-orange-500/10 text-orange-300"}`}>
+                        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${row.type === "dispute" ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-orange-500/40 bg-orange-500/10 text-orange-300"}`}>
                           {row.typeLabel}
                         </span>
-                        {row.reason && <p className="mt-1 text-xs text-slate-500">{row.reason}</p>}
+                        {row.reason && <p className="mt-1 text-xs text-[#59626f]">{row.reason}</p>}
                       </td>
                       <td className="px-4 py-3">
                         <p className="max-w-[260px] truncate font-bold text-white">{row.address}</p>
-                        {row.client && <p className="text-xs text-slate-500">{row.client}</p>}
+                        {row.client && <p className="text-xs text-[#59626f]">{row.client}</p>}
                       </td>
-                      <td className="px-4 py-3 text-right font-black text-orange-300">{row.amount > 0 ? money(row.amount) : "—"}</td>
-                      <td className="px-4 py-3 text-slate-300">{formatDateTime(row.when)}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-orange-300">{row.amount > 0 ? money(row.amount) : "—"}</td>
+                      <td className="px-4 py-3 text-[#8a93a3]">{formatDateTime(row.when)}</td>
                       <td className="px-4 py-3 text-right">
                         {row.inspectionId && (
-                          <Link href={`/reports/${row.inspectionId}`} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-black text-teal-300 hover:border-teal-400 hover:bg-teal-500/10">
+                          <Link href={`/reports/${row.inspectionId}`} className="rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-teal-300 hover:border-teal-400 hover:bg-teal-500/10">
                             Open
                           </Link>
                         )}

@@ -189,12 +189,12 @@ function getInspectionRevenue(inspection: any) {
 
 function RestrictedOwner() {
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
-      <div className="mx-auto max-w-3xl rounded-3xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
-        <p className="text-sm font-black uppercase tracking-[0.35em] text-red-300">Owner Only</p>
-        <h1 className="mt-4 text-4xl font-black">Access Restricted</h1>
-        <p className="mt-4 text-slate-300">This owner tool is only available to the FLOW owner account.</p>
-        <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-black text-red-300 hover:bg-red-500/10">
+    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
+        <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">Owner Only</p>
+        <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
+        <p className="mt-4 text-[#8a93a3]">This owner tool is only available to the FLOW owner account.</p>
+        <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10">
           Back to Dashboard
         </Link>
       </div>
@@ -205,28 +205,28 @@ function RestrictedOwner() {
 function OwnerNav() {
   return (
     <div className="flex flex-wrap gap-3">
-      <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-4 py-3 font-black text-teal-300 transition hover:bg-teal-500/10">
+      <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-4 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10">
         Owner
       </Link>
-      <Link href="/dashboard/owner/users" className="rounded-xl border border-cyan-500 px-4 py-3 font-black text-cyan-300 transition hover:bg-cyan-500/10">
+      <Link href="/dashboard/owner/users" className="rounded-xl border border-cyan-500 px-4 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/10">
         👥 Users
       </Link>
-      <Link href="/dashboard/owner/devices" className="rounded-xl border border-purple-500 px-4 py-3 font-black text-purple-300 transition hover:bg-purple-500/10">
+      <Link href="/dashboard/owner/devices" className="rounded-xl border border-purple-500 px-4 py-3 font-semibold text-purple-300 transition hover:bg-purple-500/10">
         📱 Devices
       </Link>
-      <Link href="/dashboard/owner/revenue" className="rounded-xl border border-green-500 px-4 py-3 font-black text-green-300 transition hover:bg-green-500/10">
+      <Link href="/dashboard/owner/revenue" className="rounded-xl border border-green-500 px-4 py-3 font-semibold text-green-300 transition hover:bg-green-500/10">
         💰 Revenue
       </Link>
-      <Link href="/dashboard/owner/push" className="rounded-xl border border-yellow-500 px-4 py-3 font-black text-yellow-300 transition hover:bg-yellow-500/10">
+      <Link href="/dashboard/owner/push" className="rounded-xl border border-yellow-500 px-4 py-3 font-semibold text-yellow-300 transition hover:bg-yellow-500/10">
         🔔 Push Center
       </Link>
-      <Link href="/dashboard/owner/inspectors" className="rounded-xl border border-orange-500 px-4 py-3 font-black text-orange-300 transition hover:bg-orange-500/10">
+      <Link href="/dashboard/owner/inspectors" className="rounded-xl border border-orange-500 px-4 py-3 font-semibold text-orange-300 transition hover:bg-orange-500/10">
         🧑‍ inspector
       </Link>
-      <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-4 py-3 font-black text-blue-300 transition hover:bg-blue-500/10">
+      <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-4 py-3 font-semibold text-blue-300 transition hover:bg-blue-500/10">
         ⚡ Live
       </Link>
-      <Link href="/dashboard/owner/system" className="rounded-xl border border-slate-500 px-4 py-3 font-black text-slate-200 transition hover:bg-slate-700/30">
+      <Link href="/dashboard/owner/system" className="rounded-xl border border-[#59626f] px-4 py-3 font-semibold text-[#e8ecf3] transition hover:bg-slate-700/30">
         🩺 System
       </Link>
     </div>
@@ -246,25 +246,25 @@ function MetricCard({ label, value, helper, tone }: { label: string; value: stri
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-3 text-4xl font-black text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
+      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
     </div>
   );
 }
 
 function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-      <h2 className="text-2xl font-black text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
+    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
+      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-6 text-center text-slate-400">{text}</div>;
+  return <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">{text}</div>;
 }
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: Tone }) {
@@ -278,7 +278,7 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: Tone }) {
     red: "border-red-500/30 bg-red-500/10 text-red-300",
   };
 
-  return <span className={`rounded-full border px-2 py-1 text-xs font-black ${classes[tone]}`}>{children}</span>;
+  return <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${classes[tone]}`}>{children}</span>;
 }
 
 function healthStatus(ok: boolean) {
@@ -369,14 +369,14 @@ export default async function OwnerSystemHealthPage() {
   const webEnabled = webSubscriptions.filter((row: any) => row?.enabled !== false);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-3xl border border-slate-500/40 bg-[#0f172a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[#59626f]/40 bg-[#10151e] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-slate-300">Owner System Health</p>
-              <h1 className="mt-4 text-5xl font-black text-white">Services, Tables & Configuration</h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#8a93a3]">Owner System Health</p>
+              <h1 className="mt-4 text-5xl font-semibold text-white">Services, Tables & Configuration</h1>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 Owner-only checklist for environment keys, database connectivity, push notification readiness, and system activity.
               </p>
             </div>
@@ -401,11 +401,11 @@ export default async function OwnerSystemHealthPage() {
         <Panel title="Configuration Checks" subtitle="Missing items should be added in Vercel environment variables or app setup.">
           <div className="grid gap-4 md:grid-cols-2">
             {checks.map((check) => (
-              <div key={check.name} className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+              <div key={check.name} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-black text-white">{check.name}</p>
-                    <p className="mt-1 text-xs text-slate-500">{check.details}</p>
+                    <p className="font-semibold text-white">{check.name}</p>
+                    <p className="mt-1 text-xs text-[#59626f]">{check.details}</p>
                   </div>
                   <Badge tone={check.ok ? "green" : "red"}>{healthStatus(check.ok)}</Badge>
                 </div>
@@ -417,26 +417,26 @@ export default async function OwnerSystemHealthPage() {
         <Panel title="Recent System Events" subtitle="Latest device and live activity rows.">
           <div className="grid gap-6 xl:grid-cols-2">
             <div>
-              <h3 className="mb-3 font-black text-teal-300">App Device Events</h3>
+              <h3 className="mb-3 font-semibold text-teal-300">App Device Events</h3>
               <div className="space-y-3">
                 {deviceEvents.slice(0, 20).map((event: any, index: number) => (
-                  <div key={event?.id || index} className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-                    <p className="font-black text-white">{event?.event_type || "event"}</p>
-                    <p className="mt-1 text-sm text-slate-400">{event?.path || "/"}</p>
-                    <p className="mt-1 text-xs text-slate-500">{formatDateTime(event?.created_at)}</p>
+                  <div key={event?.id || index} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+                    <p className="font-semibold text-white">{event?.event_type || "event"}</p>
+                    <p className="mt-1 text-sm text-[#8a93a3]">{event?.path || "/"}</p>
+                    <p className="mt-1 text-xs text-[#59626f]">{formatDateTime(event?.created_at)}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             <div>
-              <h3 className="mb-3 font-black text-blue-300">Inspection View Events</h3>
+              <h3 className="mb-3 font-semibold text-blue-300">Inspection View Events</h3>
               <div className="space-y-3">
                 {liveEvents.slice(0, 20).map((event: any, index: number) => (
-                  <div key={event?.id || index} className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-                    <p className="font-black text-white">{event?.view_type || event?.event_type || "activity"}</p>
-                    <p className="mt-1 text-sm text-slate-400">Inspection #{event?.inspection_id_bigint || event?.inspection_id || "N/A"}</p>
-                    <p className="mt-1 text-xs text-slate-500">{formatDateTime(event?.created_at)}</p>
+                  <div key={event?.id || index} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+                    <p className="font-semibold text-white">{event?.view_type || event?.event_type || "activity"}</p>
+                    <p className="mt-1 text-sm text-[#8a93a3]">Inspection #{event?.inspection_id_bigint || event?.inspection_id || "N/A"}</p>
+                    <p className="mt-1 text-xs text-[#59626f]">{formatDateTime(event?.created_at)}</p>
                   </div>
                 ))}
               </div>

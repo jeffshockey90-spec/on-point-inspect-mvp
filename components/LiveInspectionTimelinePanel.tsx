@@ -51,9 +51,9 @@ function formatTime(value: string) {
 
 function SmallStat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 text-xl font-black text-white">{value}</p>
+    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-white">{value}</p>
     </div>
   );
 }
@@ -151,11 +151,11 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
     <section ref={rootRef} className="rounded-2xl border border-sky-500/40 bg-sky-950/20 p-4 shadow-xl" style={{ contentVisibility: "auto", containIntrinsicSize: "700px" }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">Live Inspection Timeline</p>
-          <h2 className="mt-1 text-2xl font-black text-white">AI Activity Timeline</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-300">Tracks findings, equipment, media, report activity, and AI follow-up reminders as the inspection develops.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">Live Inspection Timeline</p>
+          <h2 className="mt-1 text-2xl font-semibold text-white">AI Activity Timeline</h2>
+          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">Tracks findings, equipment, media, report activity, and AI follow-up reminders as the inspection develops.</p>
         </div>
-        <button type="button" onClick={loadTimeline} disabled={loading || !inspectionId || !active} className="rounded-xl bg-sky-500 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60">
+        <button type="button" onClick={loadTimeline} disabled={loading || !inspectionId || !active} className="rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60">
           {loading ? "Updating..." : "Refresh Timeline"}
         </button>
       </div>
@@ -169,34 +169,34 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
       </div>
 
       {result?.highlights?.length ? (
-        <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">Timeline Highlights</p>
+        <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Timeline Highlights</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {result.highlights.map((item, index) => <span key={index} className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs font-black text-sky-200">{item}</span>)}
+            {result.highlights.map((item, index) => <span key={index} className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200">{item}</span>)}
           </div>
         </div>
       ) : null}
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-black uppercase tracking-wide text-slate-400">Recent Timeline</h3>
-            <span className="rounded-full border border-slate-600 bg-black/30 px-2 py-1 text-xs font-black text-slate-300">{events.length}</span>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">Recent Timeline</h3>
+            <span className="rounded-full border border-[#232b38] bg-black/30 px-2 py-1 text-xs font-semibold text-[#8a93a3]">{events.length}</span>
           </div>
           {events.length === 0 ? (
-            <p className="mt-3 text-sm leading-6 text-slate-300">Timeline will populate as findings, photos, equipment, and report activity are saved.</p>
+            <p className="mt-3 text-sm leading-6 text-[#8a93a3]">Timeline will populate as findings, photos, equipment, and report activity are saved.</p>
           ) : (
             <div className="mt-4 space-y-3">
               {events.slice(0, 12).map((item) => (
                 <div key={item.id} className={`rounded-xl border p-3 ${toneClass(item.tone)}`}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                      <p className="text-sm font-black">{sourceIcon(item.source)} {item.title}</p>
+                      <p className="text-sm font-semibold">{sourceIcon(item.source)} {item.title}</p>
                       <p className="mt-1 text-xs leading-5 opacity-90">{item.description}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-black opacity-90">{formatTime(item.timestamp)}</p>
-                      {item.system && <p className="mt-1 rounded-full border border-current/30 px-2 py-1 text-[10px] font-black opacity-90">{item.system}</p>}
+                      <p className="text-xs font-semibold opacity-90">{formatTime(item.timestamp)}</p>
+                      {item.system && <p className="mt-1 rounded-full border border-current/30 px-2 py-1 text-[10px] font-semibold opacity-90">{item.system}</p>}
                     </div>
                   </div>
                 </div>
@@ -205,9 +205,9 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-          <h3 className="text-sm font-black uppercase tracking-wide text-slate-400">AI Next Actions</h3>
-          <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
+        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">AI Next Actions</h3>
+          <ul className="mt-3 space-y-2 text-sm leading-6 text-[#8a93a3]">
             {(result?.nextActions || ["Continue inspecting and saving findings. AI will surface follow-up items as data is added."]).map((item, index) => <li key={index}>✓ {item}</li>)}
           </ul>
         </div>

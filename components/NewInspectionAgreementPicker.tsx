@@ -29,10 +29,10 @@ function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?:
         ? "border-green-500/40 bg-green-500/10 text-green-300"
         : tone === "yellow"
           ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
-          : "border-slate-600 bg-slate-800/60 text-slate-300";
+          : "border-[#232b38] bg-[#1a212c] text-[#8a93a3]";
 
   return (
-    <span className={`inline-flex max-w-full items-center rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${classes}`}>
+    <span className={`inline-flex max-w-full items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${classes}`}>
       {children}
     </span>
   );
@@ -161,7 +161,7 @@ export default function NewInspectionAgreementPicker({
   }, [templates]);
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-[#020817]/80 p-4">
+    <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2">
@@ -174,9 +174,9 @@ export default function NewInspectionAgreementPicker({
           <div className="mt-3 space-y-2">
             {selectedTemplates.length > 0 ? (
               selectedTemplates.map((template) => (
-                <div key={template.id} className="rounded-xl border border-slate-700 bg-[#071224] px-4 py-3">
-                  <p className="min-w-0 break-words text-sm font-black text-white">{template.title}</p>
-                  {template.version && <p className="mt-1 text-xs text-slate-400">{template.version}</p>}
+                <div key={template.id} className="rounded-xl border border-[#232b38] bg-[#071224] px-4 py-3">
+                  <p className="min-w-0 break-words text-sm font-semibold text-white">{template.title}</p>
+                  {template.version && <p className="mt-1 text-xs text-[#8a93a3]">{template.version}</p>}
                 </div>
               ))
             ) : (
@@ -190,7 +190,7 @@ export default function NewInspectionAgreementPicker({
         <button
           type="button"
           onClick={() => setExpanded((current) => !current)}
-          className="w-full shrink-0 rounded-2xl border border-slate-600 px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-slate-800 sm:w-auto"
+          className="w-full shrink-0 rounded-2xl border border-[#232b38] px-5 py-3 text-sm font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c] sm:w-auto"
         >
           {expanded ? "Hide Options" : "Change Agreement"}
         </button>
@@ -199,13 +199,13 @@ export default function NewInspectionAgreementPicker({
       {expanded && (
         <div className="mt-4 space-y-4">
           <label className="block">
-            <span className="mb-1 block text-xs font-black uppercase tracking-wide text-slate-500">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#59626f]">
               Agreement State
             </span>
             <select
               value={agreementState}
               onChange={(e) => handleStateChange(e.target.value)}
-              className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-3 py-3 text-sm font-bold text-white outline-none focus:border-teal-400"
+              className="w-full rounded-2xl border border-[#232b38] bg-[#0a0e13] px-3 py-3 text-sm font-bold text-white outline-none focus:border-teal-400"
             >
               {US_STATES.map((state) => (
                 <option key={state.code} value={state.code}>
@@ -216,8 +216,8 @@ export default function NewInspectionAgreementPicker({
           </label>
 
           {Object.entries(templatesByServiceType).map(([serviceType, serviceTemplates]) => (
-            <div key={serviceType} className="rounded-2xl border border-slate-700 bg-slate-950 p-4">
-              <h3 className="text-base font-black text-teal-300">{formatServiceType(serviceType)}</h3>
+            <div key={serviceType} className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4">
+              <h3 className="text-base font-semibold text-teal-300">{formatServiceType(serviceType)}</h3>
 
               <div className="mt-3 grid w-full grid-cols-1 gap-3 md:grid-cols-2">
                 {serviceTemplates.map((template: any) => {
@@ -228,7 +228,7 @@ export default function NewInspectionAgreementPicker({
                       className={`block w-full min-w-0 cursor-pointer rounded-xl border p-4 transition ${
                         checked
                           ? "border-teal-400 bg-teal-500/10"
-                          : "border-slate-700 bg-[#071224] hover:border-teal-500"
+                          : "border-[#232b38] bg-[#071224] hover:border-teal-500"
                       }`}
                     >
                       <div className="flex min-w-0 items-start gap-3">

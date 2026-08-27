@@ -171,13 +171,13 @@ export default async function InspectorDirectoryPage({
   );
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#020617] text-white">
-      <section className="relative overflow-hidden border-b border-slate-800">
+    <main className="min-h-screen overflow-x-hidden bg-[#0a0e13] text-white">
+      <section className="relative overflow-hidden border-b border-[#1a212c]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.22),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.14),transparent_40%)]" />
         <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-teal-500/10 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16">
-          <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-teal-200">
+          <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-200">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-400 text-[10px] text-slate-950">
               ✓
             </span>
@@ -186,11 +186,11 @@ export default async function InspectorDirectoryPage({
 
           <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-4xl font-black leading-tight text-white sm:text-6xl">
+              <h1 className="text-4xl font-semibold leading-tight text-white sm:text-6xl">
                 Inspector Portfolios
               </h1>
 
-              <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300 sm:text-lg">
+              <p className="mt-5 max-w-3xl text-base leading-8 text-[#8a93a3] sm:text-lg">
                 Browse public inspector portfolios with sample reports,
                 credentials, service areas, reputation links, and direct booking
                 options.
@@ -199,7 +199,7 @@ export default async function InspectorDirectoryPage({
 
             <Link
               href="/book"
-              className="rounded-xl bg-teal-500 px-6 py-4 text-center font-black text-slate-950 shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:bg-teal-400"
+              className="rounded-xl bg-teal-500 px-6 py-4 text-center font-semibold text-slate-950 shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:bg-teal-400"
             >
               Request an Inspection
             </Link>
@@ -208,28 +208,28 @@ export default async function InspectorDirectoryPage({
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <form className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl sm:p-6">
+        <form className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-6">
           <div className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr_0.8fr_auto] lg:items-end">
             <label className="block min-w-0">
-              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Search
               </p>
               <input
                 name="q"
                 defaultValue={query}
                 placeholder="Search company, area, service, certification..."
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
               />
             </label>
 
             <label className="block min-w-0">
-              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 State
               </p>
               <select
                 name="state"
                 defaultValue={state}
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
               >
                 <option value="">All states</option>
                 {stateOptions.map((option) => (
@@ -241,13 +241,13 @@ export default async function InspectorDirectoryPage({
             </label>
 
             <label className="block min-w-0">
-              <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Service
               </p>
               <select
                 name="service"
                 defaultValue={service}
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-teal-400"
+                className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
               >
                 <option value="">All services</option>
                 {serviceOptions.map((option) => (
@@ -261,14 +261,14 @@ export default async function InspectorDirectoryPage({
             <div className="flex gap-3">
               <button
                 type="submit"
-                className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition hover:bg-teal-400"
+                className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-teal-400"
               >
                 Filter
               </button>
 
               <Link
                 href="/inspectors"
-                className="rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:text-teal-300"
+                className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300"
               >
                 Reset
               </Link>
@@ -277,18 +277,18 @@ export default async function InspectorDirectoryPage({
         </form>
 
         <div className="mt-6 flex items-center justify-between gap-4">
-          <p className="text-sm font-bold text-slate-400">
+          <p className="text-sm font-bold text-[#8a93a3]">
             Showing {companies.length} inspector
             {companies.length === 1 ? "" : "s"}
           </p>
         </div>
 
         {companies.length === 0 ? (
-          <div className="mt-6 rounded-3xl border border-dashed border-slate-700 bg-[#0b1220] p-8 text-center">
-            <h2 className="text-2xl font-black text-white">
+          <div className="mt-6 rounded-2xl border border-dashed border-[#232b38] bg-[#10151e] p-8 text-center">
+            <h2 className="text-2xl font-semibold text-white">
               No inspectors found
             </h2>
-            <p className="mt-3 text-slate-400">
+            <p className="mt-3 text-[#8a93a3]">
               Try a different state, service, or search term.
             </p>
           </div>
@@ -317,12 +317,12 @@ export default async function InspectorDirectoryPage({
               return (
                 <article
                   key={company.id}
-                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#0b1220] p-5 shadow-xl transition hover:-translate-y-1 hover:border-teal-500/70 sm:p-6"
+                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl transition hover:-translate-y-1 hover:border-teal-500/70 sm:p-6"
                 >
                   <div className="flex items-start gap-4">
                     <div className="relative shrink-0">
                       {logoUrl ? (
-                        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-slate-700 bg-black/30 p-2">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[#232b38] bg-black/30 p-2">
                           <img
                             src={logoUrl}
                             alt={`${companyName} logo`}
@@ -331,7 +331,7 @@ export default async function InspectorDirectoryPage({
                         </div>
                       ) : (
                         <div
-                          className="flex h-20 w-20 items-center justify-center rounded-2xl text-2xl font-black text-slate-950"
+                          className="flex h-20 w-20 items-center justify-center rounded-2xl text-2xl font-semibold text-slate-950"
                           style={{ backgroundColor: brandColor }}
                         >
                           {getInitials(companyName)}
@@ -339,7 +339,7 @@ export default async function InspectorDirectoryPage({
                       )}
 
                       {headshotUrl && (
-                        <div className="absolute -bottom-2 -right-2 h-9 w-9 overflow-hidden rounded-full border-2 border-[#0b1220] bg-slate-950">
+                        <div className="absolute -bottom-2 -right-2 h-9 w-9 overflow-hidden rounded-full border-2 border-[#0b1220] bg-[#0a0e13]">
                           <img
                             src={headshotUrl}
                             alt={companyName}
@@ -350,13 +350,13 @@ export default async function InspectorDirectoryPage({
                     </div>
 
                     <div className="min-w-0">
-                      <div className="inline-flex items-center gap-1 rounded-full border border-teal-500/35 bg-teal-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-teal-200">
+                      <div className="inline-flex items-center gap-1 rounded-full border border-teal-500/35 bg-teal-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-teal-200">
                         ✓ Verified
                       </div>
-                      <h2 className="mt-2 text-2xl font-black leading-tight text-white">
+                      <h2 className="mt-2 text-2xl font-semibold leading-tight text-white">
                         {companyName}
                       </h2>
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">
+                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-[#8a93a3]">
                         {headline}
                       </p>
                     </div>
@@ -372,10 +372,10 @@ export default async function InspectorDirectoryPage({
                   </div>
 
                   <div className="mt-5 rounded-2xl border border-teal-500/25 bg-teal-500/10 p-4">
-                    <p className="text-xs font-black uppercase tracking-wide text-teal-300">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
                       Featured Credential
                     </p>
-                    <p className="mt-1 font-black text-white">
+                    <p className="mt-1 font-semibold text-white">
                       {credentialLabel}
                     </p>
                   </div>
@@ -396,14 +396,14 @@ export default async function InspectorDirectoryPage({
                   <div className="mt-auto flex flex-col gap-3 pt-6 sm:flex-row">
                     <Link
                       href={profileHref}
-                      className="flex-1 rounded-xl border border-teal-500/60 px-4 py-3 text-center font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
+                      className="flex-1 rounded-xl border border-teal-500/60 px-4 py-3 text-center font-semibold text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
                     >
                       View Portfolio
                     </Link>
 
                     <Link
                       href={bookingHref}
-                      className="flex-1 rounded-xl bg-teal-500 px-4 py-3 text-center font-black text-slate-950 transition hover:bg-teal-400"
+                      className="flex-1 rounded-xl bg-teal-500 px-4 py-3 text-center font-semibold text-slate-950 transition hover:bg-teal-400"
                     >
                       Request Inspection
                     </Link>
@@ -420,9 +420,9 @@ export default async function InspectorDirectoryPage({
 
 function MiniStat({ value, label }: { value: number | string; label: string }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950 p-3 text-center">
-      <p className="text-lg font-black text-white">{value}</p>
-      <p className="mt-1 text-[9px] font-black uppercase tracking-wide text-slate-500">
+    <div className="rounded-2xl border border-[#1a212c] bg-[#0a0e13] p-3 text-center">
+      <p className="text-lg font-semibold text-white">{value}</p>
+      <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-[#59626f]">
         {label}
       </p>
     </div>
@@ -440,18 +440,18 @@ function TagList({
 }) {
   return (
     <div>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
         {title}
       </p>
 
       {items.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-500">{empty}</p>
+        <p className="mt-2 text-sm text-[#59626f]">{empty}</p>
       ) : (
         <div className="mt-2 flex flex-wrap gap-2">
           {items.map((item) => (
             <span
               key={item}
-              className="rounded-full border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-bold text-slate-200"
+              className="rounded-full border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-xs font-bold text-[#e8ecf3]"
             >
               {item}
             </span>

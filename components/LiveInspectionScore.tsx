@@ -131,10 +131,10 @@ function LiveInspectionScore({
         className="flex w-full items-center justify-between gap-4 text-left"
       >
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] opacity-80">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">
             Live Inspection Score
           </p>
-          <p className="mt-1 text-2xl font-black text-white">
+          <p className="mt-1 text-2xl font-semibold text-white">
             {loading && !result ? "Reviewing…" : `${score}% complete`}
           </p>
           <p className="mt-1 text-sm opacity-90">
@@ -146,11 +146,11 @@ function LiveInspectionScore({
         </div>
         <div className="shrink-0 text-right">
           <div className="relative h-16 w-16 rounded-full bg-black/25 p-1">
-            <div className="flex h-full w-full items-center justify-center rounded-full border-4 border-current text-lg font-black">
+            <div className="flex h-full w-full items-center justify-center rounded-full border-4 border-current text-lg font-semibold">
               {score}
             </div>
           </div>
-          <span className="mt-1 block text-xs font-black">{open ? "Hide ↑" : "Review ↓"}</span>
+          <span className="mt-1 block text-xs font-semibold">{open ? "Hide ↑" : "Review ↓"}</span>
         </div>
       </button>
 
@@ -163,12 +163,12 @@ function LiveInspectionScore({
           {current && (
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-white/15 bg-black/20 p-3">
-                <p className="text-xs font-black uppercase opacity-70">Section score</p>
-                <p className="mt-1 text-xl font-black">{current.score}%</p>
+                <p className="text-xs font-semibold uppercase opacity-70">Section score</p>
+                <p className="mt-1 text-xl font-semibold">{current.score}%</p>
               </div>
               <div className="rounded-xl border border-white/15 bg-black/20 p-3">
-                <p className="text-xs font-black uppercase opacity-70">Missing items</p>
-                <p className="mt-1 text-xl font-black">{current.missingItems.length}</p>
+                <p className="text-xs font-semibold uppercase opacity-70">Missing items</p>
+                <p className="mt-1 text-xl font-semibold">{current.missingItems.length}</p>
               </div>
             </div>
           )}
@@ -176,9 +176,9 @@ function LiveInspectionScore({
           {topIssues.map((issue) => (
             <div key={issue.id} className={`rounded-xl border p-3 ${issueTone(issue.severity)}`}>
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-black">{issue.title}</p>
+                <p className="text-sm font-semibold">{issue.title}</p>
                 {issue.section && (
-                  <span className="rounded-full border border-current/30 px-2 py-1 text-[10px] font-black">
+                  <span className="rounded-full border border-current/30 px-2 py-1 text-[10px] font-semibold">
                     {issue.section}
                   </span>
                 )}
@@ -188,7 +188,7 @@ function LiveInspectionScore({
           ))}
 
           {!topIssues.length && result && (
-            <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm font-black text-emerald-100">
+            <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-100">
               ✓ No blocking completeness issues are currently detected.
             </div>
           )}
@@ -199,7 +199,7 @@ function LiveInspectionScore({
             type="button"
             onClick={() => void refresh()}
             disabled={!online || loading || !inspectionId}
-            className="min-h-11 w-full rounded-xl border border-current/50 px-4 py-2 text-sm font-black active:scale-[0.99] disabled:opacity-50"
+            className="min-h-11 w-full rounded-xl border border-current/50 px-4 py-2 text-sm font-semibold active:scale-[0.99] disabled:opacity-50"
           >
             {loading ? "Refreshing…" : "Refresh Inspection Score"}
           </button>

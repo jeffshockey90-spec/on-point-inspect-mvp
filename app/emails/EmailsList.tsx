@@ -70,7 +70,7 @@ function getStatus(log: EmailLog) {
     return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" };
   }
 
-  return { label: "Sent", tone: "border-slate-600 bg-slate-800/60 text-slate-300" };
+  return { label: "Sent", tone: "border-[#232b38] bg-[#1a212c] text-[#8a93a3]" };
 }
 
 function formatDate(value: string | null) {
@@ -138,7 +138,7 @@ function CompanyResendButton({ logId }: { logId: string | number }) {
         type="button"
         onClick={resend}
         disabled={state === "sending"}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/60 px-4 py-2 text-xs font-black text-amber-200 transition hover:border-amber-400 hover:bg-amber-500/10 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/60 px-4 py-2 text-xs font-semibold text-amber-200 transition hover:border-amber-400 hover:bg-amber-500/10 disabled:opacity-60"
       >
         {state === "sending" ? "Sending…" : state === "done" ? "Resent ✓" : "Resend via my company email"}
       </button>
@@ -182,13 +182,13 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by recipient or property address..."
-          className="w-full min-w-0 flex-1 rounded-xl border border-slate-700 bg-[#0b1220] p-3 text-white outline-none focus:border-teal-400"
+          className="w-full min-w-0 flex-1 rounded-xl border border-[#232b38] bg-[#10151e] p-3 text-white outline-none focus:border-teal-400"
         />
 
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-xl border border-slate-700 bg-[#0b1220] p-3 text-white outline-none focus:border-teal-400 sm:w-64"
+          className="rounded-xl border border-[#232b38] bg-[#10151e] p-3 text-white outline-none focus:border-teal-400 sm:w-64"
         >
           {TYPE_FILTERS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -198,12 +198,12 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
         </select>
       </div>
 
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+      <p className="text-xs font-bold uppercase tracking-wide text-[#59626f]">
         {filtered.length} of {logs.length} emails
       </p>
 
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-700 bg-[#0b1220] p-8 text-center text-slate-400">
+        <div className="rounded-xl border border-dashed border-[#232b38] bg-[#10151e] p-8 text-center text-[#8a93a3]">
           {logs.length === 0 ? "No emails sent yet." : "No emails match your search."}
         </div>
       ) : (
@@ -215,8 +215,8 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
             return (
               <div
                 key={log.id}
-                className={`rounded-xl border bg-[#0b1220] transition ${
-                  expanded ? "border-teal-500/70" : "border-slate-700"
+                className={`rounded-xl border bg-[#10151e] transition ${
+                  expanded ? "border-teal-500/70" : "border-[#232b38]"
                 }`}
               >
                 <button
@@ -225,12 +225,12 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                   className="flex w-full flex-wrap items-start justify-between gap-3 p-4 text-left"
                 >
                   <div className="min-w-0">
-                    <p className="font-black text-white">{formatEmailType(log.email_type)}</p>
-                    <p className="mt-1 truncate text-sm text-slate-400">
+                    <p className="font-semibold text-white">{formatEmailType(log.email_type)}</p>
+                    <p className="mt-1 truncate text-sm text-[#8a93a3]">
                       {log.recipient} · {log.property_address}
                     </p>
                     {log.subject && (
-                      <p className="mt-1 truncate text-xs text-slate-500">
+                      <p className="mt-1 truncate text-xs text-[#59626f]">
                         Subject: {log.subject}
                       </p>
                     )}
@@ -238,11 +238,11 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
 
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <span
-                      className={`rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wide ${status.tone}`}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${status.tone}`}
                     >
                       {status.label}
                     </span>
-                    <span className="text-xs font-bold text-slate-500">
+                    <span className="text-xs font-bold text-[#59626f]">
                       {formatDate(log.sent_at)}
                     </span>
                     <span className="text-xs font-bold text-teal-400">
@@ -252,24 +252,24 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                 </button>
 
                 {expanded && (
-                  <div className="border-t border-slate-800 p-4">
+                  <div className="border-t border-[#1a212c] p-4">
                     {log.html ? (
                       <iframe
                         title={`Email to ${log.recipient}`}
                         srcDoc={sanitizeForPreview(log.html)}
                         sandbox=""
-                        className="h-[520px] w-full rounded-lg border border-slate-700 bg-white"
+                        className="h-[520px] w-full rounded-lg border border-[#232b38] bg-white"
                       />
                     ) : (
-                      <div className="rounded-lg border border-slate-700 bg-[#0f172a] p-4 text-sm text-slate-300">
-                        <p className="font-bold text-slate-200">
+                      <div className="rounded-lg border border-[#232b38] bg-[#10151e] p-4 text-sm text-[#8a93a3]">
+                        <p className="font-bold text-[#e8ecf3]">
                           The exact copy of this email wasn&apos;t captured.
                         </p>
-                        <p className="mt-1 text-slate-400">
+                        <p className="mt-1 text-[#8a93a3]">
                           Emails are saved in full going forward. Older sends only kept a summary:
                         </p>
                         {log.message && (
-                          <p className="mt-2 whitespace-pre-wrap rounded bg-black/30 p-3 text-slate-300">
+                          <p className="mt-2 whitespace-pre-wrap rounded bg-black/30 p-3 text-[#8a93a3]">
                             {log.message}
                           </p>
                         )}
@@ -280,7 +280,7 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                       {log.inspection_id && (
                         <Link
                           href={`/reports/${log.inspection_id}`}
-                          className="inline-block rounded-lg border border-slate-600 px-4 py-2 text-xs font-black text-slate-200 transition hover:border-teal-500/70"
+                          className="inline-block rounded-lg border border-[#232b38] px-4 py-2 text-xs font-semibold text-[#e8ecf3] transition hover:border-teal-500/70"
                         >
                           Open inspection →
                         </Link>

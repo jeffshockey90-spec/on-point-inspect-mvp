@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(20,200,210,0.10),transparent_55%)]" />
       </div>
 
-      <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#131923] p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         <div className="flex justify-center">
           <img
             src="/flow-logo-mark.png"
@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
               password reset link. Check your inbox (and spam folder).
             </div>
 
-            <p className="text-center text-sm text-slate-400">
+            <p className="text-center text-sm text-[#8a93a3]">
               <a
                 href="/login"
                 className="text-teal-400 hover:underline"
@@ -75,13 +75,13 @@ export default function ForgotPasswordPage() {
             onSubmit={handleSubmit}
             className="mt-6 space-y-4"
           >
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-[#8a93a3]">
               Enter the email address on your account and we&apos;ll send you a
               link to reset your password.
             </p>
 
             <div>
-              <label className="text-sm text-slate-300">
+              <label className="text-sm text-[#8a93a3]">
                 Email
               </label>
 
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                className="mt-1.5 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
               />
             </div>
 
@@ -108,7 +108,7 @@ export default function ForgotPasswordPage() {
               {loading ? "Sending..." : "Send Reset Link"}
             </button>
 
-            <p className="text-center text-sm text-slate-400">
+            <p className="text-center text-sm text-[#8a93a3]">
               <a
                 href="/login"
                 className="text-teal-400 hover:underline"

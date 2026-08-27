@@ -59,14 +59,14 @@ export default function MileageControls({ inspectionId, purpose = "Inspection tr
 
   return (
     <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4">
-      <p className="text-xs font-black uppercase tracking-wider text-teal-300">Mileage Tracker</p>
-      <p className="mt-2 text-2xl font-black text-white">{Number(active?.total_miles || 0).toFixed(1)} mi</p>
-      <p className="mt-1 text-sm text-slate-300">{active ? "GPS tracking is active" : "Ready to record business mileage"}</p>
-      <button disabled={busy} onClick={active ? stop : start} className={`mt-4 w-full rounded-xl px-4 py-3 font-black ${active ? "bg-rose-500 text-white" : "bg-teal-400 text-slate-950"}`}>{busy ? "Working…" : active ? "End Mileage Trip" : "Start Mileage Trip"}</button>
+      <p className="text-xs font-semibold uppercase tracking-wider text-teal-300">Mileage Tracker</p>
+      <p className="mt-2 text-2xl font-semibold text-white">{Number(active?.total_miles || 0).toFixed(1)} mi</p>
+      <p className="mt-1 text-sm text-[#8a93a3]">{active ? "GPS tracking is active" : "Ready to record business mileage"}</p>
+      <button disabled={busy} onClick={active ? stop : start} className={`mt-4 w-full rounded-xl px-4 py-3 font-semibold ${active ? "bg-rose-500 text-white" : "bg-teal-400 text-slate-950"}`}>{busy ? "Working…" : active ? "End Mileage Trip" : "Start Mileage Trip"}</button>
 
       {permissionMissing && (
         <div className="mt-3 rounded-xl border border-amber-500/50 bg-amber-950/30 p-3 text-sm text-amber-200">
-          <p className="font-black">FLOW doesn&apos;t have location access</p>
+          <p className="font-semibold">FLOW doesn&apos;t have location access</p>
           <p className="mt-1 text-amber-200/90">
             Mileage can&apos;t record without it. Open{" "}
             <span className="font-bold">Settings → FLOW → Location</span> and choose{" "}
@@ -77,7 +77,7 @@ export default function MileageControls({ inspectionId, purpose = "Inspection tr
 
       {!permissionMissing && stalled && (
         <div className="mt-3 rounded-xl border border-amber-500/50 bg-amber-950/30 p-3 text-sm text-amber-200">
-          <p className="font-black">Not recording distance yet</p>
+          <p className="font-semibold">Not recording distance yet</p>
           <p className="mt-1 text-amber-200/90">
             This trip is still at 0.0 mi. If it stays there while you drive, set location to{" "}
             <span className="font-bold">Always</span> in{" "}
@@ -88,33 +88,33 @@ export default function MileageControls({ inspectionId, purpose = "Inspection tr
       )}
 
       {active && !permissionMissing && !stalled && isNative() && (
-        <p className="mt-2 text-xs text-slate-400">
+        <p className="mt-2 text-xs text-[#8a93a3]">
           Keep tracking accurate with the screen off by allowing{" "}
-          <span className="font-bold text-slate-300">Always</span> location access.
+          <span className="font-bold text-[#8a93a3]">Always</span> location access.
         </p>
       )}
 
-      <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-        <p className="text-xs font-black uppercase tracking-wide text-slate-400">Total This Year</p>
-        <p className="mt-1 text-2xl font-black text-teal-300">{yearMiles.toFixed(1)} mi</p>
+      <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Total This Year</p>
+        <p className="mt-1 text-2xl font-semibold text-teal-300">{yearMiles.toFixed(1)} mi</p>
       </div>
 
       {recent.length > 0 && (
         <div className="mt-5">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">Recent Trips</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Recent Trips</p>
           <div className="space-y-2">
             {recent.slice(0, 10).map((trip: any) => (
               <div
                 key={trip.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-[#020817]/70 px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-xl border border-[#232b38] bg-[#131923] px-3 py-2"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-white">
                     {trip.inspections?.property_address || trip.purpose || "Trip"}
                   </p>
-                  <p className="text-xs text-slate-500">{formatTripDate(trip.started_at)}</p>
+                  <p className="text-xs text-[#59626f]">{formatTripDate(trip.started_at)}</p>
                 </div>
-                <p className="shrink-0 text-sm font-black text-teal-300">
+                <p className="shrink-0 text-sm font-semibold text-teal-300">
                   {Number(trip.total_miles || 0).toFixed(1)} mi
                 </p>
               </div>

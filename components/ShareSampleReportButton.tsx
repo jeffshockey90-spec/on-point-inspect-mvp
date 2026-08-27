@@ -66,7 +66,7 @@ export default function ShareSampleReportButton({
   }
 
   const buttonBase = compact
-    ? "inline-flex flex-1 items-center justify-center rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-black text-teal-300 transition hover:bg-teal-500/10"
+    ? "inline-flex flex-1 items-center justify-center rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10"
     : "inline-flex items-center justify-center rounded-xl border border-teal-500/60 px-5 py-3 font-bold text-teal-300 transition hover:bg-teal-500/10";
 
   const encodedSubject = encodeURIComponent(title);
@@ -99,14 +99,14 @@ export default function ShareSampleReportButton({
 
       <a
         href={`mailto:?subject=${encodedSubject}&body=${encodedBody}`}
-        className="inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:text-teal-300"
+        className="inline-flex items-center justify-center rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300"
       >
         Email
       </a>
 
       <a
         href={`sms:?&body=${smsBody}`}
-        className="inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:text-teal-300"
+        className="inline-flex items-center justify-center rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300"
       >
         Text
       </a>
@@ -115,7 +115,7 @@ export default function ShareSampleReportButton({
         type="button"
         onClick={copyLink}
         disabled={!shareUrl}
-        className="inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 font-bold text-slate-200 transition hover:border-teal-400 hover:text-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex items-center justify-center rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {copied ? "Copied" : "Copy"}
       </button>

@@ -412,7 +412,7 @@ export default function ScheduleCalendar({
       <div className="mb-4 grid gap-4 lg:grid-cols-[1.1fr_2fr]">
         <div className="rounded-2xl border border-teal-400/20 bg-black/30 p-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-black text-white">Today</h2>
+            <h2 className="text-lg font-semibold text-white">Today</h2>
             <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-3 py-1 text-xs font-bold text-teal-100">
               {todaysEvents.length}
             </span>
@@ -444,7 +444,7 @@ export default function ScheduleCalendar({
                   }}
                   className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-4 text-left transition hover:border-teal-400/40 hover:bg-zinc-800 active:scale-[0.99]"
                 >
-                  <p className="text-sm font-black text-teal-200">
+                  <p className="text-sm font-semibold text-teal-200">
                     {event.extendedProps.displayTime}
                   </p>
                   <p className="mt-1 truncate text-sm font-bold text-white">
@@ -595,7 +595,7 @@ export default function ScheduleCalendar({
 
             return (
               <div className="leading-tight">
-                <div className="truncate text-[11px] font-black sm:text-xs">
+                <div className="truncate text-[11px] font-semibold sm:text-xs">
                   {props.displayTime}
                 </div>
 
@@ -617,7 +617,7 @@ export default function ScheduleCalendar({
           <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-zinc-950 p-5 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-black text-white">
+                <h2 className="text-xl font-semibold text-white">
                   Edit Appointment
                 </h2>
                 <p className="mt-1 text-sm text-zinc-400">
@@ -718,7 +718,7 @@ export default function ScheduleCalendar({
                 type="button"
                 disabled={saving}
                 onClick={() => saveScheduleUpdate(selected)}
-                className="rounded-xl bg-teal-500 px-4 py-3 text-sm font-black text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-teal-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Saving..." : "Save"}
               </button>
@@ -726,7 +726,7 @@ export default function ScheduleCalendar({
               <button
                 type="button"
                 onClick={() => router.push(`/reports/${selected.id}`)}
-                className="rounded-xl border border-teal-400/30 bg-teal-500/10 px-4 py-3 text-sm font-black text-teal-100 transition hover:bg-teal-500/20"
+                className="rounded-xl border border-teal-400/30 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 transition hover:bg-teal-500/20"
               >
                 Open Report
               </button>
@@ -735,7 +735,7 @@ export default function ScheduleCalendar({
                 type="button"
                 disabled={deleting}
                 onClick={deleteInspection}
-                className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-black text-red-100 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {deleting ? "Deleting..." : "Delete"}
               </button>

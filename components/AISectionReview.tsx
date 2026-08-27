@@ -477,10 +477,10 @@ function AISectionReview({
       <div className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-4 text-emerald-100">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
               AI Section Review
             </p>
-            <h3 className="mt-1 text-lg font-black">✅ {section} marked complete</h3>
+            <h3 className="mt-1 text-lg font-semibold">✅ {section} marked complete</h3>
             <p className="mt-1 text-sm text-emerald-50/80">
               AI Second Inspector will treat this section as reviewed. You can reopen the review if you add more findings.
             </p>
@@ -489,7 +489,7 @@ function AISectionReview({
           <button
             type="button"
             onClick={reopenReview}
-            className="rounded-xl border border-emerald-400/70 px-4 py-2 text-sm font-black text-emerald-100 transition active:scale-[0.98] hover:bg-emerald-400 hover:text-black"
+            className="rounded-xl border border-emerald-400/70 px-4 py-2 text-sm font-semibold text-emerald-100 transition active:scale-[0.98] hover:bg-emerald-400 hover:text-black"
           >
             Reopen Review
           </button>
@@ -500,11 +500,11 @@ function AISectionReview({
 
   if (dismissed) {
     return (
-      <div className="rounded-xl border border-slate-700 bg-[#071224] p-4">
+      <div className="rounded-xl border border-[#232b38] bg-[#071224] p-4">
         <button
           type="button"
           onClick={() => setDismissed(false)}
-          className="text-sm font-black text-cyan-300 hover:text-cyan-200"
+          className="text-sm font-semibold text-cyan-300 hover:text-cyan-200"
         >
           🤖 Show AI Section Review for {section}
         </button>
@@ -516,25 +516,25 @@ function AISectionReview({
     <div className={`rounded-xl border p-4 text-white ${borderClass}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
             AI Section Review
           </p>
-          <h3 className="mt-1 text-lg font-black">
+          <h3 className="mt-1 text-lg font-semibold">
             🤖 {section} Review — {review.score}% Complete
           </h3>
-          <p className="mt-1 text-sm text-slate-200">
+          <p className="mt-1 text-sm text-[#e8ecf3]">
             End-of-section coaching. Nothing is saved automatically; this only reminds the inspector what to verify before leaving.
           </p>
         </div>
 
-        <span className="rounded-full border border-slate-500 bg-black/30 px-3 py-1 text-xs font-black text-slate-200">
+        <span className="rounded-full border border-[#59626f] bg-black/30 px-3 py-1 text-xs font-semibold text-[#e8ecf3]">
           {review.missing.length} check{review.missing.length === 1 ? "" : "s"}
         </span>
       </div>
 
       {review.completed.length > 0 && (
         <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-          <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
             Documented
           </p>
           <div className="space-y-1 text-sm font-bold text-emerald-100">
@@ -547,16 +547,16 @@ function AISectionReview({
 
       {review.missing.length > 0 ? (
         <div className="mt-4 rounded-lg border border-yellow-500/30 bg-black/25 p-3">
-          <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-yellow-300">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-yellow-300">
             Check Before Leaving
           </p>
           <div className="space-y-3">
             {review.missing.map((item) => (
-              <div key={item.id} className="rounded-lg border border-slate-700 bg-slate-950/60 p-3">
+              <div key={item.id} className="rounded-lg border border-[#232b38] bg-[#131923] p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="font-black text-yellow-100">⚠ {item.title}</p>
+                  <p className="font-semibold text-yellow-100">⚠ {item.title}</p>
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${
+                    className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
                       item.severity === "critical"
                         ? "border-red-400/60 text-red-200"
                         : item.severity === "warning"
@@ -567,7 +567,7 @@ function AISectionReview({
                     {item.severity}
                   </span>
                 </div>
-                <p className="mt-1 text-sm leading-5 text-slate-300">{item.detail}</p>
+                <p className="mt-1 text-sm leading-5 text-[#8a93a3]">{item.detail}</p>
               </div>
             ))}
           </div>
@@ -582,7 +582,7 @@ function AISectionReview({
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          className="rounded-xl border border-slate-500 px-4 py-2 text-sm font-black text-slate-200 transition active:scale-[0.98] hover:bg-slate-800"
+          className="rounded-xl border border-[#59626f] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition active:scale-[0.98] hover:bg-[#1a212c]"
         >
           Continue Inspecting
         </button>
@@ -595,7 +595,7 @@ function AISectionReview({
               target.scrollIntoView({ behavior: "smooth", block: "center" });
             }
           }}
-          className="rounded-xl border border-orange-500 px-4 py-2 text-sm font-black text-orange-200 transition active:scale-[0.98] hover:bg-orange-500 hover:text-black"
+          className="rounded-xl border border-orange-500 px-4 py-2 text-sm font-semibold text-orange-200 transition active:scale-[0.98] hover:bg-orange-500 hover:text-black"
         >
           Add Limitation If Needed
         </button>
@@ -603,7 +603,7 @@ function AISectionReview({
         <button
           type="button"
           onClick={markComplete}
-          className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-black text-black transition active:scale-[0.98] hover:bg-emerald-300"
+          className="rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-black transition active:scale-[0.98] hover:bg-emerald-300"
         >
           Complete Section
         </button>

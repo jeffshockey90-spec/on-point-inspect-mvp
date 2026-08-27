@@ -68,7 +68,7 @@ export default function AITemplateSuggestions({
             AI Template Suggestions
           </h3>
 
-          <p className="mt-1 text-sm text-slate-300">
+          <p className="mt-1 text-sm text-[#8a93a3]">
             AI searched your reusable findings library for matching narratives.
           </p>
         </div>
@@ -81,7 +81,7 @@ export default function AITemplateSuggestions({
       </div>
 
       {!loading && matches.length === 0 && (
-        <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300">
+        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm text-[#8a93a3]">
           No close template matches found yet.
         </div>
       )}
@@ -90,7 +90,7 @@ export default function AITemplateSuggestions({
         {matches.map((match, index) => (
           <div
             key={index}
-            className="rounded-xl border border-slate-700 bg-slate-900 p-4"
+            className="rounded-xl border border-[#232b38] bg-[#131923] p-4"
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -98,7 +98,7 @@ export default function AITemplateSuggestions({
                   {match.title}
                 </h4>
 
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-[#8a93a3]">
                   {match.section} • {match.severity}
                 </p>
               </div>
@@ -115,7 +115,7 @@ export default function AITemplateSuggestions({
             </div>
 
             {match.observation && (
-              <p className="mt-3 text-sm text-slate-300">
+              <p className="mt-3 text-sm text-[#8a93a3]">
                 {match.observation}
               </p>
             )}

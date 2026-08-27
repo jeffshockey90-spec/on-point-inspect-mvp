@@ -86,15 +86,15 @@ export default function HouseIntelligencePanel({
     <section className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4 shadow-xl">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
             House Intelligence
           </p>
 
-          <h2 className="mt-1 text-xl font-black text-white">
+          <h2 className="mt-1 text-xl font-semibold text-white">
             Inspection Memory
           </h2>
 
-          <p className="mt-1 text-sm leading-6 text-slate-300">
+          <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
             Live property facts learned from findings, equipment scans, photos,
             and report review.
           </p>
@@ -105,7 +105,7 @@ export default function HouseIntelligencePanel({
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="rounded-xl border border-cyan-500/40 px-3 py-2 text-xs font-black text-cyan-300 transition hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Loading..." : "Refresh"}
           </button>
@@ -113,18 +113,18 @@ export default function HouseIntelligencePanel({
       </div>
 
       {!memory ? (
-        <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4 text-sm leading-6 text-slate-300">
+        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
           House Memory will appear after this inspection has findings or equipment
           records. Refresh after scanning equipment or saving findings.
         </div>
       ) : (
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Coverage
               </p>
-              <p className="mt-1 text-2xl font-black text-cyan-300">
+              <p className="mt-1 text-2xl font-semibold text-cyan-300">
                 {progress}%
               </p>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/40">
@@ -135,27 +135,27 @@ export default function HouseIntelligencePanel({
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Facts
               </p>
-              <p className="mt-1 text-2xl font-black text-white">
+              <p className="mt-1 text-2xl font-semibold text-white">
                 {facts.length}
               </p>
             </div>
 
-            <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 AI Confidence
               </p>
-              <p className={`mt-1 text-2xl font-black ${confidenceTone(averageConfidence)}`}>
+              <p className={`mt-1 text-2xl font-semibold ${confidenceTone(averageConfidence)}`}>
                 {averageConfidence || "—"}%
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
               Systems Learned
             </p>
 
@@ -169,7 +169,7 @@ export default function HouseIntelligencePanel({
                     className={`rounded-lg border px-3 py-2 text-xs font-bold ${
                       complete
                         ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                        : "border-slate-700 bg-black/30 text-slate-400"
+                        : "border-[#232b38] bg-black/30 text-[#8a93a3]"
                     }`}
                   >
                     {complete ? "✓" : "○"} {system}
@@ -180,23 +180,23 @@ export default function HouseIntelligencePanel({
           </div>
 
           {Object.keys(groupedFacts).length > 0 && (
-            <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-3">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                 Known Property Facts
               </p>
 
               <div className="mt-3 space-y-3">
                 {Object.entries(groupedFacts).map(([system, items]) => (
-                  <div key={system} className="rounded-xl border border-slate-700 bg-black/30 p-3">
-                    <p className="text-sm font-black text-cyan-300">{system}</p>
+                  <div key={system} className="rounded-xl border border-[#232b38] bg-black/30 p-3">
+                    <p className="text-sm font-semibold text-cyan-300">{system}</p>
 
                     <div className="mt-2 space-y-2">
                       {items.slice(0, 4).map((fact, index) => (
                         <div key={`${system}-${fact.label}-${index}`}>
-                          <p className="text-xs font-black text-white">
+                          <p className="text-xs font-semibold text-white">
                             {fact.label}
                           </p>
-                          <p className="text-xs leading-5 text-slate-300">
+                          <p className="text-xs leading-5 text-[#8a93a3]">
                             {fact.value}
                           </p>
                           {fact.confidence !== undefined && (
@@ -215,7 +215,7 @@ export default function HouseIntelligencePanel({
 
           {reminders.length > 0 && (
             <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-3">
-              <p className="text-xs font-black uppercase tracking-wide text-yellow-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
                 AI Reminders
               </p>
 

@@ -173,24 +173,24 @@ export default function OwnerSupportChat() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl md:p-8">
+        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.3em] text-teal-400">Owner Support Chat</p>
-              <h1 className="mt-3 text-4xl font-black md:text-5xl">Inspector Messages</h1>
-              <p className="mt-4 text-slate-300">Read and reply to inspector support messages.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-400">Owner Support Chat</p>
+              <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Inspector Messages</h1>
+              <p className="mt-4 text-[#8a93a3]">Read and reply to inspector support messages.</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={openNewMessage}
-                className="rounded-xl bg-teal-500 px-5 py-3 font-black text-black hover:bg-teal-400"
+                className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-black hover:bg-teal-400"
               >
                 + New Message
               </button>
-              <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10">
+              <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 hover:bg-teal-500/10">
                 Owner Dashboard
               </Link>
             </div>
@@ -199,13 +199,13 @@ export default function OwnerSupportChat() {
 
         {showNewMessage && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
-            <div className="w-full max-w-lg rounded-2xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl">
+            <div className="w-full max-w-lg rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xl font-black text-white">Message an Inspector</h2>
+                <h2 className="text-xl font-semibold text-white">Message an Inspector</h2>
                 <button
                   type="button"
                   onClick={() => setShowNewMessage(false)}
-                  className="rounded-lg border border-slate-700 px-3 py-1 text-sm font-bold text-slate-300 hover:bg-slate-800"
+                  className="rounded-lg border border-[#232b38] px-3 py-1 text-sm font-bold text-[#8a93a3] hover:bg-[#1a212c]"
                 >
                   Close
                 </button>
@@ -221,14 +221,14 @@ export default function OwnerSupportChat() {
                 value={inspectorQuery}
                 onChange={(e) => setInspectorQuery(e.target.value)}
                 placeholder="Search inspectors by name, email, or company..."
-                className="mt-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                className="mt-4 w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
               />
 
               <div className="mt-3 max-h-56 space-y-2 overflow-y-auto">
                 {inspectorsLoading ? (
-                  <p className="text-sm text-slate-400">Loading inspectors...</p>
+                  <p className="text-sm text-[#8a93a3]">Loading inspectors...</p>
                 ) : filteredInspectors.length === 0 ? (
-                  <p className="text-sm text-slate-400">No inspectors match.</p>
+                  <p className="text-sm text-[#8a93a3]">No inspectors match.</p>
                 ) : (
                   filteredInspectors.map((inspector) => (
                     <button
@@ -238,11 +238,11 @@ export default function OwnerSupportChat() {
                       className={`w-full rounded-xl border p-3 text-left transition ${
                         selectedInspectorId === inspector.id
                           ? "border-teal-400 bg-teal-500/10"
-                          : "border-slate-700 bg-[#020817] hover:bg-slate-900"
+                          : "border-[#232b38] bg-[#0a0e13] hover:bg-[#131923]"
                       }`}
                     >
-                      <p className="truncate text-sm font-black text-white">{inspector.name}</p>
-                      <p className="truncate text-xs text-slate-400">
+                      <p className="truncate text-sm font-semibold text-white">{inspector.name}</p>
+                      <p className="truncate text-xs text-[#8a93a3]">
                         {inspector.email || "No email"}
                         {inspector.companyName ? ` · ${inspector.companyName}` : ""}
                       </p>
@@ -256,14 +256,14 @@ export default function OwnerSupportChat() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 rows={4}
                 placeholder="Write your message..."
-                className="mt-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+                className="mt-4 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
               />
 
               <button
                 type="button"
                 onClick={startNewThread}
                 disabled={!selectedInspectorId || !newMessage.trim() || startingThread}
-                className="mt-4 w-full rounded-xl bg-teal-500 px-5 py-3 font-black text-black hover:bg-teal-400 disabled:opacity-50"
+                className="mt-4 w-full rounded-xl bg-teal-500 px-5 py-3 font-semibold text-black hover:bg-teal-400 disabled:opacity-50"
               >
                 {startingThread ? "Sending..." : "Send Message"}
               </button>
@@ -274,23 +274,23 @@ export default function OwnerSupportChat() {
         {error && <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm font-bold text-red-300">{error}</div>}
 
         <section className="grid gap-5 lg:grid-cols-[380px_1fr]">
-          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
-            <h2 className="text-xl font-black text-teal-300">Threads</h2>
+          <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-4">
+            <h2 className="text-xl font-semibold text-teal-300">Threads</h2>
             <div className="mt-4 space-y-3">
               {loading ? (
-                <p className="text-slate-400">Loading...</p>
+                <p className="text-[#8a93a3]">Loading...</p>
               ) : threads.length === 0 ? (
-                <p className="rounded-xl border border-slate-700 bg-[#020817] p-4 text-slate-400">No support messages yet.</p>
+                <p className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-[#8a93a3]">No support messages yet.</p>
               ) : (
                 threads.map((thread) => (
                   <button
                     key={thread.id}
                     onClick={() => setSelectedId(thread.id)}
-                    className={`w-full rounded-xl border p-4 text-left transition ${selected?.id === thread.id ? "border-teal-400 bg-teal-500/10" : "border-slate-700 bg-[#020817] hover:bg-slate-900"}`}
+                    className={`w-full rounded-xl border p-4 text-left transition ${selected?.id === thread.id ? "border-teal-400 bg-teal-500/10" : "border-[#232b38] bg-[#0a0e13] hover:bg-[#131923]"}`}
                   >
-                    <p className="truncate font-black text-white">{thread.inspector_name || thread.inspector_email || "Inspector"}</p>
-                    <p className="mt-1 truncate text-xs text-slate-400">{thread.inspector_email || "No email"}</p>
-                    <p className="mt-2 line-clamp-2 text-sm text-slate-300">{thread.last_message || "No messages"}</p>
+                    <p className="truncate font-semibold text-white">{thread.inspector_name || thread.inspector_email || "Inspector"}</p>
+                    <p className="mt-1 truncate text-xs text-[#8a93a3]">{thread.inspector_email || "No email"}</p>
+                    <p className="mt-2 line-clamp-2 text-sm text-[#8a93a3]">{thread.last_message || "No messages"}</p>
                     <p className="mt-2 text-xs font-bold text-teal-300">{formatDate(thread.last_message_at)}</p>
                   </button>
                 ))
@@ -298,28 +298,28 @@ export default function OwnerSupportChat() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-[#0f172a] p-4">
+          <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-4">
             {selected ? (
               <>
-                <div className="border-b border-slate-800 pb-4">
-                  <h2 className="text-2xl font-black text-white">{selected.inspector_name || "Inspector"}</h2>
-                  <p className="mt-1 text-sm text-slate-400">{selected.inspector_email || "No email"}</p>
+                <div className="border-b border-[#1a212c] pb-4">
+                  <h2 className="text-2xl font-semibold text-white">{selected.inspector_name || "Inspector"}</h2>
+                  <p className="mt-1 text-sm text-[#8a93a3]">{selected.inspector_email || "No email"}</p>
                 </div>
 
-                <div className="mt-4 max-h-[520px] space-y-3 overflow-y-auto rounded-2xl border border-slate-800 bg-[#020817] p-4">
+                <div className="mt-4 max-h-[520px] space-y-3 overflow-y-auto rounded-2xl border border-[#1a212c] bg-[#0a0e13] p-4">
                   {(selected.messages || []).map((item) => {
                     const isOwner = item.sender_role === "owner";
                     return (
                       <div key={item.id} className={`flex ${isOwner ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[85%] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-950/20" : "border-blue-500/30 bg-blue-950/20"}`}>
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
                             {isOwner ? "You" : selected.inspector_name || "Inspector"} · {formatDate(item.created_at)}
                           </p>
                           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-white">{item.message}</p>
                           {isOwner && (
                             <p
-                              className={`mt-2 text-[11px] font-black ${
-                                item.read_by_inspector ? "text-teal-300" : "text-slate-500"
+                              className={`mt-2 text-[11px] font-semibold ${
+                                item.read_by_inspector ? "text-teal-300" : "text-[#59626f]"
                               }`}
                             >
                               {item.read_by_inspector ? "✓✓ Read" : "✓ Sent · not read yet"}
@@ -337,19 +337,19 @@ export default function OwnerSupportChat() {
                     onChange={(e) => setReply(e.target.value)}
                     rows={4}
                     placeholder="Reply to inspector..."
-                    className="w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+                    className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
                   />
                   <button
                     onClick={sendReply}
                     disabled={sending || !reply.trim()}
-                    className="w-full rounded-xl bg-teal-500 px-5 py-4 font-black text-black hover:bg-teal-400 disabled:opacity-50"
+                    className="w-full rounded-xl bg-teal-500 px-5 py-4 font-semibold text-black hover:bg-teal-400 disabled:opacity-50"
                   >
                     {sending ? "Sending..." : "Send Reply"}
                   </button>
                 </div>
               </>
             ) : (
-              <p className="rounded-xl border border-slate-700 bg-[#020817] p-5 text-slate-400">Select a support thread.</p>
+              <p className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-5 text-[#8a93a3]">Select a support thread.</p>
             )}
           </div>
         </section>

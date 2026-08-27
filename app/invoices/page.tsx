@@ -136,11 +136,11 @@ export default async function InvoicesPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[#020617] p-8 text-white">
-        <h1 className="text-3xl font-black text-red-400">
+      <main className="min-h-screen bg-[#0a0e13] p-8 text-white">
+        <h1 className="text-3xl font-semibold text-red-400">
           Error loading invoices
         </h1>
-        <p className="mt-4 text-slate-300">{error.message}</p>
+        <p className="mt-4 text-[#8a93a3]">{error.message}</p>
         <Link
           href="/dashboard"
           className="mt-6 inline-block rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300"
@@ -186,20 +186,20 @@ export default async function InvoicesPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
                 FLOW
               </p>
 
-              <h1 className="mt-4 text-5xl font-black text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-white">
                 Invoices
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 Track paid, unpaid, waived, overdue, and outstanding inspection
                 balances without touching the report workflow.
               </p>
@@ -208,7 +208,7 @@ export default async function InvoicesPage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/invoices/new"
-                className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 hover:bg-teal-400"
+                className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 hover:bg-teal-400"
               >
                 + New Invoice
               </Link>
@@ -231,17 +231,17 @@ export default async function InvoicesPage() {
         </section>
 
         {customInvoices.length > 0 && (
-          <section className="mt-8 rounded-2xl border border-slate-700 bg-[#071224] p-6">
+          <section className="mt-8 rounded-2xl border border-[#232b38] bg-[#071224] p-6">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-black text-teal-300">Custom Invoices</h2>
-                <p className="mt-1 text-sm text-slate-400">
+                <h2 className="text-2xl font-semibold text-teal-300">Custom Invoices</h2>
+                <p className="mt-1 text-sm text-[#8a93a3]">
                   Line-item invoices you built and can send with an online pay link.
                 </p>
               </div>
               <Link
                 href="/invoices/new"
-                className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-black text-teal-300 hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/10"
               >
                 + New Invoice
               </Link>
@@ -255,31 +255,31 @@ export default async function InvoicesPage() {
                     ? "bg-emerald-500/15 text-emerald-300"
                     : status === "sent"
                       ? "bg-cyan-500/15 text-cyan-300"
-                      : "bg-slate-600/20 text-slate-300";
+                      : "bg-slate-600/20 text-[#8a93a3]";
                 return (
                   <div
                     key={inv.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#020817]/60 p-4"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#1a212c] bg-[#131923] p-4"
                   >
                     <div className="min-w-0">
                       <p className="truncate font-bold text-white">
                         {inv.client_name || inv.client_email || "—"}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-400">
+                      <p className="mt-0.5 text-xs text-[#8a93a3]">
                         {inv.invoice_number ? `${inv.invoice_number} · ` : ""}
                         {formatAppValue(inv.created_at, { month: "short", day: "numeric", year: "numeric" })}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-black uppercase ${statusTone}`}>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase ${statusTone}`}>
                         {status}
                       </span>
-                      <span className="font-black text-white [font-variant-numeric:tabular-nums]">
+                      <span className="font-semibold text-white [font-variant-numeric:tabular-nums]">
                         {money(inv.total)}
                       </span>
                       <Link
                         href={`/invoices/${inv.id}/edit`}
-                        className="whitespace-nowrap rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-black text-slate-200 hover:bg-slate-800"
+                        className="whitespace-nowrap rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#e8ecf3] hover:bg-[#1a212c]"
                       >
                         {status === "paid" ? "View" : "Edit / Send"}
                       </Link>
@@ -291,31 +291,31 @@ export default async function InvoicesPage() {
           </section>
         )}
 
-        <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black text-teal-300">
+              <h2 className="text-2xl font-semibold text-teal-300">
                 Invoice List
               </h2>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-[#8a93a3]">
                 Pulls directly from the inspections table payment fields.
               </p>
             </div>
 
-            <p className="text-sm font-bold text-slate-400">
+            <p className="text-sm font-bold text-[#8a93a3]">
               {invoiceRows.length} invoice{invoiceRows.length === 1 ? "" : "s"}
             </p>
           </div>
 
           {invoiceRows.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-slate-700 bg-[#020817]/70 p-8 text-center text-slate-400">
+            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-8 text-center text-[#8a93a3]">
               No invoices found yet.
             </div>
           ) : (
             <div className="mt-6 overflow-x-auto">
               <table className="w-full min-w-[1120px] border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-700 text-left text-xs uppercase tracking-wide text-slate-400">
+                  <tr className="border-b border-[#232b38] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
                     <th className="py-3 pr-4">Status</th>
                     <th className="py-3 pr-4">Property</th>
                     <th className="py-3 pr-4">Client</th>
@@ -337,7 +337,7 @@ export default async function InvoicesPage() {
                       inspection.invoiceStatus !== "Waived";
 
                     return (
-                      <tr key={inspection.id} className="border-b border-slate-800 text-sm">
+                      <tr key={inspection.id} className="border-b border-[#1a212c] text-sm">
                         <td className="py-4 pr-4">
                           <InvoiceStatusBadge status={inspection.invoiceStatus} overdue={inspection.overdue} />
                         </td>
@@ -346,22 +346,22 @@ export default async function InvoicesPage() {
                           <p className="font-bold text-white">
                             {inspection.address || inspection.property_address || "Untitled Inspection"}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500">ID #{inspection.id}</p>
+                          <p className="mt-1 text-xs text-[#59626f]">ID #{inspection.id}</p>
                         </td>
 
-                        <td className="py-4 pr-4 text-slate-300">
+                        <td className="py-4 pr-4 text-[#8a93a3]">
                           {inspection.client_name || inspection.client || "N/A"}
                         </td>
 
-                        <td className="py-4 pr-4 text-slate-300">
+                        <td className="py-4 pr-4 text-[#8a93a3]">
                           {inspection.inspection_type || "Inspection"}
                         </td>
 
                         <td className="py-4 pr-4 font-bold text-white">{money(inspection.invoiceAmount)}</td>
                         <td className="py-4 pr-4 text-green-300">{money(inspection.amountPaid)}</td>
                         <td className="py-4 pr-4 font-bold text-red-300">{money(inspection.balanceDue)}</td>
-                        <td className="py-4 pr-4 text-slate-300">{inspection.payment_method || "N/A"}</td>
-                        <td className="py-4 pr-4 text-slate-300">{formatDate(inspection.invoice_due_date)}</td>
+                        <td className="py-4 pr-4 text-[#8a93a3]">{inspection.payment_method || "N/A"}</td>
+                        <td className="py-4 pr-4 text-[#8a93a3]">{formatDate(inspection.invoice_due_date)}</td>
 
                         <td className="py-4 pr-4">
                           <div className="flex max-w-[260px] flex-wrap gap-2">
@@ -374,14 +374,14 @@ export default async function InvoicesPage() {
 
                             <Link
                               href={`/invoices/${inspection.id}/print`}
-                              className="inline-flex rounded-lg border border-cyan-500 px-3 py-2 text-xs font-black text-cyan-300 transition hover:bg-cyan-500/10"
+                              className="inline-flex rounded-lg border border-cyan-500 px-3 py-2 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/10"
                             >
                               Invoice PDF
                             </Link>
 
                             <Link
                               href={`/reports/${inspection.id}`}
-                              className="inline-flex rounded-lg border border-teal-500 px-3 py-2 text-xs font-black text-teal-300 transition hover:bg-teal-500/10"
+                              className="inline-flex rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-teal-300 transition hover:bg-teal-500/10"
                             >
                               View Report
                             </Link>
@@ -423,9 +423,9 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-3 text-4xl font-black text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
+      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
     </div>
   );
 }
@@ -433,7 +433,7 @@ function MetricCard({
 function InvoiceStatusBadge({ status, overdue }: { status: string; overdue: boolean }) {
   if (overdue) {
     return (
-      <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-black text-red-300">
+      <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300">
         Overdue
       </span>
     );
@@ -447,7 +447,7 @@ function InvoiceStatusBadge({ status, overdue }: { status: string; overdue: bool
   };
 
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles[status] || "border-slate-500/40 bg-slate-500/10 text-slate-300"}`}>
+    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${styles[status] || "border-[#59626f]/40 bg-slate-500/10 text-[#8a93a3]"}`}>
       {status}
     </span>
   );

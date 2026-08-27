@@ -1,16 +1,16 @@
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 px-6 py-10">
-      <div className="mx-auto max-w-5xl rounded-2xl border border-teal-700/40 bg-slate-900 p-8 shadow-xl">
+    <main className="min-h-screen bg-[#0a0e13] text-[#e8ecf3] px-6 py-10">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-teal-700/40 bg-[#131923] p-8 shadow-xl">
         <h1 className="text-4xl font-bold text-teal-300 mb-4">
           Terms of Service
         </h1>
 
-        <p className="text-sm text-slate-400 mb-8">
+        <p className="text-sm text-[#8a93a3] mb-8">
           Last Updated: June 5, 2026
         </p>
 
-        <div className="space-y-6 text-slate-200 leading-7">
+        <div className="space-y-6 text-[#e8ecf3] leading-7">
           <p>
             By accessing or using FLOW, you agree to these Terms of
             Service.

@@ -81,7 +81,7 @@ export default function ResetPasswordPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(20,200,210,0.10),transparent_55%)]" />
       </div>
 
-      <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#131923] p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         <div className="flex justify-center">
           <img
             src="/flow-logo-mark.png"
@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
             Password updated. Redirecting...
           </div>
         ) : !ready ? (
-          <p className="mt-6 text-center text-sm text-slate-400">
+          <p className="mt-6 text-center text-sm text-[#8a93a3]">
             Verifying your reset link...
           </p>
         ) : (
@@ -121,7 +121,7 @@ export default function ResetPasswordPage() {
             className="mt-6 space-y-4"
           >
             <div>
-              <label className="text-sm text-slate-300">
+              <label className="text-sm text-[#8a93a3]">
                 New Password
               </label>
 
@@ -130,12 +130,12 @@ export default function ResetPasswordPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                className="mt-1.5 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
               />
             </div>
 
             <div>
-              <label className="text-sm text-slate-300">
+              <label className="text-sm text-[#8a93a3]">
                 Confirm Password
               </label>
 
@@ -144,7 +144,7 @@ export default function ResetPasswordPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                className="mt-1.5 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
               />
             </div>
 

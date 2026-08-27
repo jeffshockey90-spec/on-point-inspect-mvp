@@ -21,7 +21,7 @@ const STATUS_STYLES: Record<string, string> = {
   planned: "border-purple-400/40 bg-purple-500/10 text-purple-300",
   in_progress: "border-amber-400/40 bg-amber-500/10 text-amber-300",
   shipped: "border-emerald-400/40 bg-emerald-500/10 text-emerald-300",
-  declined: "border-slate-500/40 bg-slate-500/10 text-slate-400",
+  declined: "border-[#59626f]/40 bg-slate-500/10 text-[#8a93a3]",
 };
 
 function formatDate(value: string | null | undefined) {
@@ -162,20 +162,20 @@ export default function OwnerSuggestions() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-5xl space-y-6">
-        <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl md:p-8">
+        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.3em] text-teal-400">Suggestion Box</p>
-              <h1 className="mt-3 text-4xl font-black md:text-5xl">Feature Requests</h1>
-              <p className="mt-4 text-slate-300">What inspectors are asking for, straight from the app.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-400">Suggestion Box</p>
+              <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Feature Requests</h1>
+              <p className="mt-4 text-[#8a93a3]">What inspectors are asking for, straight from the app.</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link href="/dashboard/owner/changelog" className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10">
+              <Link href="/dashboard/owner/changelog" className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 hover:bg-teal-500/10">
                 Changelog
               </Link>
-              <Link href="/dashboard/owner" className="rounded-xl border border-slate-700 px-5 py-3 font-black text-slate-300 hover:bg-slate-800">
+              <Link href="/dashboard/owner" className="rounded-xl border border-[#232b38] px-5 py-3 font-semibold text-[#8a93a3] hover:bg-[#1a212c]">
                 Owner Dashboard
               </Link>
             </div>
@@ -189,10 +189,10 @@ export default function OwnerSuggestions() {
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide transition ${
+              className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition ${
                 filter === status
                   ? "border-teal-400 bg-teal-500/15 text-teal-200"
-                  : "border-slate-700 bg-[#0f172a] text-slate-400 hover:border-teal-500/50"
+                  : "border-[#232b38] bg-[#10151e] text-[#8a93a3] hover:border-teal-500/50"
               }`}
             >
               {status.replace("_", " ")}
@@ -202,28 +202,28 @@ export default function OwnerSuggestions() {
 
         <div className="space-y-4">
           {loading ? (
-            <p className="text-slate-400">Loading...</p>
+            <p className="text-[#8a93a3]">Loading...</p>
           ) : filtered.length === 0 ? (
-            <p className="rounded-xl border border-slate-700 bg-[#0f172a] p-6 text-center text-slate-400">
+            <p className="rounded-xl border border-[#232b38] bg-[#10151e] p-6 text-center text-[#8a93a3]">
               No suggestions here yet.
             </p>
           ) : (
             filtered.map((request) => (
-              <div key={request.id} className="rounded-2xl border border-slate-800 bg-[#0f172a] p-5">
+              <div key={request.id} className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-black text-white">{request.user_name || "Inspector"}</p>
-                    <p className="text-xs text-slate-400">{request.user_email || "No email"} · {formatDate(request.created_at)}</p>
+                    <p className="font-semibold text-white">{request.user_name || "Inspector"}</p>
+                    <p className="text-xs text-[#8a93a3]">{request.user_email || "No email"} · {formatDate(request.created_at)}</p>
                   </div>
-                  <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-black uppercase ${STATUS_STYLES[request.status] || STATUS_STYLES.new}`}>
+                  <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold uppercase ${STATUS_STYLES[request.status] || STATUS_STYLES.new}`}>
                     {request.status.replace("_", " ")}
                   </span>
                 </div>
 
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-200">{request.message}</p>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#e8ecf3]">{request.message}</p>
 
                 <div className="mt-4">
-                  <p className="mb-1.5 text-xs font-black uppercase tracking-wide text-slate-500">
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[#59626f]">
                     Reply to {request.user_name || "this inspector"}
                   </p>
                   <textarea
@@ -233,13 +233,13 @@ export default function OwnerSuggestions() {
                     }
                     rows={2}
                     placeholder="Optional note the inspector will see on their suggestion..."
-                    className="w-full rounded-xl border border-slate-700 bg-black px-3 py-2 text-sm text-white outline-none focus:border-teal-400"
+                    className="w-full rounded-xl border border-[#232b38] bg-black px-3 py-2 text-sm text-white outline-none focus:border-teal-400"
                   />
                   {getNoteDraft(request) !== (request.owner_note ?? "") && (
                     <button
                       onClick={() => saveNote(request)}
                       disabled={savingNoteId === request.id}
-                      className="mt-2 rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-black text-black hover:bg-teal-400 disabled:opacity-50"
+                      className="mt-2 rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-semibold text-black hover:bg-teal-400 disabled:opacity-50"
                     >
                       {savingNoteId === request.id ? "Saving..." : "Save Reply"}
                     </button>
@@ -259,7 +259,7 @@ export default function OwnerSuggestions() {
                       className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
                         request.status === status
                           ? "border-teal-400 bg-teal-500/15 text-teal-200"
-                          : "border-slate-700 text-slate-400 hover:border-teal-500/50 hover:text-teal-300"
+                          : "border-[#232b38] text-[#8a93a3] hover:border-teal-500/50 hover:text-teal-300"
                       }`}
                     >
                       {status.replace("_", " ")}
@@ -268,7 +268,7 @@ export default function OwnerSuggestions() {
 
                   <button
                     onClick={() => openPublish(request)}
-                    className="ml-auto rounded-lg bg-teal-500 px-4 py-1.5 text-xs font-black text-black hover:bg-teal-400"
+                    className="ml-auto rounded-lg bg-teal-500 px-4 py-1.5 text-xs font-semibold text-black hover:bg-teal-400"
                   >
                     Post to Changelog
                   </button>
@@ -281,13 +281,13 @@ export default function OwnerSuggestions() {
 
       {publishTarget && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-lg rounded-2xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-black text-white">Post to Changelog</h2>
+              <h2 className="text-xl font-semibold text-white">Post to Changelog</h2>
               <button
                 type="button"
                 onClick={() => setPublishTarget(null)}
-                className="rounded-lg border border-slate-700 px-3 py-1 text-sm font-bold text-slate-300 hover:bg-slate-800"
+                className="rounded-lg border border-[#232b38] px-3 py-1 text-sm font-bold text-[#8a93a3] hover:bg-[#1a212c]"
               >
                 Close
               </button>
@@ -303,22 +303,22 @@ export default function OwnerSuggestions() {
               value={publishTitle}
               onChange={(e) => setPublishTitle(e.target.value)}
               placeholder="Feature title, e.g. Custom section fields"
-              className="mt-4 w-full rounded-xl border border-slate-700 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+              className="mt-4 w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
             />
 
             <textarea
               value={publishBody}
               onChange={(e) => setPublishBody(e.target.value)}
               rows={4}
-              className="mt-3 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
+              className="mt-3 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
             />
 
-            <label className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-300">
+            <label className="mt-3 flex items-center gap-2 text-sm font-bold text-[#8a93a3]">
               <input
                 type="checkbox"
                 checked={publishCredit}
                 onChange={(e) => setPublishCredit(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-600 bg-black"
+                className="h-4 w-4 rounded border-[#232b38] bg-black"
               />
               Credit {publishTarget.user_name || "this inspector"}
             </label>
@@ -327,7 +327,7 @@ export default function OwnerSuggestions() {
               type="button"
               onClick={submitPublish}
               disabled={!publishTitle.trim() || !publishBody.trim() || publishing}
-              className="mt-4 w-full rounded-xl bg-teal-500 px-5 py-3 font-black text-black hover:bg-teal-400 disabled:opacity-50"
+              className="mt-4 w-full rounded-xl bg-teal-500 px-5 py-3 font-semibold text-black hover:bg-teal-400 disabled:opacity-50"
             >
               {publishing ? "Publishing..." : "Publish"}
             </button>

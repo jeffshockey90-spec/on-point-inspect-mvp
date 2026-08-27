@@ -1,6 +1,6 @@
 export function FormField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="space-y-2 text-sm font-medium text-slate-200">
+    <label className="space-y-2 text-sm font-medium text-[#e8ecf3]">
       <span>{label}</span>
       {children}
     </label>

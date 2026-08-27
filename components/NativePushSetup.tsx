@@ -298,20 +298,20 @@ export default function NativePushSetup() {
 
   if (status === "not_native") {
     return (
-      <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4 text-sm text-slate-400">
+      <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm text-[#8a93a3]">
         Native Apple push is only available inside the iOS App Store app. Web push still works in supported browsers.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+    <div className="space-y-4 rounded-xl border border-[#232b38] bg-[#131923] p-4">
       <div>
-        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
           Native iOS Push
         </p>
 
-        <p className="mt-2 text-lg font-black text-white">
+        <p className="mt-2 text-lg font-semibold text-white">
           {status === "registered"
             ? "Enabled"
             : status === "permission_denied"
@@ -322,7 +322,7 @@ export default function NativePushSetup() {
         </p>
 
         {token && (
-          <p className="mt-1 break-all text-xs text-slate-500">
+          <p className="mt-1 break-all text-xs text-[#59626f]">
             Token saved: {token.slice(0, 18)}...
           </p>
         )}
@@ -348,7 +348,7 @@ export default function NativePushSetup() {
           onClick={enableNativePush}
           disabled={busy}
           aria-busy={busy}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
         >
           {busy && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -360,7 +360,7 @@ export default function NativePushSetup() {
           type="button"
           onClick={sendNativeTest}
           disabled={testing || status !== "registered"}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
         >
           {testing && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

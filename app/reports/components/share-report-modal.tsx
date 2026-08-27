@@ -30,12 +30,12 @@ export default function ShareReportModal({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+    <div className="rounded-2xl border border-[#1a212c] bg-[#131923] p-5">
       <h2 className="text-xl font-semibold text-white">
         Share Report
       </h2>
 
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-[#8a93a3]">
         Copy this public report link and send it to the client or realtor.
       </p>
 
@@ -43,7 +43,7 @@ export default function ShareReportModal({
         <input
           value={shareUrl}
           readOnly
-          className="flex-1 rounded-lg border border-slate-700 bg-[#0a0e13] p-3 text-white"
+          className="flex-1 rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
         />
 
         <button
@@ -57,7 +57,7 @@ export default function ShareReportModal({
       <a
         href={shareUrl}
         target="_blank"
-        className="mt-4 inline-block rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+        className="mt-4 inline-block rounded-lg border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] hover:bg-[#1a212c]"
       >
         Open Shared Report
       </a>

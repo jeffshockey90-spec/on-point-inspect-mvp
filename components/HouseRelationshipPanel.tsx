@@ -69,16 +69,16 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
     <div className={`rounded-2xl border p-4 ${severityTone(relationship.severity)}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-wide opacity-80">
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
             {categoryLabel(relationship.category)}
           </p>
 
-          <h3 className="mt-1 text-lg font-black text-white">
+          <h3 className="mt-1 text-lg font-semibold text-white">
             {relationship.title}
           </h3>
         </div>
 
-        <span className={`rounded-full border border-current/30 bg-black/20 px-3 py-1 text-xs font-black ${confidenceTone(relationship.confidence)}`}>
+        <span className={`rounded-full border border-current/30 bg-black/20 px-3 py-1 text-xs font-semibold ${confidenceTone(relationship.confidence)}`}>
           {relationship.confidence}% confidence
         </span>
       </div>
@@ -88,7 +88,7 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
       </p>
 
       <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3">
-        <p className="text-xs font-black uppercase tracking-wide opacity-70">
+        <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
           Related Findings
         </p>
 
@@ -99,12 +99,12 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
               className="rounded-xl border border-white/10 bg-black/25 p-3"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="text-sm font-black text-white">
+                <p className="text-sm font-semibold text-white">
                   {index + 1}. {finding.title}
                 </p>
 
                 {finding.section && (
-                  <span className="rounded-full border border-current/30 px-2 py-1 text-[10px] font-black opacity-90">
+                  <span className="rounded-full border border-current/30 px-2 py-1 text-[10px] font-semibold opacity-90">
                     {finding.section}
                   </span>
                 )}
@@ -122,14 +122,14 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <div className="rounded-xl border border-white/10 bg-black/25 p-3">
-          <p className="text-xs font-black uppercase tracking-wide opacity-70">
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
             Recommendation
           </p>
           <p className="mt-2 text-sm leading-6">{relationship.recommendation}</p>
         </div>
 
         <div className="rounded-xl border border-white/10 bg-black/25 p-3">
-          <p className="text-xs font-black uppercase tracking-wide opacity-70">
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
             Inspector Note
           </p>
           <p className="mt-2 text-sm leading-6">{relationship.inspectorNote}</p>
@@ -242,15 +242,15 @@ export default function HouseRelationshipPanel({
     <section ref={rootRef} className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-950/20 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-fuchsia-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-fuchsia-300">
             House Relationship Engine
           </p>
 
-          <h2 className="mt-1 text-2xl font-black text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-white">
             Connected Finding Intelligence
           </h2>
 
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
             Looks across the whole inspection for findings that may be related,
             such as roof leaks connected to attic stains, drainage connected to
             basement moisture, or HVAC age connected to performance concerns.
@@ -261,7 +261,7 @@ export default function HouseRelationshipPanel({
           type="button"
           onClick={loadRelationships}
           disabled={loading || !inspectionId}
-          className="rounded-xl bg-fuchsia-500 px-4 py-3 text-sm font-black text-white transition hover:bg-fuchsia-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-fuchsia-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-fuchsia-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Checking..." : "Refresh Relationships"}
         </button>
@@ -274,43 +274,43 @@ export default function HouseRelationshipPanel({
       )}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             Relationships
           </p>
-          <p className="mt-1 text-3xl font-black text-white">
+          <p className="mt-1 text-3xl font-semibold text-white">
             {result?.relationshipCount ?? "—"}
           </p>
         </div>
 
-        <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             Highest Confidence
           </p>
-          <p className={`mt-1 text-3xl font-black ${confidenceTone(result?.highestConfidence || 0)}`}>
+          <p className={`mt-1 text-3xl font-semibold ${confidenceTone(result?.highestConfidence || 0)}`}>
             {result ? `${result.highestConfidence}%` : "—"}
           </p>
         </div>
 
-        <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             Status
           </p>
-          <p className="mt-1 text-lg font-black text-fuchsia-200">
+          <p className="mt-1 text-lg font-semibold text-fuchsia-200">
             {result?.relationshipCount ? "Review Suggested" : "Monitoring"}
           </p>
         </div>
       </div>
 
       {result?.summary && (
-        <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-4 text-sm leading-7 text-slate-100">
+        <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-7 text-[#e8ecf3]">
           {result.summary}
         </div>
       )}
 
       {result?.suggestions?.length ? (
         <div className="mt-5 rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-4">
-          <p className="text-xs font-black uppercase tracking-wide text-yellow-300">
+          <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
             AI Suggestions
           </p>
 
@@ -326,7 +326,7 @@ export default function HouseRelationshipPanel({
 
       <div className="mt-5 space-y-4">
         {!result ? (
-          <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4 text-sm leading-6 text-slate-300">
+          <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
             Relationship intelligence will appear after the inspection has enough
             findings or equipment records to compare.
           </div>

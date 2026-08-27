@@ -98,7 +98,7 @@ function getResultStyle(result: string) {
     return "border-green-500/40 bg-green-500/10 text-green-300";
   }
 
-  return "border-slate-500/40 bg-slate-500/10 text-slate-300";
+  return "border-[#59626f]/40 bg-slate-500/10 text-[#8a93a3]";
 }
 
 function buildSummary(average: any) {
@@ -250,20 +250,20 @@ export default function RadonPage() {
   }, [inspections]);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-3xl border border-slate-800 bg-[#0f172a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-[#14c8d2]">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
                 FLOW
               </p>
 
-              <h1 className="mt-4 text-5xl font-black text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-white">
                 Radon Testing
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 Manage radon tests, readings, device details, and client-friendly
                 summaries for inspections with radon services.
               </p>
@@ -308,22 +308,22 @@ export default function RadonPage() {
           />
         </section>
 
-        <section className="mt-8 rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <h2 className="text-2xl font-black text-teal-300">
+        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-teal-300">
             Radon Test List
           </h2>
 
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-[#8a93a3]">
             Results are classified automatically: under 2.0 is Low, 2.0–3.9 is
             Monitor, and 4.0+ is Action Recommended.
           </p>
 
           {loading ? (
-            <div className="mt-6 rounded-xl border border-slate-700 bg-[#020817]/70 p-8 text-center text-slate-400">
+            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-8 text-center text-[#8a93a3]">
               Loading radon tests...
             </div>
           ) : inspections.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-slate-700 bg-[#020817]/70 p-8 text-center text-slate-400">
+            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-8 text-center text-[#8a93a3]">
               No radon jobs found yet. Create an inspection with Radon Only,
               Home + Radon, or Home + Radon + Mold to see it here.
             </div>
@@ -340,23 +340,23 @@ export default function RadonPage() {
                 return (
                   <div
                     key={inspection.id}
-                    className="rounded-2xl border border-slate-800 bg-[#020817]/70 p-5"
+                    className="rounded-2xl border border-[#1a212c] bg-[#131923] p-5"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="text-xl font-black text-white">
+                        <p className="text-xl font-semibold text-white">
                           {inspection.property_address ||
                             inspection.address ||
                             "Untitled Inspection"}
                         </p>
 
-                        <p className="mt-1 text-sm text-slate-400">
+                        <p className="mt-1 text-sm text-[#8a93a3]">
                           {inspection.client_name || "No client"} •{" "}
                           {formatDate(inspection.inspection_date)} • ID #
                           {inspection.id}
                         </p>
 
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-[#59626f]">
                           {inspection.inspection_type ||
                             inspection.services ||
                             "Radon Service"}
@@ -364,7 +364,7 @@ export default function RadonPage() {
                       </div>
 
                       <span
-                        className={`rounded-full border px-4 py-2 text-xs font-black ${getResultStyle(
+                        className={`rounded-full border px-4 py-2 text-xs font-semibold ${getResultStyle(
                           result
                         )}`}
                       >
@@ -440,7 +440,7 @@ export default function RadonPage() {
                       />
 
                       <label>
-                        <span className="text-sm font-bold text-slate-300">
+                        <span className="text-sm font-bold text-[#8a93a3]">
                           Report Status
                         </span>
 
@@ -453,7 +453,7 @@ export default function RadonPage() {
                               event.target.value
                             )
                           }
-                          className="mt-2 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white"
+                          className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Completed">Completed</option>
@@ -465,7 +465,7 @@ export default function RadonPage() {
                     </div>
 
                     <label className="mt-4 block">
-                      <span className="text-sm font-bold text-slate-300">
+                      <span className="text-sm font-bold text-[#8a93a3]">
                         Notes
                       </span>
                       <textarea
@@ -474,16 +474,16 @@ export default function RadonPage() {
                           updateForm(inspection.id, "notes", event.target.value)
                         }
                         rows={3}
-                        className="mt-2 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white"
+                        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
                         placeholder="Closed-house conditions, device placement, limitations, or other radon notes..."
                       />
                     </label>
 
-                    <div className="mt-4 rounded-xl border border-slate-700 bg-[#0f172a] p-4">
-                      <p className="text-sm font-black uppercase tracking-wide text-slate-400">
+                    <div className="mt-4 rounded-xl border border-[#232b38] bg-[#10151e] p-4">
+                      <p className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
                         Client Summary
                       </p>
-                      <p className="mt-2 text-sm leading-7 text-slate-200">
+                      <p className="mt-2 text-sm leading-7 text-[#e8ecf3]">
                         {summary}
                       </p>
                     </div>
@@ -493,7 +493,7 @@ export default function RadonPage() {
                         type="button"
                         onClick={() => saveRadonTest(inspection.id)}
                         disabled={savingId === key}
-                        className="rounded-xl bg-teal-500 px-5 py-3 font-black text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {savingId === key ? "Saving..." : "Save Radon Test"}
                       </button>
@@ -554,11 +554,11 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
         {label}
       </p>
-      <p className="mt-3 text-4xl font-black text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
+      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
     </div>
   );
 }
@@ -629,7 +629,7 @@ function LabReportField({
 
   return (
     <label>
-      <span className="text-sm font-bold text-slate-300">
+      <span className="text-sm font-bold text-[#8a93a3]">
         Official Report (upload PDF or paste a link)
       </span>
       <input
@@ -637,7 +637,7 @@ function LabReportField({
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Upload the PDF, or paste a link"
-        className="mt-2 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white"
+        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
       />
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <label
@@ -668,7 +668,7 @@ function LabReportField({
       {error ? (
         <p className="mt-1 text-xs font-bold text-red-400">{error}</p>
       ) : (
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-[#59626f]">
           Remember to Save after uploading.
         </p>
       )}
@@ -689,12 +689,12 @@ function Field({
 }) {
   return (
     <label>
-      <span className="text-sm font-bold text-slate-300">{label}</span>
+      <span className="text-sm font-bold text-[#8a93a3]">{label}</span>
       <input
         type={type}
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white"
+        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
       />
     </label>
   );
@@ -711,12 +711,12 @@ function DateTimeField({
 }) {
   return (
     <label>
-      <span className="text-sm font-bold text-slate-300">{label}</span>
+      <span className="text-sm font-bold text-[#8a93a3]">{label}</span>
       <input
         type="datetime-local"
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-700 bg-black px-4 py-3 text-white"
+        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
       />
     </label>
   );

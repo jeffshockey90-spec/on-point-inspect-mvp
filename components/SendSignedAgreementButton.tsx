@@ -46,7 +46,7 @@ export default function SendSignedAgreementButton({
         type="button"
         onClick={send}
         disabled={busy}
-        className="rounded-xl border border-teal-500 bg-teal-500/10 px-4 py-3 text-center text-sm font-black text-teal-300 transition hover:bg-teal-500 hover:text-slate-950 disabled:opacity-50"
+        className="rounded-xl border border-teal-500 bg-teal-500/10 px-4 py-3 text-center text-sm font-semibold text-teal-300 transition hover:bg-teal-500 hover:text-slate-950 disabled:opacity-50"
       >
         {busy ? "Sending…" : "Email copy to client"}
       </button>

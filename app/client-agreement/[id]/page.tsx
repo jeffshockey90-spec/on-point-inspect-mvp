@@ -148,13 +148,13 @@ export default async function ClientAgreementPage({
 
   if (!inspection) {
     return (
-      <main className="min-h-screen bg-[#020617] p-6 text-white">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-800 bg-[#0b1220] p-6">
+      <main className="min-h-screen bg-[#0a0e13] p-6 text-white">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-[#1a212c] bg-[#10151e] p-6">
           <h1 className="text-3xl font-extrabold text-red-300">
             Agreement Not Found
           </h1>
 
-          <p className="mt-3 text-slate-300">
+          <p className="mt-3 text-[#8a93a3]">
             This agreement link is invalid or no longer available.
           </p>
         </div>
@@ -265,9 +265,9 @@ export default async function ClientAgreementPage({
       : templates[0]?.title || getAgreementTitle(state));
 
   return (
-    <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8">
+    <main className="min-h-screen bg-[#0a0e13] p-4 text-white md:p-8">
       <div className="mx-auto max-w-5xl space-y-6">
-        <div className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl print:border-none print:bg-white print:text-black print:shadow-none">
+        <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl print:border-none print:bg-white print:text-black print:shadow-none">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400 print:text-black">
             {branding.name}
           </p>
@@ -276,16 +276,16 @@ export default async function ClientAgreementPage({
             {title}
           </h1>
 
-          <p className="mt-3 text-slate-300 print:text-black">
+          <p className="mt-3 text-[#8a93a3] print:text-black">
             Property: {inspection.address || inspection.property_address || "Inspection Property"}
           </p>
 
-          <p className="mt-1 text-slate-400 print:text-black">
+          <p className="mt-1 text-[#8a93a3] print:text-black">
             Client: {selectedContact?.name || inspection.client_name || "Client"}
           </p>
 
           {(inspection.inspection_date || inspection.inspection_time) && (
-            <p className="mt-1 text-slate-400 print:text-black">
+            <p className="mt-1 text-[#8a93a3] print:text-black">
               Inspection:{" "}
               {[
                 inspection.inspection_date
@@ -299,23 +299,23 @@ export default async function ClientAgreementPage({
           )}
 
           {(signedAgreement?.client_organization_name || inspection.client_organization_name) && (
-            <p className="mt-1 text-slate-400 print:text-black">
+            <p className="mt-1 text-[#8a93a3] print:text-black">
               Business/Organization:{" "}
               {signedAgreement?.client_organization_name || inspection.client_organization_name}
             </p>
           )}
 
-          <p className="mt-1 text-slate-400 print:text-black">
+          <p className="mt-1 text-[#8a93a3] print:text-black">
             Agreement Selected: {state}
           </p>
 
           {templates.length > 0 && !signedAgreement && (
-            <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4 print:bg-white print:text-black">
+            <div className="mt-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 print:bg-white print:text-black">
               <p className="font-bold text-teal-300 print:text-black">
                 Included Agreements:
               </p>
 
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300 print:text-black">
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#8a93a3] print:text-black">
                 {templates.map((template) => (
                   <li key={template.id}>
                     {template.title} — {template.version}
@@ -345,7 +345,7 @@ export default async function ClientAgreementPage({
 
         <div
           id="agreement-body"
-          className="max-h-[65vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-slate-800 bg-white p-6 leading-8 text-slate-950 shadow-xl print:max-h-none print:overflow-visible print:border-none print:shadow-none"
+          className="max-h-[65vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-[#1a212c] bg-white p-6 leading-8 text-slate-950 shadow-xl print:max-h-none print:overflow-visible print:border-none print:shadow-none"
         >
           {agreementBody}
         </div>
@@ -355,7 +355,7 @@ export default async function ClientAgreementPage({
             <h2 className="text-2xl font-extrabold text-cyan-200">
               Who is signing?
             </h2>
-            <p className="mt-2 text-sm text-slate-300">
+            <p className="mt-2 text-sm text-[#8a93a3]">
               This inspection has more than one client. Select your name to sign
               the agreement &mdash; each client signs separately.
             </p>
@@ -369,7 +369,7 @@ export default async function ClientAgreementPage({
                   className="flex items-center justify-between gap-3 rounded-xl border border-cyan-500 bg-cyan-500/10 px-5 py-4 text-left font-bold text-cyan-100 transition hover:bg-cyan-500/20"
                 >
                   <span>{choice.name || choice.email || "Client"}</span>
-                  <span className="text-xs font-black uppercase tracking-wide text-cyan-300">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
                     {choice.role || "client"} &rsaquo;
                   </span>
                 </a>
@@ -382,7 +382,7 @@ export default async function ClientAgreementPage({
               Agreement Signed
             </h2>
 
-            <div className="mt-3 grid gap-2 text-sm text-slate-300 print:text-black md:grid-cols-2">
+            <div className="mt-3 grid gap-2 text-sm text-[#8a93a3] print:text-black md:grid-cols-2">
               <p>
                 <strong>Signed by:</strong> {signedAgreement.client_name || "Client"}
               </p>
@@ -415,7 +415,7 @@ export default async function ClientAgreementPage({
 
             {signedAgreement.client_signature ? (
               <div className="mt-5 border-t border-green-700/40 pt-4 print:border-black">
-                <p className="text-xs font-black uppercase tracking-wide text-green-300 print:text-black">
+                <p className="text-xs font-semibold uppercase tracking-wide text-green-300 print:text-black">
                   Signature
                 </p>
                 <div className="mt-2 rounded-xl bg-white p-4 print:border print:border-black">
@@ -437,20 +437,20 @@ export default async function ClientAgreementPage({
 
             {(signedAgreement.agreement_hash || signedAgreement.esign_consent_text) && (
               <div className="mt-5 border-t border-green-700/40 pt-4 print:border-black">
-                <p className="text-xs font-black uppercase tracking-wide text-green-300 print:text-black">
+                <p className="text-xs font-semibold uppercase tracking-wide text-green-300 print:text-black">
                   Certificate of Electronic Signature
                 </p>
                 {signedAgreement.esign_consent_text && (
-                  <p className="mt-2 text-xs leading-6 text-slate-300 print:text-black">
+                  <p className="mt-2 text-xs leading-6 text-[#8a93a3] print:text-black">
                     &ldquo;{signedAgreement.esign_consent_text}&rdquo;
                   </p>
                 )}
                 {signedAgreement.agreement_hash && (
-                  <p className="mt-2 break-all font-mono text-[11px] text-slate-400 print:text-black">
+                  <p className="mt-2 break-all font-mono text-[11px] text-[#8a93a3] print:text-black">
                     <strong>Document SHA-256:</strong> {signedAgreement.agreement_hash}
                   </p>
                 )}
-                <p className="mt-2 text-[11px] leading-5 text-slate-500 print:text-black">
+                <p className="mt-2 text-[11px] leading-5 text-[#59626f] print:text-black">
                   This record is protected by the tamper-evidence hash above &mdash; any change
                   to the agreement text would alter this value. Executed electronically under the
                   U.S. ESIGN Act and applicable state UETA.

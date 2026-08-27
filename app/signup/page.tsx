@@ -159,12 +159,12 @@ export default function SignupPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(20,200,210,0.10),transparent_55%)]" />
       </div>
 
-      <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/70 p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
-        <h1 className="text-3xl font-black tracking-tight text-white">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#131923] p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-white">
           Create <span className="text-teal-400">Account</span>
         </h1>
 
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="mt-2 text-sm text-[#8a93a3]">
           Inspector, Client, and Realtor access for reports and repair requests.
         </p>
 
@@ -174,7 +174,7 @@ export default function SignupPage() {
             placeholder="Full name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+            className="w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition placeholder:text-[#59626f] focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           />
 
           <input
@@ -183,13 +183,13 @@ export default function SignupPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+            className="w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition placeholder:text-[#59626f] focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           />
 
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+            className="w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           >
             <option value="inspector">Inspector</option>
             <option value="client">Client</option>
@@ -203,11 +203,11 @@ export default function SignupPage() {
                 placeholder="Business name"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                className="w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition placeholder:text-[#59626f] focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
               />
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="mb-1 block text-xs font-bold text-slate-400">Country</span>
+                  <span className="mb-1 block text-xs font-bold text-[#8a93a3]">Country</span>
                   <select
                     value={country}
                     onChange={(e) => {
@@ -217,7 +217,7 @@ export default function SignupPage() {
                       // primary language; the inspector can still change it.
                       setLanguage(defaultLanguageForCountry(next));
                     }}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                    className="w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
                   >
                     {COUNTRIES.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -227,11 +227,11 @@ export default function SignupPage() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-xs font-bold text-slate-400">Report language</span>
+                  <span className="mb-1 block text-xs font-bold text-[#8a93a3]">Report language</span>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                    className="w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
                   >
                     {BUSINESS_LANGUAGES.map((l) => (
                       <option key={l.code} value={l.code}>
@@ -250,7 +250,7 @@ export default function SignupPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+            className="w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition placeholder:text-[#59626f] focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           />
 
           <input
@@ -259,7 +259,7 @@ export default function SignupPage() {
             placeholder="Confirm password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+            className="w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition placeholder:text-[#59626f] focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
           />
 
           {message && (
@@ -282,7 +282,7 @@ export default function SignupPage() {
             {loading ? "Creating..." : "Create Account"}
           </button>
 
-          <p className="text-center text-sm text-slate-400">
+          <p className="text-center text-sm text-[#8a93a3]">
             Already have an account?{" "}
             <a href="/login" className="font-semibold text-teal-400 hover:underline">
               Sign in

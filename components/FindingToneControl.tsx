@@ -61,7 +61,7 @@ export default function FindingToneControl({
   }
 
   const chip =
-    "rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 text-xs font-black text-teal-100 transition active:scale-95 disabled:opacity-50";
+    "rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-100 transition active:scale-95 disabled:opacity-50";
 
   const presets: { key: string; label: string }[] = [
     { key: "calmer", label: "🫸 Less alarming" },
@@ -72,7 +72,7 @@ export default function FindingToneControl({
 
   return (
     <div className={`rounded-xl border border-teal-500/30 bg-teal-950/20 p-3 ${className}`}>
-      <p className="mb-2 text-xs font-black uppercase tracking-wide text-teal-300">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-teal-300">
         Adjust the tone
       </p>
       <div className="flex flex-wrap gap-2">
@@ -103,13 +103,13 @@ export default function FindingToneControl({
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             placeholder='e.g. "less scary but keep the safety note" or "mention it may be older"'
-            className="flex-1 rounded-lg border border-slate-700 bg-[#0b1220] px-3 py-2 text-sm font-semibold text-slate-100 placeholder:text-slate-500"
+            className="flex-1 rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm font-semibold text-[#e8ecf3] placeholder:text-[#59626f]"
           />
           <button
             type="button"
             disabled={Boolean(busy) || !custom.trim()}
             onClick={() => run("", custom.trim())}
-            className="rounded-lg bg-teal-400 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-teal-300 disabled:opacity-50"
+            className="rounded-lg bg-teal-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-300 disabled:opacity-50"
           >
             {busy === "custom" ? "Rewriting…" : "Apply"}
           </button>
@@ -117,7 +117,7 @@ export default function FindingToneControl({
       )}
 
       {err && <p className="mt-2 text-xs font-bold text-rose-300">{err}</p>}
-      <p className="mt-2 text-[11px] leading-4 text-slate-500">
+      <p className="mt-2 text-[11px] leading-4 text-[#59626f]">
         Rewrites wording only — it won’t downplay a real safety issue.
       </p>
     </div>

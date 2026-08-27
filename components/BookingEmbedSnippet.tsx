@@ -17,7 +17,7 @@ export default function BookingEmbedSnippet({
 
   if (!slug) {
     return (
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-[#8a93a3]">
         Save a profile slug above first — your booking embed code is generated from it.
       </p>
     );
@@ -46,13 +46,13 @@ export default function BookingEmbedSnippet({
         value={snippet}
         rows={4}
         onFocus={(e) => e.currentTarget.select()}
-        className="w-full resize-none rounded-xl border border-slate-700 bg-[#020817] p-3 font-mono text-xs leading-5 text-slate-300"
+        className="w-full resize-none rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 font-mono text-xs leading-5 text-[#8a93a3]"
       />
       <div className="mt-3 flex flex-wrap gap-3">
         <button
           type="button"
           onClick={copy}
-          className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-black text-slate-950 transition hover:bg-cyan-400"
+          className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
         >
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           {copied ? "Copied!" : "Copy embed code"}
@@ -61,7 +61,7 @@ export default function BookingEmbedSnippet({
           href={src}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-black text-slate-200 transition hover:border-cyan-400 hover:text-cyan-300"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#232b38] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition hover:border-cyan-400 hover:text-cyan-300"
         >
           <ExternalLink className="h-4 w-4" />
           Preview

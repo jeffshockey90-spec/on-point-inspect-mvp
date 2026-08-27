@@ -247,16 +247,16 @@ export default async function PaySplitsPage({
   const isActiveRange = (r: { from: string; to: string }) => r.from === from && r.to === to;
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-6xl space-y-8">
-        <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.35em] text-teal-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">
                 {companyName}
               </p>
-              <h1 className="mt-4 text-5xl font-black text-white">Pay Splits</h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+              <h1 className="mt-4 text-5xl font-semibold text-white">Pay Splits</h1>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
                 Per-inspector earnings on published inspections — gross fee billed, the inspector&apos;s
                 commission cut, and the company&apos;s cut — for the selected date range.
               </p>
@@ -264,7 +264,7 @@ export default async function PaySplitsPage({
 
             <Link
               href="/analytics"
-              className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 transition hover:bg-teal-500/10"
+              className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
             >
               Back to Analytics
             </Link>
@@ -272,11 +272,11 @@ export default async function PaySplitsPage({
         </section>
 
         {/* Date range controls */}
-        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <h2 className="text-2xl font-black text-teal-300">Date Range</h2>
-              <p className="mt-2 text-sm text-slate-400">
+              <h2 className="text-2xl font-semibold text-teal-300">Date Range</h2>
+              <p className="mt-2 text-sm text-[#8a93a3]">
                 Showing {formatLabel(from)} – {formatLabel(to)}. Earnings use each inspection&apos;s date.
               </p>
             </div>
@@ -290,26 +290,26 @@ export default async function PaySplitsPage({
 
           <form method="get" className="mt-5 flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">From</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">From</span>
               <input
                 type="date"
                 name="from"
                 defaultValue={from}
-                className="rounded-xl border border-slate-700 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                className="rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">To</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">To</span>
               <input
                 type="date"
                 name="to"
                 defaultValue={to}
-                className="rounded-xl border border-slate-700 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                className="rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
               />
             </label>
             <button
               type="submit"
-              className="rounded-xl bg-teal-500 px-5 py-2.5 font-black text-black hover:bg-teal-400"
+              className="rounded-xl bg-teal-500 px-5 py-2.5 font-semibold text-black hover:bg-teal-400"
             >
               Apply
             </button>
@@ -325,22 +325,22 @@ export default async function PaySplitsPage({
         </section>
 
         {/* Earnings table */}
-        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <h2 className="text-2xl font-black text-teal-300">Earnings by Inspector</h2>
-          <p className="mt-2 text-sm text-slate-400">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-teal-300">Earnings by Inspector</h2>
+          <p className="mt-2 text-sm text-[#8a93a3]">
             Gross fee billed, commission %, inspector&apos;s cut, and the company&apos;s cut per inspector.
           </p>
 
           <div className="mt-6">
             {rows.length === 0 ? (
-              <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-6 text-center text-slate-400">
+              <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">
                 No published inspections in this date range.
               </div>
             ) : (
-              <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-700">
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-[#232b38]">
                 <div className="min-w-0 overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-800 text-sm">
-                    <thead className="bg-[#020817] text-left text-xs uppercase tracking-wide text-slate-400">
+                  <table className="min-w-full divide-y divide-[#1a212c] text-sm">
+                    <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
                       <tr>
                         <th className="px-4 py-3">Inspector</th>
                         <th className="px-4 py-3 text-right">Inspections</th>
@@ -350,41 +350,41 @@ export default async function PaySplitsPage({
                         <th className="px-4 py-3 text-right">Company Cut</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800 bg-[#020817]/60">
+                    <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
                       {rows.map((row) => (
-                        <tr key={row.userId} className="hover:bg-slate-900/70">
+                        <tr key={row.userId} className="hover:bg-[#131923]">
                           <td className="px-4 py-3">
-                            <p className="max-w-[240px] truncate font-black text-white">{row.name}</p>
+                            <p className="max-w-[240px] truncate font-semibold text-white">{row.name}</p>
                             {row.email && (
-                              <p className="max-w-[240px] truncate text-xs text-slate-500">{row.email}</p>
+                              <p className="max-w-[240px] truncate text-xs text-[#59626f]">{row.email}</p>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-right font-black text-white">{row.count}</td>
-                          <td className="px-4 py-3 text-right font-black text-teal-300">
+                          <td className="px-4 py-3 text-right font-semibold text-white">{row.count}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-teal-300">
                             {formatMoney(row.gross, currency)}
                           </td>
-                          <td className="px-4 py-3 text-right font-black text-slate-300">{row.pct}%</td>
-                          <td className="px-4 py-3 text-right font-black text-green-300">
+                          <td className="px-4 py-3 text-right font-semibold text-[#8a93a3]">{row.pct}%</td>
+                          <td className="px-4 py-3 text-right font-semibold text-green-300">
                             {formatMoney(row.inspectorCut, currency)}
                           </td>
-                          <td className="px-4 py-3 text-right font-black text-blue-300">
+                          <td className="px-4 py-3 text-right font-semibold text-blue-300">
                             {formatMoney(row.companyCut, currency)}
                           </td>
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="border-t border-slate-700 bg-[#020817]">
+                    <tfoot className="border-t border-[#232b38] bg-[#0a0e13]">
                       <tr>
-                        <td className="px-4 py-3 font-black text-white">Totals</td>
-                        <td className="px-4 py-3 text-right font-black text-white">{totals.count}</td>
-                        <td className="px-4 py-3 text-right font-black text-teal-300">
+                        <td className="px-4 py-3 font-semibold text-white">Totals</td>
+                        <td className="px-4 py-3 text-right font-semibold text-white">{totals.count}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-teal-300">
                           {formatMoney(totals.gross, currency)}
                         </td>
-                        <td className="px-4 py-3 text-right font-black text-slate-500">—</td>
-                        <td className="px-4 py-3 text-right font-black text-green-300">
+                        <td className="px-4 py-3 text-right font-semibold text-[#59626f]">—</td>
+                        <td className="px-4 py-3 text-right font-semibold text-green-300">
                           {formatMoney(totals.inspectorCut, currency)}
                         </td>
-                        <td className="px-4 py-3 text-right font-black text-blue-300">
+                        <td className="px-4 py-3 text-right font-semibold text-blue-300">
                           {formatMoney(totals.companyCut, currency)}
                         </td>
                       </tr>
@@ -397,9 +397,9 @@ export default async function PaySplitsPage({
         </section>
 
         {/* Commission editor */}
-        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <h2 className="text-2xl font-black text-teal-300">Commission Rates</h2>
-          <p className="mt-2 max-w-3xl text-sm text-slate-400">
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-teal-300">Commission Rates</h2>
+          <p className="mt-2 max-w-3xl text-sm text-[#8a93a3]">
             Set each inspector&apos;s cut of the gross fee. Leave blank to use the company default
             ({defaultPct}%). Changes apply to the earnings above immediately.
           </p>
@@ -425,10 +425,10 @@ function RangeLink({
   return (
     <Link
       href={`/pay-splits?from=${range.from}&to=${range.to}`}
-      className={`rounded-xl border px-4 py-2 text-sm font-black transition ${
+      className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
         active
           ? "border-teal-400 bg-teal-500/10 text-teal-200"
-          : "border-slate-600 text-slate-300 hover:bg-slate-800"
+          : "border-[#232b38] text-[#8a93a3] hover:bg-[#1a212c]"
       }`}
     >
       {label}
@@ -456,9 +456,9 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-3 text-4xl font-black text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-400">{helper}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
+      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
     </div>
   );
 }

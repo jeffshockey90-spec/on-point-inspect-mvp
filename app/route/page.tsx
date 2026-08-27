@@ -148,34 +148,34 @@ export default async function RoutePage({
   };
 
   return (
-    <main className="min-h-screen bg-[#020617] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl space-y-8">
-        <section className="rounded-3xl border border-teal-500/40 bg-[#0f172a] p-6 shadow-2xl md:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-400">Dispatch</p>
-          <h1 className="mt-3 text-4xl font-black md:text-5xl">Day Route</h1>
-          <p className="mt-3 max-w-2xl text-slate-300">
+        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-400">Dispatch</p>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Day Route</h1>
+          <p className="mt-3 max-w-2xl text-[#8a93a3]">
             Your inspections for the day, ordered to minimize drive time from the office.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link href={`/route?date=${dayShift(-1)}`} className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-300 hover:border-teal-400 hover:text-teal-300">← Prev</Link>
-            <span className="rounded-xl border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-sm font-black text-teal-200">{prettyDate(date)}</span>
-            <Link href={`/route?date=${dayShift(1)}`} className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-300 hover:border-teal-400 hover:text-teal-300">Next →</Link>
+            <Link href={`/route?date=${dayShift(-1)}`} className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#8a93a3] hover:border-teal-400 hover:text-teal-300">← Prev</Link>
+            <span className="rounded-xl border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-teal-200">{prettyDate(date)}</span>
+            <Link href={`/route?date=${dayShift(1)}`} className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#8a93a3] hover:border-teal-400 hover:text-teal-300">Next →</Link>
             {date !== today && (
-              <Link href="/route" className="text-sm font-black text-teal-300 hover:text-teal-200">Today</Link>
+              <Link href="/route" className="text-sm font-semibold text-teal-300 hover:text-teal-200">Today</Link>
             )}
           </div>
         </section>
 
         <section className="grid gap-5 sm:grid-cols-2">
           <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">Stops</p>
-            <p className="mt-2 text-4xl font-black text-teal-300">{ordered.length}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Stops</p>
+            <p className="mt-2 text-4xl font-semibold text-teal-300">{ordered.length}</p>
           </div>
           <div className="rounded-2xl border border-blue-500/40 bg-blue-950/20 p-6">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">Est. Drive</p>
-            <p className="mt-2 text-4xl font-black text-blue-300">{totalMiles.toFixed(0)} mi</p>
-            <p className="mt-1 text-xs text-slate-500">Straight-line estimate.</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Est. Drive</p>
+            <p className="mt-2 text-4xl font-semibold text-blue-300">{totalMiles.toFixed(0)} mi</p>
+            <p className="mt-1 text-xs text-[#59626f]">Straight-line estimate.</p>
           </div>
         </section>
 
@@ -184,36 +184,36 @@ export default async function RoutePage({
             href={mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-teal-400"
+            className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-teal-400"
           >
             Open optimized route in Google Maps →
           </a>
         )}
 
-        <section className="rounded-2xl border border-slate-800 bg-[#0f172a] p-6 shadow-xl">
-          <h2 className="text-2xl font-black text-teal-300">Order</h2>
+        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-teal-300">Order</h2>
           {office && (
-            <p className="mt-2 text-sm text-slate-400">Starting from office: {office.address}</p>
+            <p className="mt-2 text-sm text-[#8a93a3]">Starting from office: {office.address}</p>
           )}
 
           {ordered.length === 0 ? (
-            <p className="mt-5 text-slate-400">
+            <p className="mt-5 text-[#8a93a3]">
               No inspections with a mapped location on this day.
               {missingCoords > 0 ? ` (${missingCoords} without coordinates.)` : ""}
             </p>
           ) : (
             <ol className="mt-5 space-y-3">
               {ordered.map((s, i) => (
-                <li key={s.id} className="flex items-start gap-4 rounded-xl border border-slate-700 bg-black/30 p-4">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500 text-sm font-black text-slate-950">
+                <li key={s.id} className="flex items-start gap-4 rounded-xl border border-[#232b38] bg-black/30 p-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500 text-sm font-semibold text-slate-950">
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-white">{s.label}</p>
-                    <p className="text-sm text-slate-400">{s.address}</p>
-                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
+                    <p className="text-sm text-[#8a93a3]">{s.address}</p>
+                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-[#59626f]">
                       {s.time && <span>Scheduled {s.time}</span>}
-                      <Link href={`/reports/${s.id}`} className="font-black text-teal-300 hover:text-teal-200">
+                      <Link href={`/reports/${s.id}`} className="font-semibold text-teal-300 hover:text-teal-200">
                         Open report
                       </Link>
                     </div>
