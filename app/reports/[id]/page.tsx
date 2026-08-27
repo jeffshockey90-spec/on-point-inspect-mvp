@@ -25,6 +25,7 @@ import ReportTemplateSwitcher from "../../../components/ReportTemplateSwitcher";
 import ReportLiveSync from "../../../components/ReportLiveSync";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
+import InvoiceReminderButton from "../../../components/InvoiceReminderButton";
 import SendW9Button from "../../../components/SendW9Button";
 import InspectionContactsManager from "../../../components/InspectionContactsManager";
 import EnvironmentalTestPanel from "../../../components/EnvironmentalTestPanel";
@@ -3080,6 +3081,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             <div id="payment-invoice" data-command-target="payment-invoice">
             <PaymentInvoicePanel inspection={inspection} currency={companyCurrency} />
             <QuickBooksInvoiceButton inspectionId={String(inspection.id)} />
+            {!isPaymentComplete(inspection) && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3">
+                <span className="text-sm font-semibold text-[var(--fl-warn-text)]">
+                  Balance still showing due — send the client a payment reminder.
+                </span>
+                <InvoiceReminderButton inspectionId={inspection.id} />
+              </div>
+            )}
             </div>
 
             <div id="report-delivery-guard" data-command-target="report-delivery-guard">
