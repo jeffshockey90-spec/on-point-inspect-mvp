@@ -879,10 +879,38 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         </div>
       )}
 
+      <div className="xl:grid xl:grid-cols-[13rem_minmax(0,1fr)] xl:items-start xl:gap-6">
+        {/* Desktop: vertical section rail */}
+        {(orderedGroups || []).length > 1 && (
+          <aside className="hidden xl:block" aria-label="Jump to inspection section">
+            <div className="sticky top-20 space-y-0.5">
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#59626f]">
+                Sections
+              </p>
+              {(orderedGroups || []).map((group: any) => (
+                <button
+                  key={group.section}
+                  type="button"
+                  onClick={() => jumpToSection(group.section)}
+                  title={`Jump to ${group.section}`}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#8a93a3] transition-colors hover:bg-white/[0.04] hover:text-[#e8ecf3]"
+                >
+                  <span className="min-w-0 flex-1 truncate">{group.section}</span>
+                  <span className="shrink-0 rounded-full bg-[#1a212c] px-1.5 text-[10px] font-semibold text-[#8a93a3]">
+                    {(group.findings || []).length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </aside>
+        )}
+
+        {/* Main column: mobile jump-nav + the sections */}
+        <div className="min-w-0 space-y-4">
       {(orderedGroups || []).length > 1 && (
         <nav
           aria-label="Jump to inspection section"
-          className="sticky top-2 z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[#232b38] bg-[#10151e]/95 px-2.5 py-2 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[#10151e]/80"
+          className="sticky top-2 z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[#232b38] bg-[#10151e]/95 px-2.5 py-2 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[#10151e]/80 xl:hidden"
         >
           {(orderedGroups || []).map((group: any) => (
             <button
@@ -1086,6 +1114,8 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
           </section>
         );
       })}
+        </div>
+      </div>
     </div>
   );
 }
