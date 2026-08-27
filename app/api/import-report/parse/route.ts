@@ -437,14 +437,17 @@ function attachPhotosToFindings(
     // details -- their images are the house cover / report chrome, not defect
     // photos, so skip them.
     if (ph.page <= 4) continue;
-    // Attach to a finding on the same page, or an immediately adjacent page
-    // (round-robin when a page has several findings). Drop photos with no
-    // nearby finding (section-info images).
-    const list =
-      (byPage.get(ph.page)?.length && byPage.get(ph.page)) ||
-      (byPage.get(ph.page + 1)?.length && byPage.get(ph.page + 1)) ||
-      (byPage.get(ph.page - 1)?.length && byPage.get(ph.page - 1)) ||
-      null;
+    // Attach to a finding on the same page; if none, widen the search out to
+    // +/-2 pages (round-robin when a page has several findings). Only drop a
+    // photo if there is no finding within that window (section-info images).
+    let list: ImportedFinding[] | null = null;
+    for (const d of [0, 1, -1, 2, -2]) {
+      const cand = byPage.get(ph.page + d);
+      if (cand && cand.length) {
+        list = cand;
+        break;
+      }
+    }
     if (!list) continue;
     const c = cursor.get(ph.page) || 0;
     list[c % list.length].photos!.push(ph.url);

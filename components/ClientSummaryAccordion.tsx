@@ -342,6 +342,9 @@ function CompactSummaryCard({
     ),
   );
   const [imageFailed, setImageFailed] = useState(false);
+  // Only show the media box when this finding actually has a (working) photo or
+  // video. Findings with no media render text-only, full width -- no empty card.
+  const showMedia = !imageFailed && Boolean(fullUrl || previewUrl);
   const [videoOpen, setVideoOpen] = useState(false);
   const toneStyle = toneClasses(tone);
 
@@ -374,7 +377,8 @@ function CompactSummaryCard({
       data-summary-card-id={cardId}
       className={`overflow-hidden rounded-2xl border border-l-4 bg-[var(--fl-surface-2)] transition hover:bg-[var(--fl-surface-2)] ${toneStyle.border} ${toneStyle.stripe}`}
     >
-      <div className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)]">
+      <div className={`w-full gap-4 p-4 ${showMedia ? "grid grid-cols-[116px_minmax(0,1fr)] sm:grid-cols-[132px_minmax(0,1fr)]" : "block"}`}>
+        {showMedia && (
         <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] sm:h-[132px] sm:w-[132px]">
           {!imageFailed && previewUrl && !isVideo ? (
             <ExpandableReportImage
@@ -424,12 +428,9 @@ function CompactSummaryCard({
                 VIDEO
               </span>
             </button>
-          ) : (
-            <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-bold text-[var(--fl-faint)]">
-              {isVideo ? "Video unavailable" : "Photo unavailable"}
-            </div>
-          )}
+          ) : null}
         </div>
+        )}
 
         <button
           type="button"
