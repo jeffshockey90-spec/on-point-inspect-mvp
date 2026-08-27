@@ -98,9 +98,26 @@ export async function GET() {
     return extras.length ? { ...base, services: [...base.services, ...extras] } : base;
   }
 
+  // Final safety net: drop any service whose normalized name already appeared
+  // (a duplicate accidentally saved into a single sheet), keeping the first.
+  // Deduping the response also cleans the stored sheet on the next save.
+  function dedupeServicesByName(config: InspectorPricingConfig): InspectorPricingConfig {
+    const seen = new Set<string>();
+    const services = config.services.filter((s) => {
+      const nm = normalizeServiceName((s as any).name);
+      if (!nm) return true;
+      if (seen.has(nm)) return false;
+      seen.add(nm);
+      return true;
+    });
+    return services.length === config.services.length ? config : { ...config, services };
+  }
+
   if (own?.config && Array.isArray(own.config.services)) {
     return NextResponse.json({
-      config: withCompanyCustomServices(own.config as InspectorPricingConfig),
+      config: dedupeServicesByName(
+        withCompanyCustomServices(own.config as InspectorPricingConfig),
+      ),
       source: "override",
       hasOverride: true,
       isDefault: false,
@@ -111,7 +128,7 @@ export async function GET() {
   // own custom services).
   if (companyConfig) {
     return NextResponse.json({
-      config: companyConfig,
+      config: dedupeServicesByName(companyConfig),
       source: "company",
       hasOverride: false,
       isDefault: false,
