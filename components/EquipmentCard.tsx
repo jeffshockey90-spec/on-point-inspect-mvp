@@ -315,13 +315,13 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
   ];
 
   return (
-    <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-5 transition duration-150 active:scale-[0.995]">
-      <h2 className="mb-4 text-xl font-bold text-teal-400">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 transition duration-150 active:scale-[0.995]">
+      <h2 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">
         Equipment Details
       </h2>
 
       {(imageUrl || videoUrl) && (
-        <div className="mb-4 overflow-hidden rounded-xl border border-[#232b38] bg-black">
+        <div className="mb-4 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black">
           {isVideo && videoUrl ? (
             <video
               src={videoUrl}
@@ -405,13 +405,13 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
           .map(([label, value]) => (
             <div
               key={label}
-              className="grid gap-1 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 transition duration-150 active:scale-[0.995] sm:grid-cols-[170px_1fr] sm:items-center"
+              className="grid gap-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 transition duration-150 active:scale-[0.995] sm:grid-cols-[170px_1fr] sm:items-center"
             >
-              <span className="text-sm font-bold text-[#8a93a3]">
+              <span className="text-sm font-bold text-[var(--fl-muted)]">
                 {label}
               </span>
 
-              <span className="text-left font-semibold text-[#e8ecf3] sm:text-right">
+              <span className="text-left font-semibold text-[var(--fl-text)] sm:text-right">
                 {String(value)}
               </span>
             </div>
@@ -425,7 +425,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
                 Maintenance Schedule
               </p>
-              <p className="mt-2 text-sm leading-6 text-[#e8ecf3]">
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-text)]">
                 {maintenanceSchedule}
               </p>
             </div>
@@ -436,7 +436,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
               <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
                 Common Failure Patterns
               </p>
-              <ul className="mt-2 space-y-1 text-sm leading-6 text-[#e8ecf3]">
+              <ul className="mt-2 space-y-1 text-sm leading-6 text-[var(--fl-text)]">
                 {knownFailurePatterns.slice(0, 5).map((item) => (
                   <li key={item}>• {item}</li>
                 ))}
@@ -449,7 +449,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
               <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
                 Recall Awareness
               </p>
-              <p className="mt-2 text-sm leading-6 text-[#e8ecf3]">
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-text)]">
                 {recallAwareness}
               </p>
             </div>
@@ -458,7 +458,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
       )}
 
       {typicalRange && (
-        <p className="mt-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-xs leading-5 text-[#8a93a3]">
+        <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-xs leading-5 text-[var(--fl-muted)]">
           Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
         </p>
       )}

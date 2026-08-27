@@ -28,7 +28,7 @@ function StepCard({ step, index }: { step: Step; index: number }) {
       className={`group block rounded-2xl border p-5 shadow-xl transition active:scale-[0.99] ${
         step.complete
           ? "border-emerald-500/40 bg-emerald-500/10 hover:border-emerald-400"
-          : "border-[#1a212c] bg-[#10151e] hover:border-teal-400 hover:bg-[#13213a]"
+          : "border-[var(--fl-raised)] bg-[var(--fl-surface)] hover:border-teal-400 hover:bg-[#13213a]"
       }`}
     >
       <div className="flex items-start gap-4">
@@ -42,7 +42,7 @@ function StepCard({ step, index }: { step: Step; index: number }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-[#232b38] bg-[#0a0e13] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Step {index + 1}
             </span>
 
@@ -57,15 +57,15 @@ function StepCard({ step, index }: { step: Step; index: number }) {
             </span>
           </div>
 
-          <h3 className="mt-3 text-xl font-semibold text-white group-hover:text-teal-300">
+          <h3 className="mt-3 text-xl font-semibold text-[var(--fl-text)] group-hover:text-[var(--fl-accent-text)]">
             {step.title}
           </h3>
 
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             {step.description}
           </p>
 
-          <p className="mt-4 text-sm font-semibold text-teal-300">
+          <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)]">
             {step.action} →
           </p>
         </div>
@@ -138,18 +138,18 @@ export default function OnboardingChecklist({
 
   return (
     <section className="space-y-6">
-      <div className="rounded-2xl border border-teal-500/30 bg-gradient-to-br from-[#10151e] via-[#10151e] to-[#10151e] p-6 shadow-2xl shadow-teal-950/30 md:p-8">
+      <div className="rounded-2xl border border-teal-500/30 bg-gradient-to-br from-[var(--fl-surface)] via-[var(--fl-surface)] to-[var(--fl-surface)] p-6 shadow-2xl shadow-teal-950/30 md:p-8">
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr] lg:items-center">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-300">
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
               Getting Started
             </p>
 
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white md:text-6xl">
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[var(--fl-text)] md:text-6xl">
               Set up FLOW
             </h1>
 
-            <p className="mt-4 max-w-3xl text-base leading-7 text-[#8a93a3] md:text-lg">
+            <p className="mt-4 max-w-3xl text-base leading-7 text-[var(--fl-muted)] md:text-lg">
               Five steps to a complete inspection workflow: company info, agreements and
               standards, scheduling, section content, and the Field Tool.
             </p>
@@ -173,23 +173,23 @@ export default function OnboardingChecklist({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#1a212c] bg-[#131923] p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Setup Progress
             </p>
 
-            <p className="mt-3 text-5xl font-semibold text-white">
+            <p className="mt-3 text-5xl font-semibold text-[var(--fl-text)]">
               {progress}%
             </p>
 
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#131923] ring-1 ring-slate-700">
+            <div className="mt-4 h-3 overflow-hidden rounded-full bg-[var(--fl-surface-2)] ring-1 ring-slate-700">
               <div
                 className="h-full rounded-full bg-teal-400 transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
 
-            <p className="mt-3 text-sm text-[#8a93a3]">
+            <p className="mt-3 text-sm text-[var(--fl-muted)]">
               {completeCount} of {steps.length} setup milestones complete.
             </p>
           </div>
@@ -202,12 +202,12 @@ export default function OnboardingChecklist({
         ))}
       </section>
 
-      <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+      <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-purple-300">
           First Inspection Walkthrough
         </p>
 
-        <h2 className="mt-2 text-3xl font-semibold text-white">
+        <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
           Recommended test drive
         </h2>
 
@@ -220,13 +220,13 @@ export default function OnboardingChecklist({
           ].map(([number, title, helper]) => (
             <div
               key={number}
-              className="rounded-2xl border border-[#232b38] bg-[#131923] p-4"
+              className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/15 text-lg font-semibold text-purple-200">
                 {number}
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-white">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+              <h3 className="mt-4 text-lg font-semibold text-[var(--fl-text)]">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
             </div>
           ))}
         </div>

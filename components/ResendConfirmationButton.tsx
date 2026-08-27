@@ -52,9 +52,9 @@ export default function ResendConfirmationButton({
   }
 
   return (
-    <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4">
-      <p className="text-sm font-semibold text-white">Resend Schedule Confirmation</p>
-      <p className="mt-1 text-xs text-[#8a93a3]">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+      <p className="text-sm font-semibold text-[var(--fl-text)]">Resend Schedule Confirmation</p>
+      <p className="mt-1 text-xs text-[var(--fl-muted)]">
         Re-sends the &ldquo;Inspection Confirmed&rdquo; email — handy if a copy was delayed.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -62,7 +62,7 @@ export default function ResendConfirmationButton({
           value={target}
           onChange={(e) => setTarget(e.target.value as any)}
           disabled={busy}
-          className="min-h-[44px] rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm font-bold text-white outline-none focus:border-teal-400 disabled:opacity-50"
+          className="min-h-[44px] rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm font-bold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-50"
         >
           <option value="all">Everyone (client + realtor)</option>
           <option value="realtor">Realtor only</option>

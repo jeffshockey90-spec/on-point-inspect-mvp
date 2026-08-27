@@ -67,11 +67,11 @@ function quickQuestions() {
 
 function SmallStat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-1 text-xl font-semibold text-white">{value}</p>
+      <p className="mt-1 text-xl font-semibold text-[var(--fl-text)]">{value}</p>
     </div>
   );
 }
@@ -323,10 +323,10 @@ export default function InspectionCopilotPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">
             Inspection Copilot
           </p>
-          <h2 className="mt-1 text-2xl font-semibold text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
             Live AI Inspector Assistant
           </h2>
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             Watches the full inspection for missing items, contradictions, related findings, confidence changes, and publish readiness.
           </p>
         </div>
@@ -359,7 +359,7 @@ export default function InspectionCopilotPanel({
       )}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className={`rounded-xl border p-4 ${result ? scoreTone(score) : "border-[#232b38] bg-[#131923] text-[#8a93a3]"}`}>
+        <div className={`rounded-xl border p-4 ${result ? scoreTone(score) : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"}`}>
           <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
             Copilot Score
           </p>
@@ -377,9 +377,9 @@ export default function InspectionCopilotPanel({
         <SmallStat label="Equipment" value={result?.equipmentCount ?? "—"} />
       </div>
 
-      <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-3">
+      <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Ask Copilot
           </p>
           {voiceSupported && (
@@ -389,7 +389,7 @@ export default function InspectionCopilotPanel({
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
                 voiceReplies
                   ? "border-indigo-400 bg-indigo-500/20 text-indigo-200"
-                  : "border-[#232b38] text-[#8a93a3] hover:text-[#e8ecf3]"
+                  : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
               }`}
             >
               {voiceReplies ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
@@ -422,14 +422,14 @@ export default function InspectionCopilotPanel({
               }
             }}
             placeholder="Ask (or tap the mic): what still needs inspected, any contradictions, is it ready to publish..."
-            className="min-w-0 flex-1 rounded-xl border border-[#232b38] bg-black px-3 py-3 text-sm text-white outline-none focus:border-indigo-400"
+            className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-black px-3 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-indigo-400"
           />
           {voiceSupported && (
             <button
               type="button"
               onClick={toggleListening}
               aria-label={listening ? "Stop listening" : "Ask by voice"}
-              className={`shrink-0 rounded-xl px-4 py-3 text-sm font-semibold text-white transition ${
+              className={`shrink-0 rounded-xl px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition ${
                 listening
                   ? "animate-pulse bg-red-500 hover:bg-red-400"
                   : "bg-indigo-500 hover:bg-indigo-400"
@@ -457,12 +457,12 @@ export default function InspectionCopilotPanel({
 
       {result && (
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Things To Review
               </h3>
-              <span className="rounded-full border border-[#232b38] bg-black/30 px-2 py-1 text-xs font-semibold text-[#8a93a3]">
+              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">
                 {topIssues.length}
               </span>
             </div>
@@ -480,12 +480,12 @@ export default function InspectionCopilotPanel({
             )}
           </div>
 
-          <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Missing Systems
               </h3>
-              <span className="rounded-full border border-[#232b38] bg-black/30 px-2 py-1 text-xs font-semibold text-[#8a93a3]">
+              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">
                 {result.missingSystems.length}
               </span>
             </div>
@@ -507,10 +507,10 @@ export default function InspectionCopilotPanel({
               </div>
             )}
 
-            <h3 className="mt-5 text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <h3 className="mt-5 text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Suggestions
             </h3>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-[#8a93a3]">
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--fl-muted)]">
               {result.suggestions.map((item, index) => (
                 <li key={index}>✓ {item}</li>
               ))}
@@ -527,17 +527,17 @@ export default function InspectionCopilotPanel({
 
           <div className="mt-3 grid gap-3">
             {result.relatedFindings.map((cluster) => (
-              <div key={cluster.id} className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
+              <div key={cluster.id} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="font-semibold text-white">{cluster.title}</p>
+                  <p className="font-semibold text-[var(--fl-text)]">{cluster.title}</p>
                   <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-xs font-semibold text-cyan-200">
                     {cluster.confidence}% confidence
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-6 text-[#8a93a3]">{cluster.explanation}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">{cluster.explanation}</p>
                 <div className="mt-3 grid gap-2">
                   {cluster.findings.map((finding, index) => (
-                    <div key={`${cluster.id}-${finding.id || index}`} className="rounded-lg border border-[#232b38] bg-black/30 px-3 py-2 text-xs text-[#8a93a3]">
+                    <div key={`${cluster.id}-${finding.id || index}`} className="rounded-lg border border-[var(--fl-line)] bg-black/30 px-3 py-2 text-xs text-[var(--fl-muted)]">
                       <span className="font-semibold text-cyan-200">{finding.section || "General"}</span>
                       {" — "}
                       {finding.title}

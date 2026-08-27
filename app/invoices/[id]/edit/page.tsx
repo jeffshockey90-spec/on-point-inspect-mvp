@@ -61,13 +61,13 @@ export default async function EditInvoicePage({
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-10 text-white sm:px-8">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-10 text-[var(--fl-text)] sm:px-8">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 flex items-center justify-between gap-4">
           <h1 className="text-3xl font-semibold">Edit Invoice</h1>
           <Link
             href="/invoices"
-            className="rounded-xl border border-[#232b38] px-4 py-2 font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+            className="rounded-xl border border-[var(--fl-line)] px-4 py-2 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
           >
             Back to Invoices
           </Link>

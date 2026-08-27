@@ -33,16 +33,16 @@ export default function SetupChecklist() {
   const pct = Math.round((done / steps.length) * 100);
 
   return (
-    <section className="rounded-xl border border-[#1ac5b4]/25 bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+    <section className="rounded-xl border border-[#1ac5b4]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
             Get set up
           </p>
-          <h2 className="mt-1 text-2xl font-semibold text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
             Finish setting up FLOW
           </h2>
-          <p className="mt-1 text-sm text-[#8a93a3]">
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">
             {done} of {steps.length} done
           </p>
         </div>
@@ -53,13 +53,13 @@ export default function SetupChecklist() {
             window.localStorage.setItem(DISMISS_KEY, "1");
             setDismissed(true);
           }}
-          className="rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#8a93a3] transition hover:border-[#59626f] hover:text-[#e8ecf3]"
+          className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-[var(--fl-faint)] hover:text-[var(--fl-text)]"
         >
           Dismiss
         </button>
       </div>
 
-      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-[#1a212c]">
+      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-[var(--fl-raised)]">
         <div
           className="h-full rounded-full bg-[#1ac5b4] transition-all"
           style={{ width: `${pct}%` }}
@@ -74,21 +74,21 @@ export default function SetupChecklist() {
             className={`flex items-center gap-3 rounded-xl border p-3 transition ${
               step.done
                 ? "border-[#37d6a6]/30 bg-[#37d6a6]/5"
-                : "border-[#232b38] bg-[#131923] hover:border-[#1ac5b4]/50"
+                : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-[#1ac5b4]/50"
             }`}
           >
             <span
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                 step.done
                   ? "bg-[#37d6a6] text-[#06120f]"
-                  : "border border-[#232b38] text-[#59626f]"
+                  : "border border-[var(--fl-line)] text-[var(--fl-faint)]"
               }`}
             >
               {step.done ? "✓" : ""}
             </span>
             <span
               className={`text-sm font-semibold ${
-                step.done ? "text-[#59626f] line-through" : "text-white"
+                step.done ? "text-[var(--fl-faint)] line-through" : "text-[var(--fl-text)]"
               }`}
             >
               {step.label}

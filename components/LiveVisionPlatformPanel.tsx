@@ -91,7 +91,7 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-300">AI Vision Platform</p>
           <h3 className="mt-1 truncate text-lg font-semibold">{section}</h3>
-          <p className="mt-1 text-xs leading-5 text-[#8a93a3]">Tracks what AI has seen, what has evidence, and where to inspect next.</p>
+          <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">Tracks what AI has seen, what has evidence, and where to inspect next.</p>
         </div>
         <div className={`shrink-0 rounded-full border px-3 py-2 text-sm font-semibold ${scoreTone(current?.score || 0)}`}>
           {current?.score || 0}%
@@ -111,15 +111,15 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-xl border border-emerald-400/30 bg-black/20 p-2">
           <p className="text-lg font-semibold text-emerald-200">{current?.covered.length || 0}</p>
-          <p className="text-[10px] font-bold text-[#8a93a3]">Covered</p>
+          <p className="text-[10px] font-bold text-[var(--fl-muted)]">Covered</p>
         </div>
         <div className="rounded-xl border border-yellow-400/30 bg-black/20 p-2">
           <p className="text-lg font-semibold text-yellow-200">{current?.missing.length || 0}</p>
-          <p className="text-[10px] font-bold text-[#8a93a3]">Missing</p>
+          <p className="text-[10px] font-bold text-[var(--fl-muted)]">Missing</p>
         </div>
         <div className="rounded-xl border border-cyan-400/30 bg-black/20 p-2">
           <p className="text-lg font-semibold text-cyan-200">{sectionObjects.length}</p>
-          <p className="text-[10px] font-bold text-[#8a93a3]">Objects</p>
+          <p className="text-[10px] font-bold text-[var(--fl-muted)]">Objects</p>
         </div>
       </div>
 
@@ -135,14 +135,14 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
       ) : null}
 
       {sectionObjects.length ? (
-        <details open className="rounded-xl border border-[#232b38] bg-black/20 p-3">
-          <summary className="cursor-pointer text-sm font-semibold text-[#e8ecf3]">Digital Twin objects ({sectionObjects.length})</summary>
+        <details open className="rounded-xl border border-[var(--fl-line)] bg-black/20 p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--fl-text)]">Digital Twin objects ({sectionObjects.length})</summary>
           <div className="mt-3 space-y-2">
             {sectionObjects.map((item) => (
               <div key={item.key} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{item.documented ? "✓" : "◉"} {item.label}</p>
-                  <p className="text-[10px] text-[#8a93a3]">Seen {item.seenCount}× · {Math.round(item.confidence * 100)}% confidence</p>
+                  <p className="text-[10px] text-[var(--fl-muted)]">Seen {item.seenCount}× · {Math.round(item.confidence * 100)}% confidence</p>
                 </div>
                 <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${item.documented ? "bg-emerald-400 text-black" : "bg-cyan-400/15 text-cyan-200"}`}>
                   {item.documented ? `${item.photoCount} photo` : "tracked"}
@@ -161,8 +161,8 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
               <div key={step.section} className="flex items-start gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-400 text-xs font-semibold text-black">{index + 1}</span>
                 <div>
-                  <p className="text-sm font-semibold text-white">{step.section}</p>
-                  <p className="text-xs text-[#8a93a3]">{step.reason}</p>
+                  <p className="text-sm font-semibold text-[var(--fl-text)]">{step.section}</p>
+                  <p className="text-xs text-[var(--fl-muted)]">{step.reason}</p>
                 </div>
               </div>
             ))}
@@ -173,7 +173,7 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
       {habitPrompts.length ? (
         <div className="rounded-xl border border-purple-400/30 bg-purple-500/10 p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-purple-200">Inspector Memory</p>
-          <p className="mt-1 text-xs text-[#8a93a3]">You commonly document these items, but they have not been seen here yet.</p>
+          <p className="mt-1 text-xs text-[var(--fl-muted)]">You commonly document these items, but they have not been seen here yet.</p>
           <div className="mt-2 space-y-1">
             {habitPrompts.map((habit) => <p key={habit.key} className="text-sm font-bold text-purple-100">○ {habit.label} · documented in {habit.count} prior workflow{habit.count === 1 ? "" : "s"}</p>)}
           </div>

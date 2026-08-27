@@ -255,15 +255,15 @@ export default async function SchedulePage() {
   const widgetFallbackAddress = firstUpcoming ? getAddress(firstUpcoming) : null;
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] p-4 text-white sm:p-6">
+    <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] sm:p-6">
       <div className="mx-auto max-w-[96rem]">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-teal-400 sm:text-4xl">
+            <h1 className="text-3xl font-bold text-[var(--fl-accent-text)] sm:text-4xl">
               Inspection Schedule
             </h1>
 
-            <p className="mt-3 max-w-2xl text-sm text-[#8a93a3] sm:text-base">
+            <p className="mt-3 max-w-2xl text-sm text-[var(--fl-muted)] sm:text-base">
               Manage the full inspection schedule from the calendar. Drag appointments
               to reschedule, click an appointment to edit, delete, or open the report.
             </p>
@@ -299,17 +299,17 @@ export default async function SchedulePage() {
         </div>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#59626f]">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
               Scheduled
             </p>
-            <p className="mt-2 text-3xl font-bold text-white">
+            <p className="mt-2 text-3xl font-bold text-[var(--fl-text)]">
               {scheduledRows.length}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#59626f]">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
               Unscheduled
             </p>
             <p className="mt-2 text-3xl font-bold text-yellow-200">
@@ -317,20 +317,20 @@ export default async function SchedulePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#59626f]">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
               Total Reports
             </p>
-            <p className="mt-2 text-3xl font-bold text-teal-300">
+            <p className="mt-2 text-3xl font-bold text-[var(--fl-accent-text)]">
               {rows.length}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#59626f]">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
               Booking Requests
             </p>
-            <p className="mt-2 text-3xl font-bold text-teal-300">
+            <p className="mt-2 text-3xl font-bold text-[var(--fl-accent-text)]">
               {pendingBookingRequests.length}
             </p>
           </div>
@@ -339,40 +339,40 @@ export default async function SchedulePage() {
         <ScheduleReminderSettings />
         <InspectorAvailabilitySettings />
 
-        <section className="mb-8 rounded-2xl border border-[#1a212c] bg-[#0f172a] p-5">
+        <section className="mb-8 rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-teal-300">Pending Booking Requests</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+              <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Pending Booking Requests</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
                 Public and realtor requests land here first. Confirming a request creates a scheduled inspection from the requested date, time, client, realtor, and property details.
               </p>
             </div>
 
             <Link
               href={bookingPageHref}
-              className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-center text-sm font-semibold text-teal-200 transition hover:bg-teal-500/20"
+              className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
             >
               Open Booking Page
             </Link>
           </div>
 
           {pendingBookingRequests.length === 0 ? (
-            <div className="mt-5 rounded-xl border border-[#232b38] bg-[#020817]/70 p-5 text-sm text-[#8a93a3]">
+            <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-5 text-sm text-[var(--fl-muted)]">
               No pending booking requests right now.
             </div>
           ) : (
             <div className="mt-5 grid gap-4">
               {pendingBookingRequests.map((request: BookingRequestRow) => (
-                <article key={request.id} className="rounded-2xl border border-[#232b38] bg-[#020817]/70 p-5">
+                <article key={request.id} className="rounded-2xl border border-[var(--fl-line)] bg-[#020817]/70 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                         {request.requester_role || "Requester"}
                       </p>
-                      <h3 className="mt-1 text-lg font-semibold text-white">
+                      <h3 className="mt-1 text-lg font-semibold text-[var(--fl-text)]">
                         {request.realtor_name || request.requester_name || "Name not entered"}
                       </h3>
-                      <p className="mt-1 break-all text-sm text-[#8a93a3]">
+                      <p className="mt-1 break-all text-sm text-[var(--fl-muted)]">
                         {[request.realtor_phone || request.requester_phone, request.realtor_email || request.requester_email].filter(Boolean).join(" • ") || "No contact"}
                       </p>
                     </div>
@@ -383,27 +383,27 @@ export default async function SchedulePage() {
                   </div>
 
                   <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Requested Time</p>
-                      <p className="mt-1 font-bold text-white">{formatBookingDate(request.preferred_date)}</p>
-                      <p className="text-[#8a93a3]">{formatTime(request.preferred_time || "")}</p>
+                    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Requested Time</p>
+                      <p className="mt-1 font-bold text-[var(--fl-text)]">{formatBookingDate(request.preferred_date)}</p>
+                      <p className="text-[var(--fl-muted)]">{formatTime(request.preferred_time || "")}</p>
                     </div>
 
-                    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Client</p>
-                      <p className="mt-1 font-bold text-white">{request.client_name || "Not entered"}</p>
-                      <p className="break-all text-[#8a93a3]">{[request.client_phone, request.client_email].filter(Boolean).join(" • ") || "No contact"}</p>
+                    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Client</p>
+                      <p className="mt-1 font-bold text-[var(--fl-text)]">{request.client_name || "Not entered"}</p>
+                      <p className="break-all text-[var(--fl-muted)]">{[request.client_phone, request.client_email].filter(Boolean).join(" • ") || "No contact"}</p>
                     </div>
 
-                    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3 sm:col-span-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Property</p>
+                    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 sm:col-span-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Property</p>
                       <p className="mt-1 font-bold text-teal-100">{getBookingAddress(request)}</p>
-                      <p className="mt-1 text-[#8a93a3]">{Array.isArray(request.services) ? request.services.join(" • ") : request.services || request.service_type || "Home Inspection"}</p>
+                      <p className="mt-1 text-[var(--fl-muted)]">{Array.isArray(request.services) ? request.services.join(" • ") : request.services || request.service_type || "Home Inspection"}</p>
                     </div>
                   </div>
 
                   {request.notes ? (
-                    <p className="mt-4 rounded-xl border border-[#232b38] bg-[#131923] p-3 text-sm leading-6 text-[#8a93a3]">
+                    <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm leading-6 text-[var(--fl-muted)]">
                       {request.notes}
                     </p>
                   ) : null}
@@ -438,10 +438,10 @@ export default async function SchedulePage() {
                   href={`/reports/${inspection.id}`}
                   className="rounded-xl border border-yellow-500/20 bg-black/30 p-4 transition hover:bg-yellow-500/10"
                 >
-                  <p className="text-sm font-bold text-white">
+                  <p className="text-sm font-bold text-[var(--fl-text)]">
                     {getAddress(inspection)}
                   </p>
-                  <p className="mt-1 text-xs text-[#8a93a3]">
+                  <p className="mt-1 text-xs text-[var(--fl-muted)]">
                     {getClient(inspection)}
                   </p>
                 </Link>
@@ -451,23 +451,23 @@ export default async function SchedulePage() {
         ) : null}
 
         {rows.length === 0 && !error ? (
-          <div className="rounded-2xl border border-[#1a212c] bg-[#0f172a] p-6">
-            <h2 className="text-xl font-bold text-white">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-6">
+            <h2 className="text-xl font-bold text-[var(--fl-text)]">
               No inspections scheduled yet
             </h2>
 
-            <p className="mt-2 text-[#8a93a3]">
+            <p className="mt-2 text-[var(--fl-muted)]">
               Once inspections are created, they will show here with the date,
               time, address, client, realtor, and status.
             </p>
           </div>
         ) : sortedRows.length > 0 ? (
-          <details className="overflow-hidden rounded-2xl border border-[#1a212c] bg-[#0f172a]">
-            <summary className="cursor-pointer bg-zinc-950 px-5 py-4 text-sm font-bold text-teal-300 transition hover:bg-zinc-900">
+          <details className="overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a]">
+            <summary className="cursor-pointer bg-zinc-950 px-5 py-4 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-zinc-900">
               Show inspection list
             </summary>
 
-            <div className="hidden grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] gap-4 border-b border-zinc-800 bg-zinc-950 px-5 py-4 text-xs font-bold uppercase tracking-widest text-teal-300 lg:grid">
+            <div className="hidden grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] gap-4 border-b border-zinc-800 bg-zinc-950 px-5 py-4 text-xs font-bold uppercase tracking-widest text-[var(--fl-accent-text)] lg:grid">
               <div>Date / Time</div>
               <div>Property</div>
               <div>Client</div>
@@ -488,11 +488,11 @@ export default async function SchedulePage() {
                     className="grid gap-4 px-5 py-5 hover:bg-zinc-800/60 lg:grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] lg:items-center"
                   >
                     <div>
-                      <p className="text-sm font-bold text-white">
+                      <p className="text-sm font-bold text-[var(--fl-text)]">
                         {formatDate(date)}
                       </p>
 
-                      <p className="mt-1 text-sm text-[#8a93a3]">
+                      <p className="mt-1 text-sm text-[var(--fl-muted)]">
                         {time || "Time not entered"}
                       </p>
 
@@ -516,7 +516,7 @@ export default async function SchedulePage() {
                       </p>
 
                       {(inspection.inspection_type || inspection.type) && (
-                        <p className="mt-1 text-xs text-[#59626f]">
+                        <p className="mt-1 text-xs text-[var(--fl-faint)]">
                           {inspection.inspection_type || inspection.type}
                         </p>
                       )}
@@ -543,7 +543,7 @@ export default async function SchedulePage() {
                     <div className="flex lg:justify-end">
                       <Link
                         href={`/reports/${inspection.id}`}
-                        className="rounded-xl border border-teal-400/30 bg-teal-500/10 px-4 py-2 text-sm font-bold text-teal-200 transition hover:bg-teal-500/20"
+                        className="rounded-xl border border-teal-400/30 bg-teal-500/10 px-4 py-2 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
                       >
                         Open
                       </Link>

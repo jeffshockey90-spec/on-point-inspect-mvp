@@ -126,20 +126,20 @@ export default function FieldFindingLinker({
 
       {open && (
         <div className="fixed inset-0 z-[9998] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4">
-          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-indigo-500/30 bg-[#10151e] pb-[env(safe-area-inset-bottom)] sm:rounded-2xl">
-            <div className="flex items-center justify-between border-b border-[#1a212c] p-4">
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-indigo-500/30 bg-[var(--fl-surface)] pb-[env(safe-area-inset-bottom)] sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--fl-raised)] p-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
                   🔗 Link Related Findings
                 </p>
-                <p className="mt-0.5 text-xs text-[#8a93a3]">
+                <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
                   Pick the findings you think share a cause.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg border border-[#232b38] px-3 py-1.5 text-sm font-semibold text-[#e8ecf3] hover:bg-[#1a212c]"
+                className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-sm font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
               >
                 Close
               </button>
@@ -147,9 +147,9 @@ export default function FieldFindingLinker({
 
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
               {loading ? (
-                <p className="text-sm text-[#8a93a3]">Loading findings…</p>
+                <p className="text-sm text-[var(--fl-muted)]">Loading findings…</p>
               ) : findings.length < 2 ? (
-                <p className="text-sm text-[#8a93a3]">
+                <p className="text-sm text-[var(--fl-muted)]">
                   You need at least two findings on this inspection to link them.
                 </p>
               ) : (
@@ -163,7 +163,7 @@ export default function FieldFindingLinker({
                         className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 transition ${
                           checked
                             ? "border-indigo-400 bg-indigo-500/10"
-                            : "border-[#232b38] bg-[#131923] hover:border-indigo-500"
+                            : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-indigo-500"
                         }`}
                       >
                         <input
@@ -173,10 +173,10 @@ export default function FieldFindingLinker({
                           className="mt-0.5 h-5 w-5 shrink-0 accent-indigo-400"
                         />
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-bold text-white">
+                          <span className="block truncate text-sm font-bold text-[var(--fl-text)]">
                             {f.title || "Untitled finding"}
                           </span>
-                          <span className="block truncate text-[11px] text-[#8a93a3]">
+                          <span className="block truncate text-[11px] text-[var(--fl-muted)]">
                             {f.section || "—"}
                             {f.severity ? ` · ${f.severity}` : ""}
                           </span>
@@ -189,7 +189,7 @@ export default function FieldFindingLinker({
 
               {selectedIds.length >= 2 && (
                 <div className="mt-4 space-y-2">
-                  <label className="block text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                     Related observations note (client-facing)
                   </label>
                   <textarea
@@ -197,14 +197,14 @@ export default function FieldFindingLinker({
                     onChange={(e) => setNote(e.target.value)}
                     rows={3}
                     placeholder="How are they related? Draft it with AI below, or type your own."
-                    className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] p-2 text-sm text-white outline-none placeholder:text-[#59626f] focus:border-indigo-400"
+                    className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-2 text-sm text-[var(--fl-text)] outline-none placeholder:text-[var(--fl-faint)] focus:border-indigo-400"
                   />
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <input
                       value={aiHint}
                       onChange={(e) => setAiHint(e.target.value)}
                       placeholder="Tell AI how to word it (optional)"
-                      className="min-w-0 flex-1 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none placeholder:text-[#59626f] focus:border-indigo-400"
+                      className="min-w-0 flex-1 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none placeholder:text-[var(--fl-faint)] focus:border-indigo-400"
                     />
                     <button
                       type="button"
@@ -222,7 +222,7 @@ export default function FieldFindingLinker({
               {done && <p className="mt-3 text-xs font-bold text-emerald-300">{done}</p>}
             </div>
 
-            <div className="border-t border-[#1a212c] p-4">
+            <div className="border-t border-[var(--fl-raised)] p-4">
               <button
                 type="button"
                 onClick={save}

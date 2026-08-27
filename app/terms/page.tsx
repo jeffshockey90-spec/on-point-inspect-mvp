@@ -1,22 +1,22 @@
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-[#0a0e13] text-[#e8ecf3] px-6 py-10">
-      <div className="mx-auto max-w-5xl rounded-2xl border border-teal-700/40 bg-[#131923] p-8 shadow-xl">
-        <h1 className="text-4xl font-bold text-teal-300 mb-4">
+    <main className="min-h-screen bg-[var(--fl-ground)] text-[var(--fl-text)] px-6 py-10">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-teal-700/40 bg-[var(--fl-surface-2)] p-8 shadow-xl">
+        <h1 className="text-4xl font-bold text-[var(--fl-accent-text)] mb-4">
           Terms of Service
         </h1>
 
-        <p className="text-sm text-[#8a93a3] mb-8">
+        <p className="text-sm text-[var(--fl-muted)] mb-8">
           Last Updated: June 5, 2026
         </p>
 
-        <div className="space-y-6 text-[#e8ecf3] leading-7">
+        <div className="space-y-6 text-[var(--fl-text)] leading-7">
           <p>
             By accessing or using FLOW, you agree to these Terms of
             Service.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             1. Platform Purpose
           </h2>
 
@@ -26,7 +26,7 @@ export default function TermsPage() {
             communications, analytics, and related business operations.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             2. Inspector Responsibility
           </h2>
 
@@ -37,7 +37,7 @@ export default function TermsPage() {
             practice.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             3. No Professional Advice
           </h2>
 
@@ -47,7 +47,7 @@ export default function TermsPage() {
             advice.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             4. AI Features
           </h2>
 
@@ -57,7 +57,7 @@ export default function TermsPage() {
             use.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             5. Payment Services
           </h2>
 
@@ -66,7 +66,7 @@ export default function TermsPage() {
             responsible for pricing, taxes, chargebacks, disputes, and refunds.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             6. Account Security
           </h2>
 
@@ -75,7 +75,7 @@ export default function TermsPage() {
             activity occurring under their account.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             7. Acceptable Use
           </h2>
 
@@ -85,7 +85,7 @@ export default function TermsPage() {
             purposes.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             8. Availability
           </h2>
 
@@ -94,7 +94,7 @@ export default function TermsPage() {
             modify, suspend, or discontinue services at any time.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             9. Disclaimer of Warranties
           </h2>
 
@@ -103,7 +103,7 @@ export default function TermsPage() {
             WARRANTIES OF ANY KIND.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             10. Limitation of Liability
           </h2>
 
@@ -114,7 +114,7 @@ export default function TermsPage() {
             THE PLATFORM DURING THE PRECEDING TWELVE MONTHS.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             11. Indemnification
           </h2>
 
@@ -125,7 +125,7 @@ export default function TermsPage() {
             Platform.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             12. Termination
           </h2>
 
@@ -134,7 +134,7 @@ export default function TermsPage() {
             legal, security, or compliance reasons.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             13. Governing Law
           </h2>
 
@@ -142,7 +142,7 @@ export default function TermsPage() {
             These Terms shall be governed by the laws of the State of Maryland.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             14. Changes
           </h2>
 
@@ -151,7 +151,7 @@ export default function TermsPage() {
             constitutes acceptance of revised Terms.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             15. Contact
           </h2>
 

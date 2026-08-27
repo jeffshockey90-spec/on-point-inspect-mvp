@@ -249,14 +249,14 @@ export default function OfflineFieldMode({
   }
 
   return (
-    <section className="mt-8 rounded-2xl border border-[#232b38] bg-[#10151e] p-6 print:hidden">
+    <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 print:hidden">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-teal-400">
+          <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
             Offline Field Mode
           </h2>
 
-          <p className="mt-2 text-[#8a93a3]">
+          <p className="mt-2 text-[var(--fl-muted)]">
             Save findings and photos during weak signal. They sync through the
             FLOW offline queue when connection returns.
           </p>
@@ -273,7 +273,7 @@ export default function OfflineFieldMode({
             {online ? "ONLINE" : "OFFLINE"}
           </div>
 
-          <div className="rounded-full border border-[#232b38] bg-[#0a0e13] px-4 py-2 text-sm font-bold text-[#8a93a3]">
+          <div className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-2 text-sm font-bold text-[var(--fl-muted)]">
             {queueCount} QUEUED
           </div>
         </div>
@@ -284,13 +284,13 @@ export default function OfflineFieldMode({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Finding title"
-          className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         />
 
         <select
           value={section}
           onChange={(e) => setSection(e.target.value)}
-          className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           {SECTIONS.map((item) => (
             <option key={item}>{item}</option>
@@ -300,7 +300,7 @@ export default function OfflineFieldMode({
         <select
           value={severity}
           onChange={(e) => setSeverity(e.target.value)}
-          className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           {SEVERITIES.map((item) => (
             <option key={item}>{item}</option>
@@ -330,7 +330,7 @@ export default function OfflineFieldMode({
       />
 
       <label className="mt-5 block">
-        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
           Offline Photos
         </p>
 
@@ -342,11 +342,11 @@ export default function OfflineFieldMode({
           onChange={(event) =>
             setPhotos(Array.from(event.target.files || []))
           }
-          className="block w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-[#8a93a3] file:mr-4 file:rounded-lg file:border-0 file:bg-teal-500 file:px-4 file:py-2 file:font-bold file:text-black"
+          className="block w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-muted)] file:mr-4 file:rounded-lg file:border-0 file:bg-teal-500 file:px-4 file:py-2 file:font-bold file:text-black"
         />
 
         {photos.length > 0 && (
-          <p className="mt-2 text-sm text-[#8a93a3]">
+          <p className="mt-2 text-sm text-[var(--fl-muted)]">
             {photos.length} photo{photos.length === 1 ? "" : "s"} selected.
           </p>
         )}
@@ -375,7 +375,7 @@ export default function OfflineFieldMode({
       {drafts.length > 0 && (
         <div className="mt-8">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 className="text-xl font-bold text-white">
+            <h3 className="text-xl font-bold text-[var(--fl-text)]">
               Local Offline Findings
             </h3>
 
@@ -392,15 +392,15 @@ export default function OfflineFieldMode({
             {drafts.map((draft) => (
               <div
                 key={draft.id}
-                className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4"
+                className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4"
               >
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h4 className="text-lg font-bold text-teal-300">
+                    <h4 className="text-lg font-bold text-[var(--fl-accent-text)]">
                       {draft.title}
                     </h4>
 
-                    <p className="text-sm text-[#8a93a3]">
+                    <p className="text-sm text-[var(--fl-muted)]">
                       {draft.section} • {draft.severity} •{" "}
                       {formatAppValue(new Date(draft.createdAt), {})}
                     </p>
@@ -418,7 +418,7 @@ export default function OfflineFieldMode({
                   <button
                     type="button"
                     onClick={() => removeLocalDraft(draft.id)}
-                    className="rounded-lg border border-[#232b38] px-3 py-2 text-sm font-bold text-[#8a93a3] hover:bg-[#1a212c]"
+                    className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
                   >
                     Remove
                   </button>
@@ -452,7 +452,7 @@ function TextArea({
 }) {
   return (
     <label className="mt-5 block">
-      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
@@ -461,7 +461,7 @@ function TextArea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
     </label>
   );
@@ -472,10 +472,10 @@ function FindingPreview({ label, value }: { label: string; value: string }) {
 
   return (
     <div className="mt-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#59626f]">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--fl-faint)]">
         {label}
       </p>
-      <p className="mt-1 whitespace-pre-line leading-7 text-[#8a93a3]">
+      <p className="mt-1 whitespace-pre-line leading-7 text-[var(--fl-muted)]">
         {value}
       </p>
     </div>

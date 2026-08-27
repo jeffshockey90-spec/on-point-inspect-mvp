@@ -529,7 +529,7 @@ export default function EquipmentTestPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#0a0e13] p-6 text-white">
+        <main className="min-h-screen bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
           Loading...
         </main>
       }
@@ -843,13 +843,13 @@ function EquipmentTestContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] p-6 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
           <FastLinkButton
             href={inspectionId ? `/reports/${inspectionId}` : "/reports"}
             loadingText="Opening Report..."
-            className="mb-4 rounded-xl border border-[#232b38] px-4 py-2 text-sm font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+            className="mb-4 rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
           >
             ← Back To Report
           </FastLinkButton>
@@ -858,7 +858,7 @@ function EquipmentTestContent() {
             AI Equipment Scanner
           </h1>
 
-          <p className="mt-2 text-[#8a93a3]">
+          <p className="mt-2 text-[var(--fl-muted)]">
             Upload HVAC, electrical, plumbing, water heater, or appliance equipment photos.
           </p>
 
@@ -870,12 +870,12 @@ function EquipmentTestContent() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-5">
+        <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
           <input
             type="file"
             accept="image/*"
             disabled={loading || saving}
-            className="block w-full cursor-pointer rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-[#e8ecf3] file:mr-4 file:rounded-lg file:border-0 file:bg-teal-500 file:px-4 file:py-2 file:font-bold file:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+            className="block w-full cursor-pointer rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-text)] file:mr-4 file:rounded-lg file:border-0 file:bg-teal-500 file:px-4 file:py-2 file:font-bold file:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
             onChange={(e) => {
               const file = e.target.files?.[0] || null;
 
@@ -899,7 +899,7 @@ function EquipmentTestContent() {
           )}
 
           <div className="mt-4">
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
               Optional note for AI
             </label>
             <textarea
@@ -908,9 +908,9 @@ function EquipmentTestContent() {
               disabled={loading || saving}
               rows={4}
               placeholder="Optional note for AI... Example: older unit, noisy operation, rust, water stains, client reported issue, damaged cabinet, etc."
-              className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-[#e8ecf3] outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-text)] outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
-            <p className="mt-2 text-xs text-[#59626f]">
+            <p className="mt-2 text-xs text-[var(--fl-faint)]">
               This note is sent with the scan and saved into the AI Inspector Note so you can edit it later on the report.
             </p>
           </div>
@@ -967,18 +967,18 @@ function EquipmentTestContent() {
         )}
 
         {result?.observation && shouldCreateFinding(result) && (
-          <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-5">
+          <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
             <h2 className="text-xl font-bold">
               Suggested Inspection Finding
             </h2>
 
             <div className="mt-5 space-y-5">
               <div>
-                <h3 className="font-bold text-teal-400">
+                <h3 className="font-bold text-[var(--fl-accent-text)]">
                   Observation
                 </h3>
 
-                <p className="mt-1 text-[#e8ecf3]">
+                <p className="mt-1 text-[var(--fl-text)]">
                   {getCalmFindingObservation(result)}
                 </p>
               </div>
@@ -988,7 +988,7 @@ function EquipmentTestContent() {
                   Implication
                 </h3>
 
-                <p className="mt-1 text-[#e8ecf3]">
+                <p className="mt-1 text-[var(--fl-text)]">
                   {getCalmFindingImplication(result)}
                 </p>
               </div>
@@ -998,7 +998,7 @@ function EquipmentTestContent() {
                   Recommendation
                 </h3>
 
-                <p className="mt-1 text-[#e8ecf3]">
+                <p className="mt-1 text-[var(--fl-text)]">
                   {getCalmFindingRecommendation(result)}
                 </p>
               </div>
@@ -1019,12 +1019,12 @@ function EquipmentTestContent() {
 function EnhancedEquipmentIntelligence({ result }: { result: EquipmentResult }) {
   return (
     <section className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-5 shadow-xl">
-      <h2 className="text-xl font-bold text-teal-300">
+      <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
         Enhanced Equipment Intelligence
       </h2>
 
       {result.clientSummary && (
-        <p className="mt-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-sm leading-6 text-[#e8ecf3]">
+        <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm leading-6 text-[var(--fl-text)]">
           {result.clientSummary}
         </p>
       )}
@@ -1106,11 +1106,11 @@ function shouldShowIntelligenceValue(value: any) {
 
 function IntelligenceItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-1 text-sm font-bold text-white">
+      <p className="mt-1 text-sm font-bold text-[var(--fl-text)]">
         {value || "Unknown"}
       </p>
     </div>

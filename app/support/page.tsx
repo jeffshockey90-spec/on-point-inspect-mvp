@@ -43,7 +43,7 @@ const STATUS_STYLES: Record<string, string> = {
   planned: "border-purple-400/40 bg-purple-500/10 text-purple-300",
   in_progress: "border-amber-400/40 bg-amber-500/10 text-amber-300",
   shipped: "border-emerald-400/40 bg-emerald-500/10 text-emerald-300",
-  declined: "border-[#59626f]/40 bg-slate-500/10 text-[#8a93a3]",
+  declined: "border-[var(--fl-faint)] bg-slate-500/10 text-[var(--fl-muted)]",
 };
 
 function formatDate(value: string | null | undefined) {
@@ -177,24 +177,24 @@ export default function SupportPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl space-y-6">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-400">Support Chat</p>
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">Support Chat</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Contact Owner</h1>
-          <p className="mt-4 max-w-2xl text-[#8a93a3]">
+          <p className="mt-4 max-w-2xl text-[var(--fl-muted)]">
             Send Jeff a message if you need help with reports, billing, payments, agreements, or app setup.
           </p>
         </section>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl">
           {loading ? (
-            <p className="text-[#8a93a3]">Loading support chat...</p>
+            <p className="text-[var(--fl-muted)]">Loading support chat...</p>
           ) : (
             <>
-              <div className="max-h-[520px] space-y-3 overflow-y-auto rounded-2xl border border-[#1a212c] bg-[#0a0e13] p-4">
+              <div className="max-h-[520px] space-y-3 overflow-y-auto rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4">
                 {(thread?.messages || []).length === 0 ? (
-                  <div className="rounded-xl border border-[#232b38] bg-[#131923] p-5 text-center text-[#8a93a3]">
+                  <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-center text-[var(--fl-muted)]">
                     No messages yet. Send your first support message below.
                   </div>
                 ) : (
@@ -203,10 +203,10 @@ export default function SupportPage() {
                     return (
                       <div key={item.id} className={`flex ${isOwner ? "justify-start" : "justify-end"}`}>
                         <div className={`max-w-[85%] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-950/20" : "border-blue-500/30 bg-blue-950/20"}`}>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                             {isOwner ? "Owner Reply" : "You"} · {formatDate(item.created_at)}
                           </p>
-                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-white">{item.message}</p>
+                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]">{item.message}</p>
                         </div>
                       </div>
                     );
@@ -222,7 +222,7 @@ export default function SupportPage() {
                   onChange={(e) => setMessage(e.target.value)}
                   rows={4}
                   placeholder="Type your message to Jeff..."
-                  className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
                 <button
                   onClick={sendMessage}
@@ -236,10 +236,10 @@ export default function SupportPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-400">Suggestion Box</p>
-          <h2 className="mt-2 text-2xl font-semibold text-white">Suggest a Feature or Report a Bug</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a93a3]">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">Suggestion Box</p>
+          <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">Suggest a Feature or Report a Bug</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fl-muted)]">
             Jeff gets notified the moment you submit this. Good ones get built - and you get credited when they ship.
           </p>
 
@@ -261,35 +261,35 @@ export default function SupportPage() {
               onChange={(e) => setSuggestion(e.target.value)}
               rows={4}
               placeholder="What feature would make FLOW better for you? Or what's broken?"
-              className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <button
               onClick={sendSuggestion}
               disabled={suggestionSending || !suggestion.trim()}
-              className="w-full rounded-xl border border-teal-500 bg-teal-500/10 px-5 py-4 font-semibold text-teal-300 hover:bg-teal-500/20 disabled:opacity-50"
+              className="w-full rounded-xl border border-teal-500 bg-teal-500/10 px-5 py-4 font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/20 disabled:opacity-50"
             >
               {suggestionSending ? "Sending..." : "Submit Suggestion"}
             </button>
           </div>
 
           {!myRequestsLoading && myRequests.length > 0 && (
-            <div className="mt-6 space-y-3 border-t border-[#1a212c] pt-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Your Suggestions</p>
+            <div className="mt-6 space-y-3 border-t border-[var(--fl-raised)] pt-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Your Suggestions</p>
               {myRequests.map((request) => (
-                <div key={request.id} className="rounded-xl border border-[#1a212c] bg-[#0a0e13] p-4">
+                <div key={request.id} className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="text-sm leading-6 text-[#e8ecf3]">{request.message}</p>
+                    <p className="text-sm leading-6 text-[var(--fl-text)]">{request.message}</p>
                     <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold uppercase ${STATUS_STYLES[request.status] || STATUS_STYLES.new}`}>
                       {STATUS_LABELS[request.status] || request.status}
                     </span>
                   </div>
                   {request.owner_note && (
                     <div className="mt-3 rounded-lg border border-teal-500/30 bg-teal-950/20 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-teal-400">Reply from Jeff</p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[#e8ecf3]">{request.owner_note}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">Reply from Jeff</p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]">{request.owner_note}</p>
                     </div>
                   )}
-                  <p className="mt-2 text-xs text-[#59626f]">{formatDate(request.created_at)}</p>
+                  <p className="mt-2 text-xs text-[var(--fl-faint)]">{formatDate(request.created_at)}</p>
                 </div>
               ))}
             </div>

@@ -31,7 +31,7 @@ export default function EquipmentTestPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#0a0e13] p-6 text-white">
+        <main className="min-h-screen bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
           Loading...
         </main>
       }
@@ -186,12 +186,12 @@ function EquipmentTestContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] p-6 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
           <a
             href={inspectionId ? `/reports/${inspectionId}` : "/reports"}
-            className="mb-4 inline-block rounded-xl border border-[#232b38] px-4 py-2 text-sm font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+            className="mb-4 inline-block rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
           >
             ← Back To Report
           </a>
@@ -200,7 +200,7 @@ function EquipmentTestContent() {
             AI Equipment Scanner
           </h1>
 
-          <p className="mt-2 text-[#8a93a3]">
+          <p className="mt-2 text-[var(--fl-muted)]">
             Upload HVAC, electrical, or plumbing equipment photos.
           </p>
 
@@ -212,7 +212,7 @@ function EquipmentTestContent() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-5">
+        <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
           <input
             type="file"
             accept="image/*"
@@ -266,18 +266,18 @@ function EquipmentTestContent() {
         )}
 
         {result?.observation && (
-          <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-5">
+          <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
             <h2 className="text-xl font-bold">
               Suggested Inspection Finding
             </h2>
 
             <div className="mt-5 space-y-5">
               <div>
-                <h3 className="font-bold text-teal-400">
+                <h3 className="font-bold text-[var(--fl-accent-text)]">
                   Observation
                 </h3>
 
-                <p className="mt-1 text-[#e8ecf3]">
+                <p className="mt-1 text-[var(--fl-text)]">
                   {result.observation}
                 </p>
               </div>
@@ -287,7 +287,7 @@ function EquipmentTestContent() {
                   Implication
                 </h3>
 
-                <p className="mt-1 text-[#e8ecf3]">
+                <p className="mt-1 text-[var(--fl-text)]">
                   {result.implication}
                 </p>
               </div>
@@ -297,7 +297,7 @@ function EquipmentTestContent() {
                   Recommendation
                 </h3>
 
-                <p className="mt-1 text-[#e8ecf3]">
+                <p className="mt-1 text-[var(--fl-text)]">
                   {result.recommendation}
                 </p>
               </div>

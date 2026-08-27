@@ -61,7 +61,7 @@ export default function EmailDeliveryAlert({
             {bounces.map((b, i) => (
               <span key={b.recipient}>
                 {i > 0 ? ", " : ""}
-                <span className="font-bold text-white">{b.recipient}</span>
+                <span className="font-bold text-[var(--fl-text)]">{b.recipient}</span>
               </span>
             ))}
             {" "}(recipient not found). Double-check the address, update it on this inspection, and resend — the delivery service blocks repeat sends to a bad address until it&apos;s corrected.

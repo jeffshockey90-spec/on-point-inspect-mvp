@@ -40,8 +40,8 @@ export default function OwnerAccountActions({ userId, email, currentRole = "user
   }
 
   return (
-    <div className={compact ? "space-y-2" : "rounded-xl border border-[#232b38] bg-[#131923] p-4"}>
-      {!compact && <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#59626f]">Owner Actions</p>}
+    <div className={compact ? "space-y-2" : "rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"}>
+      {!compact && <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Owner Actions</p>}
       <div className="flex flex-wrap gap-2">
         <ActionButton label="Suspend" activeLabel="Suspending..." action="suspend" busyAction={busyAction} busy={busy} onClick={() => runAction("suspend")} tone="yellow" />
         <ActionButton label="Reactivate" activeLabel="Reactivating..." action="reactivate" busyAction={busyAction} busy={busy} onClick={() => runAction("reactivate")} tone="green" />
@@ -50,12 +50,12 @@ export default function OwnerAccountActions({ userId, email, currentRole = "user
         <ActionButton label="Soft Delete" activeLabel="Deleting..." action="delete" busyAction={busyAction} busy={busy} onClick={() => runAction("delete")} tone="red" />
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
-        <select value={role} onChange={(event) => setRole(event.target.value as RoleOption)} disabled={busy} className="rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-xs font-semibold text-white outline-none focus:border-teal-400">
+        <select value={role} onChange={(event) => setRole(event.target.value as RoleOption)} disabled={busy} className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-xs font-semibold text-[var(--fl-text)] outline-none focus:border-teal-400">
           <option value="client">Client</option><option value="inspector">Inspector</option><option value="owner">Owner</option><option value="admin">Admin</option>
         </select>
-        <button type="button" onClick={() => runAction("role", { role })} disabled={busy} className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-teal-300 hover:bg-teal-500/10 disabled:opacity-60">{busyAction === "role" ? "Saving..." : "Change Role"}</button>
+        <button type="button" onClick={() => runAction("role", { role })} disabled={busy} className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10 disabled:opacity-60">{busyAction === "role" ? "Saving..." : "Change Role"}</button>
       </div>
-      {message && <p className="mt-2 max-w-md text-xs font-bold text-[#8a93a3]">{message}</p>}
+      {message && <p className="mt-2 max-w-md text-xs font-bold text-[var(--fl-muted)]">{message}</p>}
     </div>
   );
 }

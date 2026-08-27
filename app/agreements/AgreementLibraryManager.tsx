@@ -548,11 +548,11 @@ export default function AgreementLibraryManager() {
 
   return (
     <div className="w-full max-w-full space-y-6 overflow-hidden">
-      <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5">
+      <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold text-teal-300">Templates</h2>
-            <p className="mt-1 text-sm text-[#8a93a3]">
+            <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">Templates</h2>
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
               Select, duplicate, export, delete, or create a custom agreement.
             </p>
           </div>
@@ -569,7 +569,7 @@ export default function AgreementLibraryManager() {
             <button
               type="button"
               onClick={() => importInputRef.current?.click()}
-              className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-bold text-[#8a93a3] hover:bg-[#1a212c]"
+              className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
             >
               Import JSON
             </button>
@@ -578,7 +578,7 @@ export default function AgreementLibraryManager() {
               type="button"
               onClick={() => exportTemplate()}
               disabled={!selected?.id}
-              className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-bold text-[#8a93a3] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               Export Selected
             </button>
@@ -586,7 +586,7 @@ export default function AgreementLibraryManager() {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-bold text-teal-300 hover:bg-teal-500/10"
+              className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
             >
               New Agreement
             </button>
@@ -598,13 +598,13 @@ export default function AgreementLibraryManager() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search agreements..."
-            className="h-11 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-white outline-none focus:border-teal-400"
+            className="h-11 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
           />
 
           <select
             value={stateFilter}
             onChange={(e) => setStateFilter(e.target.value)}
-            className="h-11 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-white outline-none focus:border-teal-400"
+            className="h-11 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
           >
             <option value="ALL">All States</option>
             {STATES.map((item) => (
@@ -617,7 +617,7 @@ export default function AgreementLibraryManager() {
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="h-11 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-white outline-none focus:border-teal-400"
+            className="h-11 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
           >
             <option value="ALL">All Service Types</option>
             {SERVICE_TYPES.map((item) => (
@@ -628,7 +628,7 @@ export default function AgreementLibraryManager() {
           </select>
         </div>
 
-        {loading && <p className="text-sm text-[#8a93a3]">Loading templates...</p>}
+        {loading && <p className="text-sm text-[var(--fl-muted)]">Loading templates...</p>}
 
         {!loading && loadError && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-200">
@@ -644,7 +644,7 @@ export default function AgreementLibraryManager() {
         )}
 
         {!loading && !loadError && filteredTemplates.length === 0 && (
-          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-sm text-[#8a93a3]">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm text-[var(--fl-muted)]">
             No agreements found. Create a new agreement or clear your filters.
           </div>
         )}
@@ -660,7 +660,7 @@ export default function AgreementLibraryManager() {
                 className={`rounded-xl border p-4 ${
                   selected?.id === template.id
                     ? "border-teal-400 bg-teal-500/10"
-                    : "border-[#232b38] bg-[#0a0e13]"
+                    : "border-[var(--fl-line)] bg-[var(--fl-ground)]"
                 }`}
               >
                 <button
@@ -670,11 +670,11 @@ export default function AgreementLibraryManager() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="break-words font-bold text-white">{template.title}</p>
-                      <p className="mt-1 break-words text-sm text-[#8a93a3]">
+                      <p className="break-words font-bold text-[var(--fl-text)]">{template.title}</p>
+                      <p className="mt-1 break-words text-sm text-[var(--fl-muted)]">
                         {getStateLabel(templateState)} • {template.version || "v1"}
                       </p>
-                      <p className="mt-1 break-words text-xs font-bold uppercase tracking-wide text-teal-300">
+                      <p className="mt-1 break-words text-xs font-bold uppercase tracking-wide text-[var(--fl-accent-text)]">
                         {serviceLabel(templateService)}
                       </p>
                     </div>
@@ -695,7 +695,7 @@ export default function AgreementLibraryManager() {
                   <button
                     type="button"
                     onClick={() => editTemplate(template)}
-                    className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-bold text-teal-300 hover:bg-teal-500/10"
+                    className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
                   >
                     Edit
                   </button>
@@ -712,7 +712,7 @@ export default function AgreementLibraryManager() {
                   <button
                     type="button"
                     onClick={() => exportTemplate(template)}
-                    className="rounded-lg border border-[#59626f] px-3 py-2 text-xs font-bold text-[#8a93a3] hover:bg-slate-700"
+                    className="rounded-lg border border-[var(--fl-faint)] px-3 py-2 text-xs font-bold text-[var(--fl-muted)] hover:bg-slate-700"
                   >
                     Export
                   </button>
@@ -732,13 +732,13 @@ export default function AgreementLibraryManager() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5">
+      <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold text-teal-300">
+            <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
               {selected ? "Edit Agreement" : "Add Agreement"}
             </h2>
-            <p className="mt-1 text-sm text-[#8a93a3]">
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
               Save any title and agreement body, assign it to a state, and mark
               it as default when needed.
             </p>
@@ -758,11 +758,11 @@ export default function AgreementLibraryManager() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[#8a93a3]">State</span>
+            <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">State</span>
             <select
               value={state}
               onChange={(e) => setState(e.target.value)}
-              className="h-12 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-white outline-none focus:border-teal-400"
+              className="h-12 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
             >
               {STATES.map((item) => (
                 <option key={item.code} value={item.code}>
@@ -773,11 +773,11 @@ export default function AgreementLibraryManager() {
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[#8a93a3]">Service Type</span>
+            <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">Service Type</span>
             <select
               value={serviceType}
               onChange={(e) => setServiceType(e.target.value)}
-              className="h-12 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-white outline-none focus:border-teal-400"
+              className="h-12 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
             >
               {SERVICE_TYPES.map((item) => (
                 <option key={item} value={item}>
@@ -788,38 +788,38 @@ export default function AgreementLibraryManager() {
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[#8a93a3]">Display Order</span>
+            <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">Display Order</span>
             <input
               type="number"
               value={displayOrder}
               onChange={(e) => setDisplayOrder(Number(e.target.value || 0))}
-              className="h-12 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-white outline-none focus:border-teal-400"
+              className="h-12 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[#8a93a3]">Version</span>
+            <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">Version</span>
             <input
               value={version}
               onChange={(e) => setVersion(e.target.value)}
               placeholder="v1"
-              className="h-12 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-white outline-none focus:border-teal-400"
+              className="h-12 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
           </label>
         </div>
 
         <label className="mt-4 block">
-          <span className="mb-2 block text-sm font-bold text-[#8a93a3]">Custom Agreement Title</span>
+          <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">Custom Agreement Title</span>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Example: Florida Buyer Inspection Agreement"
-            className="h-12 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-white outline-none focus:border-teal-400"
+            className="h-12 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
           />
         </label>
 
         <div className="mt-4 flex flex-col gap-3">
-          <label className="flex items-center gap-3 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-sm text-[#8a93a3]">
+          <label className="flex items-center gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-sm text-[var(--fl-muted)]">
             <input
               type="checkbox"
               checked={isActive}
@@ -829,7 +829,7 @@ export default function AgreementLibraryManager() {
             <span className="min-w-0">Active</span>
           </label>
 
-          <label className="flex items-center gap-3 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-sm text-[#8a93a3]">
+          <label className="flex items-center gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-sm text-[var(--fl-muted)]">
             <input
               type="checkbox"
               checked={isDefault}
@@ -841,8 +841,8 @@ export default function AgreementLibraryManager() {
         </div>
 
         <div className="mt-5 rounded-2xl border border-teal-700 bg-teal-950/20 p-4">
-          <h3 className="text-lg font-extrabold text-teal-300">Auto-Fill Placeholders</h3>
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+          <h3 className="text-lg font-extrabold text-[var(--fl-accent-text)]">Auto-Fill Placeholders</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             Click Select, then click inside the agreement body where you want
             the placeholder inserted.
           </p>
@@ -860,10 +860,10 @@ export default function AgreementLibraryManager() {
                 className={`min-w-0 rounded-xl border p-2 ${
                   selectedPlaceholder === item
                     ? "border-yellow-400 bg-yellow-950/20"
-                    : "border-[#232b38] bg-[#0a0e13]"
+                    : "border-[var(--fl-line)] bg-[var(--fl-ground)]"
                 }`}
               >
-                <div className="break-all font-mono text-xs text-teal-200">{item}</div>
+                <div className="break-all font-mono text-xs text-[var(--fl-accent-text)]">{item}</div>
                 <div className="mt-2 flex gap-2">
                   <button
                     type="button"
@@ -875,7 +875,7 @@ export default function AgreementLibraryManager() {
                   <button
                     type="button"
                     onClick={() => copyPlaceholder(item)}
-                    className="flex-1 rounded-lg border border-teal-500 px-2 py-1 text-xs font-bold text-teal-300 hover:bg-teal-500/10"
+                    className="flex-1 rounded-lg border border-teal-500 px-2 py-1 text-xs font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
                   >
                     {copied === item ? "Copied" : "Copy"}
                   </button>
@@ -885,40 +885,40 @@ export default function AgreementLibraryManager() {
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-[#232b38] bg-[#0a0e13] p-3">
+        <div className="mt-5 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
           <div className="mb-3 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => applyFormat("bold")}
-              className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+              className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
             >
               Bold
             </button>
             <button
               type="button"
               onClick={() => applyFormat("italic")}
-              className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+              className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
             >
               Italic
             </button>
             <button
               type="button"
               onClick={() => applyFormat("underline")}
-              className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+              className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
             >
               Underline
             </button>
             <button
               type="button"
               onClick={() => applyFormat("bullet")}
-              className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+              className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
             >
               Bullets
             </button>
             <button
               type="button"
               onClick={() => applyFormat("number")}
-              className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+              className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
             >
               Numbered
             </button>
@@ -928,7 +928,7 @@ export default function AgreementLibraryManager() {
             <p className="text-xs font-semibold uppercase tracking-wide text-fuchsia-300">
               ✨ AI Assistant
             </p>
-            <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
+            <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
               Draft a full agreement for this service + state, improve the current text, or insert
               a standard clause. Always review AI output before saving.
             </p>
@@ -947,7 +947,7 @@ export default function AgreementLibraryManager() {
                 value={aiClause}
                 onChange={(e) => setAiClause(e.target.value)}
                 disabled={Boolean(aiBusy)}
-                className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-fuchsia-400 disabled:opacity-50"
+                className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-fuchsia-400 disabled:opacity-50"
               >
                 <option value="arbitration">Arbitration</option>
                 <option value="limitation_of_liability">Limitation of Liability</option>
@@ -973,7 +973,7 @@ export default function AgreementLibraryManager() {
                 value={aiInstruction}
                 onChange={(e) => setAiInstruction(e.target.value)}
                 placeholder="How should AI improve it? (e.g. 'make section 4 clearer', 'less alarming')"
-                className="min-w-0 flex-1 rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none placeholder:text-[#59626f] focus:border-fuchsia-400"
+                className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none placeholder:text-[var(--fl-faint)] focus:border-fuchsia-400"
               />
               <button
                 type="button"
@@ -989,14 +989,14 @@ export default function AgreementLibraryManager() {
           </div>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[#8a93a3]">Agreement Body</span>
+            <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">Agreement Body</span>
             <textarea
               ref={textareaRef}
               value={body}
               onClick={handleTextareaClick}
               onChange={(e) => setBody(e.target.value)}
               rows={30}
-              className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 font-mono text-sm leading-7 text-white outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 font-mono text-sm leading-7 text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
           </label>
         </div>
@@ -1014,7 +1014,7 @@ export default function AgreementLibraryManager() {
           <button
             type="button"
             onClick={resetForm}
-            className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#8a93a3] hover:bg-[#1a212c]"
+            className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
           >
             Clear
           </button>

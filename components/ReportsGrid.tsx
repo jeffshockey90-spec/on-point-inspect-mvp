@@ -112,23 +112,23 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
 
   return (
     <div>
-      <div className="mb-6 space-y-3 rounded-2xl border border-[#1a212c] bg-[#10151e] p-4">
+      <div className="mb-6 space-y-3 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2.5 focus-within:border-teal-400">
-            <span className="text-[#59626f]">🔎</span>
+          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2.5 focus-within:border-teal-400">
+            <span className="text-[var(--fl-faint)]">🔎</span>
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by address, client, or realtor..."
-              className="flex-1 bg-transparent text-sm text-white placeholder:text-[#59626f] outline-none"
+              className="flex-1 bg-transparent text-sm text-[var(--fl-text)] placeholder:text-[var(--fl-faint)] outline-none"
             />
           </div>
 
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as SortOption)}
-            className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2.5 text-sm font-bold text-[#e8ecf3] outline-none focus:border-teal-400"
+            className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2.5 text-sm font-bold text-[var(--fl-text)] outline-none focus:border-teal-400"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -136,7 +136,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
             <option value="address">Address A-Z</option>
           </select>
 
-          <span className="text-xs font-bold text-[#59626f] tabular-nums">
+          <span className="text-xs font-bold text-[var(--fl-faint)] tabular-nums">
             {visibleReports.length} of {reports.length}
           </span>
         </div>
@@ -151,8 +151,8 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                 onClick={() => setStatus(tab.key)}
                 className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                   isActive
-                    ? "border-teal-400/60 bg-teal-500/15 text-teal-200"
-                    : "border-[#232b38] bg-[#0a0e13] text-[#8a93a3] hover:border-[#59626f] hover:text-[#e8ecf3]"
+                    ? "border-teal-400/60 bg-teal-500/15 text-[var(--fl-accent-text)]"
+                    : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-muted)] hover:border-[var(--fl-faint)] hover:text-[var(--fl-text)]"
                 }`}
               >
                 {tab.label}
@@ -160,7 +160,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                   className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
                     isActive
                       ? "bg-teal-500/25 text-teal-100"
-                      : "bg-[#1a212c] text-[#8a93a3]"
+                      : "bg-[var(--fl-raised)] text-[var(--fl-muted)]"
                   }`}
                 >
                   {counts[tab.key]}
@@ -172,8 +172,8 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
       </div>
 
       {visibleReports.length === 0 ? (
-        <div className="rounded-2xl border border-[#1a212c] bg-[#131923] p-8">
-          <p className="text-[#8a93a3]">
+        <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-8">
+          <p className="text-[var(--fl-muted)]">
             {reports.length === 0
               ? "No saved inspections found."
               : "No reports match your search or filter."}
@@ -184,7 +184,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
           {visibleReports.map((report, index) => (
             <div
               key={report.id}
-              className="group relative overflow-hidden rounded-2xl border border-[#1a212c] bg-[#131923] shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[#13213a] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
+              className="group relative overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[#13213a] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
             >
               {/* Stretched link: makes the whole card clickable (opens the report).
                   The action buttons below sit above this overlay (relative z-20)
@@ -195,9 +195,9 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                 className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
               />
 
-              <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[#0a0e13] text-[#59626f]">
+              <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[var(--fl-ground)] text-[var(--fl-faint)]">
                 {!report.propertyPhoto ? (
-                  <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-[#59626f]">
+                  <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-[var(--fl-faint)]">
                     No Property Photo
                   </span>
                 ) : null}
@@ -215,11 +215,11 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
               </div>
 
               <div className="p-6">
-                <h2 className="text-2xl font-bold text-white transition group-hover:text-teal-300">
+                <h2 className="text-2xl font-bold text-[var(--fl-text)] transition group-hover:text-[var(--fl-accent-text)]">
                   {report.address}
                 </h2>
 
-                <p className="mt-3 text-[#8a93a3]">{report.cityStateZip}</p>
+                <p className="mt-3 text-[var(--fl-muted)]">{report.cityStateZip}</p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <StatusBadge
@@ -243,25 +243,25 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                   )}
                 </div>
 
-                <div className="mt-5 space-y-2 text-sm text-[#8a93a3]">
+                <div className="mt-5 space-y-2 text-sm text-[var(--fl-muted)]">
                   <p>
-                    <span className="font-bold text-white">Client:</span>{" "}
+                    <span className="font-bold text-[var(--fl-text)]">Client:</span>{" "}
                     {report.clientName}
                   </p>
 
                   <p>
-                    <span className="font-bold text-white">Realtor:</span>{" "}
+                    <span className="font-bold text-[var(--fl-text)]">Realtor:</span>{" "}
                     {report.realtorName}
                   </p>
 
                   <p>
-                    <span className="font-bold text-white">Inspection Date:</span>{" "}
+                    <span className="font-bold text-[var(--fl-text)]">Inspection Date:</span>{" "}
                     {report.inspectionDate}
                   </p>
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-[#1a212c] bg-[#131923] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+                <div className="mt-5 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                     Report Engagement
                   </p>
 
@@ -291,14 +291,14 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                     )}
                   </div>
 
-                  <div className="mt-3 grid gap-2 text-xs text-[#8a93a3]">
+                  <div className="mt-3 grid gap-2 text-xs text-[var(--fl-muted)]">
                     <p>
-                      <span className="font-bold text-[#8a93a3]">Views:</span>{" "}
+                      <span className="font-bold text-[var(--fl-muted)]">Views:</span>{" "}
                       {report.activity.totalViews}
                     </p>
 
                     <p>
-                      <span className="font-bold text-[#8a93a3]">Last View:</span>{" "}
+                      <span className="font-bold text-[var(--fl-muted)]">Last View:</span>{" "}
                       {report.activity.lastViewedLabel}
                     </p>
                   </div>
@@ -362,7 +362,7 @@ function EngagementBadge({
       className={
         active
           ? "rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-300"
-          : "rounded-full border border-[#232b38] bg-[#1a212c] px-3 py-1 text-xs font-semibold text-[#8a93a3]"
+          : "rounded-full border border-[var(--fl-line)] bg-[var(--fl-raised)] px-3 py-1 text-xs font-semibold text-[var(--fl-muted)]"
       }
     >
       {active ? activeLabel : inactiveLabel}

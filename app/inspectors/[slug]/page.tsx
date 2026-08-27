@@ -316,9 +316,9 @@ export default async function PublicInspectorProfilePage({
   const shownCertifications = certifications.slice(0, 4);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#0a0e13] pb-24 text-white sm:pb-0">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--fl-ground)] pb-24 text-[var(--fl-text)] sm:pb-0">
       <PublicProfileAnalyticsTracker companyId={company.id} profileSlug={slug} />
-      <section className="relative overflow-hidden border-b border-[#1a212c]">
+      <section className="relative overflow-hidden border-b border-[var(--fl-raised)]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.24),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.16),transparent_42%)]" />
         <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-teal-500/10 blur-3xl" />
 
@@ -328,7 +328,7 @@ export default async function PublicInspectorProfilePage({
               <div>
                 <div className="flex flex-wrap items-center gap-5">
                   {logoUrl ? (
-                    <div className="flex min-h-28 min-w-28 max-w-[260px] items-center justify-center rounded-2xl border border-[#232b38] bg-black/35 p-4 shadow-xl">
+                    <div className="flex min-h-28 min-w-28 max-w-[260px] items-center justify-center rounded-2xl border border-[var(--fl-line)] bg-black/35 p-4 shadow-xl">
                       <img
                         src={logoUrl}
                         alt={`${companyName} logo`}
@@ -355,18 +355,18 @@ export default async function PublicInspectorProfilePage({
                   )}
                 </div>
 
-                <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-teal-200">
+                <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--fl-accent-text)]">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-400 text-[10px] text-slate-950">
                     ✓
                   </span>
                   Verified FLOWor
                 </div>
 
-                <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-6xl">
+                <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight text-[var(--fl-text)] sm:text-6xl">
                   {companyName}
                 </h1>
 
-                <p className="mt-4 max-w-2xl text-lg leading-8 text-[#8a93a3]">
+                <p className="mt-4 max-w-2xl text-lg leading-8 text-[var(--fl-muted)]">
                   {headline}
                 </p>
 
@@ -374,7 +374,7 @@ export default async function PublicInspectorProfilePage({
                   {serviceAreas.slice(0, 5).map((area) => (
                     <span
                       key={area}
-                      className="rounded-full border border-[#232b38] bg-[#131923] px-3 py-2 text-xs font-semibold text-[#e8ecf3]"
+                      className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-xs font-semibold text-[var(--fl-text)]"
                     >
                       {area}
                     </span>
@@ -393,7 +393,7 @@ export default async function PublicInspectorProfilePage({
                   {company.phone && (
                     <a
                       href={`tel:${company.phone}`}
-                      className="rounded-xl border border-[#232b38] px-6 py-4 text-center font-bold text-[#e8ecf3] transition hover:-translate-y-0.5 hover:border-teal-400 hover:text-teal-300"
+                      className="rounded-xl border border-[var(--fl-line)] px-6 py-4 text-center font-bold text-[var(--fl-text)] transition hover:-translate-y-0.5 hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
                     >
                       Call Inspector
                     </a>
@@ -421,16 +421,16 @@ export default async function PublicInspectorProfilePage({
                   />
                 </div>
 
-                <div className="rounded-2xl border border-[#1a212c] bg-[#0a0e13]/55 p-5 shadow-xl sm:p-7">
+                <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-5 shadow-xl sm:p-7">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-teal-300">
+                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">
                         Reputation
                       </p>
-                      <h2 className="mt-3 text-3xl font-semibold text-white">
+                      <h2 className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">
                         ★★★★★ {ratingLabel}
                       </h2>
-                      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
+                      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">
                         {googleReviewCount > 0
                           ? `${googleReviewCount} Google reviews synced to this public profile.`
                           : "Sample reports, credentials, service areas, and direct booking links are available before a client reaches out."}
@@ -452,9 +452,9 @@ export default async function PublicInspectorProfilePage({
                 </div>
 
                 {company.public_profile_bio && (
-                  <div className="rounded-2xl border border-[#1a212c] bg-[#0a0e13]/55 p-5 shadow-xl sm:p-7">
-                    <h2 className="text-2xl font-semibold text-teal-300">About</h2>
-                    <p className="mt-4 max-h-56 overflow-auto whitespace-pre-line pr-2 text-base leading-8 text-[#8a93a3]">
+                  <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-5 shadow-xl sm:p-7">
+                    <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">About</h2>
+                    <p className="mt-4 max-h-56 overflow-auto whitespace-pre-line pr-2 text-base leading-8 text-[var(--fl-muted)]">
                       {company.public_profile_bio}
                     </p>
                   </div>
@@ -520,16 +520,16 @@ export default async function PublicInspectorProfilePage({
 
       {sampleReports.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-          <div className="overflow-hidden rounded-2xl border border-teal-500/35 bg-[#10151e] p-5 shadow-2xl shadow-black/30 sm:p-8">
+          <div className="overflow-hidden rounded-2xl border border-teal-500/35 bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/30 sm:p-8">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
                   Sample Reports
                 </p>
-                <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
+                <h2 className="mt-3 text-3xl font-semibold text-[var(--fl-text)] sm:text-4xl">
                   See Example Reports
                 </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a93a3] sm:text-base">
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--fl-muted)] sm:text-base">
                   Review example inspection reports from {companyName} to see
                   report style, photos, summaries, and overall detail before
                   requesting an inspection.
@@ -560,21 +560,21 @@ export default async function PublicInspectorProfilePage({
       )}
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 sm:py-12 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-8">
-          <h2 className="text-2xl font-semibold text-teal-300">
+        <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-8">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
             Services Offered
           </h2>
 
           {services.length === 0 ? (
-            <p className="mt-4 text-[#8a93a3]">Services will be added soon.</p>
+            <p className="mt-4 text-[var(--fl-muted)]">Services will be added soon.</p>
           ) : (
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {services.map((service) => (
                 <div
                   key={service}
-                  className="flex items-center gap-3 rounded-2xl border border-teal-500/25 bg-teal-500/10 p-4 font-bold text-[#e8ecf3] transition hover:border-teal-400/70 hover:bg-teal-500/15"
+                  className="flex items-center gap-3 rounded-2xl border border-teal-500/25 bg-teal-500/10 p-4 font-bold text-[var(--fl-text)] transition hover:border-teal-400/70 hover:bg-teal-500/15"
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0a0e13] text-lg">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--fl-ground)] text-lg">
                     {getServiceIcon(service)}
                   </span>
                   <span>{service}</span>
@@ -584,15 +584,15 @@ export default async function PublicInspectorProfilePage({
           )}
         </div>
 
-        <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-8">
-          <h2 className="text-2xl font-semibold text-teal-300">Contact</h2>
+        <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-8">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Contact</h2>
 
           <div className="mt-6 space-y-3 text-sm">
             {company.email && (
               <a
                 href={`mailto:${company.email}`}
                 data-public-profile-event="email_click"
-                className="block rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 font-bold text-[#e8ecf3] hover:border-teal-400 hover:text-teal-300"
+                className="block rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 font-bold text-[var(--fl-text)] hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
               >
                 Email: {company.email}
               </a>
@@ -602,7 +602,7 @@ export default async function PublicInspectorProfilePage({
               <a
                 href={`tel:${company.phone}`}
                 data-public-profile-event="phone_click"
-                className="block rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 font-bold text-[#e8ecf3] hover:border-teal-400 hover:text-teal-300"
+                className="block rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 font-bold text-[var(--fl-text)] hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
               >
                 Phone: {company.phone}
               </a>
@@ -614,7 +614,7 @@ export default async function PublicInspectorProfilePage({
                 data-public-profile-event="website_click"
                 target="_blank"
                 rel="noreferrer"
-                className="block rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 font-bold text-[#e8ecf3] hover:border-teal-400 hover:text-teal-300"
+                className="block rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 font-bold text-[var(--fl-text)] hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
               >
                 Website
               </a>
@@ -647,7 +647,7 @@ export default async function PublicInspectorProfilePage({
         </div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-teal-500/25 bg-[#0a0e13]/95 p-3 backdrop-blur sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-teal-500/25 bg-[var(--fl-ground)] p-3 backdrop-blur sm:hidden">
         <Link
           href={bookingHref}
           data-public-profile-event="booking_click"
@@ -675,16 +675,16 @@ function GoogleReviewsSection({
   leaveReviewHref: string;
 }) {
   return (
-    <div className="rounded-2xl border border-yellow-400/30 bg-gradient-to-br from-[#10151e] via-[#10151e] to-yellow-950/20 p-5 shadow-2xl shadow-black/30 sm:p-8">
+    <div className="rounded-2xl border border-yellow-400/30 bg-gradient-to-br from-[var(--fl-surface)] via-[var(--fl-surface)] to-yellow-950/20 p-5 shadow-2xl shadow-black/30 sm:p-8">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-yellow-300">
             Google Reviews
           </p>
-          <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
+          <h2 className="mt-3 text-3xl font-semibold text-[var(--fl-text)] sm:text-4xl">
             ★★★★★ {rating ? `${rating} Rating` : "Verified Reputation"}
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a93a3] sm:text-base">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--fl-muted)] sm:text-base">
             {reviewCount > 0
               ? `${reviewCount} Google reviews help clients and realtors see this inspector's reputation before booking.`
               : "Read recent Google reviews and see what clients say before requesting an inspection."}
@@ -723,7 +723,7 @@ function GoogleReviewsSection({
       {reviews.length > 0 && (
         <div className="mt-7 grid gap-4 lg:grid-cols-3">
           {reviews.slice(0, 3).map((review) => (
-            <article key={review.id} className="rounded-2xl border border-[#232b38] bg-[#131923] p-5 shadow-xl">
+            <article key={review.id} className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 shadow-xl">
               <div className="flex items-center gap-3">
                 {review.author_photo_url ? (
                   <img src={review.author_photo_url} alt="" className="h-11 w-11 rounded-full object-cover" />
@@ -733,7 +733,7 @@ function GoogleReviewsSection({
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-white">{review.author_name || "Google Reviewer"}</p>
+                  <p className="truncate font-semibold text-[var(--fl-text)]">{review.author_name || "Google Reviewer"}</p>
                   <p className="text-xs font-bold text-yellow-200">
                     {"★".repeat(Math.max(0, Math.min(5, Number(review.rating || 5))))}
                   </p>
@@ -741,12 +741,12 @@ function GoogleReviewsSection({
               </div>
 
               {review.review_text && (
-                <p className="mt-4 line-clamp-5 text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-4 line-clamp-5 text-sm leading-6 text-[var(--fl-muted)]">
                   “{review.review_text}”
                 </p>
               )}
 
-              <p className="mt-4 text-xs font-bold text-[#59626f]">
+              <p className="mt-4 text-xs font-bold text-[var(--fl-faint)]">
                 {review.relative_publish_time_description || "Google review"}
               </p>
             </article>
@@ -765,9 +765,9 @@ function PortfolioStat({
   label: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#1a212c] bg-[#131923] p-4 text-center shadow-lg transition hover:-translate-y-0.5 hover:border-teal-400/50">
-      <p className="text-3xl font-semibold text-white">{value}</p>
-      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300">
+    <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4 text-center shadow-lg transition hover:-translate-y-0.5 hover:border-teal-400/50">
+      <p className="text-3xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--fl-accent-text)]">
         {label}
       </p>
     </div>
@@ -794,7 +794,7 @@ function FeaturedSampleReport({
   return (
     <div className="group overflow-hidden rounded-2xl border border-teal-500/45 bg-[#07111f] shadow-2xl shadow-black/40">
       <div className="grid lg:grid-cols-[1.35fr_0.85fr]">
-        <div className="relative min-h-[320px] overflow-hidden bg-[#0a0e13] sm:min-h-[440px]">
+        <div className="relative min-h-[320px] overflow-hidden bg-[var(--fl-ground)] sm:min-h-[440px]">
           {coverUrl ? (
             <img
               src={coverUrl}
@@ -809,7 +809,7 @@ function FeaturedSampleReport({
                 <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#14c8d2]">
                   FLOW
                 </p>
-                <p className="mt-2 text-2xl font-semibold text-white">
+                <p className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
                   Featured Report
                 </p>
               </div>
@@ -823,21 +823,21 @@ function FeaturedSampleReport({
 
         <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-teal-300">
+            <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
               {sampleType}
             </span>
             {sampleDate && (
-              <span className="rounded-full border border-[#232b38] bg-[#0a0e13] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
+              <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 {sampleDate}
               </span>
             )}
           </div>
 
-          <h2 className="mt-5 text-4xl font-semibold leading-tight text-white sm:text-5xl">
+          <h2 className="mt-5 text-4xl font-semibold leading-tight text-[var(--fl-text)] sm:text-5xl">
             {sample.title || "Featured Sample Inspection Report"}
           </h2>
 
-          <p className="mt-4 text-base leading-8 text-[#8a93a3]">
+          <p className="mt-4 text-base leading-8 text-[var(--fl-muted)]">
             {description}
           </p>
 
@@ -856,7 +856,7 @@ function FeaturedSampleReport({
             <Link
               href={bookingHref}
               data-public-profile-event="booking_click"
-              className="rounded-xl border border-[#232b38] px-5 py-4 text-center font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300"
+              className="rounded-xl border border-[var(--fl-line)] px-5 py-4 text-center font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
             >
               Request Inspection
             </Link>
@@ -877,7 +877,7 @@ function SampleReportCard({ sample }: { sample: any }) {
     "View this sample inspection report to see photos, findings, summary details, and client-friendly layout.";
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70">
+    <article className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70">
       {coverUrl ? (
         <img
           src={coverUrl}
@@ -892,28 +892,28 @@ function SampleReportCard({ sample }: { sample: any }) {
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#14c8d2]">
               FLOW
             </p>
-            <p className="mt-2 text-xl font-semibold text-white">Sample Report</p>
+            <p className="mt-2 text-xl font-semibold text-[var(--fl-text)]">Sample Report</p>
           </div>
         </div>
       )}
 
       <div className="p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-teal-300">
+          <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
             {sampleType}
           </span>
           {sampleDate && (
-            <span className="rounded-full border border-[#232b38] bg-[#0a0e13] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               {sampleDate}
             </span>
           )}
         </div>
 
-        <h3 className="mt-4 text-2xl font-semibold leading-tight text-white sm:text-3xl">
+        <h3 className="mt-4 text-2xl font-semibold leading-tight text-[var(--fl-text)] sm:text-3xl">
           {sample.title || "Sample Inspection Report"}
         </h3>
 
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#8a93a3]">
+        <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--fl-muted)]">
           {description}
         </p>
 
@@ -942,16 +942,16 @@ function SampleReportCard({ sample }: { sample: any }) {
 
 function CertificationBadges({ certifications }: { certifications: string[] }) {
   return (
-    <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-300">
+    <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
         Credentials
       </p>
-      <h2 className="mt-3 text-2xl font-semibold text-white">
+      <h2 className="mt-3 text-2xl font-semibold text-[var(--fl-text)]">
         Certifications & Badges
       </h2>
 
       {certifications.length === 0 ? (
-        <p className="mt-4 text-sm leading-6 text-[#8a93a3]">
+        <p className="mt-4 text-sm leading-6 text-[var(--fl-muted)]">
           Certifications coming soon.
         </p>
       ) : (
@@ -964,14 +964,14 @@ function CertificationBadges({ certifications }: { certifications: string[] }) {
                 key={certification}
                 className="flex items-center gap-3 rounded-2xl border border-teal-500/25 bg-teal-500/10 p-4 transition hover:-translate-y-0.5 hover:border-teal-400/70 hover:bg-teal-500/15"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-teal-300/40 bg-[#0a0e13] text-sm font-semibold text-teal-200">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-teal-300/40 bg-[var(--fl-ground)] text-sm font-semibold text-[var(--fl-accent-text)]">
                   {badge.icon}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-[var(--fl-text)]">
                     {certification}
                   </p>
-                  <p className="mt-1 text-xs font-bold text-[#8a93a3]">
+                  <p className="mt-1 text-xs font-bold text-[var(--fl-muted)]">
                     {badge.description}
                   </p>
                 </div>
@@ -994,17 +994,17 @@ function InfoList({
   emptyText: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#1a212c] bg-[#10151e]/90 p-5 shadow-xl sm:p-8">
-      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
+    <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-8">
+      <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{title}</h2>
 
       {items.length === 0 ? (
-        <p className="mt-4 text-sm leading-6 text-[#8a93a3]">{emptyText}</p>
+        <p className="mt-4 text-sm leading-6 text-[var(--fl-muted)]">{emptyText}</p>
       ) : (
         <div className="mt-5 flex flex-wrap gap-2">
           {items.map((item) => (
             <span
               key={item}
-              className="rounded-full border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm font-bold text-[#e8ecf3]"
+              className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm font-bold text-[var(--fl-text)]"
             >
               {item}
             </span>

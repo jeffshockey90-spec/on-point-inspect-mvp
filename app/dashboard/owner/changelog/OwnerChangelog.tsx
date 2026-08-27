@@ -135,23 +135,23 @@ export default function OwnerChangelog() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl space-y-6">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-400">What's New</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">What's New</p>
               <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Changelog</h1>
-              <p className="mt-4 text-[#8a93a3]">Post updates so inspectors know what shipped. Everyone gets notified.</p>
+              <p className="mt-4 text-[var(--fl-muted)]">Post updates so inspectors know what shipped. Everyone gets notified.</p>
             </div>
-            <Link href="/dashboard/owner/suggestions" className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 hover:bg-teal-500/10">
+            <Link href="/dashboard/owner/suggestions" className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10">
               Suggestions
             </Link>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl">
-          <h2 className="text-xl font-semibold text-white">Post an Update</h2>
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl">
+          <h2 className="text-xl font-semibold text-[var(--fl-text)]">Post an Update</h2>
 
           {postError && (
             <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/20 p-2 text-xs font-bold text-red-300">
@@ -164,20 +164,20 @@ export default function OwnerChangelog() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Title, e.g. Custom section fields (leave blank to auto-number, e.g. update 1.9.10)"
-              className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={4}
               placeholder="What changed and why it matters..."
-              className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <input
               value={creditedUserName}
               onChange={(e) => setCreditedUserName(e.target.value)}
               placeholder="Credit someone (optional)"
-              className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <button
               onClick={submitEntry}
@@ -193,33 +193,33 @@ export default function OwnerChangelog() {
 
         <div className="space-y-4">
           {loading ? (
-            <p className="text-[#8a93a3]">Loading...</p>
+            <p className="text-[var(--fl-muted)]">Loading...</p>
           ) : entries.length === 0 ? (
-            <p className="rounded-xl border border-[#232b38] bg-[#10151e] p-6 text-center text-[#8a93a3]">
+            <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 text-center text-[var(--fl-muted)]">
               No entries yet.
             </p>
           ) : (
             entries.map((entry) => (
-              <article key={entry.id} className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5">
+              <article key={entry.id} className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5">
                 {editingId === entry.id ? (
                   <div className="space-y-3">
                     <input
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       placeholder="Title"
-                      className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
                     />
                     <textarea
                       value={editBody}
                       onChange={(e) => setEditBody(e.target.value)}
                       rows={6}
-                      className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-sm text-white outline-none focus:border-teal-400"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
                     />
                     <input
                       value={editCredited}
                       onChange={(e) => setEditCredited(e.target.value)}
                       placeholder="Credit someone (optional)"
-                      className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
                     />
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -231,7 +231,7 @@ export default function OwnerChangelog() {
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
-                        className="rounded-xl border border-[#232b38] px-5 py-2.5 text-sm font-semibold text-[#8a93a3] hover:bg-[#1a212c]"
+                        className="rounded-xl border border-[var(--fl-line)] px-5 py-2.5 text-sm font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
                       >
                         Cancel
                       </button>
@@ -240,7 +240,7 @@ export default function OwnerChangelog() {
                 ) : (
                   <>
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-teal-400">{formatDate(entry.published_at)}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">{formatDate(entry.published_at)}</p>
                       <div className="flex items-center gap-2">
                         {entry.credited_user_name && (
                           <span className="rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300">
@@ -249,7 +249,7 @@ export default function OwnerChangelog() {
                         )}
                         <button
                           onClick={() => startEdit(entry)}
-                          className="rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#8a93a3] hover:border-teal-400 hover:text-teal-200"
+                          className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
                         >
                           Edit
                         </button>
@@ -261,8 +261,8 @@ export default function OwnerChangelog() {
                         </button>
                       </div>
                     </div>
-                    <h3 className="mt-2 text-xl font-semibold text-white">{entry.title}</h3>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#8a93a3]">{entry.body}</p>
+                    <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)]">{entry.title}</h3>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-muted)]">{entry.body}</p>
                   </>
                 )}
               </article>

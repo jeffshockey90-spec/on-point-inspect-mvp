@@ -136,14 +136,14 @@ export default async function InvoicesPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[#0a0e13] p-8 text-white">
+      <main className="min-h-screen bg-[var(--fl-ground)] p-8 text-[var(--fl-text)]">
         <h1 className="text-3xl font-semibold text-red-400">
           Error loading invoices
         </h1>
-        <p className="mt-4 text-[#8a93a3]">{error.message}</p>
+        <p className="mt-4 text-[var(--fl-muted)]">{error.message}</p>
         <Link
           href="/dashboard"
-          className="mt-6 inline-block rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300"
+          className="mt-6 inline-block rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)]"
         >
           Back to Dashboard
         </Link>
@@ -186,20 +186,20 @@ export default async function InvoicesPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
                 FLOW
               </p>
 
-              <h1 className="mt-4 text-5xl font-semibold text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">
                 Invoices
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Track paid, unpaid, waived, overdue, and outstanding inspection
                 balances without touching the report workflow.
               </p>
@@ -214,7 +214,7 @@ export default async function InvoicesPage() {
               </Link>
               <Link
                 href="/dashboard"
-                className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
               >
                 Back to Dashboard
               </Link>
@@ -231,17 +231,17 @@ export default async function InvoicesPage() {
         </section>
 
         {customInvoices.length > 0 && (
-          <section className="mt-8 rounded-2xl border border-[#232b38] bg-[#071224] p-6">
+          <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-semibold text-teal-300">Custom Invoices</h2>
-                <p className="mt-1 text-sm text-[#8a93a3]">
+                <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Custom Invoices</h2>
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   Line-item invoices you built and can send with an online pay link.
                 </p>
               </div>
               <Link
                 href="/invoices/new"
-                className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-4 py-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
               >
                 + New Invoice
               </Link>
@@ -255,17 +255,17 @@ export default async function InvoicesPage() {
                     ? "bg-emerald-500/15 text-emerald-300"
                     : status === "sent"
                       ? "bg-cyan-500/15 text-cyan-300"
-                      : "bg-slate-600/20 text-[#8a93a3]";
+                      : "bg-slate-600/20 text-[var(--fl-muted)]";
                 return (
                   <div
                     key={inv.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#1a212c] bg-[#131923] p-4"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-bold text-white">
+                      <p className="truncate font-bold text-[var(--fl-text)]">
                         {inv.client_name || inv.client_email || "—"}
                       </p>
-                      <p className="mt-0.5 text-xs text-[#8a93a3]">
+                      <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
                         {inv.invoice_number ? `${inv.invoice_number} · ` : ""}
                         {formatAppValue(inv.created_at, { month: "short", day: "numeric", year: "numeric" })}
                       </p>
@@ -274,12 +274,12 @@ export default async function InvoicesPage() {
                       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase ${statusTone}`}>
                         {status}
                       </span>
-                      <span className="font-semibold text-white [font-variant-numeric:tabular-nums]">
+                      <span className="font-semibold text-[var(--fl-text)] [font-variant-numeric:tabular-nums]">
                         {money(inv.total)}
                       </span>
                       <Link
                         href={`/invoices/${inv.id}/edit`}
-                        className="whitespace-nowrap rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#e8ecf3] hover:bg-[#1a212c]"
+                        className="whitespace-nowrap rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
                       >
                         {status === "paid" ? "View" : "Edit / Send"}
                       </Link>
@@ -291,31 +291,31 @@ export default async function InvoicesPage() {
           </section>
         )}
 
-        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold text-teal-300">
+              <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
                 Invoice List
               </h2>
-              <p className="mt-2 text-sm text-[#8a93a3]">
+              <p className="mt-2 text-sm text-[var(--fl-muted)]">
                 Pulls directly from the inspections table payment fields.
               </p>
             </div>
 
-            <p className="text-sm font-bold text-[#8a93a3]">
+            <p className="text-sm font-bold text-[var(--fl-muted)]">
               {invoiceRows.length} invoice{invoiceRows.length === 1 ? "" : "s"}
             </p>
           </div>
 
           {invoiceRows.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-8 text-center text-[#8a93a3]">
+            <div className="mt-6 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center text-[var(--fl-muted)]">
               No invoices found yet.
             </div>
           ) : (
             <div className="mt-6 overflow-x-auto">
               <table className="w-full min-w-[1120px] border-collapse">
                 <thead>
-                  <tr className="border-b border-[#232b38] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
+                  <tr className="border-b border-[var(--fl-line)] text-left text-xs uppercase tracking-wide text-[var(--fl-muted)]">
                     <th className="py-3 pr-4">Status</th>
                     <th className="py-3 pr-4">Property</th>
                     <th className="py-3 pr-4">Client</th>
@@ -337,31 +337,31 @@ export default async function InvoicesPage() {
                       inspection.invoiceStatus !== "Waived";
 
                     return (
-                      <tr key={inspection.id} className="border-b border-[#1a212c] text-sm">
+                      <tr key={inspection.id} className="border-b border-[var(--fl-raised)] text-sm">
                         <td className="py-4 pr-4">
                           <InvoiceStatusBadge status={inspection.invoiceStatus} overdue={inspection.overdue} />
                         </td>
 
                         <td className="py-4 pr-4">
-                          <p className="font-bold text-white">
+                          <p className="font-bold text-[var(--fl-text)]">
                             {inspection.address || inspection.property_address || "Untitled Inspection"}
                           </p>
-                          <p className="mt-1 text-xs text-[#59626f]">ID #{inspection.id}</p>
+                          <p className="mt-1 text-xs text-[var(--fl-faint)]">ID #{inspection.id}</p>
                         </td>
 
-                        <td className="py-4 pr-4 text-[#8a93a3]">
+                        <td className="py-4 pr-4 text-[var(--fl-muted)]">
                           {inspection.client_name || inspection.client || "N/A"}
                         </td>
 
-                        <td className="py-4 pr-4 text-[#8a93a3]">
+                        <td className="py-4 pr-4 text-[var(--fl-muted)]">
                           {inspection.inspection_type || "Inspection"}
                         </td>
 
-                        <td className="py-4 pr-4 font-bold text-white">{money(inspection.invoiceAmount)}</td>
+                        <td className="py-4 pr-4 font-bold text-[var(--fl-text)]">{money(inspection.invoiceAmount)}</td>
                         <td className="py-4 pr-4 text-green-300">{money(inspection.amountPaid)}</td>
                         <td className="py-4 pr-4 font-bold text-red-300">{money(inspection.balanceDue)}</td>
-                        <td className="py-4 pr-4 text-[#8a93a3]">{inspection.payment_method || "N/A"}</td>
-                        <td className="py-4 pr-4 text-[#8a93a3]">{formatDate(inspection.invoice_due_date)}</td>
+                        <td className="py-4 pr-4 text-[var(--fl-muted)]">{inspection.payment_method || "N/A"}</td>
+                        <td className="py-4 pr-4 text-[var(--fl-muted)]">{formatDate(inspection.invoice_due_date)}</td>
 
                         <td className="py-4 pr-4">
                           <div className="flex max-w-[260px] flex-wrap gap-2">
@@ -381,7 +381,7 @@ export default async function InvoicesPage() {
 
                             <Link
                               href={`/reports/${inspection.id}`}
-                              className="inline-flex rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-teal-300 transition hover:bg-teal-500/10"
+                              className="inline-flex rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
                             >
                               View Report
                             </Link>
@@ -413,7 +413,7 @@ function MetricCard({
 }) {
   const colors: Record<string, string> = {
     green: "border-green-500/40 bg-green-950/20 text-green-300",
-    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
     blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
     purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
     orange: "border-orange-500/40 bg-orange-950/20 text-orange-300",
@@ -423,9 +423,9 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
-      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p>
+      <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }
@@ -447,7 +447,7 @@ function InvoiceStatusBadge({ status, overdue }: { status: string; overdue: bool
   };
 
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${styles[status] || "border-[#59626f]/40 bg-slate-500/10 text-[#8a93a3]"}`}>
+    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${styles[status] || "border-[var(--fl-faint)] bg-slate-500/10 text-[var(--fl-muted)]"}`}>
       {status}
     </span>
   );

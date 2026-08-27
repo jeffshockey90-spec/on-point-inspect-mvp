@@ -75,7 +75,7 @@ export default function RepriceSubscribersPanel() {
   if (loading || !preview) return null;
 
   return (
-    <section className="rounded-2xl border border-[#1a212c] bg-gradient-to-br from-[#10151e] to-[#10151e] p-5 shadow-xl sm:p-6 md:p-8">
+    <section className="rounded-2xl border border-[var(--fl-raised)] bg-gradient-to-br from-[var(--fl-surface)] to-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300">
@@ -85,23 +85,23 @@ export default function RepriceSubscribersPanel() {
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">
               Subscriptions
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">
+            <h2 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">
               Re-price Active Subscribers
             </h2>
-            <p className="mt-1 text-sm text-[#8a93a3]">
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
               Move people already paying onto their current plan price. A price change
               alone only affects new subscribers.
             </p>
           </div>
         </div>
 
-        <span className="rounded-full border border-[#232b38] bg-[#1a212c] px-3 py-1 text-xs font-semibold text-[#8a93a3]">
+        <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-raised)] px-3 py-1 text-xs font-semibold text-[var(--fl-muted)]">
           {preview.totalActive} active
         </span>
       </div>
 
       {preview.totalActive === 0 ? (
-        <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm text-[#8a93a3]">
+        <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">
           No active subscribers yet — nothing to re-price.
         </div>
       ) : wouldChange.length === 0 ? (
@@ -116,11 +116,11 @@ export default function RepriceSubscribersPanel() {
             </p>
             <div className="mt-3 max-h-52 overflow-y-auto">
               <table className="w-full text-left text-sm">
-                <tbody className="divide-y divide-[#1a212c]">
+                <tbody className="divide-y divide-[var(--fl-raised)]">
                   {wouldChange.map((r, i) => (
-                    <tr key={i} className="text-[#8a93a3]">
-                      <td className="py-1.5 pr-3 font-semibold text-white">{r.label}</td>
-                      <td className="py-1.5 pr-3 text-[#8a93a3]">{money(r.fromCents)}/mo</td>
+                    <tr key={i} className="text-[var(--fl-muted)]">
+                      <td className="py-1.5 pr-3 font-semibold text-[var(--fl-text)]">{r.label}</td>
+                      <td className="py-1.5 pr-3 text-[var(--fl-muted)]">{money(r.fromCents)}/mo</td>
                       <td className="py-1.5 text-emerald-300">→ {money(r.toCents)}/mo</td>
                     </tr>
                   ))}
@@ -130,11 +130,11 @@ export default function RepriceSubscribersPanel() {
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-sm text-[#8a93a3]">
+            <label className="flex items-center gap-2 text-sm text-[var(--fl-muted)]">
               <input type="radio" checked={proration === "none"} onChange={() => setProration("none")} className="accent-amber-400" />
               Apply at each subscriber&apos;s next renewal (recommended — no surprise charges)
             </label>
-            <label className="flex items-center gap-2 text-sm text-[#8a93a3]">
+            <label className="flex items-center gap-2 text-sm text-[var(--fl-muted)]">
               <input type="radio" checked={proration === "immediate"} onChange={() => setProration("immediate")} className="accent-amber-400" />
               Apply now with proration (Stripe credits/charges the difference immediately)
             </label>

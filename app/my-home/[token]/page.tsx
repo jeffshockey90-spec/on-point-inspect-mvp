@@ -109,7 +109,7 @@ const STATUS_STYLE: Record<string, { bar: string; chip: string; text: string }> 
   healthy: { bar: "bg-emerald-400", chip: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200", text: "text-emerald-300" },
   aging: { bar: "bg-amber-400", chip: "border-amber-500/40 bg-amber-500/10 text-amber-200", text: "text-amber-300" },
   "near-end": { bar: "bg-rose-400", chip: "border-rose-500/40 bg-rose-500/10 text-rose-200", text: "text-rose-300" },
-  unknown: { bar: "bg-slate-500", chip: "border-[#232b38] bg-slate-700/30 text-[#8a93a3]", text: "text-[#8a93a3]" },
+  unknown: { bar: "bg-slate-500", chip: "border-[var(--fl-line)] bg-slate-700/30 text-[var(--fl-muted)]", text: "text-[var(--fl-muted)]" },
 };
 
 export default async function HomeownerPortal({
@@ -140,10 +140,10 @@ export default async function HomeownerPortal({
 
   if (!inspection) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] px-6 text-center text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] px-6 text-center text-[var(--fl-text)]">
         <div>
           <h1 className="text-3xl font-semibold">Home not found</h1>
-          <p className="mt-3 text-[#8a93a3]">
+          <p className="mt-3 text-[var(--fl-muted)]">
             This homeowner link isn&apos;t valid or has expired. Please check with your inspector.
           </p>
         </div>
@@ -247,7 +247,7 @@ export default async function HomeownerPortal({
   const tc = makeTranslator(uiMap);
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-12">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-12">
       {isTranslated && <UiAutoTranslate map={uiMap} />}
       <div className="mx-auto max-w-5xl space-y-8">
         <div className="flex justify-end">
@@ -257,28 +257,28 @@ export default async function HomeownerPortal({
           />
         </div>
         {/* Hero */}
-        <section className="overflow-hidden rounded-2xl border border-teal-500/40 bg-gradient-to-br from-[#10151e] to-[#10151e] p-6 shadow-2xl md:p-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-400">
+        <section className="overflow-hidden rounded-2xl border border-teal-500/40 bg-gradient-to-br from-[var(--fl-surface)] to-[var(--fl-surface)] p-6 shadow-2xl md:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
             {tc("Your Home")}
           </p>
           <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">{address}</h1>
-          {cityLine && <p className="mt-2 text-lg text-[#8a93a3]">{cityLine}</p>}
+          {cityLine && <p className="mt-2 text-lg text-[var(--fl-muted)]">{cityLine}</p>}
           <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
             {yearBuilt && (
-              <span className="rounded-full border border-[#232b38] bg-black/30 px-3 py-1 text-[#8a93a3]">
+              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-3 py-1 text-[var(--fl-muted)]">
                 {tc("Built")} {yearBuilt}
               </span>
             )}
             {inspectedOn && (
-              <span className="rounded-full border border-[#232b38] bg-black/30 px-3 py-1 text-[#8a93a3]">
+              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-3 py-1 text-[var(--fl-muted)]">
                 {tc("Inspected")} {inspectedOn}
               </span>
             )}
-            <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-teal-200">
+            <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-[var(--fl-accent-text)]">
               {companyName}
             </span>
           </div>
-          <p className="mt-6 max-w-2xl text-[#8a93a3]">
+          <p className="mt-6 max-w-2xl text-[var(--fl-muted)]">
             {tc(
               "Welcome to your home's maintenance hub. Below are the major systems from your inspection with their expected life, plus a simple upkeep plan to keep everything running and protect your investment.",
             )}
@@ -293,9 +293,9 @@ export default async function HomeownerPortal({
 
         {/* Systems & equipment */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold text-teal-300">{tc("Your Systems & Equipment")}</h2>
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{tc("Your Systems & Equipment")}</h2>
           {equipment.length === 0 ? (
-            <p className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 text-[#8a93a3]">
+            <p className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 text-[var(--fl-muted)]">
               No equipment was catalogued for this home yet. Your full report has all the
               inspected details.
             </p>
@@ -312,12 +312,12 @@ export default async function HomeownerPortal({
                 return (
                   <div
                     key={row.id ?? i}
-                    className="flex flex-col rounded-2xl border border-[#1a212c] bg-[#10151e] p-5"
+                    className="flex flex-col rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-lg font-semibold text-white">{name}</p>
-                        <p className="text-xs text-[#8a93a3]">
+                        <p className="truncate text-lg font-semibold text-[var(--fl-text)]">{name}</p>
+                        <p className="text-xs text-[var(--fl-muted)]">
                           {[maker, te(clean(row.location))].filter(Boolean).join(" · ") || "—"}
                         </p>
                       </div>
@@ -329,13 +329,13 @@ export default async function HomeownerPortal({
                     {/* Life bar */}
                     {life.pctUsed != null && (
                       <div className="mt-4">
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#1a212c]">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--fl-raised)]">
                           <div
                             className={`h-full rounded-full ${s.bar}`}
                             style={{ width: `${life.pctUsed}%` }}
                           />
                         </div>
-                        <div className="mt-1.5 flex items-center justify-between text-[11px] text-[#8a93a3]">
+                        <div className="mt-1.5 flex items-center justify-between text-[11px] text-[var(--fl-muted)]">
                           <span>
                             {life.ageYears != null ? `~${life.ageYears} yrs old` : "Age n/a"}
                             {life.serviceLifeYears != null ? ` of ~${life.serviceLifeYears} yr life` : ""}
@@ -350,8 +350,8 @@ export default async function HomeownerPortal({
                     <p className={`mt-3 text-xs font-bold ${s.text}`}>{tc(life.statusLabel)}</p>
 
                     {maintenance && (
-                      <p className="mt-3 border-t border-[#1a212c] pt-3 text-sm text-[#8a93a3]">
-                        <span className="font-semibold text-[#e8ecf3]">{tc("Upkeep:")} </span>
+                      <p className="mt-3 border-t border-[var(--fl-raised)] pt-3 text-sm text-[var(--fl-muted)]">
+                        <span className="font-semibold text-[var(--fl-text)]">{tc("Upkeep:")} </span>
                         {maintenance}
                       </p>
                     )}
@@ -370,27 +370,27 @@ export default async function HomeownerPortal({
 
         {/* Maintenance plan */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold text-teal-300">{tc("Your Maintenance Plan")}</h2>
-          <p className="text-sm text-[#8a93a3]">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{tc("Your Maintenance Plan")}</h2>
+          <p className="text-sm text-[var(--fl-muted)]">
             {tc(
               "Tailored to the systems in your home. A little regular upkeep prevents most expensive repairs.",
             )}
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             {plan.map((task, i) => (
-              <div key={i} className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5">
+              <div key={i} className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="font-semibold text-white">{task.title}</p>
+                  <p className="font-semibold text-[var(--fl-text)]">{task.title}</p>
                   {task.season && (
-                    <span className="shrink-0 rounded-full border border-[#232b38] bg-black/30 px-2.5 py-1 text-[11px] font-semibold text-[#8a93a3]">
+                    <span className="shrink-0 rounded-full border border-[var(--fl-line)] bg-black/30 px-2.5 py-1 text-[11px] font-semibold text-[var(--fl-muted)]">
                       {tc(task.season)}
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-teal-400">
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                   {task.cadence}
                 </p>
-                <p className="mt-2 text-sm text-[#8a93a3]">{task.why}</p>
+                <p className="mt-2 text-sm text-[var(--fl-muted)]">{task.why}</p>
               </div>
             ))}
           </div>
@@ -400,14 +400,14 @@ export default async function HomeownerPortal({
         {safetyItems.length > 0 && (
           <section className="rounded-2xl border border-rose-500/40 bg-rose-950/20 p-6">
             <h2 className="text-xl font-semibold text-rose-200">{tc("Safety items to prioritize")}</h2>
-            <p className="mt-1 text-sm text-[#8a93a3]">
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
               {tc(
                 "Your inspector flagged these as safety or major concerns. See your full report for the details and photos.",
               )}
             </p>
             <ul className="mt-4 space-y-2">
               {safetyItems.map((title, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-[#e8ecf3]">
+                <li key={i} className="flex items-start gap-2 text-sm text-[var(--fl-text)]">
                   <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
                   {title}
                 </li>
@@ -415,14 +415,14 @@ export default async function HomeownerPortal({
             </ul>
             <Link
               href={`/share/${shareToken}`}
-              className="mt-4 inline-flex text-sm font-semibold text-rose-200 underline hover:text-white"
+              className="mt-4 inline-flex text-sm font-semibold text-rose-200 underline hover:text-[var(--fl-text)]"
             >
               {tc("Open the full report")} →
             </Link>
           </section>
         )}
 
-        <footer className="border-t border-[#1a212c] pt-6 text-center text-xs text-[#59626f]">
+        <footer className="border-t border-[var(--fl-raised)] pt-6 text-center text-xs text-[var(--fl-faint)]">
           Prepared for you by {companyName}. This hub is a homeowner convenience — your full
           inspection report is the official document.
         </footer>

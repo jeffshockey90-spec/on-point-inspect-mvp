@@ -281,12 +281,12 @@ export default function LiveSectionCoach({
           )}
 
           {review && (
-            <div className="rounded-xl border border-[#232b38] bg-black/30 p-3">
-              <p className="text-sm font-bold leading-5 text-[#e8ecf3]">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3">
+              <p className="text-sm font-bold leading-5 text-[var(--fl-text)]">
                 {review.summary}
               </p>
 
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#1a212c]">
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--fl-raised)]">
                 <div
                   className="h-full rounded-full bg-emerald-400 transition-[width] duration-300"
                   style={{
@@ -300,7 +300,7 @@ export default function LiveSectionCoach({
                   <p className="text-base font-semibold text-emerald-200">
                     {completedCount}
                   </p>
-                  <p className="text-[10px] font-bold text-[#8a93a3]">
+                  <p className="text-[10px] font-bold text-[var(--fl-muted)]">
                     Verified
                   </p>
                 </div>
@@ -309,7 +309,7 @@ export default function LiveSectionCoach({
                   <p className="text-base font-semibold text-yellow-200">
                     {reminderCount}
                   </p>
-                  <p className="text-[10px] font-bold text-[#8a93a3]">
+                  <p className="text-[10px] font-bold text-[var(--fl-muted)]">
                     Reminders
                   </p>
                 </div>
@@ -318,7 +318,7 @@ export default function LiveSectionCoach({
                   <p className="text-base font-semibold text-cyan-200">
                     {photoNeededCount}
                   </p>
-                  <p className="text-[10px] font-bold text-[#8a93a3]">
+                  <p className="text-[10px] font-bold text-[var(--fl-muted)]">
                     Photos
                   </p>
                 </div>
@@ -402,8 +402,8 @@ export default function LiveSectionCoach({
           ) : null}
 
           {review?.completedItems?.length ? (
-            <details className="rounded-xl border border-[#232b38] bg-black/20 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-[#e8ecf3]">
+            <details className="rounded-xl border border-[var(--fl-line)] bg-black/20 p-3">
+              <summary className="cursor-pointer text-sm font-semibold text-[var(--fl-text)]">
                 Completed coverage ({review.completedItems.length})
               </summary>
               <div className="mt-3 flex flex-wrap gap-2">

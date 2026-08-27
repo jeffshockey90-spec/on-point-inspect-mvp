@@ -536,8 +536,8 @@ function EditableFinding({
     return (
       <div className="mt-3 w-full max-w-full space-y-3 overflow-hidden print:hidden">
         <InlineStatusMessage type={messageType} message={message} />
-        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-[#1ac5b4]/25 bg-[#131923] p-3 sm:p-5">
-          <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-teal-300 sm:text-sm">
+        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-[#1ac5b4]/25 bg-[var(--fl-surface-2)] p-3 sm:p-5">
+          <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-accent-text)] sm:text-sm">
             Quick Tools
           </h4>
 
@@ -557,7 +557,7 @@ function EditableFinding({
               type="button"
               onClick={() => setRepairRequest(!repairRequest)}
               disabled={savingRepair}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#232b38] bg-[#131923] px-3 py-3 text-xs font-semibold text-white transition active:scale-[0.98] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-3 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
             >
               {repairRequest ? "Remove From Request" : "Add To Repair Request"}
             </button>
@@ -580,7 +580,7 @@ function EditableFinding({
                 value={repairPriority}
                 onChange={(e) => setRepairPriority(e.target.value)}
                 disabled={savingRepair}
-                className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#131923] p-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm font-bold text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option>Safety</option>
                 <option>Major</option>
@@ -593,7 +593,7 @@ function EditableFinding({
                 value={repairNotes}
                 onChange={(e) => setRepairNotes(e.target.value)}
                 disabled={savingRepair}
-                className="min-h-[76px] w-full min-w-0 rounded-xl border border-[#232b38] bg-[#131923] p-3 text-sm font-bold leading-6 text-white disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+                className="min-h-[76px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm font-bold leading-6 text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
               />
             </div>
           )}
@@ -651,10 +651,10 @@ function EditableFinding({
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-300">
                 Move Finding
               </p>
-              <p className="mt-1 text-sm font-bold text-[#8a93a3]">
+              <p className="mt-1 text-sm font-bold text-[var(--fl-muted)]">
                 Current section: {String(finding.section || section || "Unknown")}
               </p>
-              <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
+              <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
                 Photos, videos, wording, severity, and repair-request settings stay attached.
               </p>
             </div>
@@ -663,7 +663,7 @@ function EditableFinding({
               value={moveTargetSection}
               onChange={(event) => setMoveTargetSection(event.target.value)}
               disabled={movingSection}
-              className="min-h-[48px] w-full rounded-xl border border-purple-500/50 bg-[#0a0e13] p-3 text-base font-semibold text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-[48px] w-full rounded-xl border border-purple-500/50 bg-[var(--fl-ground)] p-3 text-base font-semibold text-[var(--fl-text)] outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {sectionOptions.map((item) => (
                 <option key={item} value={item}>
@@ -692,7 +692,7 @@ function EditableFinding({
                 type="button"
                 onClick={() => setMovePanelOpen(false)}
                 disabled={movingSection}
-                className="min-h-[46px] rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                className="min-h-[46px] rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
               >
                 Cancel
               </button>
@@ -704,7 +704,7 @@ function EditableFinding({
   }
 
   return (
-    <div className="mt-3 w-full max-w-full space-y-3 overflow-hidden rounded-2xl border border-[#232b38] bg-[#111827] p-3 print:hidden sm:p-5">
+    <div className="mt-3 w-full max-w-full space-y-3 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#111827] p-3 print:hidden sm:p-5">
       <InlineStatusMessage type={messageType} message={message} />
       <Input label="Title" value={title} onChange={setTitle} disabled={saving} />
 
@@ -755,7 +755,7 @@ function EditableFinding({
         disabled={saving}
       />
 
-      <div className="sticky bottom-2 z-30 grid w-full grid-cols-2 gap-2 rounded-2xl border border-[#232b38] bg-[#111827]/95 p-2 shadow-2xl backdrop-blur sm:static sm:flex sm:flex-row sm:flex-wrap sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+      <div className="sticky bottom-2 z-30 grid w-full grid-cols-2 gap-2 rounded-2xl border border-[var(--fl-line)] bg-[#111827]/95 p-2 shadow-2xl backdrop-blur sm:static sm:flex sm:flex-row sm:flex-wrap sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
         <button
           type="button"
           onClick={saveFinding}
@@ -771,7 +771,7 @@ function EditableFinding({
           type="button"
           onClick={() => setEditing(false)}
           disabled={saving}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
         >
           Cancel
         </button>
@@ -819,13 +819,13 @@ function Input({
 }) {
   return (
     <label className="block">
-      <p className="mb-2 text-sm font-bold text-[#8a93a3]">{label}</p>
+      <p className="mb-2 text-sm font-bold text-[var(--fl-muted)]">{label}</p>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         placeholder={placeholder}
-        className="min-h-[46px] w-full min-w-0 rounded-xl border border-[#232b38] bg-black p-3 text-base font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-[46px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-black p-3 text-base font-bold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
@@ -846,12 +846,12 @@ function Select({
 }) {
   return (
     <label className="block">
-      <p className="mb-2 text-sm font-bold text-[#8a93a3]">{label}</p>
+      <p className="mb-2 text-sm font-bold text-[var(--fl-muted)]">{label}</p>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="min-h-[46px] w-full min-w-0 rounded-xl border border-[#232b38] bg-black p-3 text-base font-bold text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-[46px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-black p-3 text-base font-bold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {options.map((item) => (
           <option key={item} value={item}>
@@ -876,13 +876,13 @@ function Textarea({
 }) {
   return (
     <label className="block">
-      <p className="mb-2 text-sm font-bold text-[#8a93a3]">{label}</p>
+      <p className="mb-2 text-sm font-bold text-[var(--fl-muted)]">{label}</p>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={4}
         disabled={disabled}
-        className="w-full min-w-0 rounded-xl border border-[#232b38] bg-black p-3 text-base font-bold leading-7 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-black p-3 text-base font-bold leading-7 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );

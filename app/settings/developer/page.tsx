@@ -18,7 +18,7 @@ export default async function DeveloperSettingsPage() {
     "https://app.flowinspect.app";
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl space-y-8">
         <section className="rounded-2xl border border-cyan-500/40 bg-[#0f172a] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -27,14 +27,14 @@ export default async function DeveloperSettingsPage() {
                 Developer
               </p>
               <h1 className="mt-3 text-4xl font-semibold md:text-5xl">API &amp; Webhooks</h1>
-              <p className="mt-3 max-w-2xl text-[#8a93a3]">
+              <p className="mt-3 max-w-2xl text-[var(--fl-muted)]">
                 Programmatic access to your FLOW data, and signed event webhooks — the foundation
                 for Zapier, custom integrations, and AI assistants.
               </p>
             </div>
             <Link
               href="/settings"
-              className="rounded-xl border border-[#232b38] px-5 py-3 font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c]"
+              className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)]"
             >
               Back to Settings
             </Link>

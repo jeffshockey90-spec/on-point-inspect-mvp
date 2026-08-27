@@ -103,10 +103,10 @@ export default function PWARegister() {
   if (!showInstallHelp) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-[9999] rounded-2xl border border-teal-500 bg-[#071224] p-4 text-white shadow-2xl md:left-auto md:max-w-md">
+    <div className="fixed bottom-4 left-4 right-4 z-[9999] rounded-2xl border border-teal-500 bg-[#071224] p-4 text-[var(--fl-text)] shadow-2xl md:left-auto md:max-w-md">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-300">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
             Install App
           </p>
 
@@ -114,7 +114,7 @@ export default function PWARegister() {
             Add FLOW to your home screen
           </h3>
 
-          <p className="mt-2 text-sm text-[#8a93a3]">
+          <p className="mt-2 text-sm text-[var(--fl-muted)]">
             On iPhone, tap Share, then Add to Home Screen.
             On Android, use Install App or Add to Home Screen.
           </p>
@@ -130,7 +130,7 @@ export default function PWARegister() {
 
             setShowInstallHelp(false);
           }}
-          className="rounded-xl border border-[#232b38] px-3 py-1 text-sm font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+          className="rounded-xl border border-[var(--fl-line)] px-3 py-1 text-sm font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
         >
           Hide
         </button>

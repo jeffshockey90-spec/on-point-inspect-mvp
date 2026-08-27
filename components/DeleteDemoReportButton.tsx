@@ -71,7 +71,7 @@ export default function DeleteDemoReportButton({
         {busy ? "Deleting..." : label}
       </button>
 
-      {message && <p className="max-w-xs text-[11px] font-bold text-[#59626f]">{message}</p>}
+      {message && <p className="max-w-xs text-[11px] font-bold text-[var(--fl-faint)]">{message}</p>}
     </div>
   );
 }

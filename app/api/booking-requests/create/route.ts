@@ -489,7 +489,7 @@ function buildEmailHtml(booking: any, request: Request) {
         <tr><td><strong>Notes</strong></td><td>${stripPropertyPhotoMarker(booking.notes) || ""}</td></tr>
       </table>
       <p style="margin-top:18px">
-        <a href="${scheduleUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;text-decoration:none;padding:12px 18px;border-radius:10px">Open Schedule</a>
+        <a href="${scheduleUrl}" style="display:inline-block;background:#14b8a6;color:var(--fl-ground);font-weight:bold;text-decoration:none;padding:12px 18px;border-radius:10px">Open Schedule</a>
       </p>
     </div>
   `;

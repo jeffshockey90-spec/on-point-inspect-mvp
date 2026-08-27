@@ -305,20 +305,20 @@ export default async function RealtorDetailPage({ params }: PageProps) {
   const contactLogs = contactLogsResult.data || [];
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
                 Realtor Profile
               </p>
 
-              <h1 className="mt-4 text-5xl font-semibold text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">
                 {realtor.name}
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Track contact info, referrals, revenue, unpaid balances, relationship notes,
                 and send completed reports directly to this realtor.
               </p>
@@ -326,7 +326,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
             <Link
               href="/realtors"
-              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
             >
               Back to Realtors
             </Link>
@@ -350,8 +350,8 @@ export default async function RealtorDetailPage({ params }: PageProps) {
         </section>
 
         <section className="mt-8 grid gap-6 xl:grid-cols-2">
-          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-            <h2 className="text-2xl font-semibold text-teal-300">
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
               Contact Info
             </h2>
 
@@ -404,8 +404,8 @@ export default async function RealtorDetailPage({ params }: PageProps) {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-            <h2 className="text-2xl font-semibold text-teal-300">
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
               Log Contact
             </h2>
 
@@ -420,14 +420,14 @@ export default async function RealtorDetailPage({ params }: PageProps) {
               />
 
               <label>
-                <span className="mb-2 block text-sm font-bold text-[#8a93a3]">
+                <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">
                   Contact Type
                 </span>
 
                 <select
                   name="contact_type"
                   defaultValue="General"
-                  className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)]"
                 >
                   <option>General</option>
                   <option>Text</option>
@@ -442,7 +442,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
               </label>
 
               <label>
-                <span className="mb-2 block text-sm font-bold text-[#8a93a3]">
+                <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">
                   Notes
                 </span>
 
@@ -450,7 +450,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
                   name="notes"
                   rows={5}
                   placeholder="Example: Dropped off cards and discussed same-day reports."
-                  className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)]"
                 />
               </label>
 
@@ -464,14 +464,14 @@ export default async function RealtorDetailPage({ params }: PageProps) {
           </section>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#10151e] p-6 shadow-xl">
+        <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface)] p-6 shadow-xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-purple-300">
                 Send Report To Realtor
               </h2>
 
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
                 Choose from this realtor&apos;s linked inspections, then send the completed report directly to their saved email. The same delivery guard is used, so reports stay blocked until agreement, payment, and publish requirements are complete.
               </p>
             </div>
@@ -489,34 +489,34 @@ export default async function RealtorDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">
+        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
             Contact History
           </h2>
 
           <div className="mt-5 space-y-3">
             {contactLogs.length === 0 ? (
-              <div className="rounded-xl border border-[#232b38] bg-[#131923] p-5 text-[#8a93a3]">
+              <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-[var(--fl-muted)]">
                 No contact logs yet.
               </div>
             ) : (
               contactLogs.map((log: any) => (
                 <div
                   key={log.id}
-                  className="rounded-xl border border-[#232b38] bg-[#131923] p-5"
+                  className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold uppercase tracking-wide text-teal-300">
+                      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                         {log.contact_type || "General"}
                       </p>
 
-                      <p className="mt-1 text-lg font-bold text-white">
+                      <p className="mt-1 text-lg font-bold text-[var(--fl-text)]">
                         {formatDate(log.contact_date)}
                       </p>
 
                       {log.notes && (
-                        <p className="mt-3 whitespace-pre-line leading-7 text-[#8a93a3]">
+                        <p className="mt-3 whitespace-pre-line leading-7 text-[var(--fl-muted)]">
                           {log.notes}
                         </p>
                       )}
@@ -540,14 +540,14 @@ export default async function RealtorDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">
+        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
             Referred Inspections
           </h2>
 
           <div className="mt-5 space-y-3">
             {matchedInspections.length === 0 ? (
-              <div className="rounded-xl border border-[#232b38] bg-[#131923] p-5 text-[#8a93a3]">
+              <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-[var(--fl-muted)]">
                 No referred inspections yet.
               </div>
             ) : (
@@ -559,24 +559,24 @@ export default async function RealtorDetailPage({ params }: PageProps) {
                   <Link
                     key={inspection.id}
                     href={`/reports/${inspection.id}`}
-                    className="block rounded-xl border border-[#232b38] bg-[#131923] p-5 transition hover:border-teal-500/70"
+                    className="block rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 transition hover:border-teal-500/70"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="text-lg font-bold text-white">
+                        <p className="text-lg font-bold text-[var(--fl-text)]">
                           {inspection.property_address ||
                             inspection.address ||
                             "Untitled Inspection"}
                         </p>
 
-                        <p className="mt-1 text-sm text-[#8a93a3]">
+                        <p className="mt-1 text-sm text-[var(--fl-muted)]">
                           {formatDate(getInspectionDate(inspection))} •{" "}
                           {inspection.client_name || "No client listed"}
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <p className="font-semibold text-teal-300">
+                        <p className="font-semibold text-[var(--fl-accent-text)]">
                           {money(getInspectionPrice(inspection))}
                         </p>
 
@@ -615,7 +615,7 @@ function Input({
 }) {
   return (
     <label>
-      <span className="mb-2 block text-sm font-bold text-[#8a93a3]">
+      <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">
         {label}
       </span>
 
@@ -624,7 +624,7 @@ function Input({
         type={type}
         required={required}
         defaultValue={defaultValue || ""}
-        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)]"
       />
     </label>
   );
@@ -641,13 +641,13 @@ function StatCard({
 }) {
   return (
     <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
-      <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
+      <p className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">{value}</p>
 
-      {helper && <p className="mt-2 text-sm text-[#8a93a3]">{helper}</p>}
+      {helper && <p className="mt-2 text-sm text-[var(--fl-muted)]">{helper}</p>}
     </div>
   );
 }

@@ -40,16 +40,16 @@ export default function ReportLanguageSwitcher({
 
   return (
     <label className="inline-flex w-full items-center gap-3 rounded-xl border-2 border-teal-500/60 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-100 shadow-sm sm:w-auto print:hidden">
-      <Languages className="h-5 w-5 shrink-0 text-teal-300" />
+      <Languages className="h-5 w-5 shrink-0 text-[var(--fl-accent-text)]" />
       <span className="whitespace-nowrap">
-        Language <span className="text-teal-300/80">· Idioma · 语言</span>
+        Language <span className="text-[var(--fl-accent-text)]">· Idioma · 语言</span>
       </span>
       <select
         value={value}
         onChange={(e) => change(e.target.value)}
         disabled={pending}
         aria-label="Choose report language"
-        className="ml-auto rounded-lg border border-teal-500/40 bg-[#071224] px-3 py-1.5 text-sm font-semibold text-white focus:border-teal-300 focus:outline-none disabled:opacity-50"
+        className="ml-auto rounded-lg border border-teal-500/40 bg-[#071224] px-3 py-1.5 text-sm font-semibold text-[var(--fl-text)] focus:border-teal-300 focus:outline-none disabled:opacity-50"
       >
         <option value="en">English</option>
         {languages.map((l) => (
@@ -58,16 +58,16 @@ export default function ReportLanguageSwitcher({
           </option>
         ))}
       </select>
-      {pending && <span className="text-xs font-bold text-teal-300/80">…</span>}
+      {pending && <span className="text-xs font-bold text-[var(--fl-accent-text)]">…</span>}
 
       {pending && (
-        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-[#131923] backdrop-blur-sm print:hidden">
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-[var(--fl-surface-2)] backdrop-blur-sm print:hidden">
           <div className="mx-4 max-w-sm rounded-2xl border border-teal-500/50 bg-[#0f172a] p-6 text-center shadow-2xl">
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-teal-500/30 border-t-teal-400" />
-            <p className="text-base font-semibold text-white">
+            <p className="text-base font-semibold text-[var(--fl-text)]">
               Preparing your report in {pendingLabel}…
             </p>
-            <p className="mt-2 text-sm text-[#8a93a3]">
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">
               The first time a report is translated can take a few seconds. After that it&apos;s
               instant.
             </p>

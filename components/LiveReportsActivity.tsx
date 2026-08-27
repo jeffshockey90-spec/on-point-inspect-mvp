@@ -188,7 +188,7 @@ export default function LiveReportsActivity({
   );
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] max-w-md rounded-2xl border border-teal-500/50 bg-[#0a0e13] p-4 text-white shadow-2xl shadow-black/40">
+    <div className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] max-w-md rounded-2xl border border-teal-500/50 bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] shadow-2xl shadow-black/40">
       <div className="flex gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-2xl">
           {getActivityIcon(latestEvent)}
@@ -197,11 +197,11 @@ export default function LiveReportsActivity({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                 Live Activity
               </p>
 
-              <p className="mt-1 font-semibold text-white">
+              <p className="mt-1 font-semibold text-[var(--fl-text)]">
                 {getActivityTitle(latestEvent)}
               </p>
             </div>
@@ -209,13 +209,13 @@ export default function LiveReportsActivity({
             <button
               type="button"
               onClick={() => setVisible(false)}
-              className="rounded-lg border border-[#232b38] px-2 py-1 text-xs font-semibold text-[#8a93a3] transition hover:border-red-400 hover:text-red-300"
+              className="rounded-lg border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-red-300"
             >
               ✕
             </button>
           </div>
 
-          <p className="mt-2 truncate text-sm text-[#8a93a3]">
+          <p className="mt-2 truncate text-sm text-[var(--fl-muted)]">
             {address}
           </p>
 
@@ -236,7 +236,7 @@ export default function LiveReportsActivity({
             <button
               type="button"
               onClick={() => router.refresh()}
-              className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#8a93a3] transition hover:border-teal-400 hover:text-teal-300"
+              className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
             >
               Refresh Badges
             </button>

@@ -87,12 +87,12 @@ export default function OfflineAICaptureForm({
   }
 
   return (
-    <section className="mt-8 rounded-2xl border border-[#232b38] bg-[#10151e] p-6 print:hidden">
-      <h2 className="text-2xl font-bold text-teal-400">
+    <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 print:hidden">
+      <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
         Offline AI Capture
       </h2>
 
-      <p className="mt-2 text-sm text-[#8a93a3]">
+      <p className="mt-2 text-sm text-[var(--fl-muted)]">
         Save notes and photos in the field. They will sync later when you have
         service.
       </p>
@@ -101,7 +101,7 @@ export default function OfflineAICaptureForm({
         <select
           value={section}
           onChange={(e) => setSection(e.target.value)}
-          className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
         >
           {SECTIONS.map((item) => (
             <option key={item} value={item}>
@@ -113,7 +113,7 @@ export default function OfflineAICaptureForm({
         <select
           value={severity}
           onChange={(e) => setSeverity(e.target.value)}
-          className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
         >
           {SEVERITIES.map((item) => (
             <option key={item} value={item}>
@@ -127,14 +127,14 @@ export default function OfflineAICaptureForm({
           accept="image/*"
           capture="environment"
           onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
-          className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
         />
 
         {imageDataUrl && (
           <img
             src={imageDataUrl}
             alt="Offline preview"
-            className="max-h-80 w-full rounded-xl border border-[#232b38] object-contain"
+            className="max-h-80 w-full rounded-xl border border-[var(--fl-line)] object-contain"
           />
         )}
 
@@ -142,11 +142,11 @@ export default function OfflineAICaptureForm({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Example: Missing GFCI protection at kitchen counter outlet."
-          className="min-h-32 w-full rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
+          className="min-h-32 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
         />
 
         {message && (
-          <p className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-teal-300">
+          <p className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-accent-text)]">
             {message}
           </p>
         )}

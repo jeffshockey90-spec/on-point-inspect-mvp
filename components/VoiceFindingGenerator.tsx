@@ -619,17 +619,17 @@ export default function VoiceFindingGenerator({
 
   return (
     <section
-      className={`rounded-2xl border border-[#232b38] bg-[#10151e] print:hidden ${
+      className={`rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] print:hidden ${
         compact ? "p-3" : "mt-8 p-6"
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className={`${compact ? "text-lg" : "text-2xl"} font-bold text-teal-400`}>
+          <h2 className={`${compact ? "text-lg" : "text-2xl"} font-bold text-[var(--fl-accent-text)]`}>
             🎙️ Voice Inspection
           </h2>
 
-          <p className={`${compact ? "mt-1 text-xs" : "mt-2"} text-[#8a93a3]`}>
+          <p className={`${compact ? "mt-1 text-xs" : "mt-2"} text-[var(--fl-muted)]`}>
             Dictate a field note, review the structured finding, then save.
           </p>
         </div>
@@ -639,7 +639,7 @@ export default function VoiceFindingGenerator({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-xl text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-xl text-[var(--fl-text)]"
               aria-label="Close voice inspection"
             >
               ×
@@ -649,7 +649,7 @@ export default function VoiceFindingGenerator({
           value={voiceMode}
           onChange={(e) => setVoiceMode(e.target.value as VoiceMode)}
           disabled={listening}
-          className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
         >
           <option value="single">Single Note</option>
           <option value="continuous">Continuous Dictation</option>
@@ -697,7 +697,7 @@ export default function VoiceFindingGenerator({
           type="button"
           onClick={generateFinding}
           disabled={processing || saving || !transcript.trim()}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#232b38] px-5 py-3 font-bold text-white transition active:scale-[0.98] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
         >
           {processing && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -721,14 +721,14 @@ export default function VoiceFindingGenerator({
           type="button"
           onClick={clearDraft}
           disabled={saving || processing || !hasDraft}
-          className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#8a93a3] transition active:scale-[0.98] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+          className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-muted)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
         >
           Clear Draft
         </button>
       </div>
 
-      <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
-        <p className="font-bold text-teal-300">Voice commands:</p>
+      <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
+        <p className="font-bold text-[var(--fl-accent-text)]">Voice commands:</p>
         <p>
           “Take photo” • “Generate finding” • “Save finding” • “New finding” •
           “Set section electrical” • “Safety concern” • “Stop listening”
@@ -736,7 +736,7 @@ export default function VoiceFindingGenerator({
       </div>
 
       <label className="mt-5 block">
-        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
           Voice / Field Note
         </p>
 
@@ -745,7 +745,7 @@ export default function VoiceFindingGenerator({
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
           placeholder="Example: Double tapped breaker in panel recommend electrician..."
-          className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
         />
       </label>
 
@@ -754,13 +754,13 @@ export default function VoiceFindingGenerator({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Finding title"
-          className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         />
 
         <select
           value={section}
           onChange={(e) => setSection(e.target.value)}
-          className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           {SECTIONS.map((item) => (
             <option key={item}>{item}</option>
@@ -770,7 +770,7 @@ export default function VoiceFindingGenerator({
         <select
           value={severity}
           onChange={(e) => setSeverity(e.target.value)}
-          className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 md:col-span-2"
+          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 md:col-span-2"
         >
           {SEVERITIES.map((item) => (
             <option key={item}>{item}</option>
@@ -798,7 +798,7 @@ function TextArea({
 }) {
   return (
     <label className="mt-5 block">
-      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
@@ -806,7 +806,7 @@ function TextArea({
         rows={compact ? 3 : 5}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
     </label>
   );

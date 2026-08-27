@@ -76,7 +76,7 @@ const EditableFinding = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="rounded-xl border border-[#232b38] bg-[#0a0e13]/50 p-4 text-sm font-bold text-[#8a93a3]">
+      <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm font-bold text-[var(--fl-muted)]">
         Loading editor...
       </div>
     ),
@@ -670,7 +670,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       data-command-target="report-findings"
       className="w-full max-w-full space-y-4 overflow-visible"
     >
-      <div className="flex w-full flex-col gap-2 rounded-2xl border border-[#232b38] bg-[#10151e] p-3 sm:flex-row sm:flex-wrap sm:p-4">
+      <div className="flex w-full flex-col gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 sm:flex-row sm:flex-wrap sm:p-4">
         <button
           type="button"
           onClick={expandAll}
@@ -682,12 +682,12 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         <button
           type="button"
           onClick={collapseAll}
-          className="w-full rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-[#e8ecf3] transition active:scale-[0.98] hover:bg-[#1a212c] sm:w-auto sm:py-2"
+          className="w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] sm:w-auto sm:py-2"
         >
           Collapse All
         </button>
 
-        <div className="w-full rounded-xl border border-[#232b38] px-4 py-2 text-center text-xs font-bold text-[#8a93a3] sm:w-auto sm:text-left sm:text-sm">
+        <div className="w-full rounded-xl border border-[var(--fl-line)] px-4 py-2 text-center text-xs font-bold text-[var(--fl-muted)] sm:w-auto sm:text-left sm:text-sm">
           <span className="sm:hidden">Use arrows to reorder</span>
           <span className="hidden sm:inline">
             Drag section headers to reorder
@@ -729,8 +729,8 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       </div>
 
       {addSectionOpen && (
-        <div className="w-full rounded-2xl border border-cyan-500/40 bg-[#10151e] p-4">
-          <p className="mb-3 text-sm font-bold text-[#8a93a3]">
+        <div className="w-full rounded-2xl border border-cyan-500/40 bg-[var(--fl-surface)] p-4">
+          <p className="mb-3 text-sm font-bold text-[var(--fl-muted)]">
             Add a custom section (e.g. Pool, Guest House, Outbuilding).
           </p>
 
@@ -740,7 +740,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
               onChange={(event) => setNewSectionName(event.target.value)}
               disabled={savingSection}
               placeholder="Section name"
-              className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
@@ -768,9 +768,9 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       )}
 
       {combineOpen && (
-        <div className="w-full rounded-2xl border border-purple-500/40 bg-[#10151e] p-4">
-          <p className="text-sm font-semibold text-[#e8ecf3]">Combine duplicate defects</p>
-          <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
+        <div className="w-full rounded-2xl border border-purple-500/40 bg-[var(--fl-surface)] p-4">
+          <p className="text-sm font-semibold text-[var(--fl-text)]">Combine duplicate defects</p>
+          <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
             Pick the same defect found at different locations (e.g. missing GFCIs in the
             exterior, kitchen, and bathroom). AI rewrites them into one finding that lists every
             location, keeps the most serious severity, and moves all photos onto it.
@@ -782,7 +782,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
               if (!groupFindings.length) return null;
               return (
                 <div key={group.section}>
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                     {group.section}
                   </p>
                   <div className="space-y-1.5">
@@ -795,7 +795,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                           className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition ${
                             checked
                               ? "border-purple-400 bg-purple-500/10"
-                              : "border-[#232b38] bg-[#0a0e13] hover:border-[#59626f]"
+                              : "border-[var(--fl-line)] bg-[var(--fl-ground)] hover:border-[var(--fl-faint)]"
                           }`}
                         >
                           <input
@@ -805,11 +805,11 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                             className="mt-0.5 h-4 w-4 accent-purple-400"
                           />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-bold text-white">
+                            <span className="block truncate text-sm font-bold text-[var(--fl-text)]">
                               {f.title || f.observation || "Untitled finding"}
                             </span>
                             {(f.location || f.severity) && (
-                              <span className="block truncate text-xs text-[#8a93a3]">
+                              <span className="block truncate text-xs text-[var(--fl-muted)]">
                                 {[f.severity, f.location].filter(Boolean).join(" · ")}
                               </span>
                             )}
@@ -845,7 +845,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                 setSelectedCombine(new Set());
                 setCombineError("");
               }}
-              className="rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-[#8a93a3] transition hover:border-[#59626f]"
+              className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-[var(--fl-faint)]"
             >
               Cancel
             </button>
@@ -854,23 +854,23 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       )}
 
       {deletedSectionsOpen && deletedSections && deletedSections.length > 0 && (
-        <div className="w-full space-y-2 rounded-2xl border border-orange-500/40 bg-[#10151e] p-4">
-          <p className="mb-1 text-sm font-bold text-[#8a93a3]">
+        <div className="w-full space-y-2 rounded-2xl border border-orange-500/40 bg-[var(--fl-surface)] p-4">
+          <p className="mb-1 text-sm font-bold text-[var(--fl-muted)]">
             Deleted sections - restoring brings the section and any findings still tagged with it back into the report.
           </p>
 
           {deletedSections.map((row: any) => (
             <div
               key={row.id || row.section_name}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3"
             >
-              <span className="font-bold text-[#e8ecf3]">{row.section_name}</span>
+              <span className="font-bold text-[var(--fl-text)]">{row.section_name}</span>
 
               <button
                 type="button"
                 onClick={() => restoreSection(row.section_name)}
                 disabled={restoringSection === row.section_name}
-                className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border border-teal-500 px-4 py-2 text-xs font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border border-teal-500 px-4 py-2 text-xs font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {restoringSection === row.section_name ? "Restoring..." : "Restore"}
               </button>
@@ -884,7 +884,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         {(orderedGroups || []).length > 1 && (
           <aside className="hidden xl:block" aria-label="Jump to inspection section">
             <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-0.5 overflow-y-auto pr-1">
-              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#59626f]">
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--fl-faint)]">
                 Sections
               </p>
               {(orderedGroups || []).map((group: any) => (
@@ -893,10 +893,10 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                   type="button"
                   onClick={() => jumpToSection(group.section)}
                   title={`Jump to ${group.section}`}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#8a93a3] transition-colors hover:bg-white/[0.04] hover:text-[#e8ecf3]"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-[var(--fl-muted)] transition-colors hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
                 >
                   <span className="min-w-0 flex-1 truncate">{group.section}</span>
-                  <span className="shrink-0 rounded-full bg-[#1a212c] px-1.5 text-[10px] font-semibold text-[#8a93a3]">
+                  <span className="shrink-0 rounded-full bg-[var(--fl-raised)] px-1.5 text-[10px] font-semibold text-[var(--fl-muted)]">
                     {(group.findings || []).length}
                   </span>
                 </button>
@@ -910,7 +910,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       {(orderedGroups || []).length > 1 && (
         <nav
           aria-label="Jump to inspection section"
-          className="sticky top-2 z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[#232b38] bg-[#10151e]/95 px-2.5 py-2 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[#10151e]/80 xl:hidden"
+          className="sticky top-2 z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-2.5 py-2 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[var(--fl-surface)] xl:hidden"
         >
           {(orderedGroups || []).map((group: any) => (
             <button
@@ -918,10 +918,10 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
               type="button"
               onClick={() => jumpToSection(group.section)}
               title={`Jump to ${group.section}`}
-              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#232b38] bg-[#131923] px-3 py-1.5 text-xs font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300 active:scale-95"
+              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-1.5 text-xs font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)] active:scale-95"
             >
               <span>{group.section}</span>
-              <span className="rounded-full bg-[#1a212c] px-1.5 text-[10px] font-semibold text-[#8a93a3]">
+              <span className="rounded-full bg-[var(--fl-raised)] px-1.5 text-[10px] font-semibold text-[var(--fl-muted)]">
                 {(group.findings || []).length}
               </span>
             </button>
@@ -947,11 +947,11 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
             // reserves height (remembered after first render) so scrolling stays
             // stable. Progressive enhancement -- older browsers just ignore it.
             style={{ contentVisibility: "auto", containIntrinsicSize: "auto 720px" }}
-            className={`w-full max-w-full scroll-mt-20 overflow-x-hidden rounded-2xl border border-[#232b38] bg-[#10151e] shadow-lg transition ${
+            className={`w-full max-w-full scroll-mt-20 overflow-x-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] shadow-lg transition ${
               isDragging ? "opacity-50 ring-2 ring-teal-400" : ""
             }`}
           >
-            <div className="flex min-w-0 items-stretch border-b border-[#232b38]">
+            <div className="flex min-w-0 items-stretch border-b border-[var(--fl-line)]">
               <div
                 role="button"
                 tabIndex={0}
@@ -962,7 +962,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                     toggleSection(group.section);
                   }
                 }}
-                className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-2 px-3 py-3 text-left transition hover:bg-[#1a212c] focus:outline-none focus:ring-2 focus:ring-teal-400 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+                className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-2 px-3 py-3 text-left transition hover:bg-[var(--fl-raised)] focus:outline-none focus:ring-2 focus:ring-teal-400 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
               >
                 <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                   <span
@@ -979,33 +979,33 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                       setDraggingSection(null);
                     }}
                     onClick={(event) => event.stopPropagation()}
-                    className="hidden cursor-grab select-none rounded-lg px-1 text-2xl text-[#59626f] active:cursor-grabbing sm:inline"
+                    className="hidden cursor-grab select-none rounded-lg px-1 text-2xl text-[var(--fl-faint)] active:cursor-grabbing sm:inline"
                   >
                     ⋮⋮
                   </span>
 
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-teal-500/50 bg-teal-500/10 text-xl font-semibold text-teal-300 sm:h-10 sm:w-10 sm:text-2xl">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-teal-500/50 bg-teal-500/10 text-xl font-semibold text-[var(--fl-accent-text)] sm:h-10 sm:w-10 sm:text-2xl">
                     {isClosed ? "+" : "−"}
                   </span>
 
                   <div className="min-w-0">
-                    <h2 className="break-words text-lg font-semibold text-teal-400 sm:text-2xl">
+                    <h2 className="break-words text-lg font-semibold text-[var(--fl-accent-text)] sm:text-2xl">
                       {group.section}
                     </h2>
 
-                    <p className="mt-0.5 text-xs font-bold text-[#8a93a3] sm:mt-1 sm:text-sm">
+                    <p className="mt-0.5 text-xs font-bold text-[var(--fl-muted)] sm:mt-1 sm:text-sm">
                       {findings.length} finding
                       {findings.length === 1 ? "" : "s"}
                     </p>
                   </div>
                 </div>
 
-                <span className="w-full rounded-xl border border-[#232b38] px-4 py-2 text-center text-xs font-semibold text-[#e8ecf3] sm:w-auto sm:shrink-0 sm:text-sm">
+                <span className="w-full rounded-xl border border-[var(--fl-line)] px-4 py-2 text-center text-xs font-semibold text-[var(--fl-text)] sm:w-auto sm:shrink-0 sm:text-sm">
                   {isClosed ? "Open" : "Close"}
                 </span>
               </div>
 
-              <div className="flex shrink-0 flex-col border-l border-[#232b38]">
+              <div className="flex shrink-0 flex-col border-l border-[var(--fl-line)]">
                 <button
                   type="button"
                   onClick={(event) => {
@@ -1013,7 +1013,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                     moveSection(index, index - 1);
                   }}
                   disabled={index === 0}
-                  className="flex h-1/2 min-h-[36px] items-center justify-center px-3 text-sm font-semibold text-[#8a93a3] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-1/2 min-h-[36px] items-center justify-center px-3 text-sm font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Move section up"
                 >
                   ↑
@@ -1026,7 +1026,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                     moveSection(index, index + 1);
                   }}
                   disabled={index === orderedGroups.length - 1}
-                  className="flex h-1/2 min-h-[36px] items-center justify-center border-t border-[#232b38] px-3 text-sm font-semibold text-[#8a93a3] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-1/2 min-h-[36px] items-center justify-center border-t border-[var(--fl-line)] px-3 text-sm font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Move section down"
                 >
                   ↓
@@ -1041,7 +1041,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                 }}
                 disabled={deletingSection === group.section}
                 title="Delete section"
-                className="flex shrink-0 items-center justify-center border-l border-[#232b38] px-3 text-sm font-semibold text-red-400 hover:bg-red-950/40 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex shrink-0 items-center justify-center border-l border-[var(--fl-line)] px-3 text-sm font-semibold text-red-400 hover:bg-red-950/40 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {deletingSection === group.section ? "…" : "🗑"}
               </button>
@@ -1092,7 +1092,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                 </div>
 
                 {findings.length === 0 && (
-                  <div className="rounded-xl border border-[#232b38] bg-[#071224] p-5 text-[#8a93a3]">
+                  <div className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-5 text-[var(--fl-muted)]">
                     No findings in this section.
                   </div>
                 )}
@@ -1304,7 +1304,7 @@ function AddSectionFindingForm({
   }
 
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#071224] p-4">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-4">
       {!open ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <button
@@ -1330,7 +1330,7 @@ function AddSectionFindingForm({
               <h3 className="text-lg font-semibold text-cyan-300">
                 Add Defect To {section}
               </h3>
-              <p className="mt-0.5 text-xs font-bold text-[#8a93a3] sm:mt-1 sm:text-sm">
+              <p className="mt-0.5 text-xs font-bold text-[var(--fl-muted)] sm:mt-1 sm:text-sm">
                 Create a normal finding without using AI Capture, Field Tool,
                 Voice Tool, or Equipment Analyzer. Photos can be added after
                 saving.
@@ -1341,7 +1341,7 @@ function AddSectionFindingForm({
               type="button"
               onClick={() => setOpen(false)}
               disabled={saving}
-              className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancel
             </button>
@@ -1361,7 +1361,7 @@ function AddSectionFindingForm({
                 <h4 className="text-base font-semibold text-purple-300">
                   🤖 AI Note Inspector
                 </h4>
-                <p className="mt-1 text-sm text-[#8a93a3]">
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   Type a rough field note and AI will turn it into a clean
                   defect. Review before saving.
                 </p>
@@ -1385,7 +1385,7 @@ function AddSectionFindingForm({
               onChange={(event) => setAiNote(event.target.value)}
               disabled={generatingAi || saving}
               placeholder="Example: garage GFCI kept tripping, recommend electrician evaluate and repair as needed"
-              className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
 
@@ -1395,14 +1395,14 @@ function AddSectionFindingForm({
               onChange={(event) => setTitle(event.target.value)}
               disabled={saving}
               placeholder="Defect title"
-              className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
 
             <select
               value={severity}
               onChange={(event) => setSeverity(event.target.value)}
               disabled={saving}
-              className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {(severityChoices.includes(severity) ? severityChoices : [...severityChoices, severity]).map((item) => (
                 <option key={item}>{item}</option>
@@ -1414,7 +1414,7 @@ function AddSectionFindingForm({
               onChange={(event) => setLocation(event.target.value)}
               disabled={saving}
               placeholder="Location (e.g. Northeast corner, Master bathroom)"
-              className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
             />
 
             <textarea
@@ -1422,7 +1422,7 @@ function AddSectionFindingForm({
               onChange={(event) => setObservation(event.target.value)}
               disabled={saving}
               placeholder="Observation"
-              className="min-h-[110px] w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+              className="min-h-[110px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
             />
 
             <textarea
@@ -1430,7 +1430,7 @@ function AddSectionFindingForm({
               onChange={(event) => setImplication(event.target.value)}
               disabled={saving}
               placeholder="Implication / why it matters"
-              className="min-h-[90px] w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-[90px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
 
             <textarea
@@ -1438,7 +1438,7 @@ function AddSectionFindingForm({
               onChange={(event) => setRecommendation(event.target.value)}
               disabled={saving}
               placeholder="Recommendation"
-              className="min-h-[90px] w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-[90px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
 
@@ -1486,7 +1486,7 @@ function getSeverityStyle(severity: string | null | undefined) {
     return "border-blue-500/60 bg-blue-500/10 text-blue-300";
   }
 
-  return "border-teal-500/60 bg-teal-500/10 text-teal-300";
+  return "border-teal-500/60 bg-teal-500/10 text-[var(--fl-accent-text)]";
 }
 
 function getPhotoUrl(photo: any) {
@@ -1749,10 +1749,10 @@ function ReportVideo({
     return (
       <div className="flex min-h-[150px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-teal-500/40 bg-teal-500/10 p-4 text-center">
         <div className="h-7 w-7 animate-spin rounded-full border-2 border-teal-200 border-t-transparent" />
-        <p className="text-sm font-semibold text-teal-200">
+        <p className="text-sm font-semibold text-[var(--fl-accent-text)]">
           Optimizing video for playback…
         </p>
-        <p className="max-w-xl text-xs leading-5 text-[#8a93a3]">
+        <p className="max-w-xl text-xs leading-5 text-[var(--fl-muted)]">
           This may take a few seconds. Keep this page open.
         </p>
       </div>
@@ -1765,7 +1765,7 @@ function ReportVideo({
         <p className="text-sm font-semibold text-amber-200">
           We couldn&apos;t optimize this video automatically.
         </p>
-        <p className="max-w-xl text-xs leading-5 text-[#8a93a3]">
+        <p className="max-w-xl text-xs leading-5 text-[var(--fl-muted)]">
           {repairError ||
             "The original may be incomplete or unavailable in storage."}
         </p>
@@ -1781,7 +1781,7 @@ function ReportVideo({
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="rounded-lg border border-[#59626f] px-4 py-2 text-xs font-semibold text-white transition active:scale-[0.98] hover:bg-[#1a212c]"
+            className="rounded-lg border border-[var(--fl-faint)] px-4 py-2 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)]"
           >
             Open Original
           </a>
@@ -2814,15 +2814,15 @@ function FindingCardBase({
         className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[#071224] shadow-lg transition ${
           draggingOver
             ? "border-teal-400 ring-2 ring-teal-400/40"
-            : "border-[#232b38]"
+            : "border-[var(--fl-line)]"
         }`}
       >
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="flex w-full min-w-0 gap-2 p-2 text-left transition hover:bg-[#1a212c]/40 sm:gap-4 sm:p-4 [touch-action:manipulation]"
+          className="flex w-full min-w-0 gap-2 p-2 text-left transition hover:bg-[var(--fl-raised)] sm:gap-4 sm:p-4 [touch-action:manipulation]"
         >
-          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[#232b38] bg-black sm:h-28 sm:w-32">
+          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black sm:h-28 sm:w-32">
             {primaryPhotoUrl ? (
               isVideoMedia(primaryPhoto) ? (
                 getVideoPosterUrl(primaryPhoto) ? (
@@ -2841,7 +2841,7 @@ function FindingCardBase({
                       sizes="128px"
                       className="h-full w-full object-cover"
                     />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-3xl text-white">
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-3xl text-[var(--fl-text)]">
                       ▶
                     </span>
                   </div>
@@ -2856,7 +2856,7 @@ function FindingCardBase({
                       preload="metadata"
                       className="h-full w-full object-cover"
                     />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-3xl text-white">
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-3xl text-[var(--fl-text)]">
                       ▶
                     </span>
                   </div>
@@ -2878,7 +2878,7 @@ function FindingCardBase({
                 />
               )
             ) : (
-              <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-semibold uppercase tracking-wide text-[#59626f]">
+              <div className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                 No Photo
               </div>
             )}
@@ -2900,18 +2900,18 @@ function FindingCardBase({
               )}
             </div>
 
-            <h3 className="line-clamp-2 break-words text-base font-semibold leading-tight text-white sm:text-xl">
+            <h3 className="line-clamp-2 break-words text-base font-semibold leading-tight text-[var(--fl-text)] sm:text-xl">
               {findingTitle}
             </h3>
 
             {displayFinding.location && (
-              <p className="mt-1 line-clamp-1 text-xs font-bold text-[#8a93a3] sm:text-sm">
+              <p className="mt-1 line-clamp-1 text-xs font-bold text-[var(--fl-muted)] sm:text-sm">
                 📍 {displayFinding.location}
               </p>
             )}
 
             {displayFinding.observation && (
-              <p className="mt-1 line-clamp-1 text-xs font-semibold leading-5 text-[#8a93a3] sm:mt-2 sm:line-clamp-2 sm:text-sm sm:leading-6">
+              <p className="mt-1 line-clamp-1 text-xs font-semibold leading-5 text-[var(--fl-muted)] sm:mt-2 sm:line-clamp-2 sm:text-sm sm:leading-6">
                 {displayFinding.observation}
               </p>
             )}
@@ -2923,7 +2923,7 @@ function FindingCardBase({
         </button>
 
         {draggingOver && (
-          <div className="mx-3 mb-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-200">
+          <div className="mx-3 mb-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)]">
             Drop photos or videos here to attach them to this defect.
           </div>
         )}
@@ -2950,12 +2950,12 @@ function FindingCardBase({
       className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[#071224] shadow-xl transition ${
         draggingOver
           ? "border-teal-400 ring-2 ring-teal-400/40"
-          : "border-[#232b38]"
+          : "border-[var(--fl-line)]"
       }`}
     >
       <div className="p-2 pb-0 sm:p-4 sm:pb-0">
         <InlineStatusMessage type={messageType} message={message} />
-        <div className="sticky top-2 z-20 mb-3 flex flex-wrap justify-end gap-2 rounded-2xl border border-[#232b38] bg-[#071224]/95 p-2 shadow-xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        <div className="sticky top-2 z-20 mb-3 flex flex-wrap justify-end gap-2 rounded-2xl border border-[var(--fl-line)] bg-[#071224]/95 p-2 shadow-xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           {isSafetyOrMajor && (
             <button
               type="button"
@@ -2975,19 +2975,19 @@ function FindingCardBase({
           <button
             type="button"
             onClick={() => setExpanded(false)}
-            className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#8a93a3] hover:bg-[#1a212c]"
+            className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
           >
             Collapse Finding
           </button>
         </div>
         {draggingOver && (
-          <div className="mt-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-200">
+          <div className="mt-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)]">
             Drop photos or videos here to attach them to this defect.
           </div>
         )}
       </div>
       {photos.length > 0 && (
-        <div className="border-b border-[#232b38] bg-black p-2 sm:p-3">
+        <div className="border-b border-[var(--fl-line)] bg-black p-2 sm:p-3">
           <div className="grid gap-3">
             {visiblePhotos.map((photo: any, index: number) => {
               const url = getPhotoUrl(photo);
@@ -3012,12 +3012,12 @@ function FindingCardBase({
                     setDragPhotoIndex(null);
                   }}
                   onDragEnd={() => setDragPhotoIndex(null)}
-                  className={`w-full max-w-full overflow-x-hidden rounded-xl border bg-[#0a0e13] transition ${
+                  className={`w-full max-w-full overflow-x-hidden rounded-xl border bg-[var(--fl-ground)] transition ${
                     dragPhotoIndex === index
                       ? "border-teal-400 opacity-60"
                       : dragPhotoIndex !== null
                         ? "border-dashed border-teal-500/50"
-                        : "border-[#232b38]"
+                        : "border-[var(--fl-line)]"
                   } ${isPhotoDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
                 >
                   {isVideoMedia(photo) ? (
@@ -3039,8 +3039,8 @@ function FindingCardBase({
                     />
                   )}
 
-                  <div className="border-t border-[#1a212c] px-3 py-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-[#8a93a3]">
+                  <div className="border-t border-[var(--fl-raised)] px-3 py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-[var(--fl-muted)]">
                       <span>
                         {isVideoMedia(photo) ? "Video" : "Photo"} {index + 1}
                       </span>
@@ -3056,7 +3056,7 @@ function FindingCardBase({
                               }}
                               disabled={isBusy || index === 0}
                               title="Move photo up"
-                              className="rounded-lg border border-[#232b38] px-2 py-1 font-semibold text-[#8a93a3] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded-lg border border-[var(--fl-line)] px-2 py-1 font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               ↑
                             </button>
@@ -3068,7 +3068,7 @@ function FindingCardBase({
                               }}
                               disabled={isBusy || index === visiblePhotos.length - 1}
                               title="Move photo down"
-                              className="rounded-lg border border-[#232b38] px-2 py-1 font-semibold text-[#8a93a3] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded-lg border border-[var(--fl-line)] px-2 py-1 font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               ↓
                             </button>
@@ -3122,7 +3122,7 @@ function FindingCardBase({
             <button
               type="button"
               onClick={() => setShowAllPhotos(false)}
-              className="mt-3 w-full rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#8a93a3] transition hover:bg-[#1a212c]"
+              className="mt-3 w-full rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-muted)] transition hover:bg-[var(--fl-raised)]"
             >
               Show fewer photos
             </button>
@@ -3140,7 +3140,7 @@ function FindingCardBase({
           </span>
 
           {displayFinding.section && (
-            <span className="rounded-full border border-[#232b38] bg-[#131923] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+            <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
               {displayFinding.section}
             </span>
           )}
@@ -3152,12 +3152,12 @@ function FindingCardBase({
           )}
         </div>
 
-        <h3 className="mb-1 break-words text-2xl font-semibold text-white">
+        <h3 className="mb-1 break-words text-2xl font-semibold text-[var(--fl-text)]">
           {findingTitle}{" "}
         </h3>
 
         {displayFinding.location && (
-          <p className="mb-4 flex items-center gap-1 text-sm font-bold text-[#8a93a3]">
+          <p className="mb-4 flex items-center gap-1 text-sm font-bold text-[var(--fl-muted)]">
             📍 {displayFinding.location}
           </p>
         )}
@@ -3220,7 +3220,7 @@ function FindingCardBase({
               setShowUploadPanel((prev) => !prev);
               setShowPhotoPicker(false);
             }}
-            className="w-full rounded-xl border border-teal-500 px-3 py-3 text-xs font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+            className="w-full rounded-xl border border-teal-500 px-3 py-3 text-xs font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
             📷 Add Media
           </button>
@@ -3262,10 +3262,10 @@ function FindingCardBase({
           <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-teal-700 bg-teal-950/20 p-3 sm:p-4">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h4 className="text-lg font-semibold text-teal-300">
+                <h4 className="text-lg font-semibold text-[var(--fl-accent-text)]">
                   Add Media To This Defect
                 </h4>
-                <p className="mt-1 text-sm text-[#8a93a3]">
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   These photos or videos save to this existing finding only.
                   They do not create a new defect and they do not affect section
                   reference photos. You can also drag and drop photos or videos
@@ -3276,14 +3276,14 @@ function FindingCardBase({
               <button
                 type="button"
                 onClick={() => setShowUploadPanel(false)}
-                className="w-full rounded-lg border border-[#232b38] px-3 py-2 text-sm font-bold text-[#e8ecf3] hover:bg-[#1a212c] sm:w-auto"
+                className="w-full rounded-lg border border-[var(--fl-line)] px-3 py-2 text-sm font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] sm:w-auto"
               >
                 Close
               </button>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-semibold text-teal-300 hover:bg-teal-500 hover:text-slate-950">
+              <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500 hover:text-slate-950">
                 {uploadingPhotos ? "Uploading..." : "📷 Take Photo"}
                 <input
                   type="file"
@@ -3324,7 +3324,7 @@ function FindingCardBase({
                 <h4 className="text-lg font-semibold text-cyan-300">
                   Add Existing Photo To This Finding
                 </h4>
-                <p className="mt-1 text-sm text-[#8a93a3]">
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   Select a photo from this report. It will be moved from its
                   current finding to this one.
                 </p>
@@ -3333,14 +3333,14 @@ function FindingCardBase({
               <button
                 type="button"
                 onClick={() => setShowPhotoPicker(false)}
-                className="w-full rounded-lg border border-[#232b38] px-3 py-2 text-sm font-bold text-[#e8ecf3] hover:bg-[#1a212c] sm:w-auto"
+                className="w-full rounded-lg border border-[var(--fl-line)] px-3 py-2 text-sm font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] sm:w-auto"
               >
                 Close
               </button>
             </div>
 
             {allPhotos.length === 0 ? (
-              <p className="rounded-lg border border-[#232b38] bg-[#131923] p-3 text-sm text-[#8a93a3]">
+              <p className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm text-[var(--fl-muted)]">
                 No movable photo records were found in this report yet.
               </p>
             ) : (
@@ -3359,7 +3359,7 @@ function FindingCardBase({
                       return (
                         <div
                           key={String(photo.id || photo.file_path || index)}
-                          className="w-full max-w-full overflow-x-hidden rounded-xl border border-[#232b38] bg-[#0a0e13]"
+                          className="w-full max-w-full overflow-x-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)]"
                         >
                           {url ? (
                             isVideoMedia(photo) ? (
@@ -3381,13 +3381,13 @@ function FindingCardBase({
                               />
                             )
                           ) : (
-                            <div className="flex h-36 items-center justify-center text-sm text-[#59626f]">
+                            <div className="flex h-36 items-center justify-center text-sm text-[var(--fl-faint)]">
                               No preview
                             </div>
                           )}
 
-                          <div className="space-y-2 border-t border-[#1a212c] p-3">
-                            <p className="line-clamp-2 text-xs font-bold text-[#8a93a3]">
+                          <div className="space-y-2 border-t border-[var(--fl-raised)] p-3">
+                            <p className="line-clamp-2 text-xs font-bold text-[var(--fl-muted)]">
                               {photo.current_section} ·{" "}
                               {photo.current_finding_title}
                             </p>
@@ -3630,7 +3630,7 @@ function FindingCardBase({
             <h4 className="text-base font-semibold text-purple-300">
               🤖 AI Inspector Note
             </h4>
-            <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
               Add a correction for this existing finding. AI will adjust the actual observation, implication, recommendation, title, severity, or section only as needed.
             </p>
           </div>
@@ -3640,7 +3640,7 @@ function FindingCardBase({
             onChange={(event) => setAiInspectorNote(event.target.value)}
             disabled={aiInspectorBusy}
             placeholder="Example: make this less aggressive and say further evaluation by a qualified contractor is recommended."
-            className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
           />
 
           <button
@@ -3661,7 +3661,7 @@ function FindingCardBase({
 
         <div
           onClick={(event) => event.stopPropagation()}
-          className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-[#232b38] bg-[#131923] p-2 sm:p-4"
+          className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 sm:p-4"
         >
           <EditableFinding
             key={`${String(displayFinding.id || finding.id)}-${String(
@@ -3732,10 +3732,10 @@ function InlineStatusMessage({
 function ReportBlock({ title, text }: any) {
   return (
     <div className="mt-5">
-      <h4 className="mb-2 text-lg font-bold text-white">{title}</h4>
+      <h4 className="mb-2 text-lg font-bold text-[var(--fl-text)]">{title}</h4>
 
-      <div className="w-full max-w-full overflow-x-hidden rounded-xl border border-[#232b38] bg-[#131923] p-4">
-        <p className="whitespace-pre-line break-words text-sm leading-7 text-[#e8ecf3]">
+      <div className="w-full max-w-full overflow-x-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+        <p className="whitespace-pre-line break-words text-sm leading-7 text-[var(--fl-text)]">
           {text}
         </p>
       </div>

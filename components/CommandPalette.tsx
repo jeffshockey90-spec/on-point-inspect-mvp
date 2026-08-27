@@ -107,11 +107,11 @@ export default function CommandPalette() {
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-xl overflow-hidden rounded-2xl border border-[#232b38] bg-[#10151e] shadow-2xl shadow-black/50"
+        className="w-full max-w-xl overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] shadow-2xl shadow-black/50"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center gap-3 border-b border-[#1a212c] px-4 py-3">
-          <span className="text-[#59626f]">🔎</span>
+        <div className="flex items-center gap-3 border-b border-[var(--fl-raised)] px-4 py-3">
+          <span className="text-[var(--fl-faint)]">🔎</span>
           <input
             ref={inputRef}
             value={query}
@@ -129,16 +129,16 @@ export default function CommandPalette() {
               }
             }}
             placeholder="Search FLOW — jump anywhere, start anything…"
-            className="flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#59626f]"
+            className="flex-1 bg-transparent text-base text-[var(--fl-text)] outline-none placeholder:text-[var(--fl-faint)]"
           />
-          <kbd className="rounded-md border border-[#232b38] px-2 py-1 text-xs font-semibold text-[#59626f]">
+          <kbd className="rounded-md border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-faint)]">
             ESC
           </kbd>
         </div>
 
         <div className="max-h-[52vh] overflow-y-auto p-2">
           {results.length === 0 ? (
-            <p className="px-3 py-6 text-center text-sm text-[#59626f]">
+            <p className="px-3 py-6 text-center text-sm text-[var(--fl-faint)]">
               Nothing matches “{query}”.
             </p>
           ) : (
@@ -149,14 +149,14 @@ export default function CommandPalette() {
                 onMouseEnter={() => setActive(index)}
                 onClick={() => run(command)}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
-                  index === active ? "bg-teal-500/15" : "hover:bg-[#1a212c]"
+                  index === active ? "bg-teal-500/15" : "hover:bg-[var(--fl-raised)]"
                 }`}
               >
                 <span className="text-lg">{command.icon}</span>
-                <span className="flex-1 text-sm font-bold text-white">
+                <span className="flex-1 text-sm font-bold text-[var(--fl-text)]">
                   {command.label}
                 </span>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[#59626f]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--fl-faint)]">
                   {command.group}
                 </span>
               </button>

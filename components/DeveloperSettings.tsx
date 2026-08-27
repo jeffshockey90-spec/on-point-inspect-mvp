@@ -148,12 +148,12 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
       )}
 
       {/* API keys */}
-      <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-6">
+      <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
         <div className="flex items-center gap-3">
           <KeyRound className="h-6 w-6 text-cyan-300" />
-          <h2 className="text-2xl font-semibold text-white">API Keys</h2>
+          <h2 className="text-2xl font-semibold text-[var(--fl-text)]">API Keys</h2>
         </div>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
           Use a key as <code className="text-cyan-300">Authorization: Bearer &lt;key&gt;</code> to call the
           FLOW API. Keys are shown once — store them somewhere safe.
         </p>
@@ -178,7 +178,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
               <button
                 type="button"
                 onClick={() => setCreatedKey(null)}
-                className="text-xs font-semibold text-[#8a93a3] hover:text-[#e8ecf3]"
+                className="text-xs font-semibold text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
               >
                 Done
               </button>
@@ -191,7 +191,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
             value={newKeyName}
             onChange={(e) => setNewKeyName(e.target.value)}
             placeholder="Key name (e.g. Zapier)"
-            className="min-w-0 flex-1 rounded-xl border border-[#232b38] bg-black px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400"
+            className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-black px-3 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
           />
           <button
             type="button"
@@ -206,23 +206,23 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
 
         <div className="mt-4 space-y-2">
           {activeKeys.length === 0 && (
-            <p className="text-sm text-[#59626f]">No API keys yet.</p>
+            <p className="text-sm text-[var(--fl-faint)]">No API keys yet.</p>
           )}
           {activeKeys.map((k) => (
             <div
               key={k.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#1a212c] bg-black/30 px-3 py-2"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-raised)] bg-black/30 px-3 py-2"
             >
               <div className="min-w-0">
-                <p className="font-bold text-white">{k.name}</p>
-                <p className="font-mono text-xs text-[#8a93a3]">
+                <p className="font-bold text-[var(--fl-text)]">{k.name}</p>
+                <p className="font-mono text-xs text-[var(--fl-muted)]">
                   {k.key_prefix}…  ·  last used {shortDate(k.last_used_at)}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => revokeKey(k.id)}
-                className="inline-flex items-center gap-1 rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#8a93a3] hover:border-red-400 hover:text-red-300"
+                className="inline-flex items-center gap-1 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] hover:border-red-400 hover:text-red-300"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Revoke
@@ -231,21 +231,21 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
           ))}
         </div>
 
-        <div className="mt-5 rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">Try it</p>
-          <code className="mt-2 block break-all font-mono text-xs text-[#8a93a3]">
+        <div className="mt-5 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Try it</p>
+          <code className="mt-2 block break-all font-mono text-xs text-[var(--fl-muted)]">
             curl -H &quot;Authorization: Bearer YOUR_KEY&quot; {base}/api/v1/inspections
           </code>
         </div>
       </section>
 
       {/* Webhooks */}
-      <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-6">
+      <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
         <div className="flex items-center gap-3">
           <Webhook className="h-6 w-6 text-indigo-300" />
-          <h2 className="text-2xl font-semibold text-white">Webhooks</h2>
+          <h2 className="text-2xl font-semibold text-[var(--fl-text)]">Webhooks</h2>
         </div>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
           FLOW POSTs a signed JSON event to your URL when things happen. Verify the{" "}
           <code className="text-indigo-300">X-Flow-Signature</code> header:{" "}
           <code className="text-indigo-300">sha256 = HMAC(secret, timestamp + &quot;.&quot; + body)</code>.
@@ -256,7 +256,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
             value={newUrl}
             onChange={(e) => setNewUrl(e.target.value)}
             placeholder="https://your-app.com/webhooks/flow"
-            className="min-w-0 flex-1 rounded-xl border border-[#232b38] bg-black px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-400"
+            className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-black px-3 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-indigo-400"
           />
           <button
             type="button"
@@ -281,39 +281,39 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
                 className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
                   on
                     ? "border-indigo-400 bg-indigo-500/20 text-indigo-200"
-                    : "border-[#232b38] text-[#8a93a3] hover:text-[#e8ecf3]"
+                    : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
                 }`}
               >
                 {ev}
               </button>
             );
           })}
-          <span className="self-center text-[11px] text-[#59626f]">
+          <span className="self-center text-[11px] text-[var(--fl-faint)]">
             (none selected = all events)
           </span>
         </div>
 
         <div className="mt-4 space-y-2">
-          {endpoints.length === 0 && <p className="text-sm text-[#59626f]">No endpoints yet.</p>}
+          {endpoints.length === 0 && <p className="text-sm text-[var(--fl-faint)]">No endpoints yet.</p>}
           {endpoints.map((e) => (
-            <div key={e.id} className="rounded-xl border border-[#1a212c] bg-black/30 p-3">
+            <div key={e.id} className="rounded-xl border border-[var(--fl-raised)] bg-black/30 p-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="min-w-0 break-all font-mono text-sm text-white">{e.url}</p>
+                <p className="min-w-0 break-all font-mono text-sm text-[var(--fl-text)]">{e.url}</p>
                 <button
                   type="button"
                   onClick={() => deleteWebhook(e.id)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#8a93a3] hover:border-red-400 hover:text-red-300"
+                  className="inline-flex items-center gap-1 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] hover:border-red-400 hover:text-red-300"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Delete
                 </button>
               </div>
-              <p className="mt-1 text-xs text-[#8a93a3]">
+              <p className="mt-1 text-xs text-[var(--fl-muted)]">
                 {e.events.length ? e.events.join(", ") : "all events"}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase text-[#59626f]">Secret</span>
-                <code className="break-all rounded bg-black/50 px-2 py-1 font-mono text-[11px] text-[#8a93a3]">
+                <span className="text-[11px] font-semibold uppercase text-[var(--fl-faint)]">Secret</span>
+                <code className="break-all rounded bg-black/50 px-2 py-1 font-mono text-[11px] text-[var(--fl-muted)]">
                   {e.secret}
                 </code>
                 <button
@@ -341,18 +341,18 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
       </section>
 
       {/* MCP */}
-      <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-6">
+      <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
         <div className="flex items-center gap-3">
           <Plug className="h-6 w-6 text-emerald-300" />
-          <h2 className="text-2xl font-semibold text-white">AI Assistant (MCP)</h2>
+          <h2 className="text-2xl font-semibold text-[var(--fl-text)]">AI Assistant (MCP)</h2>
         </div>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
           Connect your own Claude or Gemini to FLOW and let it read and edit your reports. Point
           your MCP client at this endpoint and authenticate with an API key from above.
         </p>
 
-        <div className="mt-4 rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">MCP endpoint</p>
+        <div className="mt-4 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">MCP endpoint</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <code className="break-all font-mono text-sm text-emerald-200">{base}/api/mcp</code>
             <button
@@ -365,27 +365,27 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
           </div>
         </div>
 
-        <div className="mt-3 rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
+        <div className="mt-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
             Connect (Claude Code / Mac / Linux)
           </p>
-          <code className="mt-2 block break-all font-mono text-xs text-[#8a93a3]">
+          <code className="mt-2 block break-all font-mono text-xs text-[var(--fl-muted)]">
             npx mcp-remote {base}/api/mcp --header &quot;Authorization: Bearer YOUR_KEY&quot;
           </code>
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
+          <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
             Claude Desktop on Windows — use this in the config
           </p>
-          <code className="mt-2 block break-all font-mono text-[11px] leading-5 text-[#8a93a3]">
+          <code className="mt-2 block break-all font-mono text-[11px] leading-5 text-[var(--fl-muted)]">
             {`"flow": { "command": "cmd", "args": ["/c","npx","-y","mcp-remote","${base}/api/mcp","--header","Authorization: Bearer YOUR_KEY"] }`}
           </code>
-          <p className="mt-2 text-[11px] text-[#59626f]">
-            (Windows needs <code className="text-[#8a93a3]">cmd /c</code> because Node&apos;s path has a
+          <p className="mt-2 text-[11px] text-[var(--fl-faint)]">
+            (Windows needs <code className="text-[var(--fl-muted)]">cmd /c</code> because Node&apos;s path has a
             space.)
           </p>
         </div>
 
         <div className="mt-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">Available tools</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Available tools</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {["list_inspections", "get_inspection", "list_findings", "update_finding"].map((t) => (
               <span

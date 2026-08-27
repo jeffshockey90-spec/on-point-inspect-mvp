@@ -51,7 +51,7 @@ function formatDate(value: any) {
 }
 
 function subscriptionLabel(profile: any) {
-  if (!profile) return { label: "No Owner Profile", tone: "border-[#232b38] bg-[#1a212c]/40 text-[#8a93a3]" };
+  if (!profile) return { label: "No Owner Profile", tone: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]" };
   if (profile.subscription_exempt === true || profile.subscription_required === false) {
     return { label: "Exempt", tone: "border-blue-500/40 bg-blue-500/10 text-blue-200" };
   }
@@ -64,7 +64,7 @@ function subscriptionLabel(profile: any) {
   const used = Number(profile.free_inspections_used ?? 0);
   const limit = Number(profile.free_inspection_limit ?? 3);
   if (used < limit) {
-    return { label: `Free Trial (${used}/${limit})`, tone: "border-teal-500/40 bg-teal-500/10 text-teal-200" };
+    return { label: `Free Trial (${used}/${limit})`, tone: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]" };
   }
 
   return { label: "Needs Subscription", tone: "border-red-500/40 bg-red-500/10 text-red-200" };
@@ -137,14 +137,14 @@ export default async function OwnerCompaniesPage() {
   const inactiveCompanies = rows.filter((row) => !row.isActive || row.isDeleted);
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">Owner Dashboard</p>
-              <h1 className="mt-4 text-5xl font-semibold text-white">Companies</h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">Owner Dashboard</p>
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">Companies</h1>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Every company signed up to use FLOW, their subscription status, and usage. To
                 suspend or reactivate a specific account, use User Management.
               </p>
@@ -160,7 +160,7 @@ export default async function OwnerCompaniesPage() {
 
               <FastLinkButton
                 href="/dashboard/owner"
-                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
               >
                 Back to Owner Dashboard
               </FastLinkButton>
@@ -172,26 +172,26 @@ export default async function OwnerCompaniesPage() {
 
         <section className="grid gap-5 md:grid-cols-3">
           <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Total Companies</p>
-            <p className="mt-3 text-4xl font-semibold text-white">{rows.length}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Total Companies</p>
+            <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{rows.length}</p>
           </div>
           <div className="rounded-2xl border border-green-500/40 bg-green-950/20 p-6 shadow-xl">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Active</p>
-            <p className="mt-3 text-4xl font-semibold text-white">{activeCompanies.length}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Active</p>
+            <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{activeCompanies.length}</p>
           </div>
           <div className="rounded-2xl border border-red-500/40 bg-red-950/20 p-6 shadow-xl">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Inactive / Deleted</p>
-            <p className="mt-3 text-4xl font-semibold text-white">{inactiveCompanies.length}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Inactive / Deleted</p>
+            <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{inactiveCompanies.length}</p>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">All Companies</h2>
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">All Companies</h2>
 
           <div className="mt-6 overflow-x-auto">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-[#1a212c] text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+                <tr className="border-b border-[var(--fl-raised)] text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                   <th className="pb-3 pr-4">Company</th>
                   <th className="pb-3 pr-4">Contact</th>
                   <th className="pb-3 pr-4">Subscription</th>
@@ -204,22 +204,22 @@ export default async function OwnerCompaniesPage() {
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-[#8a93a3]">
+                    <td colSpan={7} className="py-6 text-center text-[var(--fl-muted)]">
                       No companies found yet.
                     </td>
                   </tr>
                 ) : (
                   rows.map((row) => (
-                    <tr key={row.id} className="border-b border-[#1a212c]/60">
-                      <td className="py-3 pr-4 font-bold text-white">{row.name}</td>
-                      <td className="py-3 pr-4 text-[#8a93a3]">{row.email}</td>
+                    <tr key={row.id} className="border-b border-[var(--fl-raised)]">
+                      <td className="py-3 pr-4 font-bold text-[var(--fl-text)]">{row.name}</td>
+                      <td className="py-3 pr-4 text-[var(--fl-muted)]">{row.email}</td>
                       <td className="py-3 pr-4">
                         <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${row.subscription.tone}`}>
                           {row.subscription.label}
                         </span>
                       </td>
-                      <td className="py-3 pr-4 text-[#8a93a3]">{row.inspectionCount}</td>
-                      <td className="py-3 pr-4 text-[#8a93a3]">{formatDate(row.createdAt)}</td>
+                      <td className="py-3 pr-4 text-[var(--fl-muted)]">{row.inspectionCount}</td>
+                      <td className="py-3 pr-4 text-[var(--fl-muted)]">{formatDate(row.createdAt)}</td>
                       <td className="py-3 pr-4">
                         {row.isDeleted ? (
                           <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-200">
@@ -244,7 +244,7 @@ export default async function OwnerCompaniesPage() {
                             View in Users →
                           </Link>
                         ) : (
-                          <span className="text-[#59626f]">No owner found</span>
+                          <span className="text-[var(--fl-faint)]">No owner found</span>
                         )}
                       </td>
                     </tr>

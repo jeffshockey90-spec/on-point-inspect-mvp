@@ -274,13 +274,13 @@ export default async function OwnerDeviceAnalyticsPage() {
 
   if (!OWNER_EMAILS.includes(userEmail)) {
     return (
-      <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+      <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">
             Owner Only
           </p>
           <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
-          <p className="mt-4 text-[#8a93a3]">
+          <p className="mt-4 text-[var(--fl-muted)]">
             This device analytics page is only available to the FLOW owner account.
           </p>
           <Link
@@ -372,18 +372,18 @@ export default async function OwnerDeviceAnalyticsPage() {
   ).slice(0, 14);
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
                 Owner Device Analytics
               </p>
-              <h1 className="mt-4 text-5xl font-semibold text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">
                 Installs, Devices & App Usage
               </h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Internal usage analytics for app installs, active devices, platforms, app versions, push-enabled devices, and recent app activity.
               </p>
             </div>
@@ -398,7 +398,7 @@ export default async function OwnerDeviceAnalyticsPage() {
 
               <Link
                 href="/dashboard/owner"
-                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
               >
                 Owner Dashboard
               </Link>
@@ -452,10 +452,10 @@ export default async function OwnerDeviceAnalyticsPage() {
         </section>
 
         <Panel title="Recent Devices" subtitle="Latest unique devices detected by app analytics tracking.">
-          <div className="overflow-hidden rounded-2xl border border-[#232b38]">
+          <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)]">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[#1a212c] text-sm">
-                <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
+              <table className="min-w-full divide-y divide-[var(--fl-raised)] text-sm">
+                <thead className="bg-[var(--fl-ground)] text-left text-xs uppercase tracking-wide text-[var(--fl-muted)]">
                   <tr>
                     <th className="px-4 py-3">Device</th>
                     <th className="px-4 py-3">Platform</th>
@@ -468,15 +468,15 @@ export default async function OwnerDeviceAnalyticsPage() {
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
+                <tbody className="divide-y divide-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
                   {deviceRows.slice(0, 100).map((device) => (
-                    <tr key={device.deviceId} className="hover:bg-[#131923]">
+                    <tr key={device.deviceId} className="hover:bg-[var(--fl-surface-2)]">
                       <td className="px-4 py-4">
                         <div className="max-w-[320px]">
-                          <p className="truncate font-semibold text-white">
+                          <p className="truncate font-semibold text-[var(--fl-text)]">
                             {device.deviceId}
                           </p>
-                          <p className="mt-1 truncate text-xs text-[#59626f]">
+                          <p className="mt-1 truncate text-xs text-[var(--fl-faint)]">
                             {device.timezone}
                           </p>
                         </div>
@@ -488,11 +488,11 @@ export default async function OwnerDeviceAnalyticsPage() {
                         </Badge>
                       </td>
 
-                      <td className="px-4 py-4 text-[#8a93a3]">
+                      <td className="px-4 py-4 text-[var(--fl-muted)]">
                         {device.appVersion}
                       </td>
 
-                      <td className="px-4 py-4 text-right font-semibold text-white">
+                      <td className="px-4 py-4 text-right font-semibold text-[var(--fl-text)]">
                         {device.events}
                       </td>
 
@@ -512,16 +512,16 @@ export default async function OwnerDeviceAnalyticsPage() {
                       </td>
 
                       <td className="px-4 py-4">
-                        <span className="block max-w-[260px] truncate text-[#8a93a3]">
+                        <span className="block max-w-[260px] truncate text-[var(--fl-muted)]">
                           {device.lastPath}
                         </span>
                       </td>
 
-                      <td className="px-4 py-4 text-[#8a93a3]">
+                      <td className="px-4 py-4 text-[var(--fl-muted)]">
                         {formatDateTime(device.firstSeen)}
                       </td>
 
-                      <td className="px-4 py-4 text-[#8a93a3]">
+                      <td className="px-4 py-4 text-[var(--fl-muted)]">
                         {formatDateTime(device.lastSeen)}
                       </td>
                     </tr>
@@ -529,7 +529,7 @@ export default async function OwnerDeviceAnalyticsPage() {
 
                   {deviceRows.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-[#8a93a3]">
+                      <td colSpan={8} className="px-4 py-10 text-center text-[var(--fl-muted)]">
                         No device analytics found yet.
                       </td>
                     </tr>
@@ -560,7 +560,7 @@ function MetricCard({
   tone: Tone;
 }) {
   const classes: Record<Tone, string> = {
-    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
     green: "border-green-500/40 bg-green-950/20 text-green-300",
     blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
     purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
@@ -571,11 +571,11 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+      <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }
@@ -590,9 +590,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
+    <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+      <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{title}</h2>
+      <p className="mt-2 text-sm text-[var(--fl-muted)]">{subtitle}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
@@ -607,7 +607,7 @@ function StackList({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">
+      <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">
         No data yet.
       </div>
     );
@@ -619,15 +619,15 @@ function StackList({
         const width = Math.max(4, Math.round((row.count / Math.max(1, total)) * 100));
 
         return (
-          <div key={row.label} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+          <div key={row.label} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <div className="mb-2 flex items-center justify-between gap-4">
-              <p className="min-w-0 truncate font-semibold text-white">{row.label}</p>
-              <p className="shrink-0 text-sm font-semibold text-teal-300">{row.count}</p>
+              <p className="min-w-0 truncate font-semibold text-[var(--fl-text)]">{row.label}</p>
+              <p className="shrink-0 text-sm font-semibold text-[var(--fl-accent-text)]">{row.count}</p>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-[#131923]">
+            <div className="h-3 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
               <div className="h-full rounded-full bg-teal-400" style={{ width: `${width}%` }} />
             </div>
-            <p className="mt-1 text-xs text-[#59626f]">{percent(row.count, total)}</p>
+            <p className="mt-1 text-xs text-[var(--fl-faint)]">{percent(row.count, total)}</p>
           </div>
         );
       })}
@@ -643,7 +643,7 @@ function Badge({
   tone: Tone;
 }) {
   const classes: Record<Tone, string> = {
-    teal: "border-teal-500/30 bg-teal-500/10 text-teal-300",
+    teal: "border-teal-500/30 bg-teal-500/10 text-[var(--fl-accent-text)]",
     green: "border-green-500/30 bg-green-500/10 text-green-300",
     blue: "border-blue-500/30 bg-blue-500/10 text-blue-300",
     purple: "border-purple-500/30 bg-purple-500/10 text-purple-300",

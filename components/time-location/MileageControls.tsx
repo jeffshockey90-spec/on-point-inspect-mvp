@@ -59,9 +59,9 @@ export default function MileageControls({ inspectionId, purpose = "Inspection tr
 
   return (
     <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wider text-teal-300">Mileage Tracker</p>
-      <p className="mt-2 text-2xl font-semibold text-white">{Number(active?.total_miles || 0).toFixed(1)} mi</p>
-      <p className="mt-1 text-sm text-[#8a93a3]">{active ? "GPS tracking is active" : "Ready to record business mileage"}</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-[var(--fl-accent-text)]">Mileage Tracker</p>
+      <p className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">{Number(active?.total_miles || 0).toFixed(1)} mi</p>
+      <p className="mt-1 text-sm text-[var(--fl-muted)]">{active ? "GPS tracking is active" : "Ready to record business mileage"}</p>
       <button disabled={busy} onClick={active ? stop : start} className={`mt-4 w-full rounded-xl px-4 py-3 font-semibold ${active ? "bg-rose-500 text-white" : "bg-teal-400 text-slate-950"}`}>{busy ? "Working…" : active ? "End Mileage Trip" : "Start Mileage Trip"}</button>
 
       {permissionMissing && (
@@ -88,33 +88,33 @@ export default function MileageControls({ inspectionId, purpose = "Inspection tr
       )}
 
       {active && !permissionMissing && !stalled && isNative() && (
-        <p className="mt-2 text-xs text-[#8a93a3]">
+        <p className="mt-2 text-xs text-[var(--fl-muted)]">
           Keep tracking accurate with the screen off by allowing{" "}
-          <span className="font-bold text-[#8a93a3]">Always</span> location access.
+          <span className="font-bold text-[var(--fl-muted)]">Always</span> location access.
         </p>
       )}
 
-      <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Total This Year</p>
-        <p className="mt-1 text-2xl font-semibold text-teal-300">{yearMiles.toFixed(1)} mi</p>
+      <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Total This Year</p>
+        <p className="mt-1 text-2xl font-semibold text-[var(--fl-accent-text)]">{yearMiles.toFixed(1)} mi</p>
       </div>
 
       {recent.length > 0 && (
         <div className="mt-5">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Recent Trips</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Recent Trips</p>
           <div className="space-y-2">
             {recent.slice(0, 10).map((trip: any) => (
               <div
                 key={trip.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-[#232b38] bg-[#131923] px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-white">
+                  <p className="truncate text-sm font-bold text-[var(--fl-text)]">
                     {trip.inspections?.property_address || trip.purpose || "Trip"}
                   </p>
-                  <p className="text-xs text-[#59626f]">{formatTripDate(trip.started_at)}</p>
+                  <p className="text-xs text-[var(--fl-faint)]">{formatTripDate(trip.started_at)}</p>
                 </div>
-                <p className="shrink-0 text-sm font-semibold text-teal-300">
+                <p className="shrink-0 text-sm font-semibold text-[var(--fl-accent-text)]">
                   {Number(trip.total_miles || 0).toFixed(1)} mi
                 </p>
               </div>

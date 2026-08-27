@@ -45,14 +45,14 @@ export default function WhatsNewPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-3xl space-y-6">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-400">What's New</p>
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">What's New</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Updates &amp; Features</h1>
-          <p className="mt-4 max-w-2xl text-[#8a93a3]">
+          <p className="mt-4 max-w-2xl text-[var(--fl-muted)]">
             Every new feature and fix that ships to FLOW. Got an idea? Submit it on the{" "}
-            <a href="/support" className="text-teal-300 underline">
+            <a href="/support" className="text-[var(--fl-accent-text)] underline">
               suggestion box
             </a>
             .
@@ -66,9 +66,9 @@ export default function WhatsNewPage() {
         )}
 
         {loading ? (
-          <p className="text-[#8a93a3]">Loading updates...</p>
+          <p className="text-[var(--fl-muted)]">Loading updates...</p>
         ) : entries.length === 0 ? (
-          <div className="rounded-2xl border border-[#232b38] bg-[#10151e] p-6 text-center text-[#8a93a3]">
+          <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 text-center text-[var(--fl-muted)]">
             No updates posted yet.
           </div>
         ) : (
@@ -76,10 +76,10 @@ export default function WhatsNewPage() {
             {entries.map((entry) => (
               <article
                 key={entry.id}
-                className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl"
+                className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-teal-400">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                     {formatDate(entry.published_at)}
                   </p>
                   {entry.credited_user_name && (
@@ -88,8 +88,8 @@ export default function WhatsNewPage() {
                     </span>
                   )}
                 </div>
-                <h2 className="mt-2 text-2xl font-semibold text-white">{entry.title}</h2>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#8a93a3]">
+                <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">{entry.title}</h2>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-muted)]">
                   {entry.body}
                 </p>
               </article>

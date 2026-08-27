@@ -59,7 +59,7 @@ function getStatus(log: EmailLog) {
   }
 
   if (log.clicked_at) {
-    return { label: "Clicked", tone: "border-teal-400/40 bg-teal-500/10 text-teal-200" };
+    return { label: "Clicked", tone: "border-teal-400/40 bg-teal-500/10 text-[var(--fl-accent-text)]" };
   }
 
   if (log.opened_at) {
@@ -70,7 +70,7 @@ function getStatus(log: EmailLog) {
     return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" };
   }
 
-  return { label: "Sent", tone: "border-[#232b38] bg-[#1a212c] text-[#8a93a3]" };
+  return { label: "Sent", tone: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]" };
 }
 
 function formatDate(value: string | null) {
@@ -182,13 +182,13 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by recipient or property address..."
-          className="w-full min-w-0 flex-1 rounded-xl border border-[#232b38] bg-[#10151e] p-3 text-white outline-none focus:border-teal-400"
+          className="w-full min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         />
 
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-xl border border-[#232b38] bg-[#10151e] p-3 text-white outline-none focus:border-teal-400 sm:w-64"
+          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 sm:w-64"
         >
           {TYPE_FILTERS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -198,12 +198,12 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
         </select>
       </div>
 
-      <p className="text-xs font-bold uppercase tracking-wide text-[#59626f]">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--fl-faint)]">
         {filtered.length} of {logs.length} emails
       </p>
 
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#232b38] bg-[#10151e] p-8 text-center text-[#8a93a3]">
+        <div className="rounded-xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface)] p-8 text-center text-[var(--fl-muted)]">
           {logs.length === 0 ? "No emails sent yet." : "No emails match your search."}
         </div>
       ) : (
@@ -215,8 +215,8 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
             return (
               <div
                 key={log.id}
-                className={`rounded-xl border bg-[#10151e] transition ${
-                  expanded ? "border-teal-500/70" : "border-[#232b38]"
+                className={`rounded-xl border bg-[var(--fl-surface)] transition ${
+                  expanded ? "border-teal-500/70" : "border-[var(--fl-line)]"
                 }`}
               >
                 <button
@@ -225,12 +225,12 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                   className="flex w-full flex-wrap items-start justify-between gap-3 p-4 text-left"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold text-white">{formatEmailType(log.email_type)}</p>
-                    <p className="mt-1 truncate text-sm text-[#8a93a3]">
+                    <p className="font-semibold text-[var(--fl-text)]">{formatEmailType(log.email_type)}</p>
+                    <p className="mt-1 truncate text-sm text-[var(--fl-muted)]">
                       {log.recipient} · {log.property_address}
                     </p>
                     {log.subject && (
-                      <p className="mt-1 truncate text-xs text-[#59626f]">
+                      <p className="mt-1 truncate text-xs text-[var(--fl-faint)]">
                         Subject: {log.subject}
                       </p>
                     )}
@@ -242,34 +242,34 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                     >
                       {status.label}
                     </span>
-                    <span className="text-xs font-bold text-[#59626f]">
+                    <span className="text-xs font-bold text-[var(--fl-faint)]">
                       {formatDate(log.sent_at)}
                     </span>
-                    <span className="text-xs font-bold text-teal-400">
+                    <span className="text-xs font-bold text-[var(--fl-accent-text)]">
                       {expanded ? "Hide ▲" : "View email ▼"}
                     </span>
                   </div>
                 </button>
 
                 {expanded && (
-                  <div className="border-t border-[#1a212c] p-4">
+                  <div className="border-t border-[var(--fl-raised)] p-4">
                     {log.html ? (
                       <iframe
                         title={`Email to ${log.recipient}`}
                         srcDoc={sanitizeForPreview(log.html)}
                         sandbox=""
-                        className="h-[520px] w-full rounded-lg border border-[#232b38] bg-white"
+                        className="h-[520px] w-full rounded-lg border border-[var(--fl-line)] bg-white"
                       />
                     ) : (
-                      <div className="rounded-lg border border-[#232b38] bg-[#10151e] p-4 text-sm text-[#8a93a3]">
-                        <p className="font-bold text-[#e8ecf3]">
+                      <div className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4 text-sm text-[var(--fl-muted)]">
+                        <p className="font-bold text-[var(--fl-text)]">
                           The exact copy of this email wasn&apos;t captured.
                         </p>
-                        <p className="mt-1 text-[#8a93a3]">
+                        <p className="mt-1 text-[var(--fl-muted)]">
                           Emails are saved in full going forward. Older sends only kept a summary:
                         </p>
                         {log.message && (
-                          <p className="mt-2 whitespace-pre-wrap rounded bg-black/30 p-3 text-[#8a93a3]">
+                          <p className="mt-2 whitespace-pre-wrap rounded bg-black/30 p-3 text-[var(--fl-muted)]">
                             {log.message}
                           </p>
                         )}
@@ -280,7 +280,7 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                       {log.inspection_id && (
                         <Link
                           href={`/reports/${log.inspection_id}`}
-                          className="inline-block rounded-lg border border-[#232b38] px-4 py-2 text-xs font-semibold text-[#e8ecf3] transition hover:border-teal-500/70"
+                          className="inline-block rounded-lg border border-[var(--fl-line)] px-4 py-2 text-xs font-semibold text-[var(--fl-text)] transition hover:border-teal-500/70"
                         >
                           Open inspection →
                         </Link>

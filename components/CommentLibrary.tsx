@@ -325,14 +325,14 @@ export default function CommentLibrary({
   }
 
   return (
-    <div className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-teal-400">
+          <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
             Comment Library
           </h2>
 
-          <p className="mt-1 text-sm text-[#8a93a3]">
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">
             Search, favorite, use, edit, or delete your saved finding templates.
           </p>
         </div>
@@ -341,7 +341,7 @@ export default function CommentLibrary({
           type="button"
           onClick={loadComments}
           disabled={loading}
-          className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#e8ecf3] transition active:scale-[0.98] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+          className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
         >
           {loading ? "Refreshing..." : "Refresh"}
         </button>
@@ -358,13 +358,13 @@ export default function CommentLibrary({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search saved comments..."
-          className="w-full rounded-xl border border-[#232b38] bg-black p-3 text-white outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         />
 
         <select
           value={sectionFilter}
           onChange={(e) => setSectionFilter(e.target.value)}
-          className="w-full rounded-xl border border-[#232b38] bg-black p-3 text-white outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           <option value="All">All Sections</option>
           {SECTIONS.map((section) => (
@@ -377,7 +377,7 @@ export default function CommentLibrary({
         <select
           value={severityFilter}
           onChange={(e) => setSeverityFilter(e.target.value)}
-          className="w-full rounded-xl border border-[#232b38] bg-black p-3 text-white outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           <option value="All">All Severities</option>
           {SEVERITIES.map((severity) => (
@@ -390,7 +390,7 @@ export default function CommentLibrary({
         <select
           value={sortMode}
           onChange={(e) => setSortMode(e.target.value as SortMode)}
-          className="w-full rounded-xl border border-[#232b38] bg-black p-3 text-white outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           <option value="favorites">Favorites First</option>
           <option value="recent">Recently Used</option>
@@ -412,17 +412,17 @@ export default function CommentLibrary({
           {favoritesOnly ? "★ Favorites Only" : "☆ Show Favorites Only"}
         </button>
 
-        <p className="text-sm text-[#8a93a3]">
+        <p className="text-sm text-[var(--fl-muted)]">
           Showing {filtered.length} of {comments.length}
         </p>
       </div>
 
       {loading ? (
-        <p className="mt-4 rounded-xl border border-[#232b38] bg-black p-4 text-[#8a93a3]">
+        <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-black p-4 text-[var(--fl-muted)]">
           Loading comments...
         </p>
       ) : filtered.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-[#232b38] bg-black p-4 text-[#8a93a3]">
+        <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-black p-4 text-[var(--fl-muted)]">
           No saved comments found.
         </p>
       ) : (
@@ -440,18 +440,18 @@ export default function CommentLibrary({
                 className={`rounded-xl border p-4 ${
                   comment.is_favorite
                     ? "border-yellow-500/60 bg-yellow-500/10"
-                    : "border-[#232b38] bg-black"
+                    : "border-[var(--fl-line)] bg-black"
                 }`}
               >
                 {!isEditing ? (
                   <>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-white">
+                        <p className="font-bold text-[var(--fl-text)]">
                           {comment.title || "Untitled Comment"}
                         </p>
 
-                        <p className="mt-1 text-sm text-[#8a93a3]">
+                        <p className="mt-1 text-sm text-[var(--fl-muted)]">
                           {comment.section || "No Section"} •{" "}
                           {comment.severity || "No Severity"}
                         </p>
@@ -463,13 +463,13 @@ export default function CommentLibrary({
                             </span>
                           )}
 
-                          <span className="rounded-full border border-[#232b38] px-2 py-1 text-[#8a93a3]">
+                          <span className="rounded-full border border-[var(--fl-line)] px-2 py-1 text-[var(--fl-muted)]">
                             Used {Number(comment.usage_count || 0)} time
                             {Number(comment.usage_count || 0) === 1 ? "" : "s"}
                           </span>
 
                           {comment.tags && (
-                            <span className="rounded-full border border-teal-500/50 bg-teal-500/10 px-2 py-1 text-teal-300">
+                            <span className="rounded-full border border-teal-500/50 bg-teal-500/10 px-2 py-1 text-[var(--fl-accent-text)]">
                               {comment.tags}
                             </span>
                           )}
@@ -495,7 +495,7 @@ export default function CommentLibrary({
                     </div>
 
                     {comment.observation && (
-                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#8a93a3]">
+                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-[var(--fl-muted)]">
                         {comment.observation}
                       </p>
                     )}
@@ -532,20 +532,20 @@ export default function CommentLibrary({
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                         Title
                       </label>
                       <input
                         value={editForm.title}
                         onChange={(e) => updateForm("title", e.target.value)}
                         disabled={isSaving}
-                        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
                       />
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
-                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                           Section
                         </label>
                         <select
@@ -554,7 +554,7 @@ export default function CommentLibrary({
                             updateForm("section", e.target.value)
                           }
                           disabled={isSaving}
-                          className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {SECTIONS.map((section) => (
                             <option key={section} value={section}>
@@ -565,7 +565,7 @@ export default function CommentLibrary({
                       </div>
 
                       <div>
-                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                           Severity
                         </label>
                         <select
@@ -574,7 +574,7 @@ export default function CommentLibrary({
                             updateForm("severity", e.target.value)
                           }
                           disabled={isSaving}
-                          className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {SEVERITIES.map((severity) => (
                             <option key={severity} value={severity}>
@@ -607,7 +607,7 @@ export default function CommentLibrary({
                     />
 
                     <div>
-                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                         Tags
                       </label>
                       <input
@@ -615,7 +615,7 @@ export default function CommentLibrary({
                         onChange={(e) => updateForm("tags", e.target.value)}
                         disabled={isSaving}
                         placeholder="Optional tags"
-                        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
                       />
                     </div>
 
@@ -633,7 +633,7 @@ export default function CommentLibrary({
                         type="button"
                         onClick={cancelEditing}
                         disabled={isSaving}
-                        className="rounded-lg border border-[#232b38] px-4 py-2 text-sm font-bold text-[#e8ecf3] transition active:scale-[0.98] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                        className="rounded-lg border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
                       >
                         Cancel
                       </button>
@@ -662,7 +662,7 @@ function EditTextArea({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </label>
 
@@ -671,7 +671,7 @@ function EditTextArea({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         rows={4}
-        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 leading-6 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 leading-6 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </div>
   );

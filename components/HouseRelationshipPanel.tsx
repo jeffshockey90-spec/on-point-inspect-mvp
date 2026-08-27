@@ -73,7 +73,7 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
             {categoryLabel(relationship.category)}
           </p>
 
-          <h3 className="mt-1 text-lg font-semibold text-white">
+          <h3 className="mt-1 text-lg font-semibold text-[var(--fl-text)]">
             {relationship.title}
           </h3>
         </div>
@@ -99,7 +99,7 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
               className="rounded-xl border border-white/10 bg-black/25 p-3"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-[var(--fl-text)]">
                   {index + 1}. {finding.title}
                 </p>
 
@@ -246,11 +246,11 @@ export default function HouseRelationshipPanel({
             House Relationship Engine
           </p>
 
-          <h2 className="mt-1 text-2xl font-semibold text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
             Connected Finding Intelligence
           </h2>
 
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
             Looks across the whole inspection for findings that may be related,
             such as roof leaks connected to attic stains, drainage connected to
             basement moisture, or HVAC age connected to performance concerns.
@@ -274,17 +274,17 @@ export default function HouseRelationshipPanel({
       )}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Relationships
           </p>
-          <p className="mt-1 text-3xl font-semibold text-white">
+          <p className="mt-1 text-3xl font-semibold text-[var(--fl-text)]">
             {result?.relationshipCount ?? "—"}
           </p>
         </div>
 
-        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Highest Confidence
           </p>
           <p className={`mt-1 text-3xl font-semibold ${confidenceTone(result?.highestConfidence || 0)}`}>
@@ -292,8 +292,8 @@ export default function HouseRelationshipPanel({
           </p>
         </div>
 
-        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Status
           </p>
           <p className="mt-1 text-lg font-semibold text-fuchsia-200">
@@ -303,7 +303,7 @@ export default function HouseRelationshipPanel({
       </div>
 
       {result?.summary && (
-        <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-7 text-[#e8ecf3]">
+        <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-7 text-[var(--fl-text)]">
           {result.summary}
         </div>
       )}
@@ -326,7 +326,7 @@ export default function HouseRelationshipPanel({
 
       <div className="mt-5 space-y-4">
         {!result ? (
-          <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
             Relationship intelligence will appear after the inspection has enough
             findings or equipment records to compare.
           </div>

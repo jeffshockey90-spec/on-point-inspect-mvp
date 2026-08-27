@@ -173,8 +173,8 @@ export default function ReportDeliveryGuard({
 
   if (loading) {
     return (
-      <div className="mb-6 rounded-2xl border border-[#232b38] bg-[#131923] p-5">
-        <p className="font-bold text-[#8a93a3]">
+      <div className="mb-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
+        <p className="font-bold text-[var(--fl-muted)]">
           Checking delivery requirements...
         </p>
       </div>
@@ -188,7 +188,7 @@ export default function ReportDeliveryGuard({
           Delivery Requirements Complete
         </h2>
 
-        <p className="mt-2 text-[#8a93a3]">
+        <p className="mt-2 text-[var(--fl-muted)]">
           {agreementWaived
             ? "The agreement requirement is waived and payment is marked complete or waived. Report delivery is cleared."
             : "Required agreements are signed and payment is marked complete or waived. Report delivery is cleared."}
@@ -200,7 +200,7 @@ export default function ReportDeliveryGuard({
               Agreement Requirement Waived
             </p>
 
-            <p className="mt-2 text-sm text-[#8a93a3]">
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">
               {payment?.agreement_waiver_reason ||
                 "No waiver reason was recorded."}
             </p>
@@ -212,7 +212,7 @@ export default function ReportDeliveryGuard({
             type="button"
             disabled={savingOverride}
             onClick={() => toggleOverride(false)}
-            className="mt-4 rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#8a93a3] transition hover:border-slate-400 disabled:opacity-60"
+            className="mt-4 rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-slate-400 disabled:opacity-60"
           >
             {savingOverride
               ? "Working…"
@@ -229,7 +229,7 @@ export default function ReportDeliveryGuard({
         Delivery Requirements Pending
       </h2>
 
-      <p className="mt-2 text-[#8a93a3]">
+      <p className="mt-2 text-[var(--fl-muted)]">
         Confirm all required agreements are signed or intentionally waived and
         payment is complete before delivering the final report.
       </p>
@@ -240,7 +240,7 @@ export default function ReportDeliveryGuard({
             Agreement Signatures Pending
           </h3>
 
-          <p className="mt-2 text-sm text-[#8a93a3]">
+          <p className="mt-2 text-sm text-[var(--fl-muted)]">
             {unsignedRequiredContacts.length} required client signature
             {unsignedRequiredContacts.length === 1 ? "" : "s"} still pending.
           </p>
@@ -265,8 +265,8 @@ export default function ReportDeliveryGuard({
           </h3>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-orange-700 bg-[#131923] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-orange-700 bg-[var(--fl-surface-2)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Status
               </p>
               <p className="mt-1 text-lg font-semibold text-orange-300">
@@ -274,8 +274,8 @@ export default function ReportDeliveryGuard({
               </p>
             </div>
 
-            <div className="rounded-xl border border-orange-700 bg-[#131923] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-orange-700 bg-[var(--fl-surface-2)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Amount Paid
               </p>
               <p className="mt-1 text-lg font-semibold text-orange-300">
@@ -283,8 +283,8 @@ export default function ReportDeliveryGuard({
               </p>
             </div>
 
-            <div className="rounded-xl border border-orange-700 bg-[#131923] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-orange-700 bg-[var(--fl-surface-2)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Balance Due
               </p>
               <p className="mt-1 text-lg font-semibold text-orange-300">
@@ -293,7 +293,7 @@ export default function ReportDeliveryGuard({
             </div>
           </div>
 
-          <p className="mt-3 text-sm text-[#8a93a3]">
+          <p className="mt-3 text-sm text-[var(--fl-muted)]">
             Use the Invoice / Payment Status panel on this report to mark the
             inspection Paid or Waived when appropriate.
           </p>
@@ -303,8 +303,8 @@ export default function ReportDeliveryGuard({
       <div className="mt-5 rounded-xl border border-teal-500/40 bg-teal-500/5 p-4">
         {override ? (
           <>
-            <h3 className="font-semibold text-teal-300">Delivered via override</h3>
-            <p className="mt-2 text-sm text-[#8a93a3]">
+            <h3 className="font-semibold text-[var(--fl-accent-text)]">Delivered via override</h3>
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">
               You released this report to the client and realtor even though the
               items above aren&apos;t complete in FLOW (e.g. the agreement or
               payment was handled in another system). The client&apos;s share
@@ -314,15 +314,15 @@ export default function ReportDeliveryGuard({
               type="button"
               disabled={savingOverride}
               onClick={() => toggleOverride(false)}
-              className="mt-3 rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:border-slate-400 disabled:opacity-60"
+              className="mt-3 rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-slate-400 disabled:opacity-60"
             >
               {savingOverride ? "Working…" : "Turn off override & re-lock"}
             </button>
           </>
         ) : (
           <>
-            <h3 className="font-semibold text-teal-300">Need to deliver anyway?</h3>
-            <p className="mt-2 text-sm text-[#8a93a3]">
+            <h3 className="font-semibold text-[var(--fl-accent-text)]">Need to deliver anyway?</h3>
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">
               If the agreement or payment was handled outside FLOW and you still
               need the client and realtor to see this report, release it here.
               The report must be published first.
@@ -339,7 +339,7 @@ export default function ReportDeliveryGuard({
         )}
 
         {overrideMessage ? (
-          <p className="mt-3 text-sm font-bold text-teal-200">
+          <p className="mt-3 text-sm font-bold text-[var(--fl-accent-text)]">
             {overrideMessage}
           </p>
         ) : null}

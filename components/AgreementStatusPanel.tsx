@@ -18,10 +18,10 @@ function Badge({
       : tone === "yellow"
         ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
         : tone === "teal"
-          ? "border-teal-500/40 bg-teal-500/10 text-teal-300"
+          ? "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]"
           : tone === "purple"
             ? "border-purple-500/40 bg-purple-500/10 text-purple-300"
-            : "border-[#232b38] bg-[#1a212c] text-[#8a93a3]";
+            : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]";
 
   return (
     <span
@@ -307,16 +307,16 @@ export default function AgreementStatusPanel({
   return (
     <section
       id="agreement-status"
-      className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[#232b38] bg-[#071224] shadow-2xl shadow-black/20"
+      className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#071224] shadow-2xl shadow-black/20"
     >
-      <div className="border-b border-[#1a212c] bg-gradient-to-r from-[#10151e] via-[#0b1628] to-[#10151e] p-4 sm:p-5">
+      <div className="border-b border-[var(--fl-raised)] bg-gradient-to-r from-[var(--fl-surface)] via-[#0b1628] to-[var(--fl-surface)] p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-teal-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">
               Agreement Status
             </p>
 
-            <h2 className="mt-2 text-2xl font-semibold text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
               Signature Tracking
             </h2>
 
@@ -373,7 +373,7 @@ export default function AgreementStatusPanel({
 
       <div className="p-4 sm:p-5">
         {message && (
-          <div className="mb-4 rounded-2xl border border-[#232b38] bg-[#131923] p-4 text-sm font-bold text-[#e8ecf3]">
+          <div className="mb-4 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm font-bold text-[var(--fl-text)]">
             {message}
           </div>
         )}
@@ -386,12 +386,12 @@ export default function AgreementStatusPanel({
                   Agreement Requirement Waived
                 </p>
 
-                <p className="mt-2 text-sm leading-6 text-[#e8ecf3]">
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-text)]">
                   <strong>Reason:</strong>{" "}
                   {waiver.agreement_waiver_reason || "No reason recorded"}
                 </p>
 
-                <p className="mt-2 text-xs text-[#8a93a3]">
+                <p className="mt-2 text-xs text-[var(--fl-muted)]">
                   Waived by{" "}
                   {waiver.agreement_waived_by_name ||
                     waiver.agreement_waived_by ||
@@ -418,7 +418,7 @@ export default function AgreementStatusPanel({
               Waive Agreement Requirement
             </h3>
 
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               This does not mark an agreement as signed. It records that the
               inspection company intentionally waived the signature requirement.
             </p>
@@ -428,7 +428,7 @@ export default function AgreementStatusPanel({
               onChange={(event) => setWaiverReason(event.target.value)}
               disabled={waiverBusy}
               placeholder="Required reason, example: Existing signed paper agreement retained in company records."
-              className="mt-4 min-h-[110px] w-full rounded-xl border border-purple-500/40 bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-purple-300 disabled:opacity-60"
+              className="mt-4 min-h-[110px] w-full rounded-xl border border-purple-500/40 bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-purple-300 disabled:opacity-60"
             />
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -468,7 +468,7 @@ export default function AgreementStatusPanel({
                   setMessage("");
                 }}
                 disabled={waiverBusy}
-                className="rounded-xl border border-[#232b38] px-5 py-3 text-sm font-semibold text-[#8a93a3] hover:bg-[#1a212c] disabled:opacity-50"
+                className="rounded-xl border border-[var(--fl-line)] px-5 py-3 text-sm font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -477,13 +477,13 @@ export default function AgreementStatusPanel({
         )}
 
         {loading && (
-          <p className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 text-sm text-[#8a93a3]">
+          <p className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">
             Loading agreement status...
           </p>
         )}
 
         {!loading && requiredContacts.length === 0 && (
-          <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
+          <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
             No required agreement signers added yet. Add clients in the Client /
             Realtor Contacts section and mark Agreement Required.
           </div>
@@ -498,12 +498,12 @@ export default function AgreementStatusPanel({
               return (
                 <article
                   key={contact.id}
-                  className="rounded-2xl border border-[#232b38] bg-[#131923] p-4"
+                  className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="break-words text-base font-semibold text-white">
+                        <p className="break-words text-base font-semibold text-[var(--fl-text)]">
                           {contact.name}
                         </p>
 
@@ -530,7 +530,7 @@ export default function AgreementStatusPanel({
                         <Badge tone="slate">Required</Badge>
                       </div>
 
-                      <p className="mt-2 break-all text-sm text-[#8a93a3]">
+                      <p className="mt-2 break-all text-sm text-[var(--fl-muted)]">
                         {contact.email}
                       </p>
 

@@ -131,7 +131,7 @@ async function sendReportEmail({
               style="
                 display:inline-block;
                 background:#14b8a6;
-                color:#020617;
+                color:var(--fl-ground);
                 padding:14px 22px;
                 border-radius:10px;
                 text-decoration:none;

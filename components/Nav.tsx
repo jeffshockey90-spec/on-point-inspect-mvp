@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import SupportUnreadBadge from "./SupportUnreadBadge";
+import ThemeToggle from "./ThemeToggle";
 import { isPortalRoute } from "../lib/navVisibility";
 import {
   Home,
@@ -457,13 +458,13 @@ export default function Navbar() {
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-[#1a212c] bg-[#0a0e13]/95 pt-[env(safe-area-inset-top)] backdrop-blur xl:flex">
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-[var(--fl-raised)] bg-[var(--fl-ground)] pt-[env(safe-area-inset-top)] backdrop-blur xl:flex">
         <Link
           href={dashboardHref}
           prefetch
           onPointerEnter={() => prefetchRoute(dashboardHref)}
           onClick={() => handleNavClick(dashboardHref)}
-          className="flex shrink-0 items-center gap-3 border-b border-[#1a212c] px-5 py-[18px] transition active:scale-[0.98] [touch-action:manipulation]"
+          className="flex shrink-0 items-center gap-3 border-b border-[var(--fl-raised)] px-5 py-[18px] transition active:scale-[0.98] [touch-action:manipulation]"
         >
           <img
             src="/icons/icon-192.png?v=3"
@@ -472,7 +473,7 @@ export default function Navbar() {
           />
 
           <div className="min-w-0 leading-tight">
-            <div className="whitespace-nowrap text-[19px] font-extrabold tracking-tight text-white">
+            <div className="whitespace-nowrap text-[19px] font-extrabold tracking-tight text-[var(--fl-text)]">
               FLOW
             </div>
           </div>
@@ -497,7 +498,7 @@ export default function Navbar() {
               return (
                 <Fragment key={`${item.title}-${item.href}`}>
                   {groupLabel && (
-                    <p className="mt-4 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#59626f]">
+                    <p className="mt-4 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--fl-faint)]">
                       {groupLabel}
                     </p>
                   )}
@@ -510,12 +511,12 @@ export default function Navbar() {
                     aria-busy={opening}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
                       active
-                        ? "bg-[#1ac5b4]/[0.12] text-white"
+                        ? "bg-[#1ac5b4]/[0.12] text-[var(--fl-text)]"
                         : opening
                           ? "bg-white/[0.04] text-[#1ac5b4]"
                           : item.href === "/dashboard/owner"
                             ? "text-yellow-300/90 hover:bg-yellow-500/10 hover:text-yellow-200"
-                            : "text-[#8a93a3] hover:bg-white/[0.04] hover:text-[#e8ecf3]"
+                            : "text-[var(--fl-muted)] hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
                     }`}
                   >
                     <NavSpinner active={opening} />
@@ -531,8 +532,8 @@ export default function Navbar() {
           })()}
 
           {isReportBuilderRoute(pathname) && (
-            <div className="mt-4 border-t border-[#1a212c] pt-4">
-              <p className="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#59626f]">
+            <div className="mt-4 border-t border-[var(--fl-raised)] pt-4">
+              <p className="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--fl-faint)]">
                 Report Sections
               </p>
 
@@ -546,8 +547,8 @@ export default function Navbar() {
                       href={`#${anchorId}`}
                       className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
                         active
-                          ? "bg-[#1ac5b4]/[0.12] text-white"
-                          : "text-[#8a93a3] hover:bg-white/[0.04] hover:text-[#e8ecf3]"
+                          ? "bg-[#1ac5b4]/[0.12] text-[var(--fl-text)]"
+                          : "text-[var(--fl-muted)] hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
                       }`}
                     >
                       {label}
@@ -559,20 +560,22 @@ export default function Navbar() {
           )}
         </nav>
 
-        <div className="shrink-0 border-t border-[#1a212c] p-3">
-          <div className="flex items-center gap-3 rounded-[10px] border border-[#1a212c] bg-[#10151e] px-3 py-2.5">
+        <div className="shrink-0 border-t border-[var(--fl-raised)] p-3">
+          <div className="flex items-center gap-3 rounded-[10px] border border-[var(--fl-raised)] bg-[var(--fl-surface)] px-3 py-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1ac5b4]/12 text-xs font-semibold text-[#1ac5b4]">
               {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
             </div>
 
             <div className="min-w-0 flex-1 leading-tight">
-              <div className="truncate text-xs font-bold text-white">
+              <div className="truncate text-xs font-bold text-[var(--fl-text)]">
                 {userEmail || "Signed in"}
               </div>
-              <div className="truncate text-[10px] font-bold uppercase tracking-wide text-[#59626f]">
+              <div className="truncate text-[10px] font-bold uppercase tracking-wide text-[var(--fl-faint)]">
                 {isOwner ? "Owner" : isRealtor && !isInspector ? "Realtor" : "Inspector"}
               </div>
             </div>
+
+            <ThemeToggle compact />
 
             <button
               type="button"
@@ -580,7 +583,7 @@ export default function Navbar() {
               disabled={loggingOut}
               aria-busy={loggingOut}
               title="Logout"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#232b38] text-[#8a93a3] transition active:scale-[0.98] hover:border-red-500/60 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--fl-line)] text-[var(--fl-muted)] transition active:scale-[0.98] hover:border-red-500/60 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
               {loggingOut ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -593,7 +596,7 @@ export default function Navbar() {
       </aside>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-[100] border-t border-zinc-800 bg-[#10151e]/95 shadow-2xl shadow-black/60 backdrop-blur xl:hidden [transform:translateZ(0)] [will-change:transform]"
+        className="fixed inset-x-0 bottom-0 z-[100] border-t border-zinc-800 bg-[var(--fl-surface)] shadow-2xl shadow-black/60 backdrop-blur xl:hidden [transform:translateZ(0)] [will-change:transform]"
         style={{ bottom: 0, paddingBottom: "env(safe-area-inset-bottom)", transform: "translateZ(0)" }}
       >
         <div className="flex h-[78px] w-full flex-row flex-nowrap items-center justify-between">
@@ -613,12 +616,12 @@ export default function Navbar() {
                 aria-busy={opening}
                 className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center transition active:scale-[0.98] [touch-action:manipulation] ${
                   active
-                    ? "bg-teal-500/15 text-teal-300"
+                    ? "bg-teal-500/15 text-[var(--fl-accent-text)]"
                     : opening
-                      ? "bg-[#1a212c] text-teal-300 opacity-80"
+                      ? "bg-[var(--fl-raised)] text-[var(--fl-accent-text)] opacity-80"
                       : item.href === "/dashboard/owner"
                         ? "text-yellow-300 hover:bg-yellow-500/10"
-                        : "text-zinc-300 hover:bg-[#1a212c] hover:text-teal-300"
+                        : "text-zinc-300 hover:bg-[var(--fl-raised)] hover:text-[var(--fl-accent-text)]"
                 }`}
               >
                 <span className="flex w-full items-center justify-center leading-none">
@@ -654,13 +657,15 @@ export default function Navbar() {
               {loggingOut ? "Leaving" : "Logout"}
             </span>
           </button>
+
+          <ThemeToggle variant="mobile" />
         </div>
       </nav>
 
       {userEmail && !isOwner && !isPortalRoute(pathname) && (
         <Link
           href="/support"
-          className="fixed bottom-40 right-4 z-[150] flex items-center gap-2 rounded-full border border-amber-400/60 bg-[#10151e] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-amber-300 shadow-2xl shadow-black/40 transition hover:border-amber-300 hover:text-amber-200 active:scale-[0.97] xl:bottom-20"
+          className="fixed bottom-40 right-4 z-[150] flex items-center gap-2 rounded-full border border-amber-400/60 bg-[var(--fl-surface)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-amber-300 shadow-2xl shadow-black/40 transition hover:border-amber-300 hover:text-amber-200 active:scale-[0.97] xl:bottom-20"
         >
           💡 Suggest
         </Link>

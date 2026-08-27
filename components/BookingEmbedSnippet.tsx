@@ -17,7 +17,7 @@ export default function BookingEmbedSnippet({
 
   if (!slug) {
     return (
-      <p className="text-sm text-[#8a93a3]">
+      <p className="text-sm text-[var(--fl-muted)]">
         Save a profile slug above first — your booking embed code is generated from it.
       </p>
     );
@@ -46,7 +46,7 @@ export default function BookingEmbedSnippet({
         value={snippet}
         rows={4}
         onFocus={(e) => e.currentTarget.select()}
-        className="w-full resize-none rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 font-mono text-xs leading-5 text-[#8a93a3]"
+        className="w-full resize-none rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 font-mono text-xs leading-5 text-[var(--fl-muted)]"
       />
       <div className="mt-3 flex flex-wrap gap-3">
         <button
@@ -61,7 +61,7 @@ export default function BookingEmbedSnippet({
           href={src}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl border border-[#232b38] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition hover:border-cyan-400 hover:text-cyan-300"
+          className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition hover:border-cyan-400 hover:text-cyan-300"
         >
           <ExternalLink className="h-4 w-4" />
           Preview

@@ -99,16 +99,16 @@ export default async function RealtorsPage() {
   const topRealtor = [...realtors].sort((a: any, b: any) => b.totalReferrals - a.totalReferrals || b.revenueGenerated - a.revenueGenerated)[0];
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-[96rem]">
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">FLOW</p>
-              <h1 className="mt-4 text-5xl font-semibold text-white">Realtor Contacts</h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">Store realtor contact info once, then select them when creating inspections. Report emails include realtors automatically; agreement emails stay client-only.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">FLOW</p>
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">Realtor Contacts</h1>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">Store realtor contact info once, then select them when creating inspections. Report emails include realtors automatically; agreement emails stay client-only.</p>
             </div>
-            <Link href="/" className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10">Back to Dashboard</Link>
+            <Link href="/" className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10">Back to Dashboard</Link>
           </div>
         </section>
 
@@ -119,30 +119,30 @@ export default async function RealtorsPage() {
           <StatCard label="Top Referrer" value={topRealtor?.name || "N/A"} helper={topRealtor ? `${topRealtor.totalReferrals} referral${topRealtor.totalReferrals === 1 ? "" : "s"}` : "No referrals yet"} />
         </section>
 
-        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">Add Realtor</h2>
+        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Add Realtor</h2>
           <form action={addRealtor} className="mt-5 grid gap-4 md:grid-cols-4">
-            <input name="name" required placeholder="Name" className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white" />
-            <input name="email" placeholder="Email" className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white" />
-            <input name="phone" placeholder="Phone" className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white" />
-            <input name="last_contact_date" type="date" className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white" />
+            <input name="name" required placeholder="Name" className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)]" />
+            <input name="email" placeholder="Email" className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)]" />
+            <input name="phone" placeholder="Phone" className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)]" />
+            <input name="last_contact_date" type="date" className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)]" />
             <button type="submit" className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400 md:col-span-4">Save Realtor</button>
           </form>
         </section>
 
         <section className="mt-8 grid gap-4">
           {realtors.length === 0 ? (
-            <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 text-[#8a93a3]">No realtor contacts saved yet.</div>
+            <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 text-[var(--fl-muted)]">No realtor contacts saved yet.</div>
           ) : (
             realtors.map((realtor: any) => (
-              <article key={realtor.id} className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+              <article key={realtor.id} className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
                 <div className="flex flex-wrap items-start justify-between gap-5">
                   <div>
-                    <h2 className="text-2xl font-semibold text-white">{realtor.name}</h2>
-                    <p className="mt-2 text-[#8a93a3]">{realtor.email || "No email"}</p>
-                    <p className="text-[#8a93a3]">{realtor.phone || "No phone"}</p>
-                    <p className="mt-2 text-sm text-[#59626f]">Last Contact: {formatDate(realtor.last_contact_date)}</p>
-                    {realtor.lastInspection && <p className="mt-2 text-sm text-[#8a93a3]">Last Inspection: {realtor.lastInspection.property_address || realtor.lastInspection.address || "Untitled Inspection"}</p>}
+                    <h2 className="text-2xl font-semibold text-[var(--fl-text)]">{realtor.name}</h2>
+                    <p className="mt-2 text-[var(--fl-muted)]">{realtor.email || "No email"}</p>
+                    <p className="text-[var(--fl-muted)]">{realtor.phone || "No phone"}</p>
+                    <p className="mt-2 text-sm text-[var(--fl-faint)]">Last Contact: {formatDate(realtor.last_contact_date)}</p>
+                    {realtor.lastInspection && <p className="mt-2 text-sm text-[var(--fl-muted)]">Last Inspection: {realtor.lastInspection.property_address || realtor.lastInspection.address || "Untitled Inspection"}</p>}
                   </div>
                   <div className="grid gap-3 text-right sm:grid-cols-3">
                     <Stat label="Referrals" value={String(realtor.totalReferrals)} />
@@ -152,7 +152,7 @@ export default async function RealtorsPage() {
                 </div>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link href={`/realtors/${realtor.id}`} className="rounded-xl bg-teal-500 px-4 py-2 font-bold text-slate-950 hover:bg-teal-400">View Realtor</Link>
-                  {realtor.lastInspection && <Link href={`/reports/${realtor.lastInspection.id}`} className="rounded-xl border border-teal-500 px-4 py-2 font-bold text-teal-300 hover:bg-teal-500/10">Open Last Inspection</Link>}
+                  {realtor.lastInspection && <Link href={`/reports/${realtor.lastInspection.id}`} className="rounded-xl border border-teal-500 px-4 py-2 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10">Open Last Inspection</Link>}
                   {realtor.email && <a href={`mailto:${realtor.email}`} className="rounded-xl border border-cyan-500 px-4 py-2 font-bold text-cyan-300 hover:bg-cyan-500/10">Email</a>}
                   {realtor.phone && <a href={`tel:${realtor.phone}`} className="rounded-xl border border-green-500 px-4 py-2 font-bold text-green-300 hover:bg-green-500/10">Call</a>}
                   <form action={deleteRealtor}><input type="hidden" name="id" value={realtor.id} /><ConfirmSubmitButton confirmMessage={`Delete realtor "${realtor.name}"? This cannot be undone.`} className="rounded-xl border border-red-500 px-4 py-2 font-bold text-red-300 hover:bg-red-500/10">Delete</ConfirmSubmitButton></form>
@@ -167,9 +167,9 @@ export default async function RealtorsPage() {
 }
 
 function StatCard({ label, value, helper }: { label: string; value: string; helper?: string }) {
-  return <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl"><p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p><p className="mt-3 text-3xl font-semibold text-white">{value}</p>{helper && <p className="mt-2 text-sm text-[#8a93a3]">{helper}</p>}</div>;
+  return <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl"><p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p><p className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">{value}</p>{helper && <p className="mt-2 text-sm text-[var(--fl-muted)]">{helper}</p>}</div>;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#8a93a3]">{label}</p><p className="mt-2 text-xl font-semibold text-teal-300">{value}</p></div>;
+  return <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p><p className="mt-2 text-xl font-semibold text-[var(--fl-accent-text)]">{value}</p></div>;
 }

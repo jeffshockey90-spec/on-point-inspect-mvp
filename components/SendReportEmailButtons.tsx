@@ -232,7 +232,7 @@ export default function SendReportEmailButtons({
             onChange={(e) => setCustomEmail(e.target.value)}
             placeholder="Send to another email"
             disabled={sending !== null}
-            className="box-border w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none placeholder:text-[#59626f] focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-sm sm:flex-1"
+            className="box-border w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none placeholder:text-[var(--fl-faint)] focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:max-w-sm sm:flex-1"
           />
 
           <button

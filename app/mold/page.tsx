@@ -304,20 +304,20 @@ export default function MoldPage() {
   }, [inspections]);
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
                 FLOW
               </p>
 
-              <h1 className="mt-4 text-5xl font-semibold text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">
                 Mold Testing
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Track mold samples, lab status, lab reports, results, findings,
                 revenue, and client-friendly summaries.
               </p>
@@ -325,7 +325,7 @@ export default function MoldPage() {
 
             <Link
               href="/"
-              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
             >
               Back to Dashboard
             </Link>
@@ -390,8 +390,8 @@ export default function MoldPage() {
           />
         </section>
 
-        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">
+        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
             Mold Revenue Breakdown
           </h2>
 
@@ -406,22 +406,22 @@ export default function MoldPage() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">
+        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
             Mold Test List
           </h2>
 
-          <p className="mt-2 text-sm text-[#8a93a3]">
+          <p className="mt-2 text-sm text-[var(--fl-muted)]">
             Track sample counts, lab status, findings, lab report links, and
             client-ready summaries.
           </p>
 
           {loading ? (
-            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-8 text-center text-[#8a93a3]">
+            <div className="mt-6 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center text-[var(--fl-muted)]">
               Loading mold tests...
             </div>
           ) : inspections.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-8 text-center text-[#8a93a3]">
+            <div className="mt-6 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center text-[var(--fl-muted)]">
               No mold jobs found yet. Create an inspection with Mold Only,
               Radon + Mold, Home + Mold, or Home + Radon + Mold to see it here.
             </div>
@@ -442,23 +442,23 @@ export default function MoldPage() {
                 return (
                   <div
                     key={inspection.id}
-                    className="rounded-2xl border border-[#1a212c] bg-[#131923] p-5"
+                    className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-5"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="text-xl font-semibold text-white">
+                        <p className="text-xl font-semibold text-[var(--fl-text)]">
                           {inspection.property_address ||
                             inspection.address ||
                             "Untitled Inspection"}
                         </p>
 
-                        <p className="mt-1 text-sm text-[#8a93a3]">
+                        <p className="mt-1 text-sm text-[var(--fl-muted)]">
                           {inspection.client_name || "No client"} •{" "}
                           {formatDate(inspection.inspection_date)} • ID #
                           {inspection.id}
                         </p>
 
-                        <p className="mt-1 text-sm text-[#59626f]">
+                        <p className="mt-1 text-sm text-[var(--fl-faint)]">
                           {inspection.inspection_type ||
                             inspection.services ||
                             "Mold Service"}
@@ -501,7 +501,7 @@ export default function MoldPage() {
                       />
 
                       <label>
-                        <span className="text-sm font-bold text-[#8a93a3]">
+                        <span className="text-sm font-bold text-[var(--fl-muted)]">
                           Lab Status
                         </span>
                         <select
@@ -513,7 +513,7 @@ export default function MoldPage() {
                               event.target.value
                             )
                           }
-                          className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+                          className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
                         >
                           <option value="Pending Collection">
                             Pending Collection
@@ -528,7 +528,7 @@ export default function MoldPage() {
                       </label>
 
                       <label>
-                        <span className="text-sm font-bold text-[#8a93a3]">
+                        <span className="text-sm font-bold text-[var(--fl-muted)]">
                           Result
                         </span>
                         <select
@@ -536,7 +536,7 @@ export default function MoldPage() {
                           onChange={(event) =>
                             updateForm(inspection.id, "result", event.target.value)
                           }
-                          className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+                          className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Normal">Normal / Not Elevated</option>
@@ -556,7 +556,7 @@ export default function MoldPage() {
                     </div>
 
                     <label className="mt-4 block">
-                      <span className="text-sm font-bold text-[#8a93a3]">
+                      <span className="text-sm font-bold text-[var(--fl-muted)]">
                         Findings / Lab Summary
                       </span>
                       <textarea
@@ -569,13 +569,13 @@ export default function MoldPage() {
                           )
                         }
                         rows={3}
-                        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+                        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
                         placeholder="Brief summary of lab findings, sample locations, or elevated mold types..."
                       />
                     </label>
 
                     <label className="mt-4 block">
-                      <span className="text-sm font-bold text-[#8a93a3]">
+                      <span className="text-sm font-bold text-[var(--fl-muted)]">
                         Notes
                       </span>
                       <textarea
@@ -584,16 +584,16 @@ export default function MoldPage() {
                           updateForm(inspection.id, "notes", event.target.value)
                         }
                         rows={3}
-                        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+                        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
                         placeholder="Sampling limitations, rooms sampled, humidity/moisture observations, or client notes..."
                       />
                     </label>
 
-                    <div className="mt-4 rounded-xl border border-[#232b38] bg-[#10151e] p-4">
-                      <p className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+                    <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
+                      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                         Client Summary
                       </p>
-                      <p className="mt-2 text-sm leading-7 text-[#e8ecf3]">
+                      <p className="mt-2 text-sm leading-7 text-[var(--fl-text)]">
                         {summary}
                       </p>
                     </div>
@@ -618,7 +618,7 @@ export default function MoldPage() {
 
                       <Link
                         href={`/reports/${inspection.id}`}
-                        className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+                        className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
                       >
                         View Report
                       </Link>
@@ -665,7 +665,7 @@ function MetricCard({
 }) {
   const colors: Record<string, string> = {
     green: "border-green-500/40 bg-green-950/20 text-green-300",
-    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
     blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
     red: "border-red-500/40 bg-red-950/20 text-red-300",
     purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
@@ -674,22 +674,22 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+      <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }
 
 function BreakdownCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
+      <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{value}</p>
     </div>
   );
 }
@@ -760,7 +760,7 @@ function LabReportField({
 
   return (
     <label>
-      <span className="text-sm font-bold text-[#8a93a3]">
+      <span className="text-sm font-bold text-[var(--fl-muted)]">
         Lab Report (upload PDF or paste a link)
       </span>
       <input
@@ -768,11 +768,11 @@ function LabReportField({
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Upload the PDF, or paste a link"
-        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
       />
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <label
-          className={`inline-flex items-center gap-2 rounded-lg border border-teal-500/50 px-3 py-2 text-sm font-bold text-teal-300 transition hover:bg-teal-500/10 ${
+          className={`inline-flex items-center gap-2 rounded-lg border border-teal-500/50 px-3 py-2 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 ${
             uploading ? "cursor-wait opacity-70" : "cursor-pointer"
           }`}
         >
@@ -790,7 +790,7 @@ function LabReportField({
             href={value}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-bold text-teal-400 underline"
+            className="text-sm font-bold text-[var(--fl-accent-text)] underline"
           >
             View current
           </a>
@@ -799,7 +799,7 @@ function LabReportField({
       {error ? (
         <p className="mt-1 text-xs font-bold text-red-400">{error}</p>
       ) : (
-        <p className="mt-1 text-xs text-[#59626f]">
+        <p className="mt-1 text-xs text-[var(--fl-faint)]">
           Remember to Save after uploading.
         </p>
       )}
@@ -820,12 +820,12 @@ function Field({
 }) {
   return (
     <label>
-      <span className="text-sm font-bold text-[#8a93a3]">{label}</span>
+      <span className="text-sm font-bold text-[var(--fl-muted)]">{label}</span>
       <input
         type={type}
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
       />
     </label>
   );

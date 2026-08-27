@@ -15,7 +15,7 @@ const CLASSIFICATION_OPTIONS: { value: Classification; label: string }[] = [
 ];
 
 function inputClass() {
-  return "w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400";
+  return "w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400";
 }
 
 export default function W9FillModal({ onSaved }: { onSaved: (result: { path: string; uploadedAt: string }) => void }) {
@@ -100,27 +100,27 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-xl border border-teal-500 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10"
+        className="rounded-xl border border-teal-500 px-5 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
       >
         Fill Out W9 In-App
       </button>
 
       {open && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold text-white">Fill Out W9</h2>
+              <h2 className="text-xl font-semibold text-[var(--fl-text)]">Fill Out W9</h2>
               <button
                 type="button"
                 onClick={close}
                 disabled={submitting}
-                className="rounded-lg border border-[#232b38] px-3 py-1 text-sm font-bold text-[#8a93a3] hover:bg-[#1a212c] disabled:opacity-50"
+                className="rounded-lg border border-[var(--fl-line)] px-3 py-1 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] disabled:opacity-50"
               >
                 Close
               </button>
             </div>
 
-            <p className="mt-2 text-xs leading-5 text-[#8a93a3]">
+            <p className="mt-2 text-xs leading-5 text-[var(--fl-muted)]">
               This fills the real IRS Form W-9. Your SSN/EIN is only used to generate the PDF -
               it is never stored anywhere else in the app.
             </p>
@@ -140,7 +140,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                   <button
                     type="button"
                     onClick={close}
-                    className="rounded-xl border border-[#232b38] px-4 py-2 text-xs font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+                    className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-xs font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
                   >
                     Done
                   </button>
@@ -155,14 +155,14 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                 )}
 
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                     Line 1 · Name (as shown on your tax return)
                   </span>
                   <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass()} />
                 </label>
 
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                     Line 2 · Business name (if different, optional)
                   </span>
                   <input
@@ -173,7 +173,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                 </label>
 
                 <div>
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                     Line 3a · Federal tax classification
                   </span>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -182,8 +182,8 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                         key={option.value}
                         className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold transition ${
                           classification === option.value
-                            ? "border-teal-400 bg-teal-500/15 text-teal-200"
-                            : "border-[#232b38] text-[#8a93a3] hover:border-teal-500/50"
+                            ? "border-teal-400 bg-teal-500/15 text-[var(--fl-accent-text)]"
+                            : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:border-teal-500/50"
                         }`}
                       >
                         <input
@@ -201,7 +201,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
 
                 {classification === "llc" && (
                   <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                       LLC tax classification (C, S, or P)
                     </span>
                     <input
@@ -216,7 +216,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
 
                 {classification === "other" && (
                   <label className="block">
-                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                       Describe entity type
                     </span>
                     <input
@@ -228,14 +228,14 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                 )}
 
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                     Line 5 · Address (number, street, apt/suite)
                   </span>
                   <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass()} />
                 </label>
 
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                     Line 6 · City, state, ZIP
                   </span>
                   <input
@@ -246,7 +246,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                 </label>
 
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                     Line 7 · Account number(s) (optional)
                   </span>
                   <input
@@ -257,11 +257,11 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                 </label>
 
                 <div>
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                     Part I · Taxpayer Identification Number
                   </span>
                   <div className="flex gap-3">
-                    <label className="flex items-center gap-2 text-xs font-bold text-[#8a93a3]">
+                    <label className="flex items-center gap-2 text-xs font-bold text-[var(--fl-muted)]">
                       <input
                         type="radio"
                         checked={tinType === "ein"}
@@ -270,7 +270,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                       />
                       EIN
                     </label>
-                    <label className="flex items-center gap-2 text-xs font-bold text-[#8a93a3]">
+                    <label className="flex items-center gap-2 text-xs font-bold text-[var(--fl-muted)]">
                       <input
                         type="radio"
                         checked={tinType === "ssn"}
@@ -299,11 +299,11 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                       className={`${inputClass()} mt-2 max-w-[220px]`}
                     />
                   )}
-                  <p className="mt-1.5 text-xs text-[#59626f]">Never stored - only used to generate this PDF.</p>
+                  <p className="mt-1.5 text-xs text-[var(--fl-faint)]">Never stored - only used to generate this PDF.</p>
                 </div>
 
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                     Part II · Type your full legal name to sign
                   </span>
                   <input
@@ -313,14 +313,14 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                   />
                 </label>
 
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#232b38] bg-black p-3">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--fl-line)] bg-black p-3">
                   <input
                     type="checkbox"
                     checked={certifyAccuracy}
                     onChange={(e) => setCertifyAccuracy(e.target.checked)}
                     className="mt-0.5 h-4 w-4 accent-teal-400"
                   />
-                  <span className="text-xs leading-5 text-[#8a93a3]">
+                  <span className="text-xs leading-5 text-[var(--fl-muted)]">
                     Under penalties of perjury, I certify that the information above is correct, consistent
                     with the certification statements on Form W-9.
                   </span>

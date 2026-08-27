@@ -303,11 +303,11 @@ export default async function AnalyticsPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[#0a0e13] p-8 text-white">
+      <main className="min-h-screen bg-[var(--fl-ground)] p-8 text-[var(--fl-text)]">
         <h1 className="text-3xl font-bold text-red-400">
           Error loading analytics
         </h1>
-        <p className="mt-4 text-[#8a93a3]">{error.message}</p>
+        <p className="mt-4 text-[var(--fl-muted)]">{error.message}</p>
       </main>
     );
   }
@@ -782,27 +782,27 @@ export default async function AnalyticsPage() {
   const recentInspections = rows.slice(0, 8);
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
                 FLOW
               </p>
 
-              <h1 className="mt-4 text-5xl font-semibold text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">
                 Analytics Dashboard
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Track revenue, inspections, payments, agreements, publishing, and realtor referrals.
               </p>
             </div>
 
             <Link
               href="/dashboard"
-              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
             >
               Back to Dashboard
             </Link>
@@ -971,7 +971,7 @@ export default async function AnalyticsPage() {
                 />
               </div>
               {!secure24Enabled && (
-                <p className="mt-4 text-sm text-[#8a93a3]">
+                <p className="mt-4 text-sm text-[var(--fl-muted)]">
                   Turn the referral on in Settings to offer it to your clients.
                 </p>
               )}
@@ -1068,12 +1068,12 @@ export default async function AnalyticsPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
                   Most Viewed Report
                 </p>
-                <p className="mt-2 font-bold text-white">
+                <p className="mt-2 font-bold text-[var(--fl-text)]">
                   {mostViewedReport.inspection.property_address ||
                     mostViewedReport.inspection.address ||
                     "Untitled Inspection"}
                 </p>
-                <p className="mt-1 text-sm text-[#8a93a3]">
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   {mostViewedReport.count} open{mostViewedReport.count === 1 ? "" : "s"} •{" "}
                   {formatDuration(mostViewedReport.seconds)} reading time
                 </p>
@@ -1151,11 +1151,11 @@ export default async function AnalyticsPage() {
                   return (
                     <div key={row.month}>
                       <div className="mb-2 flex justify-between text-sm">
-                        <span className="font-bold text-white">{row.month}</span>
-                        <span className="text-[#8a93a3]">{money(row.revenue)}</span>
+                        <span className="font-bold text-[var(--fl-text)]">{row.month}</span>
+                        <span className="text-[var(--fl-muted)]">{money(row.revenue)}</span>
                       </div>
 
-                      <div className="h-4 overflow-hidden rounded-full bg-[#0a0e13]">
+                      <div className="h-4 overflow-hidden rounded-full bg-[var(--fl-ground)]">
                         <div
                           className="h-full rounded-full bg-teal-400"
                           style={{ width: `${width}%` }}
@@ -1180,13 +1180,13 @@ export default async function AnalyticsPage() {
                   return (
                     <div key={row.month}>
                       <div className="mb-2 flex justify-between text-sm">
-                        <span className="font-bold text-white">{row.month}</span>
-                        <span className="text-[#8a93a3]">
+                        <span className="font-bold text-[var(--fl-text)]">{row.month}</span>
+                        <span className="text-[var(--fl-muted)]">
                           {row.count} inspection{row.count === 1 ? "" : "s"}
                         </span>
                       </div>
 
-                      <div className="h-4 overflow-hidden rounded-full bg-[#0a0e13]">
+                      <div className="h-4 overflow-hidden rounded-full bg-[var(--fl-ground)]">
                         <div
                           className="h-full rounded-full bg-cyan-400"
                           style={{ width: `${width}%` }}
@@ -1209,31 +1209,31 @@ export default async function AnalyticsPage() {
                 {topRealtors.map((realtor, index) => (
                   <div
                     key={realtor.key}
-                    className="rounded-xl border border-[#232b38] bg-[#131923] p-4"
+                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-teal-300">
+                        <p className="text-sm font-semibold text-[var(--fl-accent-text)]">
                           #{index + 1}
                         </p>
 
-                        <p className="mt-1 text-lg font-bold text-white">
+                        <p className="mt-1 text-lg font-bold text-[var(--fl-text)]">
                           {realtor.name}
                         </p>
                         {realtor.email && (
-                          <p className="mt-1 text-xs text-[#59626f]">
+                          <p className="mt-1 text-xs text-[var(--fl-faint)]">
                             {realtor.email}
                           </p>
                         )}
                       </div>
 
                       <div className="text-right">
-                        <p className="font-semibold text-white">{realtor.count}</p>
-                        <p className="text-xs text-[#8a93a3]">inspections</p>
+                        <p className="font-semibold text-[var(--fl-text)]">{realtor.count}</p>
+                        <p className="text-xs text-[var(--fl-muted)]">inspections</p>
                       </div>
                     </div>
 
-                    <p className="mt-3 text-sm text-[#8a93a3]">
+                    <p className="mt-3 text-sm text-[var(--fl-muted)]">
                       Paid Revenue: {money(realtor.revenue)}
                     </p>
                   </div>
@@ -1256,23 +1256,23 @@ export default async function AnalyticsPage() {
                     <Link
                       key={inspection.id}
                       href={`/reports/${inspection.id}`}
-                      className="block rounded-xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-teal-500/60"
+                      className="block rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-teal-500/60"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
-                          <p className="font-bold text-white">
+                          <p className="font-bold text-[var(--fl-text)]">
                             {inspection.property_address ||
                               inspection.address ||
                               "Untitled Inspection"}
                           </p>
 
-                          <p className="mt-1 text-sm text-[#8a93a3]">
+                          <p className="mt-1 text-sm text-[var(--fl-muted)]">
                             {formatDate(getDateValue(inspection))} •{" "}
                             {inspection.client_name || "No client"}
                           </p>
                         </div>
 
-                        <p className="font-semibold text-teal-300">
+                        <p className="font-semibold text-[var(--fl-accent-text)]">
                           {money(getInspectionPrice(inspection))}
                         </p>
                       </div>
@@ -1308,24 +1308,24 @@ export default async function AnalyticsPage() {
                   return (
                     <div
                       key={row.type}
-                      className="rounded-xl border border-[#232b38] bg-[#131923] p-4"
+                      className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
                     >
                       <div className="mb-2 flex flex-wrap items-center justify-between gap-3 text-sm">
-                        <span className="font-bold text-white">{row.type}</span>
-                        <span className="text-[#8a93a3]">
+                        <span className="font-bold text-[var(--fl-text)]">{row.type}</span>
+                        <span className="text-[var(--fl-muted)]">
                           {row.count} inspection{row.count === 1 ? "" : "s"} •{" "}
                           {row.percentage}%
                         </span>
                       </div>
 
-                      <div className="h-4 overflow-hidden rounded-full bg-[#0a0e13]">
+                      <div className="h-4 overflow-hidden rounded-full bg-[var(--fl-ground)]">
                         <div
                           className="h-full rounded-full bg-blue-400"
                           style={{ width: `${width}%` }}
                         />
                       </div>
 
-                      <p className="mt-3 text-sm text-[#8a93a3]">
+                      <p className="mt-3 text-sm text-[var(--fl-muted)]">
                         Paid Revenue: {money(row.revenue)} • Quoted:{" "}
                         {money(row.quoted)}
                       </p>
@@ -1353,13 +1353,13 @@ export default async function AnalyticsPage() {
                   return (
                     <div key={row.type}>
                       <div className="mb-2 flex justify-between gap-3 text-sm">
-                        <span className="font-bold text-white">{row.type}</span>
-                        <span className="text-[#8a93a3]">
+                        <span className="font-bold text-[var(--fl-text)]">{row.type}</span>
+                        <span className="text-[var(--fl-muted)]">
                           {money(row.revenue)}
                         </span>
                       </div>
 
-                      <div className="h-4 overflow-hidden rounded-full bg-[#0a0e13]">
+                      <div className="h-4 overflow-hidden rounded-full bg-[var(--fl-ground)]">
                         <div
                           className="h-full rounded-full bg-green-400"
                           style={{ width: `${width}%` }}
@@ -1385,19 +1385,19 @@ export default async function AnalyticsPage() {
                 {topRealtorsByRevenue.map((realtor, index) => (
                   <div
                     key={realtor.key}
-                    className="rounded-xl border border-[#232b38] bg-[#131923] p-4"
+                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-teal-300">
+                        <p className="text-sm font-semibold text-[var(--fl-accent-text)]">
                           #{index + 1}
                         </p>
 
-                        <p className="mt-1 text-lg font-bold text-white">
+                        <p className="mt-1 text-lg font-bold text-[var(--fl-text)]">
                           {realtor.name}
                         </p>
                         {realtor.email && (
-                          <p className="mt-1 text-xs text-[#59626f]">
+                          <p className="mt-1 text-xs text-[var(--fl-faint)]">
                             {realtor.email}
                           </p>
                         )}
@@ -1407,7 +1407,7 @@ export default async function AnalyticsPage() {
                         <p className="font-semibold text-green-300">
                           {money(realtor.revenue)}
                         </p>
-                        <p className="text-xs text-[#8a93a3]">
+                        <p className="text-xs text-[var(--fl-muted)]">
                           {realtor.count} referral
                           {realtor.count === 1 ? "" : "s"}
                         </p>
@@ -1431,16 +1431,16 @@ export default async function AnalyticsPage() {
                   <Link
                     key={inspection.id}
                     href={`/invoices/${inspection.id}/print`}
-                    className="block rounded-xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-orange-500/60"
+                    className="block rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-orange-500/60"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="font-bold text-white">
+                        <p className="font-bold text-[var(--fl-text)]">
                           {inspection.property_address ||
                             inspection.address ||
                             "Untitled Inspection"}
                         </p>
-                        <p className="mt-1 text-sm text-[#8a93a3]">
+                        <p className="mt-1 text-sm text-[var(--fl-muted)]">
                           {inspection.client_name || inspection.client || "No client"} •{" "}
                           {inspection.daysOutstanding} day
                           {inspection.daysOutstanding === 1 ? "" : "s"} outstanding
@@ -1451,7 +1451,7 @@ export default async function AnalyticsPage() {
                         <p className="font-semibold text-orange-300">
                           {money(inspection.balanceDue)}
                         </p>
-                        <p className="text-xs text-[#59626f]">
+                        <p className="text-xs text-[var(--fl-faint)]">
                           Invoice {money(inspection.invoiceAmount)}
                         </p>
                       </div>
@@ -1463,12 +1463,12 @@ export default async function AnalyticsPage() {
           </Panel>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">
+        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
             Pricing Logic Used
           </h2>
 
-          <p className="mt-3 leading-7 text-[#8a93a3]">
+          <p className="mt-3 leading-7 text-[var(--fl-muted)]">
             Analytics uses the saved inspection price when available. If a price is missing, it estimates from square footage using your current pricing rule: <strong>$500 up to 2,000 sq ft</strong>, then <strong>+$50 per additional 1,000 sq ft or portion above 2,000 sq ft</strong>.
           </p>
         </section>
@@ -1490,7 +1490,7 @@ function MetricCard({
 }) {
   const colors: Record<string, string> = {
     green: "border-green-500/40 bg-green-950/20 text-green-300",
-    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
     blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
     purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
     orange: "border-orange-500/40 bg-orange-950/20 text-orange-300",
@@ -1500,13 +1500,13 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
-      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
+      <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{value}</p>
 
-      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }
@@ -1521,9 +1521,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
+    <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+      <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{title}</h2>
+      <p className="mt-2 text-sm text-[var(--fl-muted)]">{subtitle}</p>
 
       <div className="mt-6">{children}</div>
     </section>
@@ -1532,7 +1532,7 @@ function Panel({
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">
       {text}
     </div>
   );
@@ -1553,20 +1553,20 @@ function FunnelStep({
   const safePercent = Math.max(0, Math.min(100, percent || 0));
 
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-semibold text-white">{label}</p>
-          <p className="mt-1 text-sm text-[#8a93a3]">{helper}</p>
+          <p className="font-semibold text-[var(--fl-text)]">{label}</p>
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">{helper}</p>
         </div>
 
         <div className="text-right">
-          <p className="text-2xl font-semibold text-teal-300">{value}</p>
-          <p className="text-xs font-bold text-[#59626f]">{safePercent}%</p>
+          <p className="text-2xl font-semibold text-[var(--fl-accent-text)]">{value}</p>
+          <p className="text-xs font-bold text-[var(--fl-faint)]">{safePercent}%</p>
         </div>
       </div>
 
-      <div className="h-3 overflow-hidden rounded-full bg-[#0a0e13]">
+      <div className="h-3 overflow-hidden rounded-full bg-[var(--fl-ground)]">
         <div
           className="h-full rounded-full bg-teal-400"
           style={{ width: `${Math.max(3, safePercent)}%` }}
@@ -1586,14 +1586,14 @@ function MiniMetric({
   helper: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
         {label}
       </p>
 
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+      <p className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">{value}</p>
 
-      <p className="mt-2 text-sm leading-5 text-[#8a93a3]">{helper}</p>
+      <p className="mt-2 text-sm leading-5 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }

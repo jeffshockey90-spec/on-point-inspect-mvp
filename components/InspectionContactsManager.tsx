@@ -13,10 +13,10 @@ function formatRole(role: string) {
 
 function roleBadgeClass(role: string) {
   const clean = String(role || "").toLowerCase();
-  if (clean.includes("client")) return "border-teal-500/40 bg-teal-500/10 text-teal-300";
+  if (clean.includes("client")) return "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]";
   if (clean.includes("realtor") || clean.includes("agent")) return "border-purple-500/40 bg-purple-500/10 text-purple-300";
   if (clean.includes("transaction")) return "border-cyan-500/40 bg-cyan-500/10 text-cyan-300";
-  return "border-[#232b38] bg-[#1a212c] text-[#8a93a3]";
+  return "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]";
 }
 
 function StatusBadge({ active, activeText, inactiveText }: { active: boolean; activeText: string; inactiveText: string }) {
@@ -41,7 +41,7 @@ function CompactToggle({ checked, onChange, title }: { checked: boolean; onChang
       className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition ${
         checked
           ? "border-green-500/40 bg-green-500/10 text-green-300"
-          : "border-[#232b38] bg-[#1a212c] text-[#8a93a3]"
+          : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]"
       }`}
     >
       {checked ? "✓ " : ""}{title}
@@ -223,19 +223,19 @@ export default function InspectionContactsManager({
     await loadContacts();
   }
 
-  const fieldClass = "box-border h-[52px] min-w-0 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 text-white outline-none transition placeholder:text-[#59626f] focus:border-teal-400 focus:ring-1 focus:ring-teal-400/40";
+  const fieldClass = "box-border h-[52px] min-w-0 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none transition placeholder:text-[var(--fl-faint)] focus:border-teal-400 focus:ring-1 focus:ring-teal-400/40";
 
   return (
-    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[#232b38] bg-[#071224] shadow-2xl shadow-black/20">
-      <div className="border-b border-[#1a212c] bg-gradient-to-r from-[#10151e] via-[#0b1628] to-[#10151e] p-4 sm:p-5">
+    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#071224] shadow-2xl shadow-black/20">
+      <div className="border-b border-[var(--fl-raised)] bg-gradient-to-r from-[var(--fl-surface)] via-[#0b1628] to-[var(--fl-surface)] p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-teal-400">Delivery Contacts</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Client / Realtor Contacts</h2>
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">Compact contact cards with agreement and portal badges.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">Delivery Contacts</p>
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">Client / Realtor Contacts</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">Compact contact cards with agreement and portal badges.</p>
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex">
-            <button type="button" onClick={seedDefaults} className="rounded-2xl border border-teal-500/70 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500 hover:text-slate-950">Add Existing</button>
+            <button type="button" onClick={seedDefaults} className="rounded-2xl border border-teal-500/70 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-slate-950">Add Existing</button>
             <button type="button" onClick={() => setShowAddForm((current) => !current)} className="rounded-2xl bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-teal-400">{showAddForm ? "Hide Form" : "Add Contact"}</button>
           </div>
         </div>
@@ -243,10 +243,10 @@ export default function InspectionContactsManager({
 
       <div className="p-4 sm:p-5">
         {showAddForm && (
-          <div className="mb-5 rounded-2xl border border-[#232b38] bg-[#131923] p-4">
+          <div className="mb-5 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             {savedRealtors.length > 0 && (
               <div className="mb-3">
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Select a saved realtor (auto-fills below)
                 </label>
                 <select
@@ -301,7 +301,7 @@ export default function InspectionContactsManager({
           </div>
         )}
 
-        {loading && <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 text-sm text-[#8a93a3]">Loading contacts...</div>}
+        {loading && <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">Loading contacts...</div>}
 
         {!loading && loadError && (
           <div className="rounded-2xl border border-red-500/40 bg-red-950/20 p-6 text-center">
@@ -318,16 +318,16 @@ export default function InspectionContactsManager({
         )}
 
         {!loading && !loadError && contacts.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-[#232b38] bg-[#131923] p-6 text-center">
-            <p className="text-lg font-bold text-white">No contacts added yet.</p>
-            <p className="mt-2 text-sm text-[#8a93a3]">Add the client and realtor so delivery, portal access, and agreement requirements stay organized.</p>
+          <div className="rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center">
+            <p className="text-lg font-bold text-[var(--fl-text)]">No contacts added yet.</p>
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">Add the client and realtor so delivery, portal access, and agreement requirements stay organized.</p>
           </div>
         )}
 
         {!loading && !loadError && contacts.length > 0 && (
           <div className="space-y-3">
             {contacts.map((contact) => (
-              <article key={contact.id} className="w-full overflow-hidden rounded-2xl border border-[#232b38] bg-[#131923] p-4 shadow-xl">
+              <article key={contact.id} className="w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 shadow-xl">
                 {editingId === contact.id ? (
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -342,7 +342,7 @@ export default function InspectionContactsManager({
                       <button type="button" onClick={() => saveEdit(contact.id)} disabled={savingEdit} className="rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-teal-400 disabled:opacity-60">
                         {savingEdit ? "Saving..." : "Save"}
                       </button>
-                      <button type="button" onClick={() => setEditingId(null)} disabled={savingEdit} className="rounded-xl border border-[#232b38] px-5 py-2.5 text-sm font-semibold text-[#8a93a3] transition hover:bg-[#1a212c] disabled:opacity-60">
+                      <button type="button" onClick={() => setEditingId(null)} disabled={savingEdit} className="rounded-xl border border-[var(--fl-line)] px-5 py-2.5 text-sm font-semibold text-[var(--fl-muted)] transition hover:bg-[var(--fl-raised)] disabled:opacity-60">
                         Cancel
                       </button>
                     </div>
@@ -352,28 +352,28 @@ export default function InspectionContactsManager({
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="break-words text-lg font-semibold text-white">{contact.name}</h3>
+                          <h3 className="break-words text-lg font-semibold text-[var(--fl-text)]">{contact.name}</h3>
                           <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${roleBadgeClass(contact.role)}`}>{formatRole(contact.role)}</span>
                           {contact.agreement_required ? (
                             <StatusBadge active={Boolean(contact.agreement_signed)} activeText="Signed" inactiveText="Not Signed" />
                           ) : (
-                            <span className="rounded-full border border-[#232b38] bg-[#1a212c] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
+                            <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-raised)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                               No Signature Needed
                             </span>
                           )}
                           <StatusBadge active={Boolean(contact.portal_access)} activeText="Portal" inactiveText="No Portal" />
                         </div>
-                        <div className="mt-3 space-y-1 text-sm text-[#8a93a3]">
-                          <p className="break-all"><span className="font-bold text-[#59626f]">Email:</span> {contact.email || "N/A"}</p>
-                          <p className="break-all"><span className="font-bold text-[#59626f]">Phone:</span> {contact.phone || "N/A"}</p>
+                        <div className="mt-3 space-y-1 text-sm text-[var(--fl-muted)]">
+                          <p className="break-all"><span className="font-bold text-[var(--fl-faint)]">Email:</span> {contact.email || "N/A"}</p>
+                          <p className="break-all"><span className="font-bold text-[var(--fl-faint)]">Phone:</span> {contact.phone || "N/A"}</p>
                         </div>
                       </div>
                       <div className="flex w-full gap-2 sm:w-auto">
-                        <button type="button" onClick={() => startEdit(contact)} className="flex-1 rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-200 sm:flex-none">Edit</button>
+                        <button type="button" onClick={() => startEdit(contact)} className="flex-1 rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)] sm:flex-none">Edit</button>
                         <button type="button" onClick={() => deleteContact(contact.id)} className="flex-1 rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500 hover:text-white sm:flex-none">Delete</button>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2 border-t border-[#1a212c] pt-4">
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--fl-raised)] pt-4">
                       <CompactToggle checked={Boolean(contact.agreement_required)} onChange={(checked) => updateContact(contact.id, { agreement_required: checked })} title="Agreement Required" />
                       <CompactToggle checked={Boolean(contact.portal_access)} onChange={(checked) => updateContact(contact.id, { portal_access: checked })} title="Portal Access" />
                     </div>

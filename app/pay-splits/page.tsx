@@ -247,16 +247,16 @@ export default async function PaySplitsPage({
   const isActiveRange = (r: { from: string; to: string }) => r.from === from && r.to === to;
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-6xl space-y-8">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
                 {companyName}
               </p>
-              <h1 className="mt-4 text-5xl font-semibold text-white">Pay Splits</h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">Pay Splits</h1>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Per-inspector earnings on published inspections — gross fee billed, the inspector&apos;s
                 commission cut, and the company&apos;s cut — for the selected date range.
               </p>
@@ -264,7 +264,7 @@ export default async function PaySplitsPage({
 
             <Link
               href="/analytics"
-              className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
+              className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
             >
               Back to Analytics
             </Link>
@@ -272,11 +272,11 @@ export default async function PaySplitsPage({
         </section>
 
         {/* Date range controls */}
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <h2 className="text-2xl font-semibold text-teal-300">Date Range</h2>
-              <p className="mt-2 text-sm text-[#8a93a3]">
+              <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Date Range</h2>
+              <p className="mt-2 text-sm text-[var(--fl-muted)]">
                 Showing {formatLabel(from)} – {formatLabel(to)}. Earnings use each inspection&apos;s date.
               </p>
             </div>
@@ -290,21 +290,21 @@ export default async function PaySplitsPage({
 
           <form method="get" className="mt-5 flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">From</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">From</span>
               <input
                 type="date"
                 name="from"
                 defaultValue={from}
-                className="rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                className="rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">To</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">To</span>
               <input
                 type="date"
                 name="to"
                 defaultValue={to}
-                className="rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                className="rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
             </label>
             <button
@@ -325,22 +325,22 @@ export default async function PaySplitsPage({
         </section>
 
         {/* Earnings table */}
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">Earnings by Inspector</h2>
-          <p className="mt-2 text-sm text-[#8a93a3]">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Earnings by Inspector</h2>
+          <p className="mt-2 text-sm text-[var(--fl-muted)]">
             Gross fee billed, commission %, inspector&apos;s cut, and the company&apos;s cut per inspector.
           </p>
 
           <div className="mt-6">
             {rows.length === 0 ? (
-              <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">
+              <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">
                 No published inspections in this date range.
               </div>
             ) : (
-              <div className="min-w-0 overflow-hidden rounded-2xl border border-[#232b38]">
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--fl-line)]">
                 <div className="min-w-0 overflow-x-auto">
-                  <table className="min-w-full divide-y divide-[#1a212c] text-sm">
-                    <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
+                  <table className="min-w-full divide-y divide-[var(--fl-raised)] text-sm">
+                    <thead className="bg-[var(--fl-ground)] text-left text-xs uppercase tracking-wide text-[var(--fl-muted)]">
                       <tr>
                         <th className="px-4 py-3">Inspector</th>
                         <th className="px-4 py-3 text-right">Inspections</th>
@@ -350,20 +350,20 @@ export default async function PaySplitsPage({
                         <th className="px-4 py-3 text-right">Company Cut</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
+                    <tbody className="divide-y divide-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
                       {rows.map((row) => (
-                        <tr key={row.userId} className="hover:bg-[#131923]">
+                        <tr key={row.userId} className="hover:bg-[var(--fl-surface-2)]">
                           <td className="px-4 py-3">
-                            <p className="max-w-[240px] truncate font-semibold text-white">{row.name}</p>
+                            <p className="max-w-[240px] truncate font-semibold text-[var(--fl-text)]">{row.name}</p>
                             {row.email && (
-                              <p className="max-w-[240px] truncate text-xs text-[#59626f]">{row.email}</p>
+                              <p className="max-w-[240px] truncate text-xs text-[var(--fl-faint)]">{row.email}</p>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-right font-semibold text-white">{row.count}</td>
-                          <td className="px-4 py-3 text-right font-semibold text-teal-300">
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-text)]">{row.count}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-accent-text)]">
                             {formatMoney(row.gross, currency)}
                           </td>
-                          <td className="px-4 py-3 text-right font-semibold text-[#8a93a3]">{row.pct}%</td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-muted)]">{row.pct}%</td>
                           <td className="px-4 py-3 text-right font-semibold text-green-300">
                             {formatMoney(row.inspectorCut, currency)}
                           </td>
@@ -373,14 +373,14 @@ export default async function PaySplitsPage({
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="border-t border-[#232b38] bg-[#0a0e13]">
+                    <tfoot className="border-t border-[var(--fl-line)] bg-[var(--fl-ground)]">
                       <tr>
-                        <td className="px-4 py-3 font-semibold text-white">Totals</td>
-                        <td className="px-4 py-3 text-right font-semibold text-white">{totals.count}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-teal-300">
+                        <td className="px-4 py-3 font-semibold text-[var(--fl-text)]">Totals</td>
+                        <td className="px-4 py-3 text-right font-semibold text-[var(--fl-text)]">{totals.count}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-[var(--fl-accent-text)]">
                           {formatMoney(totals.gross, currency)}
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-[#59626f]">—</td>
+                        <td className="px-4 py-3 text-right font-semibold text-[var(--fl-faint)]">—</td>
                         <td className="px-4 py-3 text-right font-semibold text-green-300">
                           {formatMoney(totals.inspectorCut, currency)}
                         </td>
@@ -397,9 +397,9 @@ export default async function PaySplitsPage({
         </section>
 
         {/* Commission editor */}
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">Commission Rates</h2>
-          <p className="mt-2 max-w-3xl text-sm text-[#8a93a3]">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Commission Rates</h2>
+          <p className="mt-2 max-w-3xl text-sm text-[var(--fl-muted)]">
             Set each inspector&apos;s cut of the gross fee. Leave blank to use the company default
             ({defaultPct}%). Changes apply to the earnings above immediately.
           </p>
@@ -427,8 +427,8 @@ function RangeLink({
       href={`/pay-splits?from=${range.from}&to=${range.to}`}
       className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
         active
-          ? "border-teal-400 bg-teal-500/10 text-teal-200"
-          : "border-[#232b38] text-[#8a93a3] hover:bg-[#1a212c]"
+          ? "border-teal-400 bg-teal-500/10 text-[var(--fl-accent-text)]"
+          : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
       }`}
     >
       {label}
@@ -448,7 +448,7 @@ function MetricCard({
   tone: "teal" | "green" | "blue" | "purple";
 }) {
   const colors: Record<string, string> = {
-    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
     green: "border-green-500/40 bg-green-950/20 text-green-300",
     blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
     purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
@@ -456,9 +456,9 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
-      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p>
+      <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }

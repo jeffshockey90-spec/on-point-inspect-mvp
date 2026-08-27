@@ -58,8 +58,8 @@ export default function ReportContactEditor({
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-[#232b38] bg-[#131923] p-5 print:hidden">
-      <h2 className="mb-5 text-xl font-bold text-teal-400">
+    <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 print:hidden">
+      <h2 className="mb-5 text-xl font-bold text-[var(--fl-accent-text)]">
         Edit Client & Realtor Info
       </h2>
 
@@ -70,7 +70,7 @@ export default function ReportContactEditor({
             setClientName(e.target.value)
           }
           placeholder="Client Name"
-          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
+          className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
         />
 
         <input
@@ -79,7 +79,7 @@ export default function ReportContactEditor({
             setClientEmail(e.target.value)
           }
           placeholder="Client Email"
-          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
+          className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
         />
 
         <input
@@ -88,7 +88,7 @@ export default function ReportContactEditor({
             setClientPhone(e.target.value)
           }
           placeholder="Client Phone"
-          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
+          className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
         />
 
         <input
@@ -97,7 +97,7 @@ export default function ReportContactEditor({
             setRealtorName(e.target.value)
           }
           placeholder="Realtor Name"
-          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
+          className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
         />
 
         <input
@@ -106,7 +106,7 @@ export default function ReportContactEditor({
             setRealtorEmail(e.target.value)
           }
           placeholder="Realtor Email"
-          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white md:col-span-2"
+          className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] md:col-span-2"
         />
       </div>
 
@@ -122,7 +122,7 @@ export default function ReportContactEditor({
         </button>
 
         {message && (
-          <p className="text-sm text-teal-300">
+          <p className="text-sm text-[var(--fl-accent-text)]">
             {message}
           </p>
         )}

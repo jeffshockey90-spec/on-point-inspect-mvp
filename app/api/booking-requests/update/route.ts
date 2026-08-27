@@ -630,7 +630,7 @@ async function sendAppointmentConfirmedEmails(
         </p>
 
         <p>
-          <a href="${portalUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
+          <a href="${portalUrl}" style="display:inline-block;background:#14b8a6;color:var(--fl-ground);font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
             Open Client Portal
           </a>
         </p>

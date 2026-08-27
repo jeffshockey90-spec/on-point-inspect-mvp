@@ -33,14 +33,14 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
     </label>
   );
@@ -116,18 +116,18 @@ function LabReportField({
 
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         Lab Report (upload PDF or paste a link)
       </span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Upload the PDF, or paste a link"
-        className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <label
-          className={`inline-flex items-center gap-2 rounded-lg border border-teal-500/50 px-3 py-2 text-sm font-bold text-teal-300 transition hover:bg-teal-500/10 ${
+          className={`inline-flex items-center gap-2 rounded-lg border border-teal-500/50 px-3 py-2 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 ${
             uploading ? "cursor-wait opacity-70" : "cursor-pointer"
           }`}
         >
@@ -145,7 +145,7 @@ function LabReportField({
             href={value}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-bold text-teal-400 underline"
+            className="text-sm font-bold text-[var(--fl-accent-text)] underline"
           >
             View current
           </a>
@@ -154,7 +154,7 @@ function LabReportField({
       {error ? (
         <p className="mt-1 text-xs font-bold text-red-400">{error}</p>
       ) : (
-        <p className="mt-1 text-xs text-[#59626f]">{helper}</p>
+        <p className="mt-1 text-xs text-[var(--fl-faint)]">{helper}</p>
       )}
     </label>
   );
@@ -213,7 +213,7 @@ function MoldForm({
   }
 
   return (
-    <div className="rounded-2xl border border-[#232b38] bg-[#071224] p-4">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
       <h3 className="mb-4 text-xl font-bold text-purple-300">Mold Test</h3>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -222,13 +222,13 @@ function MoldForm({
         <Field label="Lab Name" value={labName} onChange={setLabName} />
 
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Lab Status
           </span>
           <select
             value={labStatus}
             onChange={(e) => setLabStatus(e.target.value)}
-            className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
           >
             <option value="Pending Collection">Pending Collection</option>
             <option value="Pending">Pending Lab Results</option>
@@ -279,7 +279,7 @@ function radonLevel(avgRaw: string) {
   if (!v || !Number.isFinite(v)) {
     return {
       label: "Enter a value",
-      cls: "border-[#232b38] bg-[#131923] text-[#8a93a3]",
+      cls: "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]",
       note: "Enter the average pCi/L above and this updates automatically.",
     };
   }
@@ -353,7 +353,7 @@ function RadonForm({
   }
 
   return (
-    <div className="rounded-2xl border border-[#232b38] bg-[#071224] p-4">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
       <h3 className="mb-4 text-xl font-bold text-purple-300">Radon Test</h3>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -361,13 +361,13 @@ function RadonForm({
         <Field label="Device Name" value={deviceName} onChange={setDeviceName} />
 
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Report Status
           </span>
           <select
             value={reportStatus}
             onChange={(e) => setReportStatus(e.target.value)}
-            className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
           >
             <option value="Pending">Pending</option>
             <option value="Completed">Completed</option>
@@ -377,17 +377,17 @@ function RadonForm({
         {(() => {
           const level = radonLevel(averagePci);
           return (
-            <div className="md:col-span-2 rounded-xl border border-[#232b38] bg-[#10151e] p-4">
+            <div className="md:col-span-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Radon Level
                 </span>
                 <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${level.cls}`}>
                   {level.label}
                 </span>
               </div>
-              <p className="mt-2 text-xs leading-5 text-[#8a93a3]">{level.note}</p>
-              <p className="mt-1 text-[11px] text-[#59626f]">
+              <p className="mt-2 text-xs leading-5 text-[var(--fl-muted)]">{level.note}</p>
+              <p className="mt-1 text-[11px] text-[var(--fl-faint)]">
                 Auto-calculated from the average above. EPA action level: 4.0 pCi/L.
               </p>
             </div>
@@ -467,10 +467,10 @@ function NotifyButton({ inspectionId }: { inspectionId: string }) {
 
   return (
     <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-4">
-      <p className="text-sm font-semibold uppercase tracking-wide text-teal-300">
+      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
         Alert everyone
       </p>
-      <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
+      <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
         Save your results above first, then send your client and realtor the report link by
         email and text.
       </p>

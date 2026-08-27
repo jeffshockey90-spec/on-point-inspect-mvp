@@ -237,10 +237,10 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
   };
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#050816] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--fl-ground)] px-4 py-4 pb-28 text-[var(--fl-text)] md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#10151e] shadow-2xl shadow-black/20">
-          <div className="flex flex-col gap-5 border-b border-[#1a212c]/90 p-5 sm:p-6 md:p-8 lg:flex-row lg:items-center lg:justify-between">
+        <section className="overflow-hidden rounded-2xl border border-cyan-500/30 bg-[var(--fl-surface)] shadow-2xl shadow-black/20">
+          <div className="flex flex-col gap-5 border-b border-[var(--fl-raised)] p-5 sm:p-6 md:p-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <Link
                 href="/settings"
@@ -251,10 +251,10 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
               <p className="mt-5 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
                 Public Profile
               </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--fl-text)] md:text-4xl">
                 Inspector Profile
               </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a93a3] sm:text-base">
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--fl-muted)] sm:text-base">
                 This is the page clients, realtors, and the public can use to learn about your inspection company and request an inspection.
               </p>
             </div>
@@ -262,8 +262,8 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             <span
               className={`inline-flex w-fit rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
                 company.public_profile_enabled === true
-                  ? "border-teal-400/60 bg-teal-500/15 text-teal-300"
-                  : "border-[#232b38] bg-[#131923] text-[#8a93a3]"
+                  ? "border-teal-400/60 bg-teal-500/15 text-[var(--fl-accent-text)]"
+                  : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
               }`}
             >
               {company.public_profile_enabled === true ? "Published" : "Draft"}
@@ -273,16 +273,16 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
           <div className="p-5 sm:p-6 md:p-8">
             <div className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
               <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4 sm:p-5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                   Public Link
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">
+                <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
                   Portfolio page access
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                   Use this link for realtor messages, email signatures, business cards, and social media.
                 </p>
-                <p className="mt-4 break-all rounded-xl border border-[#232b38] bg-[#131923] p-3 text-sm font-bold text-white">
+                <p className="mt-4 break-all rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm font-bold text-[var(--fl-text)]">
                   {publicProfileUrl || "Save a profile slug to generate your public link."}
                 </p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -295,30 +295,30 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                   </Link>
                   <Link
                     href="/inspectors"
-                    className="rounded-xl border border-[#232b38] px-5 py-3 text-center font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300"
+                    className="rounded-xl border border-[var(--fl-line)] px-5 py-3 text-center font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
                   >
                     View Directory
                   </Link>
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-[#232b38] bg-[#131923] p-4">
+                <div className="mt-5 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                         Portfolio Completion
                       </p>
-                      <p className="mt-1 text-2xl font-semibold text-white">
+                      <p className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
                         {portfolioCompletion}%
                       </p>
                     </div>
                     <div className="h-14 w-14 rounded-full border border-teal-400/40 bg-teal-500/10 p-1">
-                      <div className="flex h-full w-full items-center justify-center rounded-full bg-[#0a0e13] text-sm font-semibold text-teal-300">
+                      <div className="flex h-full w-full items-center justify-center rounded-full bg-[var(--fl-ground)] text-sm font-semibold text-[var(--fl-accent-text)]">
                         {completedPortfolioItems}/{portfolioChecklist.length}
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#1a212c]">
+                  <div className="mt-4 h-3 overflow-hidden rounded-full bg-[var(--fl-raised)]">
                     <div
                       className="h-full rounded-full bg-teal-400"
                       style={{ width: `${portfolioCompletion}%` }}
@@ -331,8 +331,8 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                         key={item.label}
                         className={`rounded-xl border px-3 py-2 text-xs font-bold ${
                           item.done
-                            ? "border-teal-500/30 bg-teal-500/10 text-teal-200"
-                            : "border-[#232b38] bg-[#131923] text-[#8a93a3]"
+                            ? "border-teal-500/30 bg-teal-500/10 text-[var(--fl-accent-text)]"
+                            : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
                         }`}
                       >
                         {item.done ? "✓" : "○"} {item.label}
@@ -346,13 +346,13 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                 <p className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
                   QR Code & Sharing
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">
+                <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
                   Scan, copy, or download
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                   This is the QR/share area you were looking for. It appears here as soon as your profile has a public slug.
                 </p>
-                <div className="mt-4 rounded-xl border border-[#232b38] bg-[#131923] p-4">
+                <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                   <PublicProfileActions
                     profileUrl={publicProfileUrl}
                     logoUrl={company.logo_url || ""}
@@ -365,12 +365,12 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-6 md:p-8">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
             Booking Widget
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-white">Embed booking on your website</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+          <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">Embed booking on your website</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
             Paste this snippet into your own website to let visitors request an inspection without
             leaving your site. It shows the same booking form as your public page and auto-sizes to fit.
           </p>
@@ -390,7 +390,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
         {pageError && (
           <div className="rounded-2xl border border-red-500/50 bg-red-950/20 p-5">
             <h3 className="font-semibold text-red-300">Profile Error</h3>
-            <p className="mt-2 break-words text-sm leading-6 text-[#e8ecf3]">
+            <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
               {pageError}
             </p>
           </div>
@@ -400,16 +400,16 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
           <PublicProfileAnalyticsOverview analytics={analyticsSummary} />
         </div>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-6 md:p-8">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
                 Quick Actions
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">
+              <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
                 Public profile fast buttons
               </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
                 Jump straight to the profile tools inspectors use most: identity, reviews, services, QR sharing, analytics, and preview.
               </p>
             </div>
@@ -417,7 +417,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             <Link
               href={publicProfileUrl || "/settings/public-profile"}
               target={publicProfileUrl ? "_blank" : undefined}
-              className="rounded-xl border border-teal-400/60 px-5 py-3 text-center font-semibold text-teal-200 transition active:scale-[0.98] hover:bg-teal-500 hover:text-slate-950 [touch-action:manipulation]"
+              className="rounded-xl border border-teal-400/60 px-5 py-3 text-center font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500 hover:text-slate-950 [touch-action:manipulation]"
             >
               Preview Portfolio
             </Link>
@@ -430,8 +430,8 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/15 text-2xl">👤</span>
               <span className="min-w-0">
-                <span className="block font-semibold text-white">Identity</span>
-                <span className="mt-1 block text-sm leading-5 text-[#8a93a3]">Logo, headshot, headline, contact info, and company bio.</span>
+                <span className="block font-semibold text-[var(--fl-text)]">Identity</span>
+                <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Logo, headshot, headline, contact info, and company bio.</span>
                 <span className="mt-2 block text-sm font-semibold text-cyan-300 group-hover:text-cyan-200">Open →</span>
               </span>
             </a>
@@ -442,8 +442,8 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-yellow-500/15 text-2xl">⭐</span>
               <span className="min-w-0">
-                <span className="block font-semibold text-white">Google Reviews</span>
-                <span className="mt-1 block text-sm leading-5 text-[#8a93a3]">Connect, sync, and preview Google rating and review snippets.</span>
+                <span className="block font-semibold text-[var(--fl-text)]">Google Reviews</span>
+                <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Connect, sync, and preview Google rating and review snippets.</span>
                 <span className="mt-2 block text-sm font-semibold text-yellow-300 group-hover:text-yellow-200">Open →</span>
               </span>
             </a>
@@ -454,8 +454,8 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-2xl">📸</span>
               <span className="min-w-0">
-                <span className="block font-semibold text-white">Portfolio Gallery</span>
-                <span className="mt-1 block text-sm leading-5 text-[#8a93a3]">Add photos of inspection work to your public profile.</span>
+                <span className="block font-semibold text-[var(--fl-text)]">Portfolio Gallery</span>
+                <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Add photos of inspection work to your public profile.</span>
                 <span className="mt-2 block text-sm font-semibold text-emerald-300 group-hover:text-emerald-200">Open →</span>
               </span>
             </a>
@@ -466,9 +466,9 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-500/15 text-2xl">🏅</span>
               <span className="min-w-0">
-                <span className="block font-semibold text-white">Services & Credentials</span>
-                <span className="mt-1 block text-sm leading-5 text-[#8a93a3]">Service areas, certifications, services offered, and license info.</span>
-                <span className="mt-2 block text-sm font-semibold text-teal-300 group-hover:text-teal-200">Open →</span>
+                <span className="block font-semibold text-[var(--fl-text)]">Services & Credentials</span>
+                <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Service areas, certifications, services offered, and license info.</span>
+                <span className="mt-2 block text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">Open →</span>
               </span>
             </a>
 
@@ -478,8 +478,8 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/15 text-2xl">▦</span>
               <span className="min-w-0">
-                <span className="block font-semibold text-white">QR & Sharing</span>
-                <span className="mt-1 block text-sm leading-5 text-[#8a93a3]">Copy, share, download, and print the public profile QR card.</span>
+                <span className="block font-semibold text-[var(--fl-text)]">QR & Sharing</span>
+                <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Copy, share, download, and print the public profile QR card.</span>
                 <span className="mt-2 block text-sm font-semibold text-fuchsia-300 group-hover:text-fuchsia-200">Open →</span>
               </span>
             </a>
@@ -490,8 +490,8 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/15 text-2xl">📊</span>
               <span className="min-w-0">
-                <span className="block font-semibold text-white">Profile Analytics</span>
-                <span className="mt-1 block text-sm leading-5 text-[#8a93a3]">Views, QR scans, sample clicks, contact clicks, and bookings.</span>
+                <span className="block font-semibold text-[var(--fl-text)]">Profile Analytics</span>
+                <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Views, QR scans, sample clicks, contact clicks, and bookings.</span>
                 <span className="mt-2 block text-sm font-semibold text-blue-300 group-hover:text-blue-200">Open →</span>
               </span>
             </a>
@@ -503,8 +503,8 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
             >
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-2xl">👁️</span>
               <span className="min-w-0">
-                <span className="block font-semibold text-white">Preview Portfolio</span>
-                <span className="mt-1 block text-sm leading-5 text-[#8a93a3]">Open the public profile exactly how clients and realtors see it.</span>
+                <span className="block font-semibold text-[var(--fl-text)]">Preview Portfolio</span>
+                <span className="mt-1 block text-sm leading-5 text-[var(--fl-muted)]">Open the public profile exactly how clients and realtors see it.</span>
                 <span className="mt-2 block text-sm font-semibold text-emerald-300 group-hover:text-emerald-200">Open →</span>
               </span>
             </Link>
@@ -516,16 +516,16 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
         </div>
 
         <form action={savePublicProfile} className="space-y-6">
-          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6 md:p-8">
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
                   Visibility
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">
+                <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
                   Publish Settings
                 </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
                   Turn this on when you want your profile visible from the public directory and direct profile link.
                 </p>
               </div>
@@ -540,111 +540,111 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                   className="mt-1 h-5 w-5 shrink-0 accent-cyan-400"
                 />
                 <span className="min-w-0 break-words">
-                  <span className="block break-words text-base font-semibold text-white">
+                  <span className="block break-words text-base font-semibold text-[var(--fl-text)]">
                     Publish my inspector profile
                   </span>
-                  <span className="mt-1 block break-words text-sm leading-6 text-[#8a93a3]">
+                  <span className="mt-1 block break-words text-sm leading-6 text-[var(--fl-muted)]">
                     When enabled, people can open your direct link and find you in the inspector directory.
                   </span>
                 </span>
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Profile Slug
                 </p>
                 <input
                   name="profile_slug"
                   defaultValue={profileSlug}
                   placeholder="jeff-shockey"
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
-                <p className="mt-2 text-xs text-[#59626f]">
+                <p className="mt-2 text-xs text-[var(--fl-faint)]">
                   This creates /inspectors/your-profile-slug.
                 </p>
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Booking Link
                 </p>
                 <input
                   name="public_booking_url"
                   defaultValue={company.public_booking_url || ""}
                   placeholder="/book or your existing booking link"
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
-                <p className="mt-2 text-xs text-[#59626f]">
+                <p className="mt-2 text-xs text-[var(--fl-faint)]">
                   Leave blank to use your FLOW booking page.
                 </p>
               </label>
             </div>
           </section>
 
-          <section id="identity" className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6 md:p-8">
+          <section id="identity" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
               Identity
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
               Inspector & Company Info
             </h2>
 
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Display Name
                 </p>
                 <input
                   name="display_name"
                   defaultValue={company.display_name || company.name || ""}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Headline
                 </p>
                 <input
                   name="public_profile_headline"
                   defaultValue={company.public_profile_headline || ""}
                   placeholder="Protecting Your Investment. One Inspection at a Time."
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Email
                 </p>
                 <input
                   name="email"
                   type="email"
                   defaultValue={company.email || ""}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Phone
                 </p>
                 <input
                   name="phone"
                   defaultValue={company.phone || ""}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
 
               <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Website
                 </p>
                 <input
                   name="website"
                   defaultValue={company.website || ""}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
 
@@ -656,7 +656,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                 initialUrl={company.logo_url || ""}
                 folder="company-logo"
                 buttonText="Upload Company Logo"
-                previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-[#232b38] bg-black/30 object-contain p-3"
+                previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-[var(--fl-line)] bg-black/30 object-contain p-3"
               />
 
               <CompanyImageUploader
@@ -667,11 +667,11 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                 initialUrl={company.public_profile_photo_url || ""}
                 folder="inspector-headshot"
                 buttonText="Upload Headshot"
-                previewClassName="h-28 w-28 rounded-2xl border border-[#232b38] object-cover"
+                previewClassName="h-28 w-28 rounded-2xl border border-[var(--fl-line)] object-cover"
               />
 
               <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   About / Bio
                 </p>
                 <textarea
@@ -679,23 +679,23 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                   defaultValue={company.public_profile_bio || ""}
                   rows={6}
                   placeholder="Tell clients and realtors what makes your inspection company different."
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
             </div>
           </section>
 
-          <section id="services" className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6 md:p-8">
+          <section id="services" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
               Profile Content
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
               Services, Areas & Credentials
             </h2>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Service Areas
                 </p>
                 <textarea
@@ -703,12 +703,12 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                   defaultValue={company.service_areas || ""}
                   rows={6}
                   placeholder={"Maryland\nWest Virginia\nPennsylvania"}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Certifications
                 </p>
                 <textarea
@@ -716,12 +716,12 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                   defaultValue={company.certifications || ""}
                   rows={6}
                   placeholder={"InterNACHI CPI\nFAA Part 107\nIAC2 Mold\nNRPP Radon"}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
 
               <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Services Offered
                 </p>
                 <textarea
@@ -729,29 +729,29 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                   defaultValue={company.services_offered || ""}
                   rows={5}
                   placeholder={"Home Inspection\nRadon Testing\nMold Testing\nDrone Roof Inspection"}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
 
               <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   License Info
                 </p>
                 <textarea
                   name="license_info"
                   defaultValue={company.license_info || ""}
                   rows={3}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
             </div>
           </section>
 
-          <section id="external-links" className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6 md:p-8">
+          <section id="external-links" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
               Social & Reviews
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
               External Links
             </h2>
 
@@ -769,34 +769,34 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Google Review URL
                 </p>
                 <input
                   name="google_review_url"
                   defaultValue={company.google_review_url || ""}
                   placeholder="Paste Google review/profile link"
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Facebook URL
                 </p>
                 <input
                   name="facebook_url"
                   defaultValue={company.facebook_url || ""}
                   placeholder="Paste Facebook business page link"
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-cyan-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-cyan-400"
                 />
               </label>
             </div>
           </section>
 
-          <div className="sticky bottom-24 z-20 rounded-2xl border border-[#232b38] bg-[#10151e]/95 p-4 shadow-2xl shadow-black/40 backdrop-blur md:bottom-4">
+          <div className="sticky bottom-24 z-20 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4 shadow-2xl shadow-black/40 backdrop-blur md:bottom-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm font-bold text-[#8a93a3]">
+              <p className="text-sm font-bold text-[var(--fl-muted)]">
                 Save changes to update your public profile and directory listing.
               </p>
               <button
@@ -850,21 +850,21 @@ function PublicProfileAnalyticsOverview({
   ];
 
   return (
-    <section className="rounded-2xl border border-teal-500/30 bg-[#10151e] p-5 shadow-xl sm:p-6 md:p-8">
+    <section className="rounded-2xl border border-teal-500/30 bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
             Analytics
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-white">
+          <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
             Public profile performance
           </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
             Track how often your public profile, QR code, sample reports, and booking links are being used.
           </p>
         </div>
 
-        <div className="rounded-full border border-[#232b38] bg-[#0a0e13] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <div className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
           Last 30 Days
         </div>
       </div>
@@ -886,17 +886,17 @@ function PublicProfileAnalyticsOverview({
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_0.75fr]">
-        <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 sm:p-5">
+        <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                 Engagement Funnel
               </p>
-              <h3 className="mt-2 text-xl font-semibold text-white">
+              <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)]">
                 What visitors are doing
               </h3>
             </div>
-            <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-200">
+            <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)]">
               30 days
             </span>
           </div>
@@ -907,10 +907,10 @@ function PublicProfileAnalyticsOverview({
               return (
                 <div key={row.label}>
                   <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                    <span className="font-bold text-[#8a93a3]">{row.label}</span>
-                    <span className="font-semibold text-white">{row.value}</span>
+                    <span className="font-bold text-[var(--fl-muted)]">{row.label}</span>
+                    <span className="font-semibold text-[var(--fl-text)]">{row.value}</span>
                   </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-[#1a212c]">
+                  <div className="h-3 overflow-hidden rounded-full bg-[var(--fl-raised)]">
                     <div
                       className="h-full rounded-full bg-teal-400"
                       style={{ width: `${width}%` }}
@@ -922,26 +922,26 @@ function PublicProfileAnalyticsOverview({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+        <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
             Other Actions
           </p>
-          <h3 className="mt-2 text-xl font-semibold text-white">
+          <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)]">
             Contact & sharing
           </h3>
 
           <div className="mt-5 space-y-3">
-            <div className="flex items-center justify-between rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
-              <span className="text-sm font-bold text-[#8a93a3]">Contact Clicks</span>
-              <span className="text-lg font-semibold text-white">{analytics.contactClicks30}</span>
+            <div className="flex items-center justify-between rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-3">
+              <span className="text-sm font-bold text-[var(--fl-muted)]">Contact Clicks</span>
+              <span className="text-lg font-semibold text-[var(--fl-text)]">{analytics.contactClicks30}</span>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
-              <span className="text-sm font-bold text-[#8a93a3]">Share Clicks</span>
-              <span className="text-lg font-semibold text-white">{analytics.shareClicks30}</span>
+            <div className="flex items-center justify-between rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-3">
+              <span className="text-sm font-bold text-[var(--fl-muted)]">Share Clicks</span>
+              <span className="text-lg font-semibold text-[var(--fl-text)]">{analytics.shareClicks30}</span>
             </div>
           </div>
 
-          <p className="mt-5 text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-5 text-sm leading-6 text-[var(--fl-muted)]">
             These numbers update as clients, realtors, and homeowners interact with your public profile.
           </p>
         </div>
@@ -960,12 +960,12 @@ function AnalyticsStatCard({
   subValue: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#232b38] bg-[#131923] p-4 shadow-lg">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 shadow-lg">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
         {label}
       </p>
-      <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
-      <p className="mt-1 text-xs font-bold text-teal-300">{subValue}</p>
+      <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-1 text-xs font-bold text-[var(--fl-accent-text)]">{subValue}</p>
     </div>
   );
 }

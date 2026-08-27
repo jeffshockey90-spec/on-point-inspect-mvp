@@ -134,7 +134,7 @@ function LiveInspectionScore({
           <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">
             Live Inspection Score
           </p>
-          <p className="mt-1 text-2xl font-semibold text-white">
+          <p className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
             {loading && !result ? "Reviewing…" : `${score}% complete`}
           </p>
           <p className="mt-1 text-sm opacity-90">

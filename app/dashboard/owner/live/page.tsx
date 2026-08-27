@@ -189,11 +189,11 @@ function getInspectionRevenue(inspection: any) {
 
 function RestrictedOwner() {
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">Owner Only</p>
         <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
-        <p className="mt-4 text-[#8a93a3]">This owner tool is only available to the FLOW owner account.</p>
+        <p className="mt-4 text-[var(--fl-muted)]">This owner tool is only available to the FLOW owner account.</p>
         <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10">
           Back to Dashboard
         </Link>
@@ -205,7 +205,7 @@ function RestrictedOwner() {
 function OwnerNav() {
   return (
     <div className="flex flex-wrap gap-3">
-      <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-4 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10">
+      <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-4 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10">
         Owner
       </Link>
       <Link href="/dashboard/owner/users" className="rounded-xl border border-cyan-500 px-4 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/10">
@@ -226,7 +226,7 @@ function OwnerNav() {
       <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-4 py-3 font-semibold text-blue-300 transition hover:bg-blue-500/10">
         ⚡ Live
       </Link>
-      <Link href="/dashboard/owner/system" className="rounded-xl border border-[#59626f] px-4 py-3 font-semibold text-[#e8ecf3] transition hover:bg-slate-700/30">
+      <Link href="/dashboard/owner/system" className="rounded-xl border border-[var(--fl-faint)] px-4 py-3 font-semibold text-[var(--fl-text)] transition hover:bg-slate-700/30">
         🩺 System
       </Link>
     </div>
@@ -235,7 +235,7 @@ function OwnerNav() {
 
 function MetricCard({ label, value, helper, tone }: { label: string; value: string; helper: string; tone: Tone }) {
   const classes: Record<Tone, string> = {
-    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
     green: "border-green-500/40 bg-green-950/20 text-green-300",
     blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
     purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
@@ -246,30 +246,30 @@ function MetricCard({ label, value, helper, tone }: { label: string; value: stri
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
-      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p>
+      <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }
 
 function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
+    <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+      <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{title}</h2>
+      <p className="mt-2 text-sm text-[var(--fl-muted)]">{subtitle}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">{text}</div>;
+  return <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">{text}</div>;
 }
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: Tone }) {
   const classes: Record<Tone, string> = {
-    teal: "border-teal-500/30 bg-teal-500/10 text-teal-300",
+    teal: "border-teal-500/30 bg-teal-500/10 text-[var(--fl-accent-text)]",
     green: "border-green-500/30 bg-green-500/10 text-green-300",
     blue: "border-blue-500/30 bg-blue-500/10 text-blue-300",
     purple: "border-purple-500/30 bg-purple-500/10 text-purple-300",
@@ -347,14 +347,14 @@ export default async function OwnerLiveActivityPage() {
   const views = events.filter((event: any) => ["client_portal", "report_share", "environmental_share"].includes(getViewType(event)));
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-2xl border border-blue-500/40 bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-blue-500/40 bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-blue-400">Owner Live Activity Center</p>
-              <h1 className="mt-4 text-5xl font-semibold text-white">Real-Time Business Activity</h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">Real-Time Business Activity</h1>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Monitor report views, agreement signatures, payments, email clicks, reviews, and app activity.
               </p>
             </div>
@@ -387,18 +387,18 @@ export default async function OwnerLiveActivityPage() {
                   const address = inspection?.property_address || inspection?.address || (inspectionId ? `Inspection #${inspectionId}` : "Unknown inspection");
 
                   return (
-                    <div key={event?.id || index} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+                    <div key={event?.id || index} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <p className="font-semibold text-white">
+                          <p className="font-semibold text-[var(--fl-text)]">
                             <span className="mr-2">{getActivityIcon(event)}</span>
                             {getActivityTitle(event)}
                           </p>
-                          <p className="mt-1 text-sm text-[#8a93a3]">{address}</p>
-                          {event?.viewer_email && <p className="mt-1 text-xs text-[#59626f]">{event.viewer_email}</p>}
+                          <p className="mt-1 text-sm text-[var(--fl-muted)]">{address}</p>
+                          {event?.viewer_email && <p className="mt-1 text-xs text-[var(--fl-faint)]">{event.viewer_email}</p>}
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-bold text-[#59626f]">{formatDateTime(event?.created_at)}</p>
+                          <p className="text-xs font-bold text-[var(--fl-faint)]">{formatDateTime(event?.created_at)}</p>
                           <p className="mt-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-xs font-semibold text-blue-300">{getViewType(event) || "activity"}</p>
                         </div>
                       </div>
@@ -415,13 +415,13 @@ export default async function OwnerLiveActivityPage() {
             ) : (
               <div className="space-y-3">
                 {deviceEvents.slice(0, 40).map((event: any, index: number) => (
-                  <div key={event?.id || index} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+                  <div key={event?.id || index} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-white">{event?.event_type || "app_event"}</p>
-                        <p className="mt-1 truncate text-sm text-[#8a93a3]">{event?.path || "/"}</p>
+                        <p className="truncate font-semibold text-[var(--fl-text)]">{event?.event_type || "app_event"}</p>
+                        <p className="mt-1 truncate text-sm text-[var(--fl-muted)]">{event?.path || "/"}</p>
                       </div>
-                      <p className="shrink-0 text-xs text-[#59626f]">{formatDateTime(event?.created_at)}</p>
+                      <p className="shrink-0 text-xs text-[var(--fl-faint)]">{formatDateTime(event?.created_at)}</p>
                     </div>
                   </div>
                 ))}

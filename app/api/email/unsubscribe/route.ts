@@ -26,7 +26,7 @@ function page(title: string, body: string, status = 200) {
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${title}</title></head>
-<body style="margin:0;background:#020617;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<body style="margin:0;background:var(--fl-ground);color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 <div style="max-width:520px;margin:14vh auto;padding:32px 24px;text-align:center;">
 <div style="font-size:12px;font-weight:800;letter-spacing:.24em;color:#14c8d2;text-transform:uppercase;">On Point Home Inspections</div>
 <h1 style="margin:16px 0 8px;font-size:22px;">${title}</h1>

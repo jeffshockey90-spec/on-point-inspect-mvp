@@ -173,14 +173,14 @@ export default function OwnerSupportChat() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-400">Owner Support Chat</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">Owner Support Chat</p>
               <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Inspector Messages</h1>
-              <p className="mt-4 text-[#8a93a3]">Read and reply to inspector support messages.</p>
+              <p className="mt-4 text-[var(--fl-muted)]">Read and reply to inspector support messages.</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <button
@@ -190,7 +190,7 @@ export default function OwnerSupportChat() {
               >
                 + New Message
               </button>
-              <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 hover:bg-teal-500/10">
+              <Link href="/dashboard/owner" className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10">
                 Owner Dashboard
               </Link>
             </div>
@@ -199,13 +199,13 @@ export default function OwnerSupportChat() {
 
         {showNewMessage && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
-            <div className="w-full max-w-lg rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl">
+            <div className="w-full max-w-lg rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xl font-semibold text-white">Message an Inspector</h2>
+                <h2 className="text-xl font-semibold text-[var(--fl-text)]">Message an Inspector</h2>
                 <button
                   type="button"
                   onClick={() => setShowNewMessage(false)}
-                  className="rounded-lg border border-[#232b38] px-3 py-1 text-sm font-bold text-[#8a93a3] hover:bg-[#1a212c]"
+                  className="rounded-lg border border-[var(--fl-line)] px-3 py-1 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
                 >
                   Close
                 </button>
@@ -221,14 +221,14 @@ export default function OwnerSupportChat() {
                 value={inspectorQuery}
                 onChange={(e) => setInspectorQuery(e.target.value)}
                 placeholder="Search inspectors by name, email, or company..."
-                className="mt-4 w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
 
               <div className="mt-3 max-h-56 space-y-2 overflow-y-auto">
                 {inspectorsLoading ? (
-                  <p className="text-sm text-[#8a93a3]">Loading inspectors...</p>
+                  <p className="text-sm text-[var(--fl-muted)]">Loading inspectors...</p>
                 ) : filteredInspectors.length === 0 ? (
-                  <p className="text-sm text-[#8a93a3]">No inspectors match.</p>
+                  <p className="text-sm text-[var(--fl-muted)]">No inspectors match.</p>
                 ) : (
                   filteredInspectors.map((inspector) => (
                     <button
@@ -238,11 +238,11 @@ export default function OwnerSupportChat() {
                       className={`w-full rounded-xl border p-3 text-left transition ${
                         selectedInspectorId === inspector.id
                           ? "border-teal-400 bg-teal-500/10"
-                          : "border-[#232b38] bg-[#0a0e13] hover:bg-[#131923]"
+                          : "border-[var(--fl-line)] bg-[var(--fl-ground)] hover:bg-[var(--fl-surface-2)]"
                       }`}
                     >
-                      <p className="truncate text-sm font-semibold text-white">{inspector.name}</p>
-                      <p className="truncate text-xs text-[#8a93a3]">
+                      <p className="truncate text-sm font-semibold text-[var(--fl-text)]">{inspector.name}</p>
+                      <p className="truncate text-xs text-[var(--fl-muted)]">
                         {inspector.email || "No email"}
                         {inspector.companyName ? ` · ${inspector.companyName}` : ""}
                       </p>
@@ -256,7 +256,7 @@ export default function OwnerSupportChat() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 rows={4}
                 placeholder="Write your message..."
-                className="mt-4 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
 
               <button
@@ -274,52 +274,52 @@ export default function OwnerSupportChat() {
         {error && <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm font-bold text-red-300">{error}</div>}
 
         <section className="grid gap-5 lg:grid-cols-[380px_1fr]">
-          <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-4">
-            <h2 className="text-xl font-semibold text-teal-300">Threads</h2>
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4">
+            <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Threads</h2>
             <div className="mt-4 space-y-3">
               {loading ? (
-                <p className="text-[#8a93a3]">Loading...</p>
+                <p className="text-[var(--fl-muted)]">Loading...</p>
               ) : threads.length === 0 ? (
-                <p className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-[#8a93a3]">No support messages yet.</p>
+                <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-muted)]">No support messages yet.</p>
               ) : (
                 threads.map((thread) => (
                   <button
                     key={thread.id}
                     onClick={() => setSelectedId(thread.id)}
-                    className={`w-full rounded-xl border p-4 text-left transition ${selected?.id === thread.id ? "border-teal-400 bg-teal-500/10" : "border-[#232b38] bg-[#0a0e13] hover:bg-[#131923]"}`}
+                    className={`w-full rounded-xl border p-4 text-left transition ${selected?.id === thread.id ? "border-teal-400 bg-teal-500/10" : "border-[var(--fl-line)] bg-[var(--fl-ground)] hover:bg-[var(--fl-surface-2)]"}`}
                   >
-                    <p className="truncate font-semibold text-white">{thread.inspector_name || thread.inspector_email || "Inspector"}</p>
-                    <p className="mt-1 truncate text-xs text-[#8a93a3]">{thread.inspector_email || "No email"}</p>
-                    <p className="mt-2 line-clamp-2 text-sm text-[#8a93a3]">{thread.last_message || "No messages"}</p>
-                    <p className="mt-2 text-xs font-bold text-teal-300">{formatDate(thread.last_message_at)}</p>
+                    <p className="truncate font-semibold text-[var(--fl-text)]">{thread.inspector_name || thread.inspector_email || "Inspector"}</p>
+                    <p className="mt-1 truncate text-xs text-[var(--fl-muted)]">{thread.inspector_email || "No email"}</p>
+                    <p className="mt-2 line-clamp-2 text-sm text-[var(--fl-muted)]">{thread.last_message || "No messages"}</p>
+                    <p className="mt-2 text-xs font-bold text-[var(--fl-accent-text)]">{formatDate(thread.last_message_at)}</p>
                   </button>
                 ))
               )}
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-4">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4">
             {selected ? (
               <>
-                <div className="border-b border-[#1a212c] pb-4">
-                  <h2 className="text-2xl font-semibold text-white">{selected.inspector_name || "Inspector"}</h2>
-                  <p className="mt-1 text-sm text-[#8a93a3]">{selected.inspector_email || "No email"}</p>
+                <div className="border-b border-[var(--fl-raised)] pb-4">
+                  <h2 className="text-2xl font-semibold text-[var(--fl-text)]">{selected.inspector_name || "Inspector"}</h2>
+                  <p className="mt-1 text-sm text-[var(--fl-muted)]">{selected.inspector_email || "No email"}</p>
                 </div>
 
-                <div className="mt-4 max-h-[520px] space-y-3 overflow-y-auto rounded-2xl border border-[#1a212c] bg-[#0a0e13] p-4">
+                <div className="mt-4 max-h-[520px] space-y-3 overflow-y-auto rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4">
                   {(selected.messages || []).map((item) => {
                     const isOwner = item.sender_role === "owner";
                     return (
                       <div key={item.id} className={`flex ${isOwner ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[85%] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-950/20" : "border-blue-500/30 bg-blue-950/20"}`}>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                             {isOwner ? "You" : selected.inspector_name || "Inspector"} · {formatDate(item.created_at)}
                           </p>
-                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-white">{item.message}</p>
+                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]">{item.message}</p>
                           {isOwner && (
                             <p
                               className={`mt-2 text-[11px] font-semibold ${
-                                item.read_by_inspector ? "text-teal-300" : "text-[#59626f]"
+                                item.read_by_inspector ? "text-[var(--fl-accent-text)]" : "text-[var(--fl-faint)]"
                               }`}
                             >
                               {item.read_by_inspector ? "✓✓ Read" : "✓ Sent · not read yet"}
@@ -337,7 +337,7 @@ export default function OwnerSupportChat() {
                     onChange={(e) => setReply(e.target.value)}
                     rows={4}
                     placeholder="Reply to inspector..."
-                    className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+                    className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                   />
                   <button
                     onClick={sendReply}
@@ -349,7 +349,7 @@ export default function OwnerSupportChat() {
                 </div>
               </>
             ) : (
-              <p className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-5 text-[#8a93a3]">Select a support thread.</p>
+              <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 text-[var(--fl-muted)]">Select a support thread.</p>
             )}
           </div>
         </section>

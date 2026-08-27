@@ -36,7 +36,7 @@ export default function AgreementStatusResend({
       onClick={resend}
       disabled={state === "sending"}
       title={state === "error" ? msg : undefined}
-      className="rounded-lg border border-teal-500/60 px-3 py-1.5 text-xs font-semibold text-teal-300 transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+      className="rounded-lg border border-teal-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {state === "sending"
         ? "Sending…"

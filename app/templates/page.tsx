@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function TemplatesPage() {
   return (
-    <main className="min-h-screen bg-black px-6 py-10 text-white">
+    <main className="min-h-screen bg-black px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-5xl">
         <h1 className="mb-3 text-5xl font-bold text-cyan-400">
           Finding Templates
@@ -12,7 +12,7 @@ export default function TemplatesPage() {
           Manage reusable inspection findings, favorite comments, and AI-generated templates.
         </p>
 
-        <div className="rounded-2xl border border-[#1a212c] bg-[#111827] p-6 shadow-lg">
+        <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#111827] p-6 shadow-lg">
           <p className="mb-6 text-lg leading-8 text-gray-200">
             Open a report to insert favorite findings or manage report-specific templates.
           </p>

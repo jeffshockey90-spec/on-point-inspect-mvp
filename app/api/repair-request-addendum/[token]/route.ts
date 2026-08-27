@@ -676,14 +676,14 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     @page { size: letter; margin: .45in; }
     html, body { margin: 0; padding: 0; }
-    body { background: #020617; color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.45; }
+    body { background: var(--fl-ground); color: #0f172a; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.45; }
     .screen-actions { max-width: 1020px; margin: 18px auto 12px; padding: 0 12px; display: flex; gap: 10px; flex-wrap: wrap; }
-    .screen-actions button { min-height: 44px; border: 1px solid #14b8a6; border-radius: 12px; background: #020617; color: #5eead4; padding: 10px 16px; font-weight: 900; cursor: pointer; }
+    .screen-actions button { min-height: 44px; border: 1px solid #14b8a6; border-radius: 12px; background: var(--fl-ground); color: #5eead4; padding: 10px 16px; font-weight: 900; cursor: pointer; }
     .shell { max-width: 1020px; margin: 0 auto 28px; padding: 12px; }
     .paper { background: #fff; border-radius: 14px; border: 1px solid #cbd5e1; padding: 24px; box-shadow: 0 14px 40px rgba(0,0,0,.18); }
     .brand { display: flex; justify-content: space-between; gap: 18px; border-bottom: 3px solid #0f8f8f; padding-bottom: 16px; margin-bottom: 16px; }
     .eyebrow { margin: 0 0 6px; color: #0f8f8f; font-size: 11px; font-weight: 900; letter-spacing: .24em; text-transform: uppercase; }
-    h1 { margin: 0 0 8px; font-size: 31px; line-height: 1.08; font-weight: 900; color: #020617; }
+    h1 { margin: 0 0 8px; font-size: 31px; line-height: 1.08; font-weight: 900; color: var(--fl-ground); }
     .property { margin: 0; color: #475569; font-weight: 800; }
     .badge { height: fit-content; border: 1px solid #0f8f8f; border-radius: 999px; color: #0f8f8f; padding: 8px 12px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
     .cover-photo { height: 230px; margin: 16px 0 18px; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 14px; background: #f8fafc; }
@@ -691,14 +691,14 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
     .summary div, .count-card { border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; padding: 10px 12px; }
     .summary span, .count-card span, .credit-row span, .detail span { display: block; margin-bottom: 3px; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-    .summary strong, .count-card strong, .credit-row strong { display: block; color: #020617; font-size: 13px; font-weight: 900; word-break: break-word; }
+    .summary strong, .count-card strong, .credit-row strong { display: block; color: var(--fl-ground); font-size: 13px; font-weight: 900; word-break: break-word; }
     .highlight { background: #ecfeff !important; border-color: #0f8f8f !important; }
     .count-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 14px 0 22px; }
     .item-card { break-inside: avoid; page-break-inside: avoid; border: 1px solid #cbd5e1; border-radius: 12px; padding: 14px; margin-top: 16px; }
     .item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
     .item-number { display: inline-block; margin: 0 0 8px; border: 1px solid #0f8f8f; border-radius: 999px; background: #ecfeff; color: #0f766e; padding: 4px 9px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-    h2 { margin: 22px 0 10px; font-size: 20px; color: #020617; }
-    h3 { margin: 0; font-size: 15px; color: #020617; line-height: 1.25; }
+    h2 { margin: 22px 0 10px; font-size: 20px; color: var(--fl-ground); }
+    h3 { margin: 0; font-size: 15px; color: var(--fl-ground); line-height: 1.25; }
     .section-line { margin: 5px 0 0; color: #64748b; font-size: 11px; font-weight: 800; }
     .status-badge { flex-shrink: 0; border-radius: 999px; border: 1px solid #94a3b8; padding: 6px 10px; font-size: 9px; font-weight: 900; text-transform: uppercase; text-align: center; white-space: nowrap; }
     .status-badge b { margin-right: 4px; }
@@ -725,8 +725,8 @@ function buildAddendumHtml(data: Awaited<ReturnType<typeof loadAddendumData>>) {
     .sig-line { margin-top: 54px; border-bottom: 1px solid #475569; height: 1px; }
     .sig-label { margin-top: 8px; color: #475569; font-weight: 800; }
     .sig-title { margin: 0 0 10px; color: #0f766e; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
-    .typed-signature { min-height: 42px; border-bottom: 1px solid #0f766e; color: #020617; font-size: 28px; font-style: italic; font-weight: 900; line-height: 1.2; }
-    .printed-name { margin: 9px 0 0; color: #020617; font-weight: 900; }
+    .typed-signature { min-height: 42px; border-bottom: 1px solid #0f766e; color: var(--fl-ground); font-size: 28px; font-style: italic; font-weight: 900; line-height: 1.2; }
+    .printed-name { margin: 9px 0 0; color: var(--fl-ground); font-weight: 900; }
     .signed-meta { margin: 4px 0 0; color: #64748b; font-size: 10px; font-weight: 800; }
     .footer-note { margin-top: 24px; color: #64748b; font-size: 11px; text-align: center; }
     @media (max-width: 760px) { .summary, .count-grid, .detail-grid, .credit-row, .signatures, .photos { grid-template-columns: 1fr; } .brand, .item-top { flex-direction: column; } }
@@ -995,7 +995,7 @@ export async function POST(req: Request, { params }: RouteProps) {
         <p><strong>Seller offered credits:</strong> ${escapeHtml(formatMoney(data.sellerCreditTotal))}</p>
         <p><strong>Difference:</strong> ${escapeHtml(formatMoney(data.differenceTotal))}</p>
         <p>
-          <a href="${escapeHtml(addendumUrl)}" style="display:inline-block; background:#14b8a6; color:#020617; padding:14px 20px; border-radius:10px; text-decoration:none; font-weight:700;">Open Addendum</a>
+          <a href="${escapeHtml(addendumUrl)}" style="display:inline-block; background:#14b8a6; color:var(--fl-ground); padding:14px 20px; border-radius:10px; text-decoration:none; font-weight:700;">Open Addendum</a>
         </p>
         <p style="color:#64748b; font-size:13px;">${escapeHtml(data.branding.name)}</p>
       </div>

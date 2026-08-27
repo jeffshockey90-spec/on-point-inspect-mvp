@@ -29,7 +29,7 @@ function StatusPill({ enabled, supported }: { enabled: boolean; supported: boole
     <span
       className={`inline-flex items-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
         enabled
-          ? "border-teal-400/60 bg-teal-500/15 text-teal-300"
+          ? "border-teal-400/60 bg-teal-500/15 text-[var(--fl-accent-text)]"
           : supported
             ? "border-blue-400/50 bg-blue-500/10 text-blue-300"
             : "border-red-400/50 bg-red-500/10 text-red-300"
@@ -189,16 +189,16 @@ export default function PushNotificationSetup() {
     <div className="space-y-5">
       <NativePushSetup />
 
-      <section className="overflow-hidden rounded-2xl border border-[#232b38]/80 bg-[#10151e] shadow-2xl shadow-black/20">
-        <div className="flex flex-col gap-5 border-b border-[#1a212c]/90 p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between">
+      <section className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] shadow-2xl shadow-black/20">
+        <div className="flex flex-col gap-5 border-b border-[var(--fl-raised)] p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
               Web Push
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">
               Browser Push Notifications
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
               Enable alerts for this browser so you can receive booking, support, payment, and report activity notifications even when you are not on the page.
             </p>
           </div>
@@ -207,14 +207,14 @@ export default function PushNotificationSetup() {
         </div>
 
         <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-3">
-          <div className="rounded-2xl border border-[#232b38]/80 bg-[#0a0e13] p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+          <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
               Device Status
             </p>
-            <p className="mt-2 text-lg font-semibold text-white">
+            <p className="mt-2 text-lg font-semibold text-[var(--fl-text)]">
               {enabled ? "Connected" : supported ? "Ready to Connect" : "Unavailable"}
             </p>
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               {enabled
                 ? "This browser is registered for web push alerts."
                 : supported
@@ -223,27 +223,27 @@ export default function PushNotificationSetup() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#232b38]/80 bg-[#0a0e13] p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+          <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
               Permission
             </p>
-            <p className="mt-2 text-lg font-semibold capitalize text-white">
+            <p className="mt-2 text-lg font-semibold capitalize text-[var(--fl-text)]">
               {permission}
             </p>
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Browser permission controls whether FLOW can show notifications on this device.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#232b38]/80 bg-[#0a0e13] p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+          <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
               Alerts Included
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {["Bookings", "Payments", "Reports", "Support"].map((item) => (
                 <span
                   key={item}
-                  className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-300"
+                  className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)]"
                 >
                   {item}
                 </span>
@@ -266,7 +266,7 @@ export default function PushNotificationSetup() {
           </div>
         )}
 
-        <div className="flex flex-col gap-3 border-t border-[#1a212c]/90 p-5 sm:flex-row sm:p-6">
+        <div className="flex flex-col gap-3 border-t border-[var(--fl-raised)] p-5 sm:flex-row sm:p-6">
           <button
             type="button"
             onClick={enablePush}
@@ -282,7 +282,7 @@ export default function PushNotificationSetup() {
             type="button"
             onClick={sendTestPush}
             disabled={busy || (!enabled && !nativeApp)}
-            className="inline-flex w-full items-center justify-center rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
           >
             Send Test To All Devices
           </button>

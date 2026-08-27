@@ -412,7 +412,7 @@ export default function ScheduleCalendar({
       <div className="mb-4 grid gap-4 lg:grid-cols-[1.1fr_2fr]">
         <div className="rounded-2xl border border-teal-400/20 bg-black/30 p-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-white">Today</h2>
+            <h2 className="text-lg font-semibold text-[var(--fl-text)]">Today</h2>
             <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-3 py-1 text-xs font-bold text-teal-100">
               {todaysEvents.length}
             </span>
@@ -444,10 +444,10 @@ export default function ScheduleCalendar({
                   }}
                   className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-4 text-left transition hover:border-teal-400/40 hover:bg-zinc-800 active:scale-[0.99]"
                 >
-                  <p className="text-sm font-semibold text-teal-200">
+                  <p className="text-sm font-semibold text-[var(--fl-accent-text)]">
                     {event.extendedProps.displayTime}
                   </p>
-                  <p className="mt-1 truncate text-sm font-bold text-white">
+                  <p className="mt-1 truncate text-sm font-bold text-[var(--fl-text)]">
                     {event.extendedProps.address}
                   </p>
                   <p className="mt-1 truncate text-xs text-zinc-400">
@@ -617,7 +617,7 @@ export default function ScheduleCalendar({
           <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-zinc-950 p-5 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold text-white">
+                <h2 className="text-xl font-semibold text-[var(--fl-text)]">
                   Edit Appointment
                 </h2>
                 <p className="mt-1 text-sm text-zinc-400">
@@ -651,7 +651,7 @@ export default function ScheduleCalendar({
                       date: event.target.value,
                     })
                   }
-                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-3 py-3 text-white outline-none focus:border-teal-400"
+                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
@@ -668,7 +668,7 @@ export default function ScheduleCalendar({
                       time: event.target.value,
                     })
                   }
-                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-3 py-3 text-white outline-none focus:border-teal-400"
+                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
             </div>
@@ -685,7 +685,7 @@ export default function ScheduleCalendar({
                     status: event.target.value,
                   })
                 }
-                className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-3 py-3 text-white outline-none focus:border-teal-400"
+                className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
               >
                 <option>Scheduled</option>
                 <option>Pending</option>
@@ -696,7 +696,7 @@ export default function ScheduleCalendar({
             </label>
 
             <div className="mt-4 rounded-xl border border-zinc-800 bg-black/40 p-4">
-              <p className="text-sm font-bold text-white">
+              <p className="text-sm font-bold text-[var(--fl-text)]">
                 {selected.client || "Client not entered"}
               </p>
               <p className="mt-1 text-sm text-zinc-400">

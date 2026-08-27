@@ -11,7 +11,7 @@ type PublicProfileActionsProps = {
 };
 
 const TEAL = "#14b8a6";
-const DARK = "#020617";
+const DARK = "var(--fl-ground)";
 
 function cleanFilename(value: string) {
   return String(value || "inspector-profile")
@@ -256,11 +256,11 @@ export default function PublicProfileActions({
         <head>
           <title>${escapeHtml(companyName)} QR Code</title>
           <style>
-            body { margin: 0; padding: 40px; background: #020617; color: white; font-family: Arial, sans-serif; }
-            .card { max-width: 430px; margin: 0 auto; border: 1px solid #334155; border-radius: 28px; padding: 24px; text-align: center; background: #0b1220; }
+            body { margin: 0; padding: 40px; background: var(--fl-ground); color: white; font-family: Arial, sans-serif; }
+            .card { max-width: 430px; margin: 0 auto; border: 1px solid #334155; border-radius: 28px; padding: 24px; text-align: center; background: var(--fl-surface); }
             .qr-wrap { position: relative; width: 300px; max-width: 100%; margin: 0 auto; border-radius: 24px; background: white; padding: 14px; }
             .qr-wrap svg { display: block; width: 100%; height: auto; }
-            .logo-wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 68px; height: 68px; border-radius: 16px; background: #020617; border: 3px solid ${TEAL}; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 8px; }
+            .logo-wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 68px; height: 68px; border-radius: 16px; background: var(--fl-ground); border: 3px solid ${TEAL}; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 8px; }
             .logo-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
             h1 { color: ${TEAL}; font-size: 18px; letter-spacing: .22em; text-transform: uppercase; margin: 18px 0 6px; }
             p { color: #cbd5e1; font-size: 14px; line-height: 1.5; }
@@ -284,18 +284,18 @@ export default function PublicProfileActions({
 
   if (!url) {
     return (
-      <div className="w-full max-w-full rounded-2xl border border-[#232b38] bg-[#0a0e13] p-5 text-sm leading-6 text-[#8a93a3]">
+      <div className="w-full max-w-full rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 text-sm leading-6 text-[var(--fl-muted)]">
         Save your profile slug first. Your personalized QR code will appear here automatically.
       </div>
     );
   }
 
   return (
-    <section className="w-full max-w-full overflow-hidden rounded-2xl border border-teal-500/35 bg-[#0a0e13] shadow-xl">
+    <section className="w-full max-w-full overflow-hidden rounded-2xl border border-teal-500/35 bg-[var(--fl-ground)] shadow-xl">
       <div className="grid w-full min-w-0 gap-0">
         <div className="min-w-0 p-4 sm:p-6">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
               Marketing Kit
             </p>
             <span className="rounded-full border border-purple-400/50 bg-purple-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-purple-200">
@@ -303,16 +303,16 @@ export default function PublicProfileActions({
             </span>
           </div>
 
-          <h2 className="mt-3 break-words text-2xl font-semibold text-white">
+          <h2 className="mt-3 break-words text-2xl font-semibold text-[var(--fl-text)]">
             Your Profile QR Code
           </h2>
 
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fl-muted)]">
             Share your permanent FLOW profile QR code so clients and realtors can view your profile and request an inspection.
           </p>
 
           <div className="mt-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
               Great For
             </p>
             <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
@@ -344,8 +344,8 @@ export default function PublicProfileActions({
             </div>
           )}
 
-          <div className="mt-6 w-full overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
+          <div className="mt-6 w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-accent-text)]">
               Downloads
             </p>
             <div className="mt-4 flex flex-col gap-3">
@@ -362,7 +362,7 @@ export default function PublicProfileActions({
                 type="button"
                 onClick={printQrCard}
                 disabled={!ready || !hasCompanyLogo}
-                className="block w-full max-w-full rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                className="block w-full max-w-full rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
                 Print Card
               </button>
@@ -370,7 +370,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={copyLink}
-                className="block w-full max-w-full rounded-xl border border-[#232b38] px-4 py-3 text-center text-sm font-semibold text-[#e8ecf3] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
+                className="block w-full max-w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-center text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
               >
                 Copy Public Link
               </button>
@@ -378,7 +378,7 @@ export default function PublicProfileActions({
               <button
                 type="button"
                 onClick={shareProfile}
-                className="block w-full max-w-full rounded-xl border border-[#232b38] px-4 py-3 text-center text-sm font-semibold text-[#e8ecf3] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
+                className="block w-full max-w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-center text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:border-cyan-400 hover:text-cyan-200 [touch-action:manipulation]"
               >
                 Share Profile
               </button>
@@ -386,8 +386,8 @@ export default function PublicProfileActions({
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center justify-center border-t border-[#1a212c] bg-[#050816]/70 p-4 sm:p-6">
-          <div className="w-full max-w-[240px] rounded-2xl border border-[#232b38] bg-[#10151e] p-4 text-center shadow-2xl shadow-black/30">
+        <div className="flex min-w-0 items-center justify-center border-t border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4 sm:p-6">
+          <div className="w-full max-w-[240px] rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4 text-center shadow-2xl shadow-black/30">
             <div className="relative rounded-2xl bg-white p-3">
               {svgMarkup ? (
                 <div
@@ -399,7 +399,7 @@ export default function PublicProfileActions({
               )}
 
               {hasCompanyLogo ? (
-                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-2xl border-4 border-teal-500 bg-[#0a0e13] p-2 shadow-xl">
+                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-2xl border-4 border-teal-500 bg-[var(--fl-ground)] p-2 shadow-xl">
                   <img
                     src={centerLogo}
                     alt={`${companyName} logo`}
@@ -410,7 +410,7 @@ export default function PublicProfileActions({
                   />
                 </div>
               ) : (
-                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border-4 border-amber-500 bg-[#0a0e13] p-2 text-center shadow-xl">
+                <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border-4 border-amber-500 bg-[var(--fl-ground)] p-2 text-center shadow-xl">
                   <span className="text-[9px] font-semibold uppercase leading-tight text-amber-300">
                     Upload
                     <br />
@@ -421,15 +421,15 @@ export default function PublicProfileActions({
             </div>
 
             {!ready && !error && (
-              <p className="mt-3 text-center text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+              <p className="mt-3 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                 Generating QR...
               </p>
             )}
 
-            <p className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">
+            <p className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[var(--fl-accent-text)]">
               Scan to View Profile
             </p>
-            <p className="mt-1 text-center text-xs leading-5 text-[#8a93a3]">
+            <p className="mt-1 text-center text-xs leading-5 text-[var(--fl-muted)]">
               Learn more and request an inspection.
             </p>
 
@@ -442,7 +442,7 @@ export default function PublicProfileActions({
             )}
 
             {showPoweredBy && (
-              <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-[0.28em] text-[#59626f]">
+              <p className="mt-4 text-center text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--fl-faint)]">
                 Powered by FLOW
               </p>
             )}

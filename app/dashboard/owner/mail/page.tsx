@@ -79,7 +79,7 @@ function OwnerNav({ unread = 0 }: { unread?: number }) {
   return (
     <div className="flex flex-wrap gap-3">
       {links.map(([href, label]) => (
-        <Link key={href} href={href} className="relative rounded-xl border border-[#232b38] px-3 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 sm:px-4 sm:py-3">
+        <Link key={href} href={href} className="relative rounded-xl border border-[var(--fl-line)] px-3 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 sm:px-4 sm:py-3">
           {label}
           {href === "/dashboard/owner/mail" && unread > 0 && (
             <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-500 px-1.5 text-[11px] font-semibold text-slate-950">
@@ -94,17 +94,17 @@ function OwnerNav({ unread = 0 }: { unread?: number }) {
 
 function statusOf(m: any) {
   if (m.bounced_at || m.status === "failed") return { label: "Failed", tone: "border-red-500/40 bg-red-500/10 text-red-300" };
-  if (m.clicked_at) return { label: "Clicked", tone: "border-teal-400/40 bg-teal-500/10 text-teal-200" };
+  if (m.clicked_at) return { label: "Clicked", tone: "border-teal-400/40 bg-teal-500/10 text-[var(--fl-accent-text)]" };
   if (m.opened_at) return { label: "Opened", tone: "border-blue-400/40 bg-blue-500/10 text-blue-200" };
   if (m.delivered_at) return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" };
-  return { label: "Sent", tone: "border-[#232b38] bg-[#1a212c] text-[#8a93a3]" };
+  return { label: "Sent", tone: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]" };
 }
 
 export default async function OwnerMailPage() {
   const owner = await requireOwner();
   if (!owner) {
     return (
-      <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+      <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8">
           <h1 className="text-4xl font-semibold">Owner Only</h1>
           <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300">Back</Link>
@@ -159,14 +159,14 @@ export default async function OwnerMailPage() {
     .sort((a, b) => Number(a.active30) - Number(b.active30) || a.name.localeCompare(b.name));
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-3 py-6 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-3 py-6 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto w-full max-w-5xl space-y-6">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-5 shadow-2xl sm:p-8">
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-5 shadow-2xl sm:p-8">
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">Owner Mail Center</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">Owner Mail Center</p>
               <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Email your inspectors</h1>
-              <p className="mt-3 max-w-2xl text-[#8a93a3]">
+              <p className="mt-3 max-w-2xl text-[var(--fl-muted)]">
                 Send a re-engagement message to one inspector, everyone, or just the quiet ones — then track opens below.
               </p>
             </div>
@@ -174,9 +174,9 @@ export default async function OwnerMailPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 shadow-xl sm:p-6">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-xl sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-3 text-2xl font-semibold text-teal-300">
+            <h2 className="flex items-center gap-3 text-2xl font-semibold text-[var(--fl-accent-text)]">
               Inbox — replies
               {unreadReplies > 0 && (
                 <span className="rounded-full bg-teal-500 px-2.5 py-0.5 text-sm font-semibold text-slate-950">
@@ -185,7 +185,7 @@ export default async function OwnerMailPage() {
               )}
             </h2>
           </div>
-          <p className="mt-1 text-sm text-[#8a93a3]">
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">
             Replies to your FLOW emails land here and buzz your phone. Reply right from FLOW — it sends from support@flowinspect.app.
           </p>
           <InboxReplies replies={replies as any} />
@@ -193,15 +193,15 @@ export default async function OwnerMailPage() {
 
         <OwnerMailComposer inspectors={inspectors} />
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 shadow-xl sm:p-6">
-          <h2 className="text-2xl font-semibold text-teal-300">Sent mail</h2>
-          <p className="mt-1 text-sm text-[#8a93a3]">The last {messages.length} emails sent to inspectors, with delivery status.</p>
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-xl sm:p-6">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Sent mail</h2>
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">The last {messages.length} emails sent to inspectors, with delivery status.</p>
           {messages.length === 0 ? (
-            <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">Nothing sent yet.</div>
+            <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">Nothing sent yet.</div>
           ) : (
             <div className="mt-5 overflow-x-auto">
               <table className="w-full min-w-[560px] text-left text-sm">
-                <thead className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+                <thead className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                   <tr>
                     <th className="pb-2 pr-3">Recipient</th>
                     <th className="pb-2 pr-3">Subject</th>
@@ -213,13 +213,13 @@ export default async function OwnerMailPage() {
                   {messages.map((m: any) => {
                     const s = statusOf(m);
                     return (
-                      <tr key={m.id} className="border-t border-[#1a212c]">
+                      <tr key={m.id} className="border-t border-[var(--fl-raised)]">
                         <td className="py-2 pr-3">
-                          <div className="font-bold text-white">{m.recipient_name || m.recipient_email}</div>
-                          {m.recipient_name && <div className="text-xs text-[#59626f]">{m.recipient_email}</div>}
+                          <div className="font-bold text-[var(--fl-text)]">{m.recipient_name || m.recipient_email}</div>
+                          {m.recipient_name && <div className="text-xs text-[var(--fl-faint)]">{m.recipient_email}</div>}
                         </td>
-                        <td className="py-2 pr-3 text-[#8a93a3]">{m.subject || "—"}</td>
-                        <td className="py-2 pr-3 text-[#8a93a3]">{fmt(m.sent_at)}</td>
+                        <td className="py-2 pr-3 text-[var(--fl-muted)]">{m.subject || "—"}</td>
+                        <td className="py-2 pr-3 text-[var(--fl-muted)]">{fmt(m.sent_at)}</td>
                         <td className="py-2">
                           <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${s.tone}`}>{s.label}</span>
                         </td>

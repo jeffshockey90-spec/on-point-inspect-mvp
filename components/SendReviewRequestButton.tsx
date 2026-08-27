@@ -127,24 +127,24 @@ export default function SendReviewRequestButton({
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <div className="absolute left-0 z-20 mt-2 w-72 overflow-hidden rounded-xl border border-[#232b38] bg-[#10151e] p-1 shadow-2xl">
+          <div className="absolute left-0 z-20 mt-2 w-72 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-1 shadow-2xl">
             <button
               type="button"
               onClick={() => send("client")}
               disabled={!hasBuyer}
-              className="block w-full rounded-lg px-3 py-2 text-left transition hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-50"
+              className="block w-full rounded-lg px-3 py-2 text-left transition hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="block text-sm font-semibold text-white">
+              <span className="block text-sm font-semibold text-[var(--fl-text)]">
                 {multipleBuyers ? `Ask the buyers (${buyerEmails.length})` : "Ask the client"}
               </span>
               {hasBuyer ? (
                 buyerEmails.map((email) => (
-                  <span key={email} className="block truncate text-xs text-[#8a93a3]">
+                  <span key={email} className="block truncate text-xs text-[var(--fl-muted)]">
                     {email}
                   </span>
                 ))
               ) : (
-                <span className="block truncate text-xs text-[#8a93a3]">
+                <span className="block truncate text-xs text-[var(--fl-muted)]">
                   No buyer email on file
                 </span>
               )}
@@ -152,10 +152,10 @@ export default function SendReviewRequestButton({
             <button
               type="button"
               onClick={() => send("realtor")}
-              className="block w-full rounded-lg px-3 py-2 text-left transition hover:bg-[#1a212c]"
+              className="block w-full rounded-lg px-3 py-2 text-left transition hover:bg-[var(--fl-raised)]"
             >
-              <span className="block text-sm font-semibold text-white">Ask the agent</span>
-              <span className="block truncate text-xs text-[#8a93a3]">{realtorEmail}</span>
+              <span className="block text-sm font-semibold text-[var(--fl-text)]">Ask the agent</span>
+              <span className="block truncate text-xs text-[var(--fl-muted)]">{realtorEmail}</span>
             </button>
           </div>
         </>

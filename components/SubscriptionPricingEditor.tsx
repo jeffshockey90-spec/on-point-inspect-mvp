@@ -75,25 +75,25 @@ export default function SubscriptionPricingEditor() {
   }
 
   return (
-    <section className="rounded-2xl border border-[#232b38] bg-[#10151e] p-6 shadow-xl">
+    <section className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Subscription Pricing
           </p>
 
           {loading ? (
-            <p className="mt-3 text-lg text-[#8a93a3]">Loading...</p>
+            <p className="mt-3 text-lg text-[var(--fl-muted)]">Loading...</p>
           ) : pricing ? (
             <>
-              <p className="mt-3 text-3xl font-semibold text-white">
+              <p className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">
                 {money(pricing.standardPriceCents)}
-                <span className="ml-2 text-sm font-bold text-[#8a93a3]">/mo standard</span>
+                <span className="ml-2 text-sm font-bold text-[var(--fl-muted)]">/mo standard</span>
               </p>
-              <p className="mt-2 text-sm text-[#8a93a3]">
+              <p className="mt-2 text-sm text-[var(--fl-muted)]">
                 {money(pricing.foundingMemberPriceCents)}/mo founding-member rate
               </p>
-              <p className="mt-2 text-xs text-[#59626f]">
+              <p className="mt-2 text-xs text-[var(--fl-faint)]">
                 Live on /pricing and the actual Stripe checkout - changing this changes what new
                 subscribers get charged.
               </p>
@@ -109,7 +109,7 @@ export default function SubscriptionPricingEditor() {
             setEditing((current) => !current);
             setError("");
           }}
-          className="rounded-xl border border-[#59626f] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:bg-slate-700/30"
+          className="rounded-xl border border-[var(--fl-faint)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-slate-700/30"
         >
           {editing ? "Cancel" : "Edit Pricing"}
         </button>
@@ -118,7 +118,7 @@ export default function SubscriptionPricingEditor() {
       {editing && (
         <div className="mt-6 grid gap-3 sm:grid-cols-3 sm:items-end">
           <label className="text-sm">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Standard price ($/mo)
             </span>
             <input
@@ -127,12 +127,12 @@ export default function SubscriptionPricingEditor() {
               step="0.01"
               value={standardInput}
               onChange={(event) => setStandardInput(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-white outline-none focus:border-cyan-400"
+              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
             />
           </label>
 
           <label className="text-sm">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Founding-member price ($/mo)
             </span>
             <input
@@ -141,7 +141,7 @@ export default function SubscriptionPricingEditor() {
               step="0.01"
               value={foundingInput}
               onChange={(event) => setFoundingInput(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-white outline-none focus:border-cyan-400"
+              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
             />
           </label>
 

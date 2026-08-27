@@ -52,11 +52,11 @@ export default function AITemplateGenerator() {
 
   return (
     <div className="mb-6 rounded-2xl border border-teal-700 bg-[#071224] p-5">
-      <h3 className="mb-2 text-xl font-semibold text-teal-300">
+      <h3 className="mb-2 text-xl font-semibold text-[var(--fl-accent-text)]">
         AI Template Note
       </h3>
 
-      <p className="mb-4 text-sm text-[#8a93a3]">
+      <p className="mb-4 text-sm text-[var(--fl-muted)]">
         Type a quick note and AI will turn it into a full reusable finding.
       </p>
 
@@ -65,7 +65,7 @@ export default function AITemplateGenerator() {
         onChange={(e) => setNote(e.target.value)}
         placeholder="Example: missing GFCI protection at kitchen counter outlets"
         rows={3}
-        className="mb-4 w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white"
+        className="mb-4 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)]"
       />
 
       <button

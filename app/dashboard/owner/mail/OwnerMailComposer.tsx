@@ -140,12 +140,12 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
     setSending(false);
   }
 
-  const inputCls = "w-full rounded-xl border border-[#232b38] bg-[#10151e] px-3 py-2.5 text-white outline-none focus:border-teal-400";
-  const labelCls = "mb-1 block text-xs font-semibold uppercase tracking-wide text-[#59626f]";
+  const inputCls = "w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-2.5 text-[var(--fl-text)] outline-none focus:border-teal-400";
+  const labelCls = "mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]";
 
   return (
-    <section className="space-y-4 rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 shadow-xl sm:p-6">
-      <h2 className="text-2xl font-semibold text-teal-300">Compose</h2>
+    <section className="space-y-4 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-xl sm:p-6">
+      <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Compose</h2>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
@@ -188,11 +188,11 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
             />
           </div>
           {templateId === "ai-tools" && (
-            <p className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[12px] font-semibold text-teal-200">
+            <p className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[12px] font-semibold text-[var(--fl-accent-text)]">
               📸 This one sends a <strong>designed email with screenshots</strong> of the AI Camera + Command Center. The text below is just a preview — each inspector still gets the personalized greeting.
             </p>
           )}
-          <p className="text-[11px] text-[#59626f]">
+          <p className="text-[11px] text-[var(--fl-faint)]">
             Sends from FLOW with the app logo + &quot;Open FLOW&quot; / &quot;Get the iOS App&quot; buttons. Replies go to support@flowinspect.app.
           </p>
           <div className="flex flex-wrap items-center gap-3">

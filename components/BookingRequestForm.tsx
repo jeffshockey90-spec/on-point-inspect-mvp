@@ -408,11 +408,11 @@ export default function BookingRequestForm({
 
   if (!bookingEnabled) {
     return (
-      <div className="mx-auto box-border w-full max-w-2xl overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 text-center text-white shadow-2xl sm:p-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-teal-300">
+      <div className="mx-auto box-border w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 text-center text-[var(--fl-text)] shadow-2xl sm:p-8">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
           Request an Inspection
         </p>
-        <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">
+        <h2 className="mt-3 text-2xl font-semibold text-[var(--fl-text)] sm:text-3xl">
           Not Currently Accepting Online Requests
         </h2>
         <p className="mt-3 text-sm leading-6 text-zinc-400">
@@ -426,13 +426,13 @@ export default function BookingRequestForm({
   return (
     <form
       onSubmit={submit}
-      className="mx-auto box-border w-full max-w-2xl overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 text-white shadow-2xl sm:p-5 md:p-6"
+      className="mx-auto box-border w-full max-w-2xl overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 text-[var(--fl-text)] shadow-2xl sm:p-5 md:p-6"
     >
-      <div className="border-b border-[#232b38] pb-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-teal-300">
+      <div className="border-b border-[var(--fl-line)] pb-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
           Request an Inspection
         </p>
-        <h2 className="mt-2 text-2xl font-semibold leading-tight text-white sm:text-3xl">
+        <h2 className="mt-2 text-2xl font-semibold leading-tight text-[var(--fl-text)] sm:text-3xl">
           Booking Request
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
@@ -470,7 +470,7 @@ export default function BookingRequestForm({
               className="xl:col-span-2 rounded-2xl border border-teal-500/20 bg-teal-500/5 p-4"
             >
               <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-accent-text)]">
                   Co-Buyer {index + 1}
                 </p>
                 <button
@@ -506,13 +506,13 @@ export default function BookingRequestForm({
           <button
             type="button"
             onClick={addAdditionalClient}
-            className="xl:col-span-2 rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-200 transition hover:bg-teal-500/20"
+            className="xl:col-span-2 rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
           >
             + Add Another Client
           </button>
         </Section>
 
-        <div className="overflow-hidden rounded-2xl border border-[#232b38] bg-[#131923] p-4 sm:p-5">
+        <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-zinc-400">
             Services Requested
           </p>
@@ -530,7 +530,7 @@ export default function BookingRequestForm({
                   className={`flex min-h-[64px] w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                     checked
                       ? "border-teal-400 bg-teal-500/15 text-white shadow-[0_0_0_1px_rgba(45,212,191,0.35)]"
-                      : "border-zinc-700 bg-[#0a0e13] text-zinc-200 hover:border-teal-500/50"
+                      : "border-zinc-700 bg-[var(--fl-ground)] text-zinc-200 hover:border-teal-500/50"
                   }`}
                 >
                   <span
@@ -562,7 +562,7 @@ export default function BookingRequestForm({
             </label>
 
             {form.property_image_url ? (
-              <div className="mt-2 overflow-hidden rounded-2xl border border-[#232b38] bg-black">
+              <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-black">
                 <img
                   src={form.property_image_url}
                   alt="Selected property"
@@ -570,13 +570,13 @@ export default function BookingRequestForm({
                 />
               </div>
             ) : (
-              <div className="mt-2 rounded-2xl border border-dashed border-[#232b38] bg-[#0a0e13] p-4 text-sm leading-6 text-zinc-400">
+              <div className="mt-2 rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm leading-6 text-zinc-400">
                 Optional. Upload the correct front photo if the lookup or Street View image is wrong.
               </div>
             )}
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <label className="inline-flex cursor-pointer rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-200 transition hover:bg-teal-500/20">
+              <label className="inline-flex cursor-pointer rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20">
                 {photoUploading ? "Uploading..." : form.property_image_url ? "Change Property Photo" : "Upload Property Photo"}
                 <input
                   type="file"
@@ -591,7 +591,7 @@ export default function BookingRequestForm({
                 <button
                   type="button"
                   onClick={() => update("property_image_url", "")}
-                  className="rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-[#8a93a3] transition hover:border-red-400 hover:text-red-200"
+                  className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-red-200"
                 >
                   Remove Photo
                 </button>
@@ -625,11 +625,11 @@ export default function BookingRequestForm({
             onChange={(event) => update("notes", event.target.value)}
             rows={5}
             placeholder="Access details, deadlines, add-ons, concerns, or anything else the inspector should know."
-            className="mt-2 box-border w-full max-w-full resize-y rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-teal-400"
+            className="mt-2 box-border w-full max-w-full resize-y rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-3 text-sm text-[var(--fl-text)] outline-none transition placeholder:text-zinc-600 focus:border-teal-400"
           />
         </div>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
+        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
           <input
             type="checkbox"
             checked={smsConsent}
@@ -645,7 +645,7 @@ export default function BookingRequestForm({
               href="/terms"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-bold text-teal-300 underline"
+              className="font-bold text-[var(--fl-accent-text)] underline"
             >
               Terms
             </a>{" "}
@@ -654,7 +654,7 @@ export default function BookingRequestForm({
               href="/privacy"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-bold text-teal-300 underline"
+              className="font-bold text-[var(--fl-accent-text)] underline"
             >
               Privacy Policy
             </a>
@@ -676,7 +676,7 @@ export default function BookingRequestForm({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-[#232b38] bg-[#131923] p-4 sm:p-5">
+    <section className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-zinc-400">
         {title}
       </p>
@@ -717,7 +717,7 @@ function Field({
         autoComplete={autoComplete}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 box-border h-12 w-full min-w-0 max-w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-teal-400"
+        className="mt-2 box-border h-12 w-full min-w-0 max-w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 text-sm text-[var(--fl-text)] outline-none transition placeholder:text-zinc-600 focus:border-teal-400"
       />
     </label>
   );
@@ -745,12 +745,12 @@ function Select({
         value={value}
         required={required}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 box-border h-12 w-full min-w-0 max-w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 text-sm font-bold text-white outline-none transition focus:border-teal-400"
+        className="mt-2 box-border h-12 w-full min-w-0 max-w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 text-sm font-bold text-[var(--fl-text)] outline-none transition focus:border-teal-400"
       >
         {options.map((option) => {
           const item = typeof option === "string" ? { label: option, value: option } : option;
           return (
-            <option key={item.value} value={item.value} className="bg-[#0a0e13] text-white">
+            <option key={item.value} value={item.value} className="bg-[var(--fl-ground)] text-[var(--fl-text)]">
               {item.label}
             </option>
           );

@@ -17,8 +17,8 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] px-4 py-10 text-white">
-      <section className="w-full max-w-2xl rounded-2xl border border-red-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] px-4 py-10 text-[var(--fl-text)]">
+      <section className="w-full max-w-2xl rounded-2xl border border-red-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
           FLOW
         </p>
@@ -27,13 +27,13 @@ export default function Error({
           Something went wrong
         </h1>
 
-        <p className="mt-4 leading-7 text-[#8a93a3]">
+        <p className="mt-4 leading-7 text-[var(--fl-muted)]">
           The app hit an unexpected error. Your reports, photos, agreements, and
           inspection data are not deleted. Try again, or return to the dashboard.
         </p>
 
         {error?.digest && (
-          <p className="mt-4 break-all rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-xs text-[#59626f]">
+          <p className="mt-4 break-all rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-xs text-[var(--fl-faint)]">
             Error ID: {error.digest}
           </p>
         )}
@@ -49,7 +49,7 @@ export default function Error({
 
           <Link
             href="/dashboard"
-            className="w-full rounded-xl border border-[#232b38] px-5 py-3 text-center font-semibold text-white hover:bg-[#1a212c] sm:w-auto"
+            className="w-full rounded-xl border border-[var(--fl-line)] px-5 py-3 text-center font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] sm:w-auto"
           >
             Back to Dashboard
           </Link>

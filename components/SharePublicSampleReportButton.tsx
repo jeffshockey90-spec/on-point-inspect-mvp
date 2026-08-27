@@ -46,7 +46,7 @@ export default function SharePublicSampleReportButton({
       type="button"
       onClick={handleShare}
       disabled={!shareUrl}
-      className="rounded-xl border border-[#232b38] px-5 py-3 text-center font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
+      className="rounded-xl border border-[var(--fl-line)] px-5 py-3 text-center font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)] disabled:cursor-not-allowed disabled:opacity-50"
     >
       Share
     </button>

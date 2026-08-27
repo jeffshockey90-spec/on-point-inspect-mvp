@@ -33,7 +33,7 @@ export default function AICapturePage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#0a0e13] p-4 text-white md:p-8">
+        <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] md:p-8">
           Loading...
         </main>
       }
@@ -460,17 +460,17 @@ function AICaptureContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] p-4 text-white md:p-8">
+    <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] md:p-8">
       <div className="mx-auto max-w-5xl space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.35em] text-teal-400">
+            <p className="text-sm font-bold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
               FLOW AI
             </p>
 
             <h1 className="mt-2 text-4xl font-extrabold">AI Capture</h1>
 
-            <p className="mt-3 max-w-2xl text-[#8a93a3]">
+            <p className="mt-3 max-w-2xl text-[var(--fl-muted)]">
               Upload inspection photos, add your field note, and generate
               report-ready findings.
             </p>
@@ -479,7 +479,7 @@ function AICaptureContent() {
           <FastLinkButton
             href={inspectionId ? `/reports/${inspectionId}` : "/reports"}
             loadingText="Opening Report..."
-            className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+            className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
           >
             Back To Report
           </FastLinkButton>
@@ -498,8 +498,8 @@ function AICaptureContent() {
           </div>
         )}
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6">
+          <h2 className="mb-5 text-2xl font-bold text-[var(--fl-accent-text)]">
             Upload Photo
           </h2>
 
@@ -514,7 +514,7 @@ function AICaptureContent() {
               alt="Preview"
               loading="lazy"
               decoding="async"
-              className="mt-5 max-h-[450px] w-full rounded-xl border border-[#232b38] object-contain"
+              className="mt-5 max-h-[450px] w-full rounded-xl border border-[var(--fl-line)] object-contain"
             />
           )}
 
@@ -524,12 +524,12 @@ function AICaptureContent() {
               controls
               playsInline
               preload="metadata"
-              className="mt-5 max-h-[450px] w-full rounded-xl border border-[#232b38] bg-black"
+              className="mt-5 max-h-[450px] w-full rounded-xl border border-[var(--fl-line)] bg-black"
             />
           )}
 
           {file && (
-            <p className="mt-3 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-[#8a93a3]">
+            <p className="mt-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-muted)]">
               Selected: {file.name}{" "}
               {isVideo
                 ? "• Video will be saved as report media. AI analysis is photo-only."
@@ -543,7 +543,7 @@ function AICaptureContent() {
             rows={4}
             disabled={loading || saving}
             placeholder="Optional note for AI... Example: loose toilet, damaged shingles, water staining under sink, missing GFCI, etc."
-            className="mt-5 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-5 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
           />
 
           <button
@@ -560,8 +560,8 @@ function AICaptureContent() {
           </button>
         </section>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">AI Finding / Reference Photo</h2>
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6">
+          <h2 className="mb-5 text-2xl font-bold text-[var(--fl-accent-text)]">AI Finding / Reference Photo</h2>
 
           <div className="grid gap-4 md:grid-cols-2">
             <input
@@ -569,14 +569,14 @@ function AICaptureContent() {
               onChange={(e) => setTitle(e.target.value)}
               disabled={saving}
               placeholder="Finding title"
-              className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+              className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
 
             <select
               value={section}
               onChange={(e) => setSection(e.target.value)}
               disabled={saving}
-              className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+              className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
             >
               {SECTIONS.map((item) => (
                 <option key={item}>{item}</option>
@@ -584,7 +584,7 @@ function AICaptureContent() {
             </select>
 
             <label className="block md:col-span-2">
-              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
                 Photo Type
               </p>
 
@@ -594,13 +594,13 @@ function AICaptureContent() {
                   setPhotoType(e.target.value as "finding" | "reference")
                 }
                 disabled={saving}
-                className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option value="finding">Finding / Defect</option>
                 <option value="reference">Section Reference Photo</option>
               </select>
 
-              <p className="mt-2 text-sm text-[#8a93a3]">
+              <p className="mt-2 text-sm text-[var(--fl-muted)]">
                 Reference photos save to this section only and are not counted as defects.
               </p>
             </label>
@@ -610,7 +610,7 @@ function AICaptureContent() {
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value)}
                 disabled={saving}
-                className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 md:col-span-2"
+                className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 md:col-span-2"
               >
                 {SEVERITIES.map((item) => (
                   <option key={item}>{item}</option>
@@ -652,8 +652,8 @@ function AICaptureContent() {
         </section>
 
         {photoType === "finding" && (
-          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6">
-            <h2 className="mb-5 text-2xl font-bold text-teal-400">
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6">
+            <h2 className="mb-5 text-2xl font-bold text-[var(--fl-accent-text)]">
               Equipment Recognition
             </h2>
 
@@ -734,7 +734,7 @@ function MediaUploadButtons({
   return (
     <div className="grid gap-3 md:grid-cols-3">
       <label
-        className={`rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+        className={`rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation] ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
       >
         📷 Take Photo
         <input
@@ -789,7 +789,7 @@ function Input({
 }) {
   return (
     <label className="block">
-      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
@@ -797,7 +797,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
@@ -816,7 +816,7 @@ function TextArea({
 }) {
   return (
     <label className="mt-5 block">
-      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
@@ -825,7 +825,7 @@ function TextArea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );

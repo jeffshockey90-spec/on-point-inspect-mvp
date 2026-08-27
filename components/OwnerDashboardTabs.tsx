@@ -30,7 +30,7 @@ export default function OwnerDashboardTabs() {
   return (
     <div>
       {/* Mobile / tablet: horizontal scroll strip */}
-      <div className="sticky top-0 z-30 -mx-4 flex gap-2 overflow-x-auto border-b border-[#1a212c] bg-[#0a0e13]/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6 lg:hidden">
+      <div className="sticky top-0 z-30 -mx-4 flex gap-2 overflow-x-auto border-b border-[var(--fl-raised)] bg-[var(--fl-ground)] px-4 py-3 backdrop-blur md:-mx-6 md:px-6 lg:hidden">
         {TABS.map((t) => {
           const active = tab === t.key;
           return (
@@ -40,8 +40,8 @@ export default function OwnerDashboardTabs() {
               onClick={() => setTab(t.key)}
               className={`shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
                 active
-                  ? "border-[#1ac5b4] bg-[#1ac5b4]/15 text-teal-200"
-                  : "border-[#232b38] bg-[#131923]/50 text-[#8a93a3] hover:border-[#59626f]"
+                  ? "border-[#1ac5b4] bg-[#1ac5b4]/15 text-[var(--fl-accent-text)]"
+                  : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)] hover:border-[var(--fl-faint)]"
               }`}
             >
               {t.label}
@@ -63,8 +63,8 @@ export default function OwnerDashboardTabs() {
                 aria-pressed={active}
                 className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${
                   active
-                    ? "bg-[#1ac5b4]/[0.12] text-white"
-                    : "text-[#8a93a3] hover:bg-white/[0.04] hover:text-[#e8ecf3]"
+                    ? "bg-[#1ac5b4]/[0.12] text-[var(--fl-text)]"
+                    : "text-[var(--fl-muted)] hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
                 }`}
               >
                 <span

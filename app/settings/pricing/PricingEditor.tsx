@@ -25,16 +25,16 @@ function NumberField({
 }) {
   return (
     <label className="block min-w-0">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
-      <div className="flex items-center gap-2 rounded-xl border border-[#232b38] bg-[#0a0e13] px-3">
-        {prefix && <span className="text-[#59626f]">{prefix}</span>}
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p>
+      <div className="flex items-center gap-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3">
+        {prefix && <span className="text-[var(--fl-faint)]">{prefix}</span>}
         <input
           type="number"
           step="0.01"
           min="0"
           value={value ?? 0}
           onChange={(e) => onChange(Number(e.target.value) || 0)}
-          className="w-full min-w-0 bg-transparent p-3 pl-0 text-white outline-none"
+          className="w-full min-w-0 bg-transparent p-3 pl-0 text-[var(--fl-text)] outline-none"
         />
       </div>
     </label>
@@ -151,7 +151,7 @@ export default function PricingEditor({
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 text-center text-[#8a93a3]">
+      <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 text-center text-[var(--fl-muted)]">
         Loading your pricing...
       </div>
     );
@@ -174,7 +174,7 @@ export default function PricingEditor({
       )}
 
       {mode === "personal" && source === "override" && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-500/40 bg-teal-950/20 p-4 text-sm text-teal-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-500/40 bg-teal-950/20 p-4 text-sm text-[var(--fl-accent-text)]">
           <span className="font-bold">
             You have a personal price override — these rates apply to your jobs
             instead of the company pricing.
@@ -183,7 +183,7 @@ export default function PricingEditor({
             type="button"
             onClick={handleRevert}
             disabled={reverting}
-            className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-semibold text-teal-200 hover:bg-teal-500/10 disabled:opacity-60"
+            className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10 disabled:opacity-60"
           >
             {reverting ? "Resetting..." : "Use company pricing instead"}
           </button>
@@ -191,16 +191,16 @@ export default function PricingEditor({
       )}
 
       {mode === "personal" && source === "company" && (
-        <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-4 text-sm text-[#8a93a3]">
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4 text-sm text-[var(--fl-muted)]">
           You're currently using your{" "}
-          <span className="font-semibold text-white">company's pricing</span>. Saving here
+          <span className="font-semibold text-[var(--fl-text)]">company's pricing</span>. Saving here
           creates a personal override that applies only to your jobs.
         </div>
       )}
 
       {mode === "personal" && source === "default" && (
-        <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-4 text-sm text-[#8a93a3]">
-          You're using the <span className="font-semibold text-white">default</span> pricing.
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4 text-sm text-[var(--fl-muted)]">
+          You're using the <span className="font-semibold text-[var(--fl-text)]">default</span> pricing.
           Save to set your own rates.
         </div>
       )}
@@ -218,9 +218,9 @@ export default function PricingEditor({
       )}
 
       {home && (
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-teal-300">Home Inspection</h2>
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6">
+          <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Home Inspection</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             A base price up to a square footage limit, then a step-up amount for every block of
             square footage over that.
           </p>
@@ -250,7 +250,7 @@ export default function PricingEditor({
             />
           </div>
 
-          <p className="mt-4 text-xs text-[#59626f]">
+          <p className="mt-4 text-xs text-[var(--fl-faint)]">
             Example: ${home.basePrice || 0} for up to {home.baseSqftLimit || 0} sqft, then +$
             {home.incrementPrice || 0} for every {home.incrementSqftBlock || 0} sqft over that.
           </p>
@@ -258,9 +258,9 @@ export default function PricingEditor({
       )}
 
       {radon && (
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-teal-300">Radon Test</h2>
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6">
+          <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Radon Test</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             A flat fee. You can charge less when radon testing is booked alongside a home
             inspection.
           </p>
@@ -281,9 +281,9 @@ export default function PricingEditor({
       )}
 
       {mold && (
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-teal-300">Mold Testing</h2>
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6">
+          <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Mold Testing</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             A setup fee plus a fee per air/surface sample collected. The setup fee can be lower
             when paired with a home inspection.
           </p>
@@ -308,9 +308,9 @@ export default function PricingEditor({
         </section>
       )}
 
-      <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6">
-        <h2 className="text-xl font-semibold text-teal-300">Custom Services</h2>
-        <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+      <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6">
+        <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Custom Services</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
           Add any service beyond Home, Radon, and Mold - sewer scope, well testing, termite
           inspection, whatever you offer. Each one can be a flat fee, a flat fee plus a per-unit
           fee, or its own square-footage formula.
@@ -327,14 +327,14 @@ export default function PricingEditor({
           ))}
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#1a212c] pt-5">
-          <span className="text-sm font-bold text-[#8a93a3]">Add a new service:</span>
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[var(--fl-raised)] pt-5">
+          <span className="text-sm font-bold text-[var(--fl-muted)]">Add a new service:</span>
           {PRICING_SERVICE_TYPE_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => addService(option.value)}
-              className="rounded-xl border border-teal-500/50 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/10"
+              className="rounded-xl border border-teal-500/50 px-4 py-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
             >
               + {option.label}
             </button>
@@ -364,17 +364,17 @@ function CustomServiceCard({
   onRemove: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 sm:p-5">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <label className="min-w-0 flex-1">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Service Name
           </p>
           <input
             type="text"
             value={service.name}
             onChange={(e) => onChange({ name: e.target.value })}
-            className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#10151e] p-3 text-white outline-none focus:border-teal-400"
+            className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
           />
         </label>
 
@@ -447,14 +447,14 @@ function CustomServiceCard({
             onChange={(value) => onChange({ perUnitFee: value })}
           />
           <label className="block min-w-0 sm:col-span-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Unit Label (e.g. "sample", "hour")
             </p>
             <input
               type="text"
               value={service.unitLabel || ""}
               onChange={(e) => onChange({ unitLabel: e.target.value })}
-              className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#10151e] p-3 text-white outline-none focus:border-teal-400"
+              className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
           </label>
         </div>

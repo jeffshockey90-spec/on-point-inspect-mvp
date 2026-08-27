@@ -125,7 +125,7 @@ function StripeStatusCard({ company }: { company: any }) {
           : "border-yellow-500/50 bg-yellow-950/20"
       }`}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a93a3] sm:tracking-[0.25em]">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-muted)] sm:tracking-[0.25em]">
         Stripe Status
       </p>
 
@@ -137,7 +137,7 @@ function StripeStatusCard({ company }: { company: any }) {
         {ready ? "Ready for Payments" : "Setup Required"}
       </h3>
 
-      <div className="mt-4 grid gap-2 text-sm text-[#8a93a3] sm:grid-cols-2">
+      <div className="mt-4 grid gap-2 text-sm text-[var(--fl-muted)] sm:grid-cols-2">
         <p className="min-w-0">Connected: {connected ? "Yes" : "No"}</p>
         <p className="min-w-0">
           Onboarding: {onboardingComplete ? "Complete" : "Incomplete"}
@@ -151,7 +151,7 @@ function StripeStatusCard({ company }: { company: any }) {
       </div>
 
       {company?.stripe_account_id && (
-        <p className="mt-3 break-all rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-xs text-[#8a93a3]">
+        <p className="mt-3 break-all rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-xs text-[var(--fl-muted)]">
           {company.stripe_account_id}
         </p>
       )}
@@ -306,16 +306,16 @@ export default async function SettingsPage({
     const defaultEmail = String(user.email || "");
 
     return (
-      <main className="min-h-screen bg-[#0a0e13] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
+      <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-4 pb-28 text-[var(--fl-text)] md:p-8 md:pb-10">
         <div className="mx-auto max-w-5xl space-y-6">
-          <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-5 shadow-2xl shadow-black/20 sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
+          <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/20 sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
               Company Setup Required
             </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--fl-text)] sm:text-4xl">
               Create your company profile
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a93a3] sm:text-base">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--fl-muted)] sm:text-base">
               Your inspector account is active, but it is not connected to a company yet. This can happen with older inspector accounts created before company profiles were added. Create your company profile below and you will be taken back to Settings.
             </p>
 
@@ -328,11 +328,11 @@ export default async function SettingsPage({
 
           <form
             action={createMissingCompanyProfile}
-            className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8"
+            className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8"
           >
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Company Name *
                 </p>
                 <input
@@ -340,24 +340,24 @@ export default async function SettingsPage({
                   required
                   defaultValue={defaultBusinessName}
                   placeholder="Your inspection company name"
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Your Name
                 </p>
                 <input
                   name="full_name"
                   defaultValue={defaultName}
                   placeholder="Inspector name"
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Email *
                 </p>
                 <input
@@ -365,36 +365,36 @@ export default async function SettingsPage({
                   type="email"
                   required
                   defaultValue={defaultEmail}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Phone
                 </p>
                 <input
                   name="phone"
                   placeholder="Business phone"
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Website
                 </p>
                 <input
                   name="website"
                   placeholder="https://yourwebsite.com"
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
             </div>
 
             <div className="mt-6 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
               <h2 className="font-semibold text-cyan-200">What happens next?</h2>
-              <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                 FLOW will create your company record, link it to your inspector account as the owner, and unlock Settings, public profile management, QR code tools, payments, and branding.
               </p>
             </div>
@@ -575,18 +575,18 @@ export default async function SettingsPage({
   const isCompanyOwner = Boolean(ownerMembership);
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-[#0a0e13] px-4 py-4 pb-28 text-white md:p-8 md:pb-10">
+    <main className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] px-4 py-4 pb-28 text-[var(--fl-text)] md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#14c8d2] sm:tracking-[0.35em]">
             FLOW
           </p>
 
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--fl-text)] md:text-4xl">
             Settings
           </h1>
 
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a93a3] sm:text-base">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--fl-muted)] sm:text-base">
             Manage your company branding, Stripe payment setup, and client
             online payment fee options.
           </p>
@@ -604,11 +604,11 @@ export default async function SettingsPage({
           <div className="rounded-2xl border border-red-500/50 bg-red-950/20 p-5">
             <h3 className="font-semibold text-red-300">Stripe Connect Error</h3>
 
-            <p className="mt-2 break-words text-sm leading-6 text-[#e8ecf3]">
+            <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
               {stripeError}
             </p>
 
-            <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">
               If this mentions signing up for Connect, your live Stripe account
               still needs Stripe Connect enabled before FLOW can
               create connected inspector accounts.
@@ -620,7 +620,7 @@ export default async function SettingsPage({
           <div className="rounded-2xl border border-sky-500/50 bg-sky-950/20 p-5">
             <h3 className="font-semibold text-sky-300">Stripe Status</h3>
 
-            <p className="mt-2 break-words text-sm leading-6 text-[#e8ecf3]">
+            <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
               {stripeStatus}
             </p>
           </div>
@@ -630,7 +630,7 @@ export default async function SettingsPage({
           <div className="rounded-2xl border border-red-500/50 bg-red-950/20 p-5">
             <h3 className="font-semibold text-red-300">Settings Error</h3>
 
-            <p className="mt-2 break-words text-sm leading-6 text-[#e8ecf3]">
+            <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
               {pageError}
             </p>
           </div>
@@ -639,7 +639,7 @@ export default async function SettingsPage({
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <FastLinkButton
             href="/support"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/10 text-fuchsia-300">
@@ -650,10 +650,10 @@ export default async function SettingsPage({
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-fuchsia-300">
               Support
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-white sm:text-xl">
+            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
               Owner Support
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Message Jeff for setup, billing, reports, or bugs.
             </p>
             <p className="mt-4 text-sm font-semibold text-fuchsia-300 group-hover:text-fuchsia-200">
@@ -663,7 +663,7 @@ export default async function SettingsPage({
 
           <FastLinkButton
             href="/settings/pricing"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-emerald-400/70 hover:bg-emerald-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-emerald-400/70 hover:bg-emerald-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
               <DollarSign className="h-6 w-6" strokeWidth={2} />
@@ -671,10 +671,10 @@ export default async function SettingsPage({
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
               Personal
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-white sm:text-xl">
+            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
               My Pricing
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Set your own rates for the Quotes calculator.
             </p>
             <p className="mt-4 text-sm font-semibold text-emerald-300 group-hover:text-emerald-200">
@@ -684,7 +684,7 @@ export default async function SettingsPage({
 
           <FastLinkButton
             href="/settings/company-email"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-sky-400/70 hover:bg-sky-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-sky-400/70 hover:bg-sky-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-300">
               <Mail className="h-6 w-6" strokeWidth={2} />
@@ -692,10 +692,10 @@ export default async function SettingsPage({
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-sky-300">
               Personal
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-white sm:text-xl">
+            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
               Company Email
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Connect your mailbox to resend a stuck email through it.
             </p>
             <p className="mt-4 text-sm font-semibold text-sky-300 group-hover:text-sky-200">
@@ -706,7 +706,7 @@ export default async function SettingsPage({
           {isCompanyOwner && (
             <FastLinkButton
               href="/settings/company-pricing"
-              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-amber-500/30 bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5 [touch-action:manipulation]"
+              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-amber-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5 [touch-action:manipulation]"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-300">
                 <Building2 className="h-6 w-6" strokeWidth={2} />
@@ -714,10 +714,10 @@ export default async function SettingsPage({
               <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
                 Owner Only
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-white sm:text-xl">
+              <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
                 Company Pricing
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                 Set the default price sheet your whole team uses.
               </p>
               <p className="mt-4 text-sm font-semibold text-amber-300 group-hover:text-amber-200">
@@ -729,21 +729,21 @@ export default async function SettingsPage({
           {isCompanyOwner && (
             <FastLinkButton
               href="/settings/ai-writing-studio"
-              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
                 <Sparkles className="h-6 w-6" strokeWidth={2} />
               </div>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-teal-300">
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
                 Owner Only
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-white sm:text-xl">
+              <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
                 AI Writing Studio
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                 Control how the AI writes findings — standard, length, detail, and tone.
               </p>
-              <p className="mt-4 text-sm font-semibold text-teal-300 group-hover:text-teal-200">
+              <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
                 Open AI Writing Studio →
               </p>
             </FastLinkButton>
@@ -752,21 +752,21 @@ export default async function SettingsPage({
           {isCompanyOwner && (
             <FastLinkButton
               href="/settings/severities"
-              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
                 <Gauge className="h-6 w-6" strokeWidth={2} />
               </div>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-teal-300">
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
                 Owner Only
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-white sm:text-xl">
+              <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
                 Severity Levels
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                 Rename, recolor, reorder, or add your own severity levels — with revert to defaults.
               </p>
-              <p className="mt-4 text-sm font-semibold text-teal-300 group-hover:text-teal-200">
+              <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
                 Customize Severities →
               </p>
             </FastLinkButton>
@@ -774,46 +774,46 @@ export default async function SettingsPage({
 
           <FastLinkButton
             href="/settings/report-templates"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
               <Layers className="h-6 w-6" strokeWidth={2} />
             </div>
-            <h2 className="mt-4 text-lg font-semibold text-white sm:text-xl">
+            <h2 className="mt-4 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
               Report Templates
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Build section sets for specialty inspections — auto-apply them by service type.
             </p>
-            <p className="mt-4 text-sm font-semibold text-teal-300 group-hover:text-teal-200">
+            <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
               Manage Templates →
             </p>
           </FastLinkButton>
 
           <FastLinkButton
             href="/billing"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
               <CreditCard className="h-6 w-6" strokeWidth={2} />
             </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-teal-300">
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
               Billing
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-white sm:text-xl">
+            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
               Subscription
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Manage trial status and monthly plan.
             </p>
-            <p className="mt-4 text-sm font-semibold text-teal-300 group-hover:text-teal-200">
+            <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
               Manage Billing →
             </p>
           </FastLinkButton>
 
           <FastLinkButton
             href="/settings/public-profile"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[#1a212c] bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5 [touch-action:manipulation]"
+            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5 [touch-action:manipulation]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-300">
               <Globe className="h-6 w-6" strokeWidth={2} />
@@ -821,10 +821,10 @@ export default async function SettingsPage({
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
               Public Profile
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-white sm:text-xl">
+            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
               Marketing Page
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
               Logo, headshot, services, and profile link.
             </p>
             <p className="mt-4 text-sm font-semibold text-cyan-300 group-hover:text-cyan-200">
@@ -835,21 +835,21 @@ export default async function SettingsPage({
           {isOnPointOwner && (
             <FastLinkButton
               href="/settings/marketing-images"
-              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[#10151e] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
+              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
                 <ImageIcon className="h-6 w-6" strokeWidth={2} />
               </div>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-teal-300">
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
                 Owner Only
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-white sm:text-xl">
+              <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
                 Marketing Images
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                 Create inspected property graphics using your exact FLOW template.
               </p>
-              <p className="mt-4 text-sm font-semibold text-teal-300 group-hover:text-teal-200">
+              <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
                 Open Template →
               </p>
             </FastLinkButton>
@@ -861,7 +861,7 @@ export default async function SettingsPage({
         <form action={saveCompanySettings} className="space-y-6">
           <section
             id="notifications"
-            className="rounded-2xl border border-[#f3b23f]/25 bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-6 md:p-8"
+            className="rounded-2xl border border-[#f3b23f]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-6 md:p-8"
           >
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex gap-4">
@@ -872,10 +872,10 @@ export default async function SettingsPage({
                   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">
                     Notifications
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">
                     Notification Center
                   </h2>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
                     Control native iPhone notifications, browser push alerts,
                     live activity popups, and notification sounds from one place.
                   </p>
@@ -885,7 +885,7 @@ export default async function SettingsPage({
               <div
                 className={`w-full rounded-2xl border px-4 py-3 text-center text-sm font-semibold lg:w-auto ${
                   company.live_activity_enabled === false
-                    ? "border-[#232b38] bg-[#131923] text-[#8a93a3]"
+                    ? "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
                     : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
                 }`}
               >
@@ -896,12 +896,12 @@ export default async function SettingsPage({
             </div>
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              <div className="group flex w-full items-start justify-between gap-4 rounded-2xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-amber-400/70 hover:bg-[#131923] sm:p-5">
+              <div className="group flex w-full items-start justify-between gap-4 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-amber-400/70 hover:bg-[var(--fl-surface-2)] sm:p-5">
                 <div className="min-w-0">
-                  <p className="break-words text-base font-semibold leading-6 text-white">
+                  <p className="break-words text-base font-semibold leading-6 text-[var(--fl-text)]">
                     Show live activity popups
                   </p>
-                  <p className="mt-1 break-words text-sm leading-6 text-[#8a93a3]">
+                  <p className="mt-1 break-words text-sm leading-6 text-[var(--fl-muted)]">
                     Shows the floating alert card when someone views a report,
                     signs an agreement, makes a payment, or submits a review.
                   </p>
@@ -914,12 +914,12 @@ export default async function SettingsPage({
                 />
               </div>
 
-              <div className="group flex w-full items-start justify-between gap-4 rounded-2xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-amber-400/70 hover:bg-[#131923] sm:p-5">
+              <div className="group flex w-full items-start justify-between gap-4 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-amber-400/70 hover:bg-[var(--fl-surface-2)] sm:p-5">
                 <div className="min-w-0">
-                  <p className="break-words text-base font-semibold leading-6 text-white">
+                  <p className="break-words text-base font-semibold leading-6 text-[var(--fl-text)]">
                     Play notification sound
                   </p>
-                  <p className="mt-1 break-words text-sm leading-6 text-[#8a93a3]">
+                  <p className="mt-1 break-words text-sm leading-6 text-[var(--fl-muted)]">
                     Keep alerts visible but mute the sound when this is turned
                     off.
                   </p>
@@ -933,31 +933,31 @@ export default async function SettingsPage({
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-[#232b38] bg-[#131923] p-4 sm:p-5">
+            <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-5">
               <PushNotificationSetup />
             </div>
           </section>
 
-          <section id="company-profile" className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6 md:p-8">
-            <h2 className="text-xl font-semibold text-teal-300 sm:text-2xl">
+          <section id="company-profile" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
+            <h2 className="text-xl font-semibold text-[var(--fl-accent-text)] sm:text-2xl">
               Company Profile
             </h2>
 
-            <div className="mt-6 rounded-2xl border border-[#1a212c] bg-[#131923] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-teal-400">
+            <div className="mt-6 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                 Region &amp; Language
               </p>
-              <p className="mt-1 text-xs text-[#59626f]">
+              <p className="mt-1 text-xs text-[var(--fl-faint)]">
                 Your country sets your currency; your report language is the default
                 clients see (they can switch languages on the report).
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-3">
                 <label className="block min-w-0">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Country</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Country</p>
                   <select
                     name="country"
                     defaultValue={company.country || "US"}
-                    className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                    className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                   >
                     {COUNTRIES.map((c) => (
                       <option key={c.code} value={c.code}>{c.name}</option>
@@ -965,11 +965,11 @@ export default async function SettingsPage({
                   </select>
                 </label>
                 <label className="block min-w-0">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Default Report Language</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Default Report Language</p>
                   <select
                     name="preferred_language"
                     defaultValue={company.preferred_language || "en"}
-                    className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                    className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                   >
                     {BUSINESS_LANGUAGES.map((l) => (
                       <option key={l.code} value={l.code}>{l.label}</option>
@@ -977,11 +977,11 @@ export default async function SettingsPage({
                   </select>
                 </label>
                 <label className="block min-w-0">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Currency</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Currency</p>
                   <select
                     name="currency"
                     defaultValue={company.currency || "USD"}
-                    className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                    className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                   >
                     {CURRENCIES.map((c) => (
                       <option key={c.code} value={c.code}>{c.code} ({c.symbol}) — {c.name}</option>
@@ -993,69 +993,69 @@ export default async function SettingsPage({
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Legal Business Name
                 </p>
                 <input
                   name="name"
                   defaultValue={company.name || ""}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Display Name on Reports
                 </p>
                 <input
                   name="display_name"
                   defaultValue={company.display_name || company.name || ""}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Email
                 </p>
                 <input
                   name="email"
                   type="email"
                   defaultValue={company.email || ""}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Phone
                 </p>
                 <input
                   name="phone"
                   defaultValue={company.phone || ""}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Website
                 </p>
                 <input
                   name="website"
                   defaultValue={company.website || ""}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Brand Color
                 </p>
                 <input
                   name="brand_color"
                   defaultValue={company.brand_color || "#14b8a6"}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
@@ -1067,7 +1067,7 @@ export default async function SettingsPage({
                 initialUrl={company.logo_url || ""}
                 folder="company-logo"
                 buttonText="Upload Company Logo"
-                previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-[#232b38] bg-black/30 object-contain p-3"
+                previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-[var(--fl-line)] bg-black/30 object-contain p-3"
               />
 
               <W9Section
@@ -1078,42 +1078,42 @@ export default async function SettingsPage({
               />
 
               <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   License Info
                 </p>
                 <textarea
                   name="license_info"
                   defaultValue={company.license_info || ""}
                   rows={3}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Business Starting Address
                 </p>
                 <OfficeAddressField defaultValue={company.office_address || ""} />
-                <p className="mt-1 text-xs text-[#59626f]">
+                <p className="mt-1 text-xs text-[var(--fl-faint)]">
                   Used to show driving distance and a map on each report, and to log mileage.
                   Only used when it changes, so save this once and it's set.
                 </p>
               </label>
 
               <label className="block min-w-0 md:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Report Footer Branding
                 </p>
                 <textarea
                   name="report_footer_branding"
                   defaultValue={company.report_footer_branding || ""}
                   rows={3}
-                  className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
-              <div className="flex items-center justify-between gap-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 md:col-span-2">
-                <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-[#e8ecf3] sm:text-base">
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 md:col-span-2">
+                <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-[var(--fl-text)] sm:text-base">
                   Show “Powered by FLOW” on client-facing pages
                 </p>
                 <SettingsToggle
@@ -1125,10 +1125,10 @@ export default async function SettingsPage({
 
               <div className="flex items-center justify-between gap-4 rounded-xl border border-teal-500/30 bg-teal-500/[0.04] p-4 md:col-span-2">
                 <div className="min-w-0 flex-1">
-                  <p className="break-words text-sm font-bold leading-6 text-[#e8ecf3] sm:text-base">
-                    Show <span className="text-teal-300">Common Ground</span> on client reports
+                  <p className="break-words text-sm font-bold leading-6 text-[var(--fl-text)] sm:text-base">
+                    Show <span className="text-[var(--fl-accent-text)]">Common Ground</span> on client reports
                   </p>
-                  <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
+                  <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
                     Adds a panel under each finding showing how common the defect is (nationally and in your state) and how hard it is to fix — so routine issues don’t kill deals.
                   </p>
                 </div>
@@ -1139,12 +1139,12 @@ export default async function SettingsPage({
                 />
               </div>
 
-              <div className="flex items-center justify-between gap-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 md:col-span-2">
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 md:col-span-2">
                 <div className="min-w-0 flex-1">
-                  <p className="break-words text-sm font-bold leading-6 text-[#e8ecf3] sm:text-base">
+                  <p className="break-words text-sm font-bold leading-6 text-[var(--fl-text)] sm:text-base">
                     Show cost estimates to the client in Common Ground
                   </p>
-                  <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
+                  <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
                     Off by default — the typical repair cost range stays out of the client report until you turn it on.
                   </p>
                 </div>
@@ -1161,24 +1161,24 @@ export default async function SettingsPage({
             <TeamManagement />
           </div>
 
-          <section id="payments" className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 sm:p-6 md:p-8">
-            <h2 className="text-xl font-semibold text-teal-300 sm:text-2xl">
+          <section id="payments" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
+            <h2 className="text-xl font-semibold text-[var(--fl-accent-text)] sm:text-2xl">
               Payments
             </h2>
 
             <div className="mt-6 grid gap-5 lg:grid-cols-2">
               <StripeStatusCard company={company} />
 
-              <div className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 sm:p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a93a3] sm:tracking-[0.25em]">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 sm:p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-muted)] sm:tracking-[0.25em]">
                   Stripe Setup
                 </p>
 
-                <h3 className="mt-2 text-xl font-semibold text-white sm:text-2xl">
+                <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">
                   Connect Your Stripe Account
                 </h3>
 
-                <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">
                   Each inspector connects their own Stripe account once. Online
                   inspection payments are blocked until Stripe setup is
                   complete, so another inspector’s payment will never fall back
@@ -1195,7 +1195,7 @@ export default async function SettingsPage({
 
                   <a
                     href="/api/stripe/connect/refresh"
-                    className="w-full rounded-xl border border-[#232b38] px-5 py-3 text-center font-bold text-[#e8ecf3] hover:border-teal-400 hover:text-teal-300 sm:w-auto"
+                    className="w-full rounded-xl border border-[var(--fl-line)] px-5 py-3 text-center font-bold text-[var(--fl-text)] hover:border-teal-400 hover:text-[var(--fl-accent-text)] sm:w-auto"
                   >
                     Refresh Stripe Status
                   </a>
@@ -1203,12 +1203,12 @@ export default async function SettingsPage({
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 sm:p-5">
-              <h3 className="text-lg font-semibold text-white sm:text-xl">
+            <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 sm:p-5">
+              <h3 className="text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
                 Online Payment Fee
               </h3>
 
-              <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                 Choose whether to pass an online card payment fee to the client when they pay
                 their balance through the client portal - either a percentage of the balance or a
                 flat dollar amount, whatever you want to charge. The client always sees this as
@@ -1217,8 +1217,8 @@ export default async function SettingsPage({
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-3">
-                <div className="flex items-center justify-between gap-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 md:col-span-1">
-                  <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-[#e8ecf3] sm:text-base">
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 md:col-span-1">
+                  <p className="min-w-0 flex-1 break-words text-sm font-bold leading-6 text-[var(--fl-text)] sm:text-base">
                     Pass online payment fee to client
                   </p>
                   <SettingsToggle
@@ -1235,15 +1235,15 @@ export default async function SettingsPage({
 
           <section
             id="secure24-referral"
-            className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5 shadow-2xl shadow-black/20 sm:p-6"
+            className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/20 sm:p-6"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
               Referral Partners
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">
               Home-Security Referral
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
               Optionally offer your clients a home-security referral on their report and earn a
               payout on installs. Off by default — you control it, and clients always opt in
               themselves.
@@ -1253,12 +1253,12 @@ export default async function SettingsPage({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-6">
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
               Developer
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">API &amp; Webhooks</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">API &amp; Webhooks</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
               API keys, signed webhooks, and the MCP endpoint — connect Zapier, custom tools, or your
               own Claude/Gemini to your FLOW data.
             </p>
@@ -1270,12 +1270,12 @@ export default async function SettingsPage({
             </FastLinkButton>
           </section>
 
-          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-6">
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
               Integrations
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Connected Tools</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">Connected Tools</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
               Sync your inspections to Google Calendar and connect the tools you already use.
             </p>
             <FastLinkButton
@@ -1288,17 +1288,17 @@ export default async function SettingsPage({
 
           <section
             id="public-profile"
-            className="overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#10151e] shadow-2xl shadow-black/20"
+            className="overflow-hidden rounded-2xl border border-cyan-500/30 bg-[var(--fl-surface)] shadow-2xl shadow-black/20"
           >
-            <div className="flex flex-col gap-5 border-b border-[#1a212c]/90 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-5 border-b border-[var(--fl-raised)] p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
                   Public Profile
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">
                   Inspector Profile & Directory Listing
                 </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
                   Give clients, realtors, and the public a clean page to learn about your company, services, credentials, and booking options.
                 </p>
               </div>
@@ -1306,8 +1306,8 @@ export default async function SettingsPage({
               <span
                 className={`inline-flex rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide ${
                   company.public_profile_enabled === true
-                    ? "border-teal-400/60 bg-teal-500/15 text-teal-300"
-                    : "border-[#232b38] bg-[#131923] text-[#8a93a3]"
+                    ? "border-teal-400/60 bg-teal-500/15 text-[var(--fl-accent-text)]"
+                    : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
                 }`}
               >
                 {company.public_profile_enabled === true ? "Published" : "Draft"}
@@ -1315,14 +1315,14 @@ export default async function SettingsPage({
             </div>
 
             <div className="grid gap-4 p-5 sm:p-6 lg:grid-cols-3">
-              <div className="rounded-2xl border border-[#232b38]/80 bg-[#0a0e13] p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                   Manage
                 </p>
-                <h3 className="mt-2 text-xl font-semibold text-white">
+                <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)]">
                   Edit Profile
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                   Headshot, bio, certifications, services, service areas, social links, booking link, and your branded QR marketing kit.
                 </p>
                 <FastLinkButton
@@ -1333,20 +1333,20 @@ export default async function SettingsPage({
                 </FastLinkButton>
               </div>
 
-              <div className="rounded-2xl border border-[#232b38]/80 bg-[#0a0e13] p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                   Public Access
                 </p>
-                <h3 className="mt-2 text-xl font-semibold text-white">
+                <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)]">
                   Directory & Direct Link
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                   People can find published profiles in the inspector directory or by opening your direct profile link.
                 </p>
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
                   <FastLinkButton
                     href="/inspectors"
-                    className="inline-flex items-center justify-center rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-[#e8ecf3] hover:border-cyan-400 hover:text-cyan-300"
+                    className="inline-flex items-center justify-center rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] hover:border-cyan-400 hover:text-cyan-300"
                   >
                     Open Directory
                   </FastLinkButton>
@@ -1365,16 +1365,16 @@ export default async function SettingsPage({
               </div>
 
               <div className="rounded-2xl border border-teal-500/30 bg-teal-500/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                   QR & Marketing Kit
                 </p>
-                <h3 className="mt-2 text-xl font-semibold text-white">
+                <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)]">
                   Branded QR Manager
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-[#e8ecf3]">
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-text)]">
                   Your personalized QR code, logo overlay, download PNG, print card, copy link, and share tools now live in the dedicated public profile manager.
                 </p>
-                <p className="mt-3 break-all rounded-xl border border-teal-500/30 bg-[#131923] p-3 text-xs font-bold text-white">
+                <p className="mt-3 break-all rounded-xl border border-teal-500/30 bg-[var(--fl-surface-2)] p-3 text-xs font-bold text-[var(--fl-text)]">
                   {publicProfileUrl || "Save a profile slug to generate your public link."}
                 </p>
                 <FastLinkButton

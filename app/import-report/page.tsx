@@ -801,18 +801,18 @@ export default function ImportReportPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-8">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-8">
       <div className="mx-auto max-w-6xl">
-        <header className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+        <header className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
             FLOW 1.5
           </p>
 
-          <h1 className="mt-2 text-4xl font-semibold text-white md:text-5xl">
+          <h1 className="mt-2 text-4xl font-semibold text-[var(--fl-text)] md:text-5xl">
             Import Report
           </h1>
 
-          <p className="mt-3 max-w-3xl text-[#8a93a3]">
+          <p className="mt-3 max-w-3xl text-[var(--fl-muted)]">
             Upload a legacy PDF or paste a public Spectora report link and convert it into a new FLOW draft. This optional importer does not change your normal report workflow.
           </p>
         </header>
@@ -824,7 +824,7 @@ export default function ImportReportPage() {
           </p>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-[#1a212c] bg-[#10151e] p-5">
+        <section className="mt-6 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5">
           <div className="mb-5 flex flex-wrap gap-3">
             <button
               type="button"
@@ -835,7 +835,7 @@ export default function ImportReportPage() {
               className={`rounded-xl border px-5 py-3 font-semibold ${
                 importMode === "spectora"
                   ? "border-teal-400 bg-teal-500 text-black"
-                  : "border-[#232b38] bg-black text-[#e8ecf3]"
+                  : "border-[var(--fl-line)] bg-black text-[var(--fl-text)]"
               }`}
             >
               Import Spectora Link
@@ -850,7 +850,7 @@ export default function ImportReportPage() {
               className={`rounded-xl border px-5 py-3 font-semibold ${
                 importMode === "pdf"
                   ? "border-amber-400 bg-amber-500 text-black"
-                  : "border-[#232b38] bg-black text-[#e8ecf3]"
+                  : "border-[var(--fl-line)] bg-black text-[var(--fl-text)]"
               }`}
             >
               Upload PDF
@@ -859,7 +859,7 @@ export default function ImportReportPage() {
 
           {importMode === "spectora" ? (
             <div>
-              <h2 className="text-2xl font-bold text-teal-300">
+              <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
                 1. Paste Spectora Report Link
               </h2>
 
@@ -867,7 +867,7 @@ export default function ImportReportPage() {
                 value={spectoraUrl}
                 onChange={(event) => setSpectoraUrl(event.target.value)}
                 placeholder="https://reports.spectora.com/v/reports/..."
-                className="mt-4 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
 
               <button
@@ -879,7 +879,7 @@ export default function ImportReportPage() {
                 {parsing ? "Importing Spectora Report..." : "Import Spectora Report"}
               </button>
 
-              <p className="mt-3 text-sm text-[#8a93a3]">
+              <p className="mt-3 text-sm text-[var(--fl-muted)]">
                 This uses the public Spectora report link to build a native FLOW draft.
               </p>
             </div>
@@ -891,7 +891,7 @@ export default function ImportReportPage() {
                 type="file"
                 accept="application/pdf"
                 onChange={(event) => setFile(event.target.files?.[0] || null)}
-                className="mt-4 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
               />
 
               <button
@@ -914,8 +914,8 @@ export default function ImportReportPage() {
 
         {(parsedReport.rawTextPreview || activeFindings.length > 0 || propertyDetails.length > 0) && (
           <>
-            <section className="mt-6 rounded-2xl border border-[#1a212c] bg-[#10151e] p-5">
-              <h2 className="text-2xl font-bold text-teal-300">
+            <section className="mt-6 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5">
+              <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
                 2. Review Imported Inspection Info
               </h2>
 
@@ -924,7 +924,7 @@ export default function ImportReportPage() {
                   href={parsedReport.coverPhotoUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-5 block rounded-2xl border border-[#232b38] bg-black p-3"
+                  className="mt-5 block rounded-2xl border border-[var(--fl-line)] bg-black p-3"
                   title="Open full cover photo"
                 >
                   <img
@@ -941,12 +941,12 @@ export default function ImportReportPage() {
                 </p>
               )}
 
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">
                     Ready to save
                   </p>
-                  <p className="mt-1 text-sm text-[#8a93a3]">
+                  <p className="mt-1 text-sm text-[var(--fl-muted)]">
                     Save this import as a normal draft or as a public demo/sample report.
                   </p>
                 </div>
@@ -989,38 +989,38 @@ export default function ImportReportPage() {
             </section>
 
             {propertyDetails.length > 0 && (
-              <section className="mt-6 rounded-2xl border border-[#1a212c] bg-[#10151e] p-5">
-                <h2 className="text-2xl font-bold text-teal-300">
+              <section className="mt-6 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5">
+                <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
                   Imported Section Information
                 </h2>
 
-                <p className="mt-1 text-sm text-[#8a93a3]">
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   These are Spectora information/details items. They will be saved into the imported draft notes, not as defect findings.
                 </p>
 
                 <div className="mt-5 space-y-5">
                   {equipmentGroups.length > 0 && (
-                    <div className="rounded-2xl border border-teal-500/40 bg-[#0a0e13] p-4">
-                      <h3 className="text-lg font-semibold text-teal-300">Equipment Inventory</h3>
+                    <div className="rounded-2xl border border-teal-500/40 bg-[var(--fl-ground)] p-4">
+                      <h3 className="text-lg font-semibold text-[var(--fl-accent-text)]">Equipment Inventory</h3>
 
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
                         {equipmentGroups.map((group) => (
                           <div
                             key={`${group.section}-${group.name}`}
-                            className="rounded-2xl border border-[#232b38] bg-[#10151e] p-4"
+                            className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4"
                           >
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a93a3]">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fl-muted)]">
                               {group.section}
                             </p>
-                            <h4 className="mt-1 text-xl font-semibold text-white">{group.name}</h4>
+                            <h4 className="mt-1 text-xl font-semibold text-[var(--fl-text)]">{group.name}</h4>
 
                             <div className="mt-4 grid gap-3 sm:grid-cols-2">
                               {Object.entries(group.fields).map(([label, value]) => (
-                                <div key={label} className="rounded-xl border border-[#232b38] bg-black/30 p-3">
-                                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
+                                <div key={label} className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3">
+                                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                                     {label}
                                   </p>
-                                  <p className="mt-1 break-words text-sm font-bold text-white">
+                                  <p className="mt-1 break-words text-sm font-bold text-[var(--fl-text)]">
                                     {value}
                                   </p>
                                 </div>
@@ -1035,7 +1035,7 @@ export default function ImportReportPage() {
                                     href={photoUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="rounded-xl border border-[#232b38] bg-black p-2"
+                                    className="rounded-xl border border-[var(--fl-line)] bg-black p-2"
                                     title="Open full photo"
                                   >
                                     <img
@@ -1054,19 +1054,19 @@ export default function ImportReportPage() {
                   )}
 
                   {Object.entries(groupedPropertyDetails).map(([section, details]) => (
-                    <div key={section} className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4">
-                      <h3 className="text-lg font-semibold text-white">{section}</h3>
+                    <div key={section} className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+                      <h3 className="text-lg font-semibold text-[var(--fl-text)]">{section}</h3>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {details.map((detail, index) => (
                           <div
                             key={`${detail.title}-${index}`}
-                            className="rounded-xl border border-[#232b38] bg-[#10151e] p-3"
+                            className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3"
                           >
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8a93a3]">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                               {cleanDisplayLabel(detail.title)}
                             </p>
-                            <p className="mt-1 whitespace-pre-wrap break-words text-sm font-bold leading-5 text-white">
+                            <p className="mt-1 whitespace-pre-wrap break-words text-sm font-bold leading-5 text-[var(--fl-text)]">
                               {detail.observation || "Imported detail"}
                             </p>
 
@@ -1078,7 +1078,7 @@ export default function ImportReportPage() {
                                     href={photoUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="rounded-lg border border-[#232b38] bg-black p-1"
+                                    className="rounded-lg border border-[var(--fl-line)] bg-black p-1"
                                     title="Open full photo"
                                   >
                                     <img
@@ -1099,13 +1099,13 @@ export default function ImportReportPage() {
               </section>
             )}
 
-            <section className="mt-6 rounded-2xl border border-[#1a212c] bg-[#10151e] p-5">
+            <section className="mt-6 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-2xl font-bold text-teal-300">
+                  <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
                     3. Review Findings
                   </h2>
-                  <p className="mt-1 text-[#8a93a3]">
+                  <p className="mt-1 text-[var(--fl-muted)]">
                     {activeFindings.length} finding{activeFindings.length === 1 ? "" : "s"} found. Photos detected: {photoCount}. Click any photo to open the full image.
                   </p>
                 </div>
@@ -1135,15 +1135,15 @@ export default function ImportReportPage() {
                 {activeFindings.map((finding, index) => (
                   <div
                     key={`${finding.title}-${index}`}
-                    className="overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13]"
+                    className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)]"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#232b38] bg-[#07111f] px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--fl-line)] bg-[#07111f] px-4 py-3">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a93a3]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fl-muted)]">
                           {finding.section || "Inspection Details"}
                         </p>
 
-                        <h3 className="mt-1 text-2xl font-semibold leading-tight text-teal-300">
+                        <h3 className="mt-1 text-2xl font-semibold leading-tight text-[var(--fl-accent-text)]">
                           {finding.title || "Imported Finding"}
                         </h3>
                       </div>
@@ -1172,7 +1172,7 @@ export default function ImportReportPage() {
                               href={photoUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="rounded-xl border border-[#232b38] bg-black p-2"
+                              className="rounded-xl border border-[var(--fl-line)] bg-black p-2"
                               title="Open full photo"
                             >
                               <img
@@ -1241,7 +1241,7 @@ function severityBadgeClass(severity: string) {
     return "border-sky-400/70 bg-sky-500/15 text-sky-200";
   }
 
-  return "border-teal-400/70 bg-teal-500/15 text-teal-200";
+  return "border-teal-400/70 bg-teal-500/15 text-[var(--fl-accent-text)]";
 }
 
 function NativeTextBox({
@@ -1264,7 +1264,7 @@ function NativeTextBox({
 
   return (
     <label className={`block rounded-xl border p-3 ${accentClass}`}>
-      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-white">
+      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-text)]">
         {title}
       </span>
 
@@ -1272,7 +1272,7 @@ function NativeTextBox({
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
         rows={6}
-        className="w-full resize-y bg-transparent text-sm font-semibold leading-6 text-white outline-none"
+        className="w-full resize-y bg-transparent text-sm font-semibold leading-6 text-[var(--fl-text)] outline-none"
       />
     </label>
   );
@@ -1289,11 +1289,11 @@ function Input({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-bold text-[#8a93a3]">{label}</span>
+      <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">{label}</span>
       <input
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
     </label>
   );
@@ -1310,12 +1310,12 @@ function Textarea({
 }) {
   return (
     <label className="mt-4 block">
-      <span className="mb-2 block text-sm font-bold text-[#8a93a3]">{label}</span>
+      <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">{label}</span>
       <textarea
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
         rows={4}
-        className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
     </label>
   );

@@ -21,8 +21,8 @@
 
 body {
   margin: 0;
-  background: #020617;
-  color: #f8fafc;
+  background: var(--fl-ground);
+  color: var(--fl-text);
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
   font-feature-settings: "cv11", "ss01";
@@ -39,7 +39,7 @@ body {
 /* Slim, themed scrollbars (premium feel, app-wide) */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #1e293b transparent;
+  scrollbar-color: var(--fl-raised) transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
@@ -49,28 +49,28 @@ body {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--fl-raised);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: var(--fl-line);
   background-clip: content-box;
 }
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
 select,
 textarea {
-  background: #020617;
-  color: #f8fafc;
-  border: 1px solid #334155;
+  background: var(--fl-surface-2);
+  color: var(--fl-text);
+  border: 1px solid var(--fl-line);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid #14c8d2;
+  outline: 2px solid var(--fl-accent);
 }
 
 button {
@@ -101,16 +101,16 @@ img {
 }
 
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: var(--fl-ground);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--fl-raised);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--fl-line);
 }
 
 /* Inspector Command Center overlay: a macOS-dock-style "genie" open/close so the
@@ -195,8 +195,8 @@ img {
   0%,
   100% {
     box-shadow: 0 0 0 0 rgba(45, 212, 191, 0);
-    border-color: #475569;
-    background-color: #0f172a;
+    border-color: var(--fl-line);
+    background-color: var(--fl-surface-2);
   }
   20%,
   60% {
@@ -207,8 +207,8 @@ img {
   40%,
   80% {
     box-shadow: 0 0 0 0 rgba(45, 212, 191, 0);
-    border-color: #475569;
-    background-color: #0f172a;
+    border-color: var(--fl-line);
+    background-color: var(--fl-surface-2);
   }
 }
 
@@ -219,7 +219,7 @@ img {
 /* FULLCALENDAR CUSTOM DARK THEME */
 
 .fc {
-  color: #f8fafc;
+  color: var(--fl-text);
 }
 
 .fc .fc-toolbar {
@@ -234,9 +234,9 @@ img {
 }
 
 .fc .fc-button {
-  background: #0f172a !important;
-  border: 1px solid #334155 !important;
-  color: #f8fafc !important;
+  background: var(--fl-surface-2) !important;
+  border: 1px solid var(--fl-line) !important;
+  color: var(--fl-text) !important;
   box-shadow: none !important;
   border-radius: 10px !important;
   font-weight: 700 !important;
@@ -244,22 +244,22 @@ img {
 
 .fc .fc-button:hover {
   background: #14b8a6 !important;
-  color: #020617 !important;
+  color: var(--fl-ground) !important;
 }
 
 .fc .fc-button-active {
   background: #14b8a6 !important;
-  color: #020617 !important;
+  color: var(--fl-ground) !important;
 }
 
 .fc-theme-standard td,
 .fc-theme-standard th,
 .fc-theme-standard .fc-scrollgrid {
-  border-color: #1e293b !important;
+  border-color: var(--fl-line) !important;
 }
 
 .fc-col-header-cell {
-  background: #0f172a;
+  background: var(--fl-surface-2);
   color: #2dd4bf;
   font-weight: bold;
 }
@@ -270,20 +270,20 @@ img {
 }
 
 .fc-timegrid-slot {
-  background: #020617;
+  background: var(--fl-ground);
 }
 
 .fc-timegrid-axis,
 .fc-timegrid-slot-label {
-  color: #94a3b8;
+  color: var(--fl-muted);
 }
 
 .fc-daygrid-day {
-  background: #020617;
+  background: var(--fl-ground);
 }
 
 .fc-daygrid-day-number {
-  color: #f8fafc;
+  color: var(--fl-text);
   text-decoration: none;
 }
 
@@ -294,7 +294,7 @@ img {
 .fc-event {
   background: #14b8a6 !important;
   border: none !important;
-  color: #020617 !important;
+  color: var(--fl-ground) !important;
   font-weight: bold;
   border-radius: 8px !important;
   padding: 2px 4px;
@@ -307,7 +307,7 @@ img {
 
 .fc-event-title,
 .fc-event-time {
-  color: #020617 !important;
+  color: var(--fl-ground) !important;
 }
 
 .fc-scrollgrid {
@@ -316,11 +316,11 @@ img {
 }
 
 .fc-list {
-  background: #020617;
+  background: var(--fl-ground);
 }
 
 .fc-list-event:hover td {
-  background: #0f172a !important;
+  background: var(--fl-surface-2) !important;
 }
 
 @media (max-width: 768px) {
@@ -397,6 +397,7 @@ img {
    these classes. Convert the app screen-by-screen onto this kit.
    ========================================================================= */
 :root {
+  color-scheme: dark;
   --fl-ground: #0a0e13;
   --fl-surface: #10151e;
   --fl-surface-2: #131923;
@@ -408,6 +409,7 @@ img {
   --fl-faint: #59626f;
   --fl-accent: #1ac5b4;
   --fl-accent-2: #12a99a;
+  --fl-accent-text: #5eead4;
   --fl-accent-bg: rgba(26, 197, 180, 0.12);
   --fl-accent-line: rgba(26, 197, 180, 0.35);
   --fl-good: #37d6a6;
@@ -418,6 +420,41 @@ img {
   --fl-crit-bg: rgba(247, 109, 109, 0.12);
   --fl-r: 12px;
   --fl-r-sm: 9px;
+}
+
+/* ---- Light mode -------------------------------------------------------------
+   The same token names, flipped to a considered light palette. Every screen
+   that draws its neutrals from these tokens (bg-[var(--fl-*)], text-white ->
+   var(--fl-text), etc.) switches automatically. The toggle sets data-theme on
+   <html>; dark is the default when nothing is set. Accents stay in the same
+   family, darkened just enough to stay legible on white. ------------------- */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --fl-ground: #f4f6f9;
+  --fl-surface: #ffffff;
+  --fl-surface-2: #f1f4f8;
+  --fl-raised: #e7ebf1;
+  --fl-line: #dde2ea;
+  --fl-line-2: #e7ebf1;
+  --fl-text: #17202e;
+  --fl-muted: #566173;
+  --fl-faint: #7c8698;
+  --fl-accent: #0f9e90;
+  --fl-accent-2: #0c8478;
+  --fl-accent-text: #0c8478;
+  --fl-accent-bg: rgba(15, 158, 144, 0.10);
+  --fl-accent-line: rgba(15, 158, 144, 0.35);
+  --fl-good: #0f9d76;
+  --fl-good-bg: rgba(15, 157, 118, 0.12);
+  --fl-warn: #b0791b;
+  --fl-warn-bg: rgba(176, 121, 27, 0.12);
+  --fl-crit: #d64545;
+  --fl-crit-bg: rgba(214, 69, 69, 0.10);
+}
+
+/* Ease the switch so a toggle doesn't hard-cut. Scoped to color properties. */
+html {
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 /* Data figures + tiny labels */
@@ -494,7 +531,7 @@ img {
 }
 .fl-btn-ghost:hover {
   color: var(--fl-text);
-  border-color: #33404f;
+  border-color: var(--fl-line);
 }
 .fl-icon-btn {
   width: 34px;
@@ -507,7 +544,7 @@ img {
 }
 .fl-icon-btn:hover {
   color: var(--fl-text);
-  border-color: #33404f;
+  border-color: var(--fl-line);
 }
 
 /* Status pills */

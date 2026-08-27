@@ -168,7 +168,7 @@ export default function FindingActions({ finding }: { finding: any }) {
                 key={photo.id}
                 src={photo.public_url}
                 alt="Finding Photo"
-                className="h-52 w-full rounded-xl border border-[#232b38] object-cover"
+                className="h-52 w-full rounded-xl border border-[var(--fl-line)] object-cover"
               />
             ))}
           </div>
@@ -266,7 +266,7 @@ export default function FindingActions({ finding }: { finding: any }) {
 
         <button
           onClick={() => setEditing(false)}
-          className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-bold text-white"
+          className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-bold text-[var(--fl-text)]"
         >
           Cancel
         </button>

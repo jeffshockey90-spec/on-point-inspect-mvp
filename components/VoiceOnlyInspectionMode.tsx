@@ -276,7 +276,7 @@ export default function VoiceOnlyInspectionMode({
       <h2 className="mt-1 text-xl font-semibold">
         Walk, Narrate, and Auto-Save
       </h2>
-      <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
+      <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
         Speak one finding at a time, then pause. AI drafts and saves it
         automatically while listening resumes.
       </p>
@@ -294,11 +294,11 @@ export default function VoiceOnlyInspectionMode({
         {active ? "■ Stop Voice-Only Mode" : "🎙 Start Voice-Only Mode"}
       </button>
 
-      <div className="mt-3 rounded-xl border border-[#232b38] bg-black/35 p-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
+      <div className="mt-3 rounded-xl border border-[var(--fl-line)] bg-black/35 p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
           Status
         </p>
-        <p className="mt-1 font-bold text-white">{status}</p>
+        <p className="mt-1 font-bold text-[var(--fl-text)]">{status}</p>
         {liveTranscript && (
           <p className="mt-2 text-sm leading-6 text-emerald-100">
             “{liveTranscript}”
@@ -323,7 +323,7 @@ export default function VoiceOnlyInspectionMode({
               className="rounded-xl border border-emerald-500/30 bg-black/30 px-3 py-2"
             >
               <p className="font-semibold">{finding.title}</p>
-              <p className="text-xs text-[#8a93a3]">
+              <p className="text-xs text-[var(--fl-muted)]">
                 {finding.section} · {finding.severity}
               </p>
             </div>

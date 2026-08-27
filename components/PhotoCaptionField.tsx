@@ -50,13 +50,13 @@ export default function PhotoCaptionField({
           if (dirty) void save();
         }}
         placeholder="Add a caption (optional)"
-        className="min-w-0 flex-1 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-1.5 text-xs text-white outline-none focus:border-teal-400"
+        className="min-w-0 flex-1 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-1.5 text-xs text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
       <button
         type="button"
         onClick={save}
         disabled={saving || !dirty}
-        className="shrink-0 rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#8a93a3] transition hover:border-teal-400 hover:text-teal-200 disabled:opacity-40"
+        className="shrink-0 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)] disabled:opacity-40"
       >
         {saving ? "…" : saved ? "Saved" : "Save"}
       </button>

@@ -182,7 +182,7 @@ function toneClasses(tone: SummaryTone) {
   }
   return {
     border: "border-teal-500/45",
-    count: "border-teal-500/40 bg-teal-500/10 text-teal-200",
+    count: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
     stripe: "border-l-teal-500",
   };
 }
@@ -198,7 +198,7 @@ function severityClass(value: any) {
   if (severity.includes("information")) {
     return "border-blue-500/50 bg-blue-500/10 text-blue-200";
   }
-  return "border-teal-500/50 bg-teal-500/10 text-teal-200";
+  return "border-teal-500/50 bg-teal-500/10 text-[var(--fl-accent-text)]";
 }
 
 // Swipeable carousel of a finding's photos/videos in the summary, so a client
@@ -240,7 +240,7 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
             muted
             playsInline
             preload="metadata"
-            className="max-h-[420px] w-full rounded-xl border border-[#232b38] bg-black object-contain"
+            className="max-h-[420px] w-full rounded-xl border border-[var(--fl-line)] bg-black object-contain"
           >
             Your browser does not support video playback.
           </video>
@@ -251,8 +251,8 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
             fullSrc={itemUrl}
             alt={`${title} media ${current + 1}`}
             badgeText="Tap to enlarge"
-            className="max-h-[420px] w-full rounded-xl border border-[#232b38] object-contain"
-            buttonClassName="block w-full overflow-hidden rounded-xl border border-[#232b38] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            className="max-h-[420px] w-full rounded-xl border border-[var(--fl-line)] object-contain"
+            buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
             images={galleryImages}
             index={photoIndex >= 0 ? photoIndex : 0}
           />
@@ -264,7 +264,7 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
               type="button"
               aria-label="Previous"
               onClick={(e) => { e.stopPropagation(); go(-1); }}
-              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-semibold text-white active:scale-95"
+              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-semibold text-[var(--fl-text)] active:scale-95"
             >
               ‹
             </button>
@@ -272,11 +272,11 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
               type="button"
               aria-label="Next"
               onClick={(e) => { e.stopPropagation(); go(1); }}
-              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-semibold text-white active:scale-95"
+              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-semibold text-[var(--fl-text)] active:scale-95"
             >
               ›
             </button>
-            <span className="absolute right-2 top-2 z-10 rounded-full bg-black/75 px-2 py-1 text-[10px] font-semibold text-white">
+            <span className="absolute right-2 top-2 z-10 rounded-full bg-black/75 px-2 py-1 text-[10px] font-semibold text-[var(--fl-text)]">
               {current + 1} / {media.length}
             </span>
           </>
@@ -375,7 +375,7 @@ function CompactSummaryCard({
       className={`overflow-hidden rounded-2xl border border-l-4 bg-[#0b1426] transition hover:bg-[#0e1830] ${toneStyle.border} ${toneStyle.stripe}`}
     >
       <div className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)]">
-        <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-[#232b38] bg-[#131923] sm:h-[132px] sm:w-[132px]">
+        <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] sm:h-[132px] sm:w-[132px]">
           {!imageFailed && previewUrl && !isVideo ? (
             <ExpandableReportImage
               src={previewUrl}
@@ -383,7 +383,7 @@ function CompactSummaryCard({
               alt={title}
               badgeText={coverGallery.length > 1 ? `View ${coverGallery.length}` : "View"}
               className="h-full w-full object-cover"
-              buttonClassName="block h-full w-full overflow-hidden bg-[#131923] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              buttonClassName="block h-full w-full overflow-hidden bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
               images={coverGallery.length > 1 ? coverGallery : undefined}
               index={coverIndex}
             />
@@ -416,7 +416,7 @@ function CompactSummaryCard({
                 />
               )}
               <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/10">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/80 text-xl text-white shadow-lg">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/80 text-xl text-[var(--fl-text)] shadow-lg">
                   ▶
                 </span>
               </span>
@@ -425,7 +425,7 @@ function CompactSummaryCard({
               </span>
             </button>
           ) : (
-            <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-bold text-[#59626f]">
+            <div className="flex h-full w-full items-center justify-center px-3 text-center text-xs font-bold text-[var(--fl-faint)]">
               {isVideo ? "Video unavailable" : "Photo unavailable"}
             </div>
           )}
@@ -453,13 +453,13 @@ function CompactSummaryCard({
             </span>
           </div>
 
-          <h4 className="mt-3 line-clamp-2 text-lg font-semibold leading-tight text-white">
+          <h4 className="mt-3 line-clamp-2 text-lg font-semibold leading-tight text-[var(--fl-text)]">
             {title}
           </h4>
-          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-teal-300">
+          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
             {finding.section || "Report"}
           </p>
-          <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--fl-muted)]">
             {summary}
           </p>
           <p className="mt-3 text-sm font-semibold text-cyan-300">
@@ -487,7 +487,7 @@ function CompactSummaryCard({
                 setVideoOpen(false);
               }}
               aria-label="Close video"
-              className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/80 text-2xl font-semibold text-white active:scale-95"
+              className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/80 text-2xl font-semibold text-[var(--fl-text)] active:scale-95"
             >
               ×
             </button>
@@ -513,7 +513,7 @@ function CompactSummaryCard({
         )}
 
       {open && (
-        <div className="border-t border-[#1a212c] px-4 pb-4 pt-4">
+        <div className="border-t border-[var(--fl-raised)] px-4 pb-4 pt-4">
           {(() => {
             const allMedia = (Array.isArray(finding?.photos) ? finding.photos : []).filter(
               (item: any) => Boolean(getMediaUrl(item)),
@@ -530,7 +530,7 @@ function CompactSummaryCard({
                 <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">
                   Observation
                 </p>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#e8ecf3]">
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--fl-text)]">
                   {finding.observation}
                 </p>
               </div>
@@ -541,7 +541,7 @@ function CompactSummaryCard({
                 <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
                   Implication
                 </p>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#e8ecf3]">
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--fl-text)]">
                   {finding.implication}
                 </p>
               </div>
@@ -549,10 +549,10 @@ function CompactSummaryCard({
 
             {finding.recommendation && (
               <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                   Recommendation
                 </p>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#e8ecf3]">
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--fl-text)]">
                   {finding.recommendation}
                 </p>
               </div>
@@ -611,7 +611,7 @@ function ShowMoreButton({
         onClick();
       }}
       data-fast-click="true"
-      className={`mt-4 min-h-12 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3 text-sm font-semibold text-white active:scale-[0.99] active:opacity-80 [touch-action:manipulation] ${
+      className={`mt-4 min-h-12 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] active:scale-[0.99] active:opacity-80 [touch-action:manipulation] ${
         flash ? "animate-attention-flash" : ""
       }`}
     >
@@ -675,9 +675,9 @@ export default function ClientSummaryAccordion({
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-2xl font-semibold text-white">{group.title}</h3>
+                <h3 className="text-2xl font-semibold text-[var(--fl-text)]">{group.title}</h3>
                 {group.description && (
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
                     {group.description}
                   </p>
                 )}

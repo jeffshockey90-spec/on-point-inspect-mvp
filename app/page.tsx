@@ -317,7 +317,7 @@ function getEmailLogStatus(log: any) {
   }
 
   if (log?.clicked_at) {
-    return { label: "Clicked", tone: "border-teal-400/40 bg-teal-500/10 text-teal-200" };
+    return { label: "Clicked", tone: "border-teal-400/40 bg-teal-500/10 text-[var(--fl-accent-text)]" };
   }
 
   if (log?.opened_at) {
@@ -328,7 +328,7 @@ function getEmailLogStatus(log: any) {
     return { label: "Delivered", tone: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200" };
   }
 
-  return { label: "Sent", tone: "border-[#232b38] bg-[#1a212c] text-[#8a93a3]" };
+  return { label: "Sent", tone: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]" };
 }
 
 function getActivityIcon(log: any) {
@@ -862,22 +862,22 @@ export default async function HomePage() {
   });
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-[#e8ecf3] md:px-6">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6">
       <DashboardTour initialDismissed={Boolean(tourProfile?.dashboard_tour_dismissed_at)} />
       <div className="mx-auto max-w-[96rem] space-y-8">
-        <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.3)] md:p-7">
+        <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.3)] md:p-7">
           <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:items-center">
             <div>
-              <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#59626f]">
+              <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#1ac5b4]" />
                 FLOW · Command Center
               </p>
 
-              <h1 className="text-[28px] font-semibold tracking-tight text-[#e8ecf3] md:text-[34px]">
+              <h1 className="text-[28px] font-semibold tracking-tight text-[var(--fl-text)] md:text-[34px]">
                 {getGreeting()}, {getFirstName(user.email)}
               </h1>
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a93a3]">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fl-muted)]">
                 Inspections, report delivery, payments, agreements, and repair requests — all in one place.
               </p>
 
@@ -893,7 +893,7 @@ export default async function HomePage() {
                 <Link
                   href="/field"
                   data-tour="tour-field-tool"
-                  className="inline-flex items-center gap-2 rounded-lg border border-[#232b38] bg-[#131923] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
                 >
                   <Smartphone className="h-4 w-4" strokeWidth={2} /> Field Tool
                 </Link>
@@ -901,14 +901,14 @@ export default async function HomePage() {
                 <Link
                   href="/schedule"
                   data-tour="tour-schedule"
-                  className="inline-flex items-center gap-2 rounded-lg border border-[#232b38] bg-[#131923] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
                 >
                   <CalendarDays className="h-4 w-4" strokeWidth={2} /> Schedule
                 </Link>
 
                 <Link
                   href="/import-report"
-                  className="inline-flex items-center gap-2 rounded-lg border border-[#232b38] bg-[#131923] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
                 >
                   <FileDown className="h-4 w-4" strokeWidth={2} /> Import Report
                 </Link>
@@ -941,19 +941,19 @@ export default async function HomePage() {
 
             ) },
             { id: "pipeline", node: (
-        <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+        <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
                 Pipeline
               </p>
-              <h2 className="mt-1 text-2xl font-semibold text-white">
+              <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
                 Every job, at a glance
               </h2>
             </div>
             <Link
               href="/reports"
-              className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-200"
+              className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
             >
               All Reports
             </Link>
@@ -963,19 +963,19 @@ export default async function HomePage() {
 
             ) },
             { id: "active-jobs", node: (
-        <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+        <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
                 Active Jobs
               </p>
-              <h2 className="mt-1 text-2xl font-semibold text-white">
+              <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
                 {activeJobs.length} in progress
               </h2>
             </div>
             <Link
               href="/reports"
-              className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-200"
+              className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
             >
               View all
             </Link>
@@ -989,13 +989,13 @@ export default async function HomePage() {
             ) },
             { id: "whats-new", node: (
 
-        <section className="overflow-hidden rounded-xl border border-[#f3b23f]/25 bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+        <section className="overflow-hidden rounded-xl border border-[#f3b23f]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">
                 <Rocket className="h-3.5 w-3.5" strokeWidth={2.5} /> What&apos;s New
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">
+              <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
                 Latest updates to FLOW
               </h2>
             </div>
@@ -1003,7 +1003,7 @@ export default async function HomePage() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/whats-new"
-                className="rounded-xl border border-[#232b38] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-200"
+                className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
               >
                 See All Updates
               </Link>
@@ -1018,7 +1018,7 @@ export default async function HomePage() {
 
           <div className="mt-5 grid gap-3 md:grid-cols-3">
             {(latestChangelogEntries || []).length === 0 ? (
-              <div className="md:col-span-3 rounded-xl border border-dashed border-[#232b38] bg-[#131923] p-5 text-sm text-[#8a93a3]">
+              <div className="md:col-span-3 rounded-xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm text-[var(--fl-muted)]">
                 No updates posted yet. Got an idea for FLOW? Use the suggestion box above - Jeff sees it the moment
                 you submit it.
               </div>
@@ -1027,13 +1027,13 @@ export default async function HomePage() {
                 <Link
                   key={entry.id}
                   href="/whats-new"
-                  className="block rounded-xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-amber-400/60 active:scale-[0.99]"
+                  className="block rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-amber-400/60 active:scale-[0.99]"
                 >
-                  <p className="text-xs font-bold text-[#59626f]">
+                  <p className="text-xs font-bold text-[var(--fl-faint)]">
                     {getRelativeTime(entry.published_at)}
                   </p>
-                  <p className="mt-1 font-semibold text-white">{entry.title}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-[#8a93a3]">{entry.body}</p>
+                  <p className="mt-1 font-semibold text-[var(--fl-text)]">{entry.title}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-[var(--fl-muted)]">{entry.body}</p>
                   {entry.credited_user_name && (
                     <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300">
                       <Sparkles className="h-3.5 w-3.5" strokeWidth={2.5} /> Requested by {entry.credited_user_name}
@@ -1048,18 +1048,18 @@ export default async function HomePage() {
             ) },
             { id: "next-attention", node: (
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+          <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
                   Next Up
                 </p>
 
-                <h2 className="mt-2 text-3xl font-semibold text-white">
+                <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
                   {nextInspection ? getAddress(nextInspection) : "No inspections yet"}
                 </h2>
 
-                <p className="mt-2 text-sm text-[#8a93a3]">
+                <p className="mt-2 text-sm text-[var(--fl-muted)]">
                   {nextInspection
                     ? `${nextInspection.client_name || "No client listed"} • ${formatInspectionDate(
                         nextInspection.inspection_date
@@ -1100,7 +1100,7 @@ export default async function HomePage() {
 
                   <Link
                     href="/reports"
-                    className="rounded-xl border border-[#232b38] bg-[#131923] px-5 py-4 text-center text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400 active:scale-[0.98]"
+                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-5 py-4 text-center text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 active:scale-[0.98]"
                   >
                     All Reports
                   </Link>
@@ -1142,18 +1142,18 @@ export default async function HomePage() {
             ) : null}
           </section>
 
-          <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+          <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-yellow-300">
                   Needs Attention
                 </p>
 
-                <h2 className="mt-2 text-3xl font-semibold text-white">
+                <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
                   {needsAttentionCount}
                 </h2>
 
-                <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                   Showing draft reports, unpaid reports, unsigned agreements, and repair requests that need follow-up.
                 </p>
               </div>
@@ -1168,20 +1168,20 @@ export default async function HomePage() {
                 <Link
                   key={inspection.id}
                   href={`/reports/${inspection.id}`}
-                  className="block rounded-2xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-yellow-400/70 active:scale-[0.99]"
+                  className="block rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-yellow-400/70 active:scale-[0.99]"
                 >
-                  <p className="font-semibold text-white">
+                  <p className="font-semibold text-[var(--fl-text)]">
                     {getAddress(inspection)}
                   </p>
 
-                  <p className="mt-1 text-xs text-[#8a93a3]">
+                  <p className="mt-1 text-xs text-[var(--fl-muted)]">
                     {items.slice(0, 3).join(" • ")}
                   </p>
                 </Link>
               ))}
 
               {attentionItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#232b38] bg-[#131923] p-5 text-sm text-[#8a93a3]">
+                <div className="rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm text-[var(--fl-muted)]">
                   No reports needing attention right now.
                 </div>
               ) : null}
@@ -1201,21 +1201,21 @@ export default async function HomePage() {
             ) },
             { id: "recent-tools", node: (
         <section className="grid gap-6 xl:grid-cols-[1.1fr_1.9fr]">
-          <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+          <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-semibold text-teal-300">
+                <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
                   Recent Activity
                 </h2>
 
-                <p className="mt-2 text-sm text-[#8a93a3]">
+                <p className="mt-2 text-sm text-[var(--fl-muted)]">
                   Report views, client portal opens, email clicks, agreements, payments, repair requests, and read time.
                 </p>
               </div>
 
               <Link
                 href="/analytics"
-                className="rounded-xl border border-teal-500/60 px-4 py-2 text-sm font-semibold text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
+                className="rounded-xl border border-teal-500/60 px-4 py-2 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-slate-950"
               >
                 Analytics
               </Link>
@@ -1223,7 +1223,7 @@ export default async function HomePage() {
 
             <div className="mt-6 space-y-3">
               {visibleActivity.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#232b38] bg-[#131923] p-6 text-center text-sm text-[#8a93a3]">
+                <div className="rounded-xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-sm text-[var(--fl-muted)]">
                   No tracked client or realtor activity yet.
                 </div>
               ) : (
@@ -1241,30 +1241,30 @@ export default async function HomePage() {
                     <Link
                       key={log.id || `${log.created_at}-${log.view_type}`}
                       href={`/reports/${log.inspection_id_bigint || log.inspection_id}`}
-                      className="block rounded-xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
+                      className="block rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
                     >
                       <div className="flex gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-teal-300">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-[var(--fl-accent-text)]">
                           {getActivityIcon(log)}
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-start justify-between gap-2">
-                            <p className="font-semibold text-white">
+                            <p className="font-semibold text-[var(--fl-text)]">
                               {getActivityTitle(log)}
                             </p>
 
-                            <p className="text-xs font-bold text-[#59626f]">
+                            <p className="text-xs font-bold text-[var(--fl-faint)]">
                               {getRelativeTime(log.created_at)}
                             </p>
                           </div>
 
-                          <p className="mt-1 truncate text-sm text-[#8a93a3]">
+                          <p className="mt-1 truncate text-sm text-[var(--fl-muted)]">
                             {address}
                           </p>
 
                           {getDurationSeconds(log) > 0 && (
-                            <p className="mt-1 text-xs text-teal-300">
+                            <p className="mt-1 text-xs text-[var(--fl-accent-text)]">
                               Read time: {formatDuration(getDurationSeconds(log))}
                             </p>
                           )}
@@ -1277,8 +1277,8 @@ export default async function HomePage() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-            <h2 className="mb-5 text-2xl font-semibold text-teal-300">All Tools</h2>
+          <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+            <h2 className="mb-5 text-2xl font-semibold text-[var(--fl-accent-text)]">All Tools</h2>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {cards.map((card) => {
@@ -1288,16 +1288,16 @@ export default async function HomePage() {
                   key={card.href + card.title}
                   href={card.href}
                   data-tour={card.title === "Getting Started" ? "tour-getting-started" : undefined}
-                  className="group flex items-center gap-3 rounded-xl border border-[#1a212c] bg-[#131923] p-3 transition hover:border-[#1ac5b4]/50 hover:bg-white/[0.02] active:scale-[0.99]"
+                  className="group flex items-center gap-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3 transition hover:border-[#1ac5b4]/50 hover:bg-white/[0.02] active:scale-[0.99]"
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#232b38] bg-[#1a212c] text-teal-300 transition group-hover:border-teal-500/60 group-hover:text-teal-200">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-accent-text)] transition group-hover:border-teal-500/60 group-hover:text-[var(--fl-accent-text)]">
                     <CardIcon className="h-5 w-5" strokeWidth={2} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-white group-hover:text-teal-300">
+                    <span className="block truncate text-sm font-semibold text-[var(--fl-text)] group-hover:text-[var(--fl-accent-text)]">
                       {card.title}
                     </span>
-                    <span className="block truncate text-xs text-[#59626f]">
+                    <span className="block truncate text-xs text-[var(--fl-faint)]">
                       {card.description}
                     </span>
                   </span>
@@ -1310,20 +1310,20 @@ export default async function HomePage() {
 
             ) },
             { id: "email-activity", node: (
-        <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+        <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
           <div>
-            <h2 className="text-2xl font-semibold text-teal-300">
+            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
               Recent Email Activity
             </h2>
 
-            <p className="mt-2 text-sm text-[#8a93a3]">
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">
               Schedule confirmations, agreements, and reports sent from FLOW, with delivery and open status.
             </p>
           </div>
 
           <div className="mt-6 space-y-3">
             {recentEmailLogs.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-[#232b38] bg-[#131923] p-6 text-center text-sm text-[#8a93a3]">
+              <div className="rounded-xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-sm text-[var(--fl-muted)]">
                 No emails sent yet.
               </div>
             ) : (
@@ -1343,15 +1343,15 @@ export default async function HomePage() {
                   <Link
                     key={log.id || `${log.created_at}-${log.recipient_email}`}
                     href={`/reports/${log.inspection_id_bigint || log.inspection_id}`}
-                    className="block rounded-xl border border-[#232b38] bg-[#131923] p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
+                    className="block rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-teal-500/70 active:scale-[0.99]"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-semibold text-white">
+                        <p className="font-semibold text-[var(--fl-text)]">
                           {formatEmailType(log.email_type)}
                         </p>
 
-                        <p className="mt-1 truncate text-sm text-[#8a93a3]">
+                        <p className="mt-1 truncate text-sm text-[var(--fl-muted)]">
                           {log.recipient_email || log.recipient || "Unknown recipient"} · {address}
                         </p>
                       </div>
@@ -1363,7 +1363,7 @@ export default async function HomePage() {
                           {status.label}
                         </span>
 
-                        <span className="text-xs font-bold text-[#59626f]">
+                        <span className="text-xs font-bold text-[var(--fl-faint)]">
                           {getRelativeTime(log.sent_at || log.created_at)}
                         </span>
                       </div>
@@ -1402,19 +1402,19 @@ function CommandMetric({
   }[tone];
 
   return (
-    <div className="rounded-xl border border-[#1a212c] bg-[#131923] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+    <div className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
       <div className="flex items-center gap-2">
         <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
           {label}
         </p>
       </div>
 
-      <p className="mt-2 font-mono text-[26px] font-semibold leading-none text-[#e8ecf3] tabular-nums">
+      <p className="mt-2 font-mono text-[26px] font-semibold leading-none text-[var(--fl-text)] tabular-nums">
         {value}
       </p>
 
-      <p className="mt-1.5 text-xs leading-5 text-[#8a93a3]">
+      <p className="mt-1.5 text-xs leading-5 text-[var(--fl-muted)]">
         {helper}
       </p>
     </div>
@@ -1431,11 +1431,11 @@ function MiniStatus({
   good: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-[#1a212c] bg-[#131923] p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-[#e8ecf3]">
+      <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-[var(--fl-text)]">
         <span className={`h-1.5 w-1.5 rounded-full ${good ? "bg-[#37d6a6]" : "bg-[#f3b23f]"}`} />
         {value}
       </p>
@@ -1453,16 +1453,16 @@ function ActivityMetric({
   helper: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
         {label}
       </p>
 
-      <p className="mt-3 font-mono text-[30px] font-semibold leading-none text-[#e8ecf3] tabular-nums">
+      <p className="mt-3 font-mono text-[30px] font-semibold leading-none text-[var(--fl-text)] tabular-nums">
         {value}
       </p>
 
-      <p className="mt-2 text-sm leading-5 text-[#8a93a3]">
+      <p className="mt-2 text-sm leading-5 text-[var(--fl-muted)]">
         {helper}
       </p>
     </div>
@@ -1499,17 +1499,17 @@ function KpiTile({
   }[accent];
 
   return (
-    <div className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-colors hover:border-[#232b38]">
+    <div className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-colors hover:border-[var(--fl-line)]">
       <div className="flex items-center gap-2">
         <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
           {label}
         </p>
       </div>
-      <p className="mt-3 font-mono text-[34px] font-semibold leading-none tracking-tight text-[#e8ecf3] tabular-nums">
+      <p className="mt-3 font-mono text-[34px] font-semibold leading-none tracking-tight text-[var(--fl-text)] tabular-nums">
         {value}
       </p>
-      <p className="mt-2 text-sm text-[#8a93a3]">{sub}</p>
+      <p className="mt-2 text-sm text-[var(--fl-muted)]">{sub}</p>
     </div>
   );
 }
@@ -1527,20 +1527,20 @@ function PipelineFunnel({
         return (
           <div
             key={stage.key}
-            className="relative rounded-xl border border-[#1a212c] bg-[#131923] p-4"
+            className="relative rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4"
           >
             <div className="flex items-center justify-between">
               <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
-              <span className="font-mono text-[26px] font-semibold tabular-nums text-[#e8ecf3]">
+              <span className="font-mono text-[26px] font-semibold tabular-nums text-[var(--fl-text)]">
                 {stage.count}
               </span>
             </div>
             <p className={`mt-3 text-sm font-semibold ${meta.color}`}>
               {stage.label}
             </p>
-            <p className="mt-0.5 text-xs text-[#8a93a3]">{stage.hint}</p>
+            <p className="mt-0.5 text-xs text-[var(--fl-muted)]">{stage.hint}</p>
             {index < stages.length - 1 ? (
-              <span className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-xl text-[#59626f] lg:block">
+              <span className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-xl text-[var(--fl-faint)] lg:block">
                 ›
               </span>
             ) : null}
@@ -1588,7 +1588,7 @@ function JobsTable({
 }) {
   if (jobs.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[#232b38] bg-[#131923] p-8 text-center text-sm text-[#8a93a3]">
+      <div className="rounded-xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center text-sm text-[var(--fl-muted)]">
         No active jobs - everything is delivered. Nice work.
       </div>
     );
@@ -1598,7 +1598,7 @@ function JobsTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] border-collapse text-left">
         <thead>
-          <tr className="border-b border-[#1a212c] text-[10px] font-semibold uppercase tracking-[0.12em] text-[#59626f]">
+          <tr className="border-b border-[var(--fl-raised)] text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fl-faint)]">
             <th className="px-3 py-2.5">Property / Client</th>
             <th className="px-3 py-2.5">Stage</th>
             <th className="px-3 py-2.5">Payment</th>
@@ -1610,11 +1610,11 @@ function JobsTable({
           {jobs.map(({ inspection, stage }) => (
             <tr
               key={inspection.id}
-              className="border-b border-[#1a212c] transition-colors hover:bg-white/[0.02]"
+              className="border-b border-[var(--fl-raised)] transition-colors hover:bg-white/[0.02]"
             >
               <td className="px-3 py-3">
-                <p className="font-semibold text-[#e8ecf3]">{getAddress(inspection)}</p>
-                <p className="text-xs text-[#8a93a3]">
+                <p className="font-semibold text-[var(--fl-text)]">{getAddress(inspection)}</p>
+                <p className="text-xs text-[var(--fl-muted)]">
                   {inspection.client_name || "No client listed"}
                 </p>
               </td>
@@ -1624,13 +1624,13 @@ function JobsTable({
               <td className="px-3 py-3">
                 <PaymentChip inspection={inspection} />
               </td>
-              <td className="px-3 py-3 font-mono text-sm tabular-nums text-[#8a93a3]">
+              <td className="px-3 py-3 font-mono text-sm tabular-nums text-[var(--fl-muted)]">
                 {formatInspectionDate(inspection.inspection_date)}
               </td>
               <td className="px-3 py-3 text-right">
                 <Link
                   href={`/reports/${inspection.id}`}
-                  className="rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#1ac5b4] transition-colors hover:border-[#1ac5b4]/50 hover:bg-[#1ac5b4]/10"
+                  className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[#1ac5b4] transition-colors hover:border-[#1ac5b4]/50 hover:bg-[#1ac5b4]/10"
                 >
                   Open
                 </Link>

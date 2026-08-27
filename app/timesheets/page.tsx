@@ -175,8 +175,8 @@ export default async function TimesheetsPage({
         href={`/timesheets?from=${ymd(f)}&to=${ymd(t)}`}
         className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
           active
-            ? "border-teal-400 bg-teal-500/15 text-teal-200"
-            : "border-[#232b38] text-[#8a93a3] hover:border-teal-400 hover:text-teal-300"
+            ? "border-teal-400 bg-teal-500/15 text-[var(--fl-accent-text)]"
+            : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
         }`}
       >
         {label}
@@ -185,14 +185,14 @@ export default async function TimesheetsPage({
   };
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-6xl space-y-8">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-400">Payroll</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">Payroll</p>
               <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Timesheets</h1>
-              <p className="mt-3 max-w-2xl text-[#8a93a3]">
+              <p className="mt-3 max-w-2xl text-[var(--fl-muted)]">
                 On‑site hours, captured automatically from GPS arrival and departure at each
                 inspection. {inspectorTotals.length > 1 ? "Your whole team" : "Your hours"} for the
                 selected period.
@@ -200,7 +200,7 @@ export default async function TimesheetsPage({
             </div>
             <Link
               href="/analytics"
-              className="rounded-xl border border-[#232b38] px-5 py-3 font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c]"
+              className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)]"
             >
               Back to Analytics
             </Link>
@@ -210,7 +210,7 @@ export default async function TimesheetsPage({
             {preset("This month", monthStart, monthEnd)}
             {preset("Last month", lastMonthStart, lastMonthEnd)}
             {preset("This year", yearStart, monthEnd)}
-            <span className="ml-auto text-sm text-[#8a93a3]">
+            <span className="ml-auto text-sm text-[var(--fl-muted)]">
               {ymd(from)} → {ymd(to)}
             </span>
           </div>
@@ -218,43 +218,43 @@ export default async function TimesheetsPage({
 
         <section className="grid gap-5 sm:grid-cols-3">
           <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Total Hours</p>
-            <p className="mt-2 text-4xl font-semibold text-teal-300">{fmtHours(grandHours)}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Total Hours</p>
+            <p className="mt-2 text-4xl font-semibold text-[var(--fl-accent-text)]">{fmtHours(grandHours)}</p>
           </div>
           <div className="rounded-2xl border border-blue-500/40 bg-blue-950/20 p-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Jobs on Site</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Jobs on Site</p>
             <p className="mt-2 text-4xl font-semibold text-blue-300">{complete.length}</p>
           </div>
           <div
             className={`rounded-2xl border p-6 ${
               needsReview > 0
                 ? "border-amber-500/40 bg-amber-950/20"
-                : "border-[#232b38] bg-[#131923]"
+                : "border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
             }`}
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Needs Review
             </p>
             <p
               className={`mt-2 text-4xl font-semibold ${
-                needsReview > 0 ? "text-amber-300" : "text-[#59626f]"
+                needsReview > 0 ? "text-amber-300" : "text-[var(--fl-faint)]"
               }`}
             >
               {needsReview}
             </p>
-            <p className="mt-1 text-xs text-[#59626f]">
+            <p className="mt-1 text-xs text-[var(--fl-faint)]">
               No departure logged, or an unusually long session — excluded from the total.
             </p>
           </div>
         </section>
 
         {inspectorTotals.length > 1 && (
-          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-            <h2 className="text-2xl font-semibold text-teal-300">By Inspector</h2>
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">By Inspector</h2>
             <div className="mt-5 overflow-x-auto">
               <table className="w-full min-w-[420px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
+                  <tr className="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                     <th className="py-2 pr-3">Inspector</th>
                     <th className="px-3 py-2 text-right">Jobs</th>
                     <th className="px-3 py-2 text-right">Hours</th>
@@ -263,9 +263,9 @@ export default async function TimesheetsPage({
                 <tbody>
                   {inspectorTotals.map((i) => (
                     <tr key={i.email} className="border-b border-white/5">
-                      <td className="py-2 pr-3 font-bold text-white">{i.email}</td>
-                      <td className="px-3 py-2 text-right text-[#8a93a3]">{i.jobs}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-teal-300">
+                      <td className="py-2 pr-3 font-bold text-[var(--fl-text)]">{i.email}</td>
+                      <td className="px-3 py-2 text-right text-[var(--fl-muted)]">{i.jobs}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-[var(--fl-accent-text)]">
                         {fmtHours(i.hours)}
                       </td>
                     </tr>
@@ -276,9 +276,9 @@ export default async function TimesheetsPage({
           </section>
         )}
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-2xl font-semibold text-teal-300">Detail</h2>
+            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Detail</h2>
             <TimesheetExport
               rows={csvRows}
               filename={`timesheet_${ymd(from)}_to_${ymd(to)}.csv`}
@@ -288,7 +288,7 @@ export default async function TimesheetsPage({
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
-                <tr className="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
+                <tr className="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                   <th className="py-2 pr-3">Inspector</th>
                   <th className="px-3 py-2">Property</th>
                   <th className="px-3 py-2">Arrived</th>
@@ -300,16 +300,16 @@ export default async function TimesheetsPage({
               <tbody>
                 {sessions.map((s, idx) => (
                   <tr key={idx} className="border-b border-white/5">
-                    <td className="py-2 pr-3 font-bold text-white">{s.email}</td>
-                    <td className="px-3 py-2 text-[#8a93a3]">{s.property}</td>
-                    <td className="px-3 py-2 text-[#8a93a3]">{fmtDateTime(s.arrived_at)}</td>
-                    <td className="px-3 py-2 text-[#8a93a3]">{fmtDateTime(s.departed_at)}</td>
+                    <td className="py-2 pr-3 font-bold text-[var(--fl-text)]">{s.email}</td>
+                    <td className="px-3 py-2 text-[var(--fl-muted)]">{s.property}</td>
+                    <td className="px-3 py-2 text-[var(--fl-muted)]">{fmtDateTime(s.arrived_at)}</td>
+                    <td className="px-3 py-2 text-[var(--fl-muted)]">{fmtDateTime(s.departed_at)}</td>
                     <td className="px-3 py-2 text-right align-top">
                       {s.reason == null ? (
-                        <span className="font-semibold text-teal-300">
+                        <span className="font-semibold text-[var(--fl-accent-text)]">
                           {s.hours!.toFixed(1)}
                           {s.manual && (
-                            <span className="ml-1 text-[10px] font-bold text-[#59626f]">edited</span>
+                            <span className="ml-1 text-[10px] font-bold text-[var(--fl-faint)]">edited</span>
                           )}
                         </span>
                       ) : (
@@ -330,7 +330,7 @@ export default async function TimesheetsPage({
                 ))}
                 {sessions.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-[#8a93a3]">
+                    <td colSpan={6} className="py-6 text-center text-[var(--fl-muted)]">
                       No on‑site sessions in this period. Hours are captured automatically when GPS
                       arrival/departure detection is on during an inspection.
                     </td>

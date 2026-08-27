@@ -43,7 +43,7 @@ export default function CreateReinspectionButton({ inspectionId }: { inspectionI
         type="button"
         onClick={create}
         disabled={busy}
-        className="inline-flex items-center gap-2 rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200 disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)] disabled:opacity-60"
       >
         <RotateCcw className="h-4 w-4" />
         {busy ? "Creating…" : "Re-inspection"}

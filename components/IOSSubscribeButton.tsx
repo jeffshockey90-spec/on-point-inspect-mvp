@@ -98,7 +98,7 @@ export default function IOSSubscribeButton({ userId }: { userId: string }) {
   }
 
   if (loading) {
-    return <p className="text-sm text-[#8a93a3]">Loading subscription options...</p>;
+    return <p className="text-sm text-[var(--fl-muted)]">Loading subscription options...</p>;
   }
 
   return (
@@ -116,7 +116,7 @@ export default function IOSSubscribeButton({ userId }: { userId: string }) {
       ))}
 
       {packages.length === 0 && !error && (
-        <p className="text-sm text-[#8a93a3]">
+        <p className="text-sm text-[var(--fl-muted)]">
           Subscription options aren&apos;t available right now. Please try again shortly.
         </p>
       )}
@@ -125,7 +125,7 @@ export default function IOSSubscribeButton({ userId }: { userId: string }) {
         type="button"
         onClick={handleRestore}
         disabled={busy}
-        className="w-full rounded-xl border border-[#232b38] px-6 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c] disabled:opacity-60"
+        className="w-full rounded-xl border border-[var(--fl-line)] px-6 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] disabled:opacity-60"
       >
         Restore Purchases
       </button>

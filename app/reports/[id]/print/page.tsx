@@ -931,10 +931,10 @@ export default async function PrintableReportPage({ params }: PageProps) {
             />
           )}
 
-          <div className="bg-[#0a0e13] p-8 text-white">
+          <div className="bg-[var(--fl-ground)] p-8 text-[var(--fl-text)]">
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div>
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-teal-300">
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
                   Residential Home Inspection Report
                 </p>
 
@@ -948,7 +948,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
               </div>
 
               <div className="rounded-2xl border border-teal-400/40 bg-white/10 p-4 text-right">
-                <p className="text-sm font-bold text-teal-300">
+                <p className="text-sm font-bold text-[var(--fl-accent-text)]">
                   Licensed Home Inspector
                 </p>
                 {branding.licenseInfo && (

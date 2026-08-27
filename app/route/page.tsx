@@ -148,34 +148,34 @@ export default async function RoutePage({
   };
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl space-y-8">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-6 shadow-2xl md:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-400">Dispatch</p>
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">Dispatch</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Day Route</h1>
-          <p className="mt-3 max-w-2xl text-[#8a93a3]">
+          <p className="mt-3 max-w-2xl text-[var(--fl-muted)]">
             Your inspections for the day, ordered to minimize drive time from the office.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link href={`/route?date=${dayShift(-1)}`} className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#8a93a3] hover:border-teal-400 hover:text-teal-300">← Prev</Link>
-            <span className="rounded-xl border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-teal-200">{prettyDate(date)}</span>
-            <Link href={`/route?date=${dayShift(1)}`} className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#8a93a3] hover:border-teal-400 hover:text-teal-300">Next →</Link>
+            <Link href={`/route?date=${dayShift(-1)}`} className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-muted)] hover:border-teal-400 hover:text-[var(--fl-accent-text)]">← Prev</Link>
+            <span className="rounded-xl border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-accent-text)]">{prettyDate(date)}</span>
+            <Link href={`/route?date=${dayShift(1)}`} className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-muted)] hover:border-teal-400 hover:text-[var(--fl-accent-text)]">Next →</Link>
             {date !== today && (
-              <Link href="/route" className="text-sm font-semibold text-teal-300 hover:text-teal-200">Today</Link>
+              <Link href="/route" className="text-sm font-semibold text-[var(--fl-accent-text)] hover:text-[var(--fl-accent-text)]">Today</Link>
             )}
           </div>
         </section>
 
         <section className="grid gap-5 sm:grid-cols-2">
           <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Stops</p>
-            <p className="mt-2 text-4xl font-semibold text-teal-300">{ordered.length}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Stops</p>
+            <p className="mt-2 text-4xl font-semibold text-[var(--fl-accent-text)]">{ordered.length}</p>
           </div>
           <div className="rounded-2xl border border-blue-500/40 bg-blue-950/20 p-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Est. Drive</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Est. Drive</p>
             <p className="mt-2 text-4xl font-semibold text-blue-300">{totalMiles.toFixed(0)} mi</p>
-            <p className="mt-1 text-xs text-[#59626f]">Straight-line estimate.</p>
+            <p className="mt-1 text-xs text-[var(--fl-faint)]">Straight-line estimate.</p>
           </div>
         </section>
 
@@ -190,30 +190,30 @@ export default async function RoutePage({
           </a>
         )}
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">Order</h2>
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Order</h2>
           {office && (
-            <p className="mt-2 text-sm text-[#8a93a3]">Starting from office: {office.address}</p>
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">Starting from office: {office.address}</p>
           )}
 
           {ordered.length === 0 ? (
-            <p className="mt-5 text-[#8a93a3]">
+            <p className="mt-5 text-[var(--fl-muted)]">
               No inspections with a mapped location on this day.
               {missingCoords > 0 ? ` (${missingCoords} without coordinates.)` : ""}
             </p>
           ) : (
             <ol className="mt-5 space-y-3">
               {ordered.map((s, i) => (
-                <li key={s.id} className="flex items-start gap-4 rounded-xl border border-[#232b38] bg-black/30 p-4">
+                <li key={s.id} className="flex items-start gap-4 rounded-xl border border-[var(--fl-line)] bg-black/30 p-4">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500 text-sm font-semibold text-slate-950">
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-white">{s.label}</p>
-                    <p className="text-sm text-[#8a93a3]">{s.address}</p>
-                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-[#59626f]">
+                    <p className="font-bold text-[var(--fl-text)]">{s.label}</p>
+                    <p className="text-sm text-[var(--fl-muted)]">{s.address}</p>
+                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-[var(--fl-faint)]">
                       {s.time && <span>Scheduled {s.time}</span>}
-                      <Link href={`/reports/${s.id}`} className="font-semibold text-teal-300 hover:text-teal-200">
+                      <Link href={`/reports/${s.id}`} className="font-semibold text-[var(--fl-accent-text)] hover:text-[var(--fl-accent-text)]">
                         Open report
                       </Link>
                     </div>

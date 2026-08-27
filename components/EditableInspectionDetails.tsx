@@ -75,9 +75,9 @@ export default function EditableInspectionDetails({
   }
 
   return (
-    <section className="mt-10 rounded-2xl border border-[#232b38] bg-[#131923] p-6 print:border-slate-400 print:bg-white print:text-black">
+    <section className="mt-10 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 print:border-slate-400 print:bg-white print:text-black">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <h2 className="text-2xl font-bold text-teal-400">
+        <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
           Inspection Details
         </h2>
 
@@ -99,7 +99,7 @@ export default function EditableInspectionDetails({
 
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <h3 className="mb-4 text-xl font-bold text-teal-300 print:text-black">
+          <h3 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)] print:text-black">
             Inspection Information
           </h3>
 
@@ -155,7 +155,7 @@ export default function EditableInspectionDetails({
         </div>
 
         <div>
-          <h3 className="mb-4 text-xl font-bold text-teal-300 print:text-black">
+          <h3 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)] print:text-black">
             Property / Site Information
           </h3>
 
@@ -243,14 +243,14 @@ function DetailInput({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-bold text-[#8a93a3] print:text-black">
+      <span className="mb-1 block text-sm font-bold text-[var(--fl-muted)] print:text-black">
         {label}
       </span>
 
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none transition focus:border-teal-400 print:border-none print:bg-white print:p-0 print:text-black"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none transition focus:border-teal-400 print:border-none print:bg-white print:p-0 print:text-black"
       />
     </label>
   );

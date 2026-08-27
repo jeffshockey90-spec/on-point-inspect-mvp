@@ -44,13 +44,13 @@ export default function Secure24ReferralSettings() {
   }
 
   return (
-    <div className="rounded-2xl border border-[#232b38] bg-[#131923]/40 p-5">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-teal-400" />
+          <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-[var(--fl-accent-text)]" />
           <div>
-            <p className="font-semibold text-white">{SECURE24_BRAND} home-security referral</p>
-            <p className="mt-1 max-w-xl text-sm leading-6 text-[#8a93a3]">
+            <p className="font-semibold text-[var(--fl-text)]">{SECURE24_BRAND} home-security referral</p>
+            <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--fl-muted)]">
               Show your clients an optional offer on their report to be contacted by{" "}
               {SECURE24_BRAND} about a home-security system. Clients must opt in themselves —
               nothing is ever shared unless they choose it. You earn a referral payout on

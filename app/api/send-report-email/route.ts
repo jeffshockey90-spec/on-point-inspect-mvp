@@ -369,7 +369,7 @@ function buildEmailHtml({
 
   const environmentalLinksHtml = hasEnvironmentalLinks
     ? `
-        <div style="margin-top:22px; padding:18px; border:1px solid #334155; border-radius:14px; background:#020617;">
+        <div style="margin-top:22px; padding:18px; border:1px solid #334155; border-radius:14px; background:var(--fl-ground);">
           <h2 style="margin:0 0 12px 0; color:#c4b5fd; font-size:20px;">
             Official Environmental Reports
           </h2>
@@ -410,7 +410,7 @@ function buildEmailHtml({
     : "";
 
   return `
-    <div style="font-family: Arial, sans-serif; background:#020617; color:#f8fafc; padding:24px;">
+    <div style="font-family: Arial, sans-serif; background:var(--fl-ground); color:#f8fafc; padding:24px;">
       <div style="max-width:640px; margin:auto; background:#0f172a; border:1px solid #1e293b; border-radius:16px; padding:24px;">
         <h1 style="color:#2dd4bf; margin-top:0;">${escapeHtml(branding.name)}</h1>
 
@@ -429,7 +429,7 @@ function buildEmailHtml({
         <p>is ready to review.</p>
 
         <p>
-          <a href="${trackedShareUrl}" style="display:inline-block; background:#14b8a6; color:#020617; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
+          <a href="${trackedShareUrl}" style="display:inline-block; background:#14b8a6; color:var(--fl-ground); padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
             ${
               isEnvNotice
                 ? "View Your Results"

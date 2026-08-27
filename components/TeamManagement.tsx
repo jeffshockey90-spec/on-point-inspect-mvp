@@ -97,10 +97,10 @@ export default function TeamManagement() {
   }
 
   return (
-    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">Team</p>
-      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Your Inspectors</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8a93a3]">
+    <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">Team</p>
+      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">Your Inspectors</h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fl-muted)]">
         {isOwner
           ? "Invite inspectors to join your company. They'll get an email to set their password and can start working on inspections once they're on the team."
           : "Everyone on your company's team."}
@@ -113,8 +113,8 @@ export default function TeamManagement() {
       )}
 
       {isOwner && (
-        <div className="mt-5 rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 sm:p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">Invite an Inspector</h3>
+        <div className="mt-5 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 sm:p-5">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Invite an Inspector</h3>
 
           {inviteError && (
             <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/20 p-2 text-xs font-bold text-red-300">
@@ -132,14 +132,14 @@ export default function TeamManagement() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Full name"
-              className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email address"
               type="email"
-              className="w-full rounded-xl border border-[#232b38] bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
           </div>
 
@@ -156,25 +156,25 @@ export default function TeamManagement() {
 
       <div className="mt-5 space-y-2">
         {loading ? (
-          <p className="text-sm text-[#8a93a3]">Loading team...</p>
+          <p className="text-sm text-[var(--fl-muted)]">Loading team...</p>
         ) : team.length === 0 ? (
-          <p className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-sm text-[#8a93a3]">
+          <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm text-[var(--fl-muted)]">
             No team members yet.
           </p>
         ) : (
           team.map((member) => (
             <div
               key={member.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3.5"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3.5"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-white">
+                <p className="truncate text-sm font-semibold text-[var(--fl-text)]">
                   {member.name}
                   {member.userId === currentUserId && (
-                    <span className="ml-2 text-xs font-bold text-teal-400">(You)</span>
+                    <span className="ml-2 text-xs font-bold text-[var(--fl-accent-text)]">(You)</span>
                   )}
                 </p>
-                <p className="truncate text-xs text-[#8a93a3]">{member.email || "No email"}</p>
+                <p className="truncate text-xs text-[var(--fl-muted)]">{member.email || "No email"}</p>
               </div>
 
               <div className="flex shrink-0 items-center gap-2">

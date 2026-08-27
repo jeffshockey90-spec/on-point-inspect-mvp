@@ -134,7 +134,7 @@ function ReviewList({
   title,
   items,
   emptyText,
-  tone = "text-[#e8ecf3]",
+  tone = "text-[var(--fl-text)]",
 }: {
   title: string;
   items?: any[];
@@ -144,13 +144,13 @@ function ReviewList({
   const cleanItems = toReviewItems(items);
 
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-4">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
           {title}
         </h3>
 
-        <span className="rounded-full border border-[#232b38] bg-black/30 px-2 py-1 text-xs font-semibold text-[#8a93a3]">
+        <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">
           {cleanItems.length}
         </span>
       </div>
@@ -165,7 +165,7 @@ function ReviewList({
                 <button
                   type="button"
                   onClick={() => jumpToFinding(item.findingId, item.section)}
-                  className={`flex w-full items-start justify-between gap-2 rounded-lg border border-[#232b38] bg-black/20 px-3 py-2 text-left text-sm leading-6 transition hover:border-purple-400/60 hover:bg-purple-500/10 ${tone}`}
+                  className={`flex w-full items-start justify-between gap-2 rounded-lg border border-[var(--fl-line)] bg-black/20 px-3 py-2 text-left text-sm leading-6 transition hover:border-purple-400/60 hover:bg-purple-500/10 ${tone}`}
                 >
                   <span className="min-w-0">{item.text}</span>
                   <span className="mt-0.5 shrink-0 text-xs font-semibold text-purple-300">
@@ -263,11 +263,11 @@ export default function AIReportReviewPanel({
             AI Report Review
           </p>
 
-          <h2 className="mt-1 text-2xl font-semibold text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
             Second Set of Eyes Before Publish
           </h2>
 
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
             Runs an AI quality check for missing recommendations, missing implications,
             missing photos, duplicate concerns, section issues, equipment documentation,
             and report completeness. Inspector has final say.
@@ -316,7 +316,7 @@ export default function AIReportReviewPanel({
               <button
                 type="button"
                 onClick={() => document.getElementById("publish-guard")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="rounded-lg border border-[#59626f] bg-[#131923] px-4 py-2 text-sm font-semibold text-white"
+                className="rounded-lg border border-[var(--fl-faint)] bg-[var(--fl-surface-2)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)]"
               >
                 View Publish Guard
               </button>
@@ -336,7 +336,7 @@ export default function AIReportReviewPanel({
         <div
           className={`rounded-xl border p-4 ${
             score === null
-              ? "border-[#232b38] bg-[#020817]/70 text-[#8a93a3]"
+              ? "border-[var(--fl-line)] bg-[#020817]/70 text-[var(--fl-muted)]"
               : scoreTone(score)
           }`}
         >
@@ -358,25 +358,25 @@ export default function AIReportReviewPanel({
           <p className="mt-2 text-xl font-semibold">{publishRecommendation}</p>
         </div>
 
-        <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-4 text-[#8a93a3]">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-4 text-[var(--fl-muted)]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Report Data Reviewed
           </p>
 
           <p className="mt-2 text-sm">
-            Findings: <span className="font-semibold text-white">{review?.findingCount ?? "—"}</span>
+            Findings: <span className="font-semibold text-[var(--fl-text)]">{review?.findingCount ?? "—"}</span>
           </p>
           <p className="mt-1 text-sm">
-            Equipment: <span className="font-semibold text-white">{review?.equipmentCount ?? "—"}</span>
+            Equipment: <span className="font-semibold text-[var(--fl-text)]">{review?.equipmentCount ?? "—"}</span>
           </p>
           <p className="mt-1 text-sm">
-            Media: <span className="font-semibold text-white">{review?.photoCount ?? "—"}</span>
+            Media: <span className="font-semibold text-[var(--fl-text)]">{review?.photoCount ?? "—"}</span>
           </p>
         </div>
       </div>
 
       {safeText(review?.summary) && (
-        <div className="mt-5 rounded-xl border border-[#232b38] bg-[#020817]/70 p-4 text-sm leading-7 text-[#e8ecf3]">
+        <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-4 text-sm leading-7 text-[var(--fl-text)]">
           {safeText(review?.summary)}
         </div>
       )}
@@ -427,8 +427,8 @@ export default function AIReportReviewPanel({
             emptyText="No extra suggestions."
           />
 
-          <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Automated Base Checks
             </h3>
 
@@ -444,7 +444,7 @@ export default function AIReportReviewPanel({
                       <button
                         type="button"
                         onClick={() => jumpToFinding(item.findingId, item.section)}
-                        className="flex w-full items-start justify-between gap-2 rounded-lg border border-[#232b38] bg-black/20 px-3 py-2 text-left text-sm leading-6 text-[#8a93a3] transition hover:border-purple-400/60 hover:bg-purple-500/10"
+                        className="flex w-full items-start justify-between gap-2 rounded-lg border border-[var(--fl-line)] bg-black/20 px-3 py-2 text-left text-sm leading-6 text-[var(--fl-muted)] transition hover:border-purple-400/60 hover:bg-purple-500/10"
                       >
                         <span className="min-w-0">{item.text}</span>
                         <span className="mt-0.5 shrink-0 text-xs font-semibold text-purple-300">
@@ -453,7 +453,7 @@ export default function AIReportReviewPanel({
                       </button>
                     </li>
                   ) : (
-                    <li key={index} className="text-sm leading-6 text-[#8a93a3]">
+                    <li key={index} className="text-sm leading-6 text-[var(--fl-muted)]">
                       {item.text}
                     </li>
                   ),

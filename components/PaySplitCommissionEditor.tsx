@@ -63,7 +63,7 @@ export default function PaySplitCommissionEditor({
 
   if (members.length === 0) {
     return (
-      <p className="rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm text-[#8a93a3]">
+      <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">
         No inspectors on your team yet. Invite inspectors in Settings, then set their commission here.
       </p>
     );
@@ -83,10 +83,10 @@ export default function PaySplitCommissionEditor({
         return (
           <div
             key={member.userId}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#232b38] bg-[#131923] p-3.5"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3.5"
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">
+              <p className="truncate text-sm font-semibold text-[var(--fl-text)]">
                 {member.name}
                 {member.role === "owner" && (
                   <span className="ml-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-300">
@@ -94,7 +94,7 @@ export default function PaySplitCommissionEditor({
                   </span>
                 )}
               </p>
-              <p className="truncate text-xs text-[#8a93a3]">{member.email || "No email"}</p>
+              <p className="truncate text-xs text-[var(--fl-muted)]">{member.email || "No email"}</p>
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
@@ -108,9 +108,9 @@ export default function PaySplitCommissionEditor({
                     setSavedId("");
                   }}
                   placeholder={String(defaultPct)}
-                  className="w-24 rounded-xl border border-[#232b38] bg-black px-3 py-2 pr-7 text-right text-sm font-semibold text-white outline-none focus:border-teal-400"
+                  className="w-24 rounded-xl border border-[var(--fl-line)] bg-black px-3 py-2 pr-7 text-right text-sm font-semibold text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#59626f]">
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[var(--fl-faint)]">
                   %
                 </span>
               </div>
@@ -126,7 +126,7 @@ export default function PaySplitCommissionEditor({
             </div>
 
             {usingDefault && (
-              <p className="w-full text-[11px] font-bold text-[#59626f]">
+              <p className="w-full text-[11px] font-bold text-[var(--fl-faint)]">
                 Using company default ({defaultPct}%). Enter a value to override.
               </p>
             )}

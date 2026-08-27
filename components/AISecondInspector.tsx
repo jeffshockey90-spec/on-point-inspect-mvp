@@ -80,8 +80,8 @@ function severityTone(severity?: string) {
 
 function emptyState() {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
-      <p className="font-bold text-white">Waiting for inspection activity.</p>
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
+      <p className="font-bold text-[var(--fl-text)]">Waiting for inspection activity.</p>
       <p className="mt-2">
         Add photos, scan equipment, dictate a finding, or generate from a note.
         The AI will summarize what it found, explain why it matters, and suggest
@@ -113,11 +113,11 @@ function DetailBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-black/30 p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {title}
       </p>
-      <div className="mt-2 text-sm leading-6 text-[#e8ecf3]">{children}</div>
+      <div className="mt-2 text-sm leading-6 text-[var(--fl-text)]">{children}</div>
     </div>
   );
 }
@@ -143,11 +143,11 @@ export default function AISecondInspector({
             AI Second Inspector
           </p>
 
-          <h2 className="mt-1 text-2xl font-semibold text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
             Live Review
           </h2>
 
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             Real-time AI review for field photos, equipment scans, dictated notes,
             generated findings, and report wording. Inspector has final say.
           </p>
@@ -157,7 +157,7 @@ export default function AISecondInspector({
           <button
             type="button"
             onClick={onClear}
-            className="rounded-xl border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#8a93a3] transition hover:bg-[#1a212c]"
+            className="rounded-xl border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-muted)] transition hover:bg-[var(--fl-raised)]"
           >
             Clear
           </button>
@@ -176,18 +176,18 @@ export default function AISecondInspector({
             const tone = confidenceTone(confidence);
 
             return (
-              <div className="rounded-2xl border border-[#232b38] bg-[#0a0e13]/90 p-4">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">
                       Current AI Review
                     </p>
 
-                    <h3 className="mt-1 text-xl font-semibold text-white">
+                    <h3 className="mt-1 text-xl font-semibold text-[var(--fl-text)]">
                       {activeSuggestion.title}
                     </h3>
 
-                    <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
+                    <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
                       {sourceHelper(activeSuggestion.source)}
                     </p>
                   </div>
@@ -273,7 +273,7 @@ export default function AISecondInspector({
                   <button
                     type="button"
                     onClick={() => onIgnore(activeSuggestion.id)}
-                    className="rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-[#8a93a3] transition hover:bg-[#1a212c]"
+                    className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-muted)] transition hover:bg-[var(--fl-raised)]"
                   >
                     Ignore This
                   </button>
@@ -283,8 +283,8 @@ export default function AISecondInspector({
           })()}
 
           {suggestions.length > 1 && (
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Other AI Suggestions
               </p>
 
@@ -299,14 +299,14 @@ export default function AISecondInspector({
                   return (
                     <div
                       key={suggestion.id}
-                      className="rounded-xl border border-[#232b38] bg-black/30 p-3"
+                      className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-sm font-semibold text-white">
+                          <p className="text-sm font-semibold text-[var(--fl-text)]">
                             {suggestion.title}
                           </p>
-                          <p className="mt-1 text-xs text-[#8a93a3]">
+                          <p className="mt-1 text-xs text-[var(--fl-muted)]">
                             {[suggestion.section, suggestion.severity]
                               .filter(Boolean)
                               .join(" • ")}
@@ -329,7 +329,7 @@ export default function AISecondInspector({
                         <button
                           type="button"
                           onClick={() => onIgnore(suggestion.id)}
-                          className="flex-1 rounded-lg border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#8a93a3] hover:bg-[#1a212c]"
+                          className="flex-1 rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
                         >
                           Ignore
                         </button>

@@ -11,13 +11,13 @@ export default function CommandSearchTrigger() {
       onClick={() =>
         window.dispatchEvent(new CustomEvent("flow:open-command-palette"))
       }
-      className="group flex w-full items-center gap-3 rounded-2xl border border-[#232b38] bg-[#131923] px-4 py-3 text-left transition hover:border-teal-400/60 hover:bg-[#0a0e13]"
+      className="group flex w-full items-center gap-3 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-left transition hover:border-teal-400/60 hover:bg-[var(--fl-ground)]"
     >
-      <Search className="h-4 w-4 shrink-0 text-[#59626f] group-hover:text-teal-300" strokeWidth={2.5} />
-      <span className="flex-1 text-sm font-bold text-[#8a93a3] group-hover:text-[#e8ecf3]">
+      <Search className="h-4 w-4 shrink-0 text-[var(--fl-faint)] group-hover:text-[var(--fl-accent-text)]" strokeWidth={2.5} />
+      <span className="flex-1 text-sm font-bold text-[var(--fl-muted)] group-hover:text-[var(--fl-text)]">
         Search FLOW — jump anywhere…
       </span>
-      <kbd className="rounded-md border border-[#232b38] px-2 py-1 text-xs font-semibold text-[#59626f]">
+      <kbd className="rounded-md border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-faint)]">
         ⌘K
       </kbd>
     </button>

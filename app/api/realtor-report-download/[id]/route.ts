@@ -1436,7 +1436,7 @@ function buildAgentReportHtml({
     a { color: #0f8f8f; text-decoration: none; }
 
     .screen-actions { max-width: 816px; margin: 18px auto 12px; padding: 0 12px; display: flex; gap: 10px; flex-wrap: wrap; }
-    .screen-actions button { min-height: 44px; border: 1px solid #14b8a6; border-radius: 12px; background: #020617; color: #5eead4; padding: 10px 16px; font-weight: 900; cursor: pointer; }
+    .screen-actions button { min-height: 44px; border: 1px solid #14b8a6; border-radius: 12px; background: var(--fl-ground); color: #5eead4; padding: 10px 16px; font-weight: 900; cursor: pointer; }
 
     .document { width: 816px; margin: 0 auto 30px; background: #e5e7eb; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
     .page { position: relative; width: 816px; min-height: 1056px; overflow: hidden; background: #fff; padding: 42px 46px 62px; break-after: page; page-break-after: always; border-bottom: 10px solid #0b1120; }
@@ -1445,25 +1445,25 @@ function buildAgentReportHtml({
     .page-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 3px solid #0f8f8f; padding-bottom: 14px; margin-bottom: 24px; }
     .mini-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .header-logo-img { width: 155px; max-height: 48px; object-fit: contain; object-position: left center; display: block; }
-    .header-logo-fallback { min-height: 42px; max-width: 230px; display: flex; align-items: center; color: #020617; font-size: 18px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
+    .header-logo-fallback { min-height: 42px; max-width: 230px; display: flex; align-items: center; color: var(--fl-ground); font-size: 18px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
     .header-address { text-align: right; font-size: 10px; color: #334155; font-weight: 800; line-height: 1.35; }
 
     .cover-page { text-align: center; }
     .cover-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 28px; }
     .cover-logo-img { width: 210px; max-height: 92px; object-fit: contain; object-position: left center; display: block; }
-    .cover-logo-fallback { width: 210px; min-height: 72px; display: flex; align-items: center; color: #020617; font-size: 21px; font-weight: 900; line-height: 1.05; text-align: left; text-transform: uppercase; }
+    .cover-logo-fallback { width: 210px; min-height: 72px; display: flex; align-items: center; color: var(--fl-ground); font-size: 21px; font-weight: 900; line-height: 1.05; text-align: left; text-transform: uppercase; }
     .company { text-align: right; color: #334155; font-size: 10px; line-height: 1.5; }
-    .company strong { color: #020617; font-size: 13px; }
+    .company strong { color: var(--fl-ground); font-size: 13px; }
     .cover-photo { width: 610px; height: 330px; object-fit: cover; display: block; margin: 0 auto 28px; border: 1px solid #cbd5e1; border-radius: 4px; }
     .cover-photo.no-photo { background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-weight: 900; }
     .cover-eyebrow { color: #0f8f8f; font-weight: 900; text-transform: uppercase; letter-spacing: .16em; margin: 0 0 8px; }
-    h1 { margin: 0; color: #020617; font-size: 34px; line-height: 1.08; text-transform: uppercase; }
+    h1 { margin: 0; color: var(--fl-ground); font-size: 34px; line-height: 1.08; text-transform: uppercase; }
     .cover-address { margin: 8px 0 0; color: #334155; font-weight: 900; font-size: 15px; }
     .cover-rule { width: 520px; border: 0; border-top: 3px solid #0f8f8f; margin: 28px auto 20px; }
     .cover-details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
     .detail-card { border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; padding: 14px; min-height: 88px; }
     .detail-card span { display: block; color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 900; }
-    .detail-card strong { display: block; margin-top: 8px; color: #020617; font-size: 14px; }
+    .detail-card strong { display: block; margin-top: 8px; color: var(--fl-ground); font-size: 14px; }
     .cover-agent { display: inline-flex; align-items: center; gap: 14px; margin: 24px auto 0; padding: 12px 18px; border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; }
     .cover-agent-photo { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid #cbd5e1; }
     .cover-agent-info { text-align: left; }
@@ -1551,7 +1551,7 @@ function buildAgentReportHtml({
 
     .standards-title { border-left: 6px solid #0f8f8f; padding: 0 0 0 18px; margin-bottom: 18px; }
     .standards-title p { margin: 0; color: #0f8f8f; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; font-weight: 900; }
-    .standards-title h2 { margin: 4px 0 6px; color: #020617; font-size: 28px; text-transform: uppercase; }
+    .standards-title h2 { margin: 4px 0 6px; color: var(--fl-ground); font-size: 28px; text-transform: uppercase; }
     .standards-title span { display: block; color: #475569; font-size: 11px; line-height: 1.5; max-width: 650px; }
     .standards-grid { display: block; }
     .standards-block { margin: 0 0 20px; padding: 0 0 16px; border-bottom: 1px solid #e5e7eb; }
@@ -1562,18 +1562,18 @@ function buildAgentReportHtml({
 
     .interactive-card { margin: 120px auto 0; max-width: 420px; text-align: center; }
     .interactive-icon { width: 90px; height: 90px; margin: 0 auto 18px; border-radius: 999px; background: #0f8f8f; color: white; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 900; }
-    .qr-caption { margin: 22px 0 0; color: #020617; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; }
+    .qr-caption { margin: 22px 0 0; color: var(--fl-ground); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; }
     .qr-box { width: 180px; height: 180px; margin: 24px auto; border: 2px dashed #0f8f8f; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #0f8f8f; font-weight: 900; }
     .qr-box.real { width: 220px; height: 220px; margin: 16px auto 14px; background: #fff; border: 0; border-radius: 18px; display: flex; justify-content: center; align-items: center; position: relative; padding: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
     .qr-image { width: 100%; height: 100%; object-fit: contain; display: block; }
     /* Match the inspector-profile QR center badge: a dark rounded box with a
        teal border and the logo padded inside (contain), instead of a plain white
        box that made a dark logo look like a cramped black square. */
-    .qr-logo { position: absolute; width: 54px; height: 54px; background: #020617; border: 2px solid #14b8a6; border-radius: 13px; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.28); }
+    .qr-logo { position: absolute; width: 54px; height: 54px; background: var(--fl-ground); border: 2px solid #14b8a6; border-radius: 13px; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.28); }
     .qr-logo img { width: 38px; height: 38px; object-fit: contain; display: block; }
     .online-link { color: #0f8f8f; overflow-wrap: anywhere; font-weight: 800; }
 
-    .black-footer { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #020617; color: #cbd5e1; display: flex; align-items: center; justify-content: space-between; padding: 0 46px; font-size: 9px; }
+    .black-footer { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: var(--fl-ground); color: #cbd5e1; display: flex; align-items: center; justify-content: space-between; padding: 0 46px; font-size: 9px; }
     .teal-line { position: absolute; left: 46px; right: 46px; bottom: 42px; border-top: 1px solid #0f8f8f; }
 
     @media (max-width: 840px) {

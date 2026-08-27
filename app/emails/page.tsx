@@ -99,14 +99,14 @@ export default async function EmailsPage() {
   });
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-teal-400">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
             Communication
           </p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Sent Emails</h1>
-          <p className="mt-4 text-[#8a93a3]">
+          <p className="mt-4 text-[var(--fl-muted)]">
             Every schedule confirmation, agreement, report, and review request sent from FLOW,
             with delivery and open status.
           </p>

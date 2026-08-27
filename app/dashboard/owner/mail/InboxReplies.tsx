@@ -82,11 +82,11 @@ export default function InboxReplies({ replies }: { replies: Reply[] }) {
   }
 
   const inputCls =
-    "w-full rounded-xl border border-[#232b38] bg-[#10151e] px-3 py-2.5 text-white outline-none focus:border-teal-400";
+    "w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-2.5 text-[var(--fl-text)] outline-none focus:border-teal-400";
 
   if (replies.length === 0) {
     return (
-      <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">
+      <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">
         No replies yet. When a client or inspector replies to a FLOW email, it lands here.
       </div>
     );
@@ -100,30 +100,30 @@ export default function InboxReplies({ replies }: { replies: Reply[] }) {
           <li
             key={r.id}
             className={`rounded-2xl border p-4 transition ${
-              unread ? "border-teal-500/50 bg-teal-500/5" : "border-[#1a212c] bg-[#0a0e13]/50"
+              unread ? "border-teal-500/50 bg-teal-500/5" : "border-[var(--fl-raised)] bg-[var(--fl-ground)]"
             }`}
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   {unread && <span className="h-2 w-2 shrink-0 rounded-full bg-teal-400" aria-label="unread" />}
-                  <span className="truncate font-semibold text-white">{r.from_name || r.from_email}</span>
+                  <span className="truncate font-semibold text-[var(--fl-text)]">{r.from_name || r.from_email}</span>
                   {r.replied_at && (
                     <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
                       REPLIED
                     </span>
                   )}
                 </div>
-                <div className="truncate text-xs text-[#59626f]">{r.from_email}</div>
-                <div className="mt-1 font-bold text-[#e8ecf3]">{cleanSubject(r.subject)}</div>
-                <p className="mt-1 text-sm text-[#8a93a3]">{r.snippet}</p>
+                <div className="truncate text-xs text-[var(--fl-faint)]">{r.from_email}</div>
+                <div className="mt-1 font-bold text-[var(--fl-text)]">{cleanSubject(r.subject)}</div>
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">{r.snippet}</p>
                 {(r.matched_name || r.inspection_id) && (
-                  <div className="mt-2 text-xs text-[#59626f]">
+                  <div className="mt-2 text-xs text-[var(--fl-faint)]">
                     {r.matched_name ? `Re: ${r.matched_name}` : "Matched inspection"}
                     {r.inspection_id && (
                       <a
                         href={`/reports/${r.inspection_id}`}
-                        className="ml-2 font-bold text-teal-300 underline decoration-dotted"
+                        className="ml-2 font-bold text-[var(--fl-accent-text)] underline decoration-dotted"
                       >
                         Open inspection
                       </a>
@@ -132,13 +132,13 @@ export default function InboxReplies({ replies }: { replies: Reply[] }) {
                 )}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
-                <span className="text-xs text-[#59626f]">{fmt(r.received_at)}</span>
+                <span className="text-xs text-[var(--fl-faint)]">{fmt(r.received_at)}</span>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => toggleRead(r)}
                     disabled={busyId === r.id}
-                    className="rounded-lg border border-[#232b38] px-2.5 py-1 text-xs font-bold text-[#8a93a3] hover:border-slate-400 disabled:opacity-50"
+                    className="rounded-lg border border-[var(--fl-line)] px-2.5 py-1 text-xs font-bold text-[var(--fl-muted)] hover:border-slate-400 disabled:opacity-50"
                   >
                     {r.is_read ? "Mark unread" : "Mark read"}
                   </button>
@@ -154,7 +154,7 @@ export default function InboxReplies({ replies }: { replies: Reply[] }) {
             </div>
 
             {openId === r.id && (
-              <div className="mt-3 space-y-2 border-t border-[#1a212c] pt-3">
+              <div className="mt-3 space-y-2 border-t border-[var(--fl-raised)] pt-3">
                 <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
@@ -171,7 +171,7 @@ export default function InboxReplies({ replies }: { replies: Reply[] }) {
                   >
                     {busyId === r.id ? "Sending…" : "Send reply"}
                   </button>
-                  <span className="text-xs text-[#59626f]">Sends from support@flowinspect.app</span>
+                  <span className="text-xs text-[var(--fl-faint)]">Sends from support@flowinspect.app</span>
                 </div>
               </div>
             )}

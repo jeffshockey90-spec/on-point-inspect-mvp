@@ -151,7 +151,7 @@ export default function SignaturePad({
     <div>
       <div
         ref={wrapRef}
-        className="relative h-44 w-full overflow-hidden rounded-xl border border-[#232b38] bg-white"
+        className="relative h-44 w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-white"
       >
         <canvas
           ref={canvasRef}
@@ -166,7 +166,7 @@ export default function SignaturePad({
 
         {isEmpty && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span className="select-none text-sm font-semibold text-[#8a93a3]">
+            <span className="select-none text-sm font-semibold text-[var(--fl-muted)]">
               Sign here with your finger or mouse
             </span>
           </div>
@@ -176,12 +176,12 @@ export default function SignaturePad({
       </div>
 
       <div className="mt-2 flex items-center justify-between">
-        <p className="text-xs text-[#8a93a3]">Draw your signature above.</p>
+        <p className="text-xs text-[var(--fl-muted)]">Draw your signature above.</p>
         <button
           type="button"
           onClick={clear}
           disabled={disabled || isEmpty}
-          className="rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-bold text-[#8a93a3] transition hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-bold text-[var(--fl-muted)] transition hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Clear
         </button>

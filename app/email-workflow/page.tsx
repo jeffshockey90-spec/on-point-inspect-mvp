@@ -115,7 +115,7 @@ export default function EmailWorkflowPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-6">
+    <main className="min-h-screen bg-black text-[var(--fl-text)] p-6">
       <div className="max-w-5xl mx-auto space-y-6">
 
         <div>

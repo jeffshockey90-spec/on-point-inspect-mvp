@@ -74,14 +74,14 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050816] p-6">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--fl-ground)] p-6">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-[-12%] h-[440px] w-[600px] -translate-x-1/2 rounded-full bg-teal-500/20 blur-[140px]" />
         <div className="absolute bottom-[-18%] right-[-8%] h-[380px] w-[440px] rounded-full bg-cyan-500/10 blur-[130px]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(20,200,210,0.10),transparent_55%)]" />
       </div>
 
-      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#131923] p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         <div className="flex justify-center">
           <img
             src="/flow-logo-mark.png"
@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
           />
         </div>
 
-        <p className="mt-3 text-center text-lg font-semibold text-white">
+        <p className="mt-3 text-center text-lg font-semibold text-[var(--fl-text)]">
           Set a new password
         </p>
 
@@ -108,11 +108,11 @@ export default function ResetPasswordPage() {
             </a>
           </div>
         ) : success ? (
-          <div className="mt-6 rounded-lg border border-teal-800 bg-teal-950 p-3 text-center text-sm text-teal-300">
+          <div className="mt-6 rounded-lg border border-teal-800 bg-teal-950 p-3 text-center text-sm text-[var(--fl-accent-text)]">
             Password updated. Redirecting...
           </div>
         ) : !ready ? (
-          <p className="mt-6 text-center text-sm text-[#8a93a3]">
+          <p className="mt-6 text-center text-sm text-[var(--fl-muted)]">
             Verifying your reset link...
           </p>
         ) : (
@@ -121,7 +121,7 @@ export default function ResetPasswordPage() {
             className="mt-6 space-y-4"
           >
             <div>
-              <label className="text-sm text-[#8a93a3]">
+              <label className="text-sm text-[var(--fl-muted)]">
                 New Password
               </label>
 
@@ -130,12 +130,12 @@ export default function ResetPasswordPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                className="mt-1.5 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3.5 text-[var(--fl-text)] outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
               />
             </div>
 
             <div>
-              <label className="text-sm text-[#8a93a3]">
+              <label className="text-sm text-[var(--fl-muted)]">
                 Confirm Password
               </label>
 
@@ -144,7 +144,7 @@ export default function ResetPasswordPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                className="mt-1.5 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3.5 text-[var(--fl-text)] outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
               />
             </div>
 

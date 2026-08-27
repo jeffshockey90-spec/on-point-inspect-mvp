@@ -547,7 +547,7 @@ function getRepairRequestStatusClass(status: string) {
   const clean = String(status || "").toLowerCase();
 
   if (clean.includes("fully")) return "border-emerald-400/60 bg-emerald-500/15 text-emerald-200";
-  if (clean.includes("seller") || clean.includes("responded")) return "border-teal-400/60 bg-teal-500/15 text-teal-200";
+  if (clean.includes("seller") || clean.includes("responded")) return "border-teal-400/60 bg-teal-500/15 text-[var(--fl-accent-text)]";
   if (clean.includes("viewed")) return "border-blue-400/60 bg-blue-500/15 text-blue-200";
   if (clean.includes("failed")) return "border-red-400/60 bg-red-500/15 text-red-200";
   return "border-yellow-400/60 bg-yellow-500/15 text-yellow-100";
@@ -1064,25 +1064,25 @@ function AttentionPanel({
     <details
       open={defaultOpen}
       data-tool-category={category || undefined}
-      className="group mb-2 overflow-hidden rounded-xl border border-[#1a212c] bg-[#10151e] sm:mb-3"
+      className="group mb-2 overflow-hidden rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] sm:mb-3"
     >
-      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-3 py-3 transition group-open:border-b group-open:border-[#1a212c] hover:bg-[#131923] sm:gap-3 sm:px-4 sm:py-3.5">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-3 py-3 transition group-open:border-b group-open:border-[var(--fl-raised)] hover:bg-[var(--fl-surface-2)] sm:gap-3 sm:px-4 sm:py-3.5">
         <div className="flex min-w-0 items-center gap-3">
           <svg
             viewBox="0 0 20 20"
-            className="h-3.5 w-3.5 shrink-0 text-[#59626f] transition-transform duration-150 group-open:[transform:rotate(90deg)]"
+            className="h-3.5 w-3.5 shrink-0 text-[var(--fl-faint)] transition-transform duration-150 group-open:[transform:rotate(90deg)]"
             fill="currentColor"
           >
             <path d="M7 4l6 6-6 6V4z" />
           </svg>
 
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#59626f]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--fl-faint)]">
               {eyebrow}
             </p>
-            <h2 className="mt-0.5 text-sm font-semibold text-white sm:text-base">{title}</h2>
+            <h2 className="mt-0.5 text-sm font-semibold text-[var(--fl-text)] sm:text-base">{title}</h2>
             {helper ? (
-              <p className="mt-1 hidden text-xs leading-5 text-[#8a93a3] sm:block">{helper}</p>
+              <p className="mt-1 hidden text-xs leading-5 text-[var(--fl-muted)] sm:block">{helper}</p>
             ) : null}
           </div>
         </div>
@@ -2805,7 +2805,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   ];
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-[#0a0e13] pb-[calc(100px+env(safe-area-inset-bottom))] text-white">
+    <main className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] pb-[calc(100px+env(safe-area-inset-bottom))] text-[var(--fl-text)]">
       <OfflineReportCacheBridge
         inspectionId={String(inspection.id)}
         inspection={inspection}
@@ -2815,16 +2815,16 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       />
       <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-[96rem] lg:py-8">
         {/* Report context header - always shows which report you're editing + its live status */}
-        <div className="mb-4 rounded-2xl border border-[#1a212c] bg-[#10151e] px-4 py-3 shadow-lg md:rounded-2xl md:px-6 md:py-4">
+        <div className="mb-4 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] px-4 py-3 shadow-lg md:rounded-2xl md:px-6 md:py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-400">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
                 Editing Report
               </p>
-              <h1 className="truncate text-xl font-semibold tracking-tight text-white md:text-2xl">
+              <h1 className="truncate text-xl font-semibold tracking-tight text-[var(--fl-text)] md:text-2xl">
                 {inspection.property_address || inspection.address || "Untitled Report"}
               </h1>
-              <p className="mt-0.5 truncate text-sm text-[#8a93a3]">
+              <p className="mt-0.5 truncate text-sm text-[var(--fl-muted)]">
                 {[
                   inspection.client_name,
                   [inspection.city, inspection.state].filter(Boolean).join(", "),
@@ -2868,10 +2868,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           </div>
         </div>
 
-        <div className="mb-4 overflow-x-clip overflow-y-visible rounded-2xl border border-[#1a212c] bg-[#10151e] p-1.5 shadow-xl sm:p-3 md:rounded-2xl md:p-6">
+        <div className="mb-4 overflow-x-clip overflow-y-visible rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-1.5 shadow-xl sm:p-3 md:rounded-2xl md:p-6">
           <div className="mb-6 max-w-full space-y-4 overflow-x-clip overflow-y-visible">
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                 Report &amp; Share
               </p>
               <div className="flex flex-wrap gap-3">
@@ -2886,7 +2886,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
                 <PrintButton
                   label="Print / Save PDF"
-                  className="rounded-xl bg-black px-5 py-3 font-bold text-white hover:bg-[#1a212c]"
+                  className="rounded-xl bg-black px-5 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
                 />
 
                 <FastLinkButton
@@ -2900,7 +2900,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/reports/${inspection.id}/summary`}
                   loadingText="Opening Summary..."
-                  className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                 >
                   Realtor Summary
                 </FastLinkButton>
@@ -2914,7 +2914,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={shareHref}
                   loadingText="Opening Client Report..."
-                  className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                 >
                   Client Report
                 </FastLinkButton>
@@ -2929,7 +2929,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   <FastLinkButton
                     href={editableEnvironmentalHref}
                     loadingText="Opening Environmental Report..."
-                    className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
+                    className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                   >
                     Environmental Report
                   </FastLinkButton>
@@ -2938,7 +2938,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/client-portal/${inspection.id}`}
                   loadingText="Opening Client Portal..."
-                  className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                 >
                   Client Portal
                 </FastLinkButton>
@@ -2948,7 +2948,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                 Send &amp; Communicate
               </p>
               <div className="flex flex-wrap gap-3">
@@ -2979,7 +2979,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                 Findings Tools
               </p>
               <div className="flex flex-wrap gap-3">
@@ -2988,7 +2988,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/reports/${inspection.id}/templates`}
                   loadingText="Opening Library..."
-                  className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                 >
                   Favorite Findings Library
                 </FastLinkButton>
@@ -3002,14 +3002,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                 Capture Tools
               </p>
               <div className="flex flex-wrap gap-3">
                 <FastLinkButton
                   href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
                   loadingText="Opening Field Tool..."
-                  className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                 >
                   Field Tool
                 </FastLinkButton>
@@ -3025,7 +3025,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/reports/${inspection.id}/bulk-ai-capture`}
                   loadingText="Opening Bulk AI..."
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                 >
                   <Camera className="h-4 w-4" strokeWidth={2.25} /> Bulk AI Capture
                 </FastLinkButton>
@@ -3033,7 +3033,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <FastLinkButton
                   href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
                   loadingText="Opening Equipment Analyzer..."
-                  className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-teal-200"
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                 >
                   Equipment Analyzer
                 </FastLinkButton>
@@ -3088,13 +3088,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
             <HomeownerPortalLink token={reportDownloadId} />
 
-            <section id="defect-totals" className="rounded-2xl border border-[#232b38] bg-[#071224] p-4">
+            <section id="defect-totals" className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
               <div className="mb-4">
-                <h2 className="text-2xl font-extrabold text-teal-300">
+                <h2 className="text-2xl font-extrabold text-[var(--fl-accent-text)]">
                   Defect Totals
                 </h2>
 
-                <p className="mt-1 text-sm text-[#8a93a3]">
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   Quick count of true defects. Informational items are tracked
                   separately and are not included in Total Defects.
                 </p>
@@ -3104,7 +3104,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <DefectCountCard
                   label="Total Defects"
                   value={defectTotals.total}
-                  tone="text-white"
+                  tone="text-[var(--fl-text)]"
                 />
                 <DefectCountCard
                   label="Safety / Major"
@@ -3114,7 +3114,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 <DefectCountCard
                   label="Recommended Repair"
                   value={defectTotals.repair}
-                  tone="text-teal-300"
+                  tone="text-[var(--fl-accent-text)]"
                 />
                 <DefectCountCard
                   label="Maintenance / Monitor"
@@ -3139,7 +3139,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                     Equipment Inventory
                   </h2>
 
-                  <p className="mt-1 text-sm text-[#8a93a3]">
+                  <p className="mt-1 text-sm text-[var(--fl-muted)]">
                     Major equipment documented during the inspection. These
                     inventory records are informational and are not counted as
                     defects unless a separate finding is created.
@@ -3173,7 +3173,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                     return (
                       <div
                         key={item.id}
-                        className="rounded-xl border border-[#232b38] bg-[#131923] p-4"
+                        className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
                       >
                         {equipmentImage && (
                           <img
@@ -3181,7 +3181,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                             alt={item.equipment_type || "Equipment"}
                             loading="lazy"
                             decoding="async"
-                            className="mb-4 max-h-56 w-full rounded-xl border border-[#232b38] object-contain"
+                            className="mb-4 max-h-56 w-full rounded-xl border border-[var(--fl-line)] object-contain"
                           />
                         )}
 
@@ -3189,13 +3189,13 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                           {item.equipment_type || "Equipment"}
                         </p>
 
-                        <h3 className="mt-2 text-xl font-semibold text-white">
+                        <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)]">
                           {[item.manufacturer, item.model]
                             .filter(Boolean)
                             .join(" ") || "Equipment Record"}
                         </h3>
 
-                        <div className="mt-4 grid gap-3 text-sm text-[#8a93a3] md:grid-cols-3">
+                        <div className="mt-4 grid gap-3 text-sm text-[var(--fl-muted)] md:grid-cols-3">
                           <InventoryLine label="Serial" value={item.serial} />
                           <InventoryLine
                             label="Manufacture Year"
@@ -3242,11 +3242,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                           ])}
                         />
 
-                        <p className="mt-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-xs leading-5 text-[#8a93a3]">
+                        <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-xs leading-5 text-[var(--fl-muted)]">
 Service-life information is a general industry estimate only. Actual service life can vary based on installation quality, maintenance history, operating conditions, environment, and usage. This should not be treated as a prediction or guarantee of remaining equipment life.
                         </p>
 
-                        <details className="mt-4 rounded-xl border border-[#232b38] bg-[#131923] p-3">
+                        <details className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                           <summary className="cursor-pointer select-none text-sm font-semibold text-cyan-300">
                             Edit Equipment Note
                           </summary>
@@ -3256,19 +3256,19 @@ Service-life information is a general industry estimate only. Actual service lif
                             <input type="hidden" name="equipment_id" value={item.id} />
 
                             <div>
-                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
                                 Condition
                               </label>
                               <input
                                 name="condition"
                                 defaultValue={getEquipmentConditionLabel(item.condition)}
                                 placeholder="No specific deficiency noted"
-                                className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                                className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
                               />
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
                                 Inspector Note
                               </label>
                               <textarea
@@ -3276,12 +3276,12 @@ Service-life information is a general industry estimate only. Actual service lif
                                 defaultValue={getEquipmentInspectorNote(item)}
                                 placeholder="Example: Data plate documented. Unit operated normally at time of inspection."
                                 rows={3}
-                                className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                                className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
                               />
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
                                 Maintenance Note
                               </label>
                               <textarea
@@ -3289,7 +3289,7 @@ Service-life information is a general industry estimate only. Actual service lif
                                 defaultValue={getEquipmentMaintenanceNote(item)}
                                 placeholder="Example: Recommend routine HVAC servicing and filter maintenance."
                                 rows={3}
-                                className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                                className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
                               />
                             </div>
 
@@ -3336,10 +3336,10 @@ Service-life information is a general industry estimate only. Actual service lif
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
                   AI Inspection Watchlist
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">
+                <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
                   Be on the lookout before you finish this report
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                   {inspectionYearBuilt
                     ? `This home was reportedly built in ${inspectionYearBuilt}. The system is watching for age-related risks, finding-based limitations, and disclaimers you may want to add.`
                     : "Add or auto-fill the year built to unlock age-based watchlist items and disclaimer suggestions."}
@@ -3359,12 +3359,12 @@ Service-life information is a general industry estimate only. Actual service lif
                 {inspectionWatchlistItems.map((item: any, index: number) => (
                   <div
                     key={`${item.title}-${index}`}
-                    className="rounded-xl border border-cyan-400/30 bg-[#0a0e13] p-4"
+                    className="rounded-xl border border-cyan-400/30 bg-[var(--fl-ground)] p-4"
                   >
-                    <p className="text-base font-semibold text-white">{item.title}</p>
+                    <p className="text-base font-semibold text-[var(--fl-text)]">{item.title}</p>
                     <p className="mt-2 text-sm leading-6 text-cyan-100">{item.reason}</p>
                     {item.tips?.length ? (
-                      <ul className="mt-3 space-y-1 text-xs font-bold leading-5 text-[#8a93a3]">
+                      <ul className="mt-3 space-y-1 text-xs font-bold leading-5 text-[var(--fl-muted)]">
                         {item.tips.map((tip: string) => (
                           <li key={tip}>✓ {tip}</li>
                         ))}
@@ -3374,25 +3374,25 @@ Service-life information is a general industry estimate only. Actual service lif
                 ))}
               </div>
             ) : (
-              <div className="mt-5 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-sm font-bold text-[#8a93a3]">
+              <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm font-bold text-[var(--fl-muted)]">
                 No age-based watchlist items yet. Add the year built or continue documenting findings.
               </div>
             )}
           </section>
           </CollapsibleReportSection>
 
-          <section className="mb-8 overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-6">
+          <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--fl-accent-text)]">
                   Inspection Workspace
                 </p>
 
-                <h2 className="mt-2 break-words text-3xl font-semibold text-white sm:text-4xl">
+                <h2 className="mt-2 break-words text-3xl font-semibold text-[var(--fl-text)] sm:text-4xl">
                   {inspection.address || "Current Inspection"}
                 </h2>
 
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
                   Finish the inspection, clear blockers, deliver the report, and manage the transaction from one home base.
                 </p>
               </div>
@@ -3422,23 +3422,23 @@ Service-life information is a general industry estimate only. Actual service lif
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-[#232b38] bg-black/25 p-4">
+            <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-black/25 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8a93a3]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-muted)]">
                     Inspection Progress
                   </p>
-                  <p className="mt-1 text-2xl font-semibold text-white">
+                  <p className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
                     {inspectionProgressPercent}%
                   </p>
                 </div>
 
-                <p className="text-sm font-bold text-[#8a93a3]">
+                <p className="text-sm font-bold text-[var(--fl-muted)]">
                   {inspectionProgressCompleteCount} of {inspectionProgressItems.length} checkpoints complete
                 </p>
               </div>
 
-              <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#1a212c]">
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-[var(--fl-raised)]">
                 <div
                   className={`h-full rounded-full ${
                     inspectionProgressPercent >= 100
@@ -3468,27 +3468,27 @@ Service-life information is a general industry estimate only. Actual service lif
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <div className="rounded-2xl border border-[#232b38] bg-black/30 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-black/30 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Total Items
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-white">{findings.length}</p>
-                <p className="mt-1 text-xs font-bold text-[#59626f]">All report entries</p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{findings.length}</p>
+                <p className="mt-1 text-xs font-bold text-[var(--fl-faint)]">All report entries</p>
               </div>
 
-              <div className="rounded-2xl border border-[#232b38] bg-black/30 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-black/30 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Media
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-white">{photosWithUrls.length}</p>
-                <p className="mt-1 text-xs font-bold text-[#59626f]">Photos and videos</p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{photosWithUrls.length}</p>
+                <p className="mt-1 text-xs font-bold text-[var(--fl-faint)]">Photos and videos</p>
               </div>
 
               <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-red-200">
                   Safety / Major
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-white">{defectTotals.safety}</p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{defectTotals.safety}</p>
                 <p className="mt-1 text-xs font-bold text-red-100/70">Priority concerns</p>
               </div>
 
@@ -3496,7 +3496,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 <p className="text-xs font-semibold uppercase tracking-wide text-orange-200">
                   Client Summary
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-white">{defectTotals.total}</p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{defectTotals.total}</p>
                 <p className="mt-1 text-xs font-bold text-orange-100/70">Defects shown to client</p>
               </div>
 
@@ -3504,19 +3504,19 @@ Service-life information is a general industry estimate only. Actual service lif
                 <p className="text-xs font-semibold uppercase tracking-wide text-purple-200">
                   Repair Requests
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-white">{repairRequestHistory.length}</p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{repairRequestHistory.length}</p>
                 <p className="mt-1 text-xs font-bold text-purple-100/70">Negotiation history</p>
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-[#232b38] bg-black/25 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#59626f]">
+            <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-black/25 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-faint)]">
                 Next Best Action
               </p>
 
               {nextWorkspaceNotification ? (
                 <div className="mt-3 rounded-2xl border border-red-400/50 bg-red-500/10 p-4">
-                  <p className="text-xl font-semibold text-white">
+                  <p className="text-xl font-semibold text-[var(--fl-text)]">
                     {nextWorkspaceNotification.title || "Review report alert"}
                   </p>
                   <p className="mt-2 text-sm font-bold leading-6 text-red-100/80">
@@ -3525,7 +3525,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 </div>
               ) : (
                 <div className="mt-3 rounded-2xl border border-emerald-400/50 bg-emerald-500/10 p-4">
-                  <p className="text-xl font-semibold text-white">No active blockers</p>
+                  <p className="text-xl font-semibold text-[var(--fl-text)]">No active blockers</p>
                   <p className="mt-2 text-sm font-bold leading-6 text-emerald-100/80">
                     Keep writing the report or use the delivery tools when you are ready.
                   </p>
@@ -3551,21 +3551,21 @@ Service-life information is a general industry estimate only. Actual service lif
 
                 <a
                   href="#agreement-status"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-center text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-center text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
                 >
                   Agreement: {agreementStatusLabel}
                 </a>
 
                 <a
                   href="#payment-invoice"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-center text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-center text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
                 >
                   Payment
                 </a>
 
                 <OpenCommandCenterToolButton
                   toolTitle="Final Publish Guard"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-center text-sm font-semibold text-[#e8ecf3] transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-center text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400/60 hover:bg-teal-500/10 active:scale-[0.98]"
                 >
                   Publish Guard
                 </OpenCommandCenterToolButton>
@@ -3713,7 +3713,7 @@ Service-life information is a general industry estimate only. Actual service lif
                       key={share.id || share.token}
                       id={share.id ? `repair-request-${share.id}` : undefined}
                       data-command-target={share.id ? `repair-request-${share.id}` : undefined}
-                      className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4"
+                      className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4"
                     >
                       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                         <div className="min-w-0">
@@ -3726,30 +3726,30 @@ Service-life information is a general industry estimate only. Actual service lif
                             </span>
                           </div>
 
-                          <p className="mt-3 break-words text-sm font-bold text-[#8a93a3]">
-                            Sent to: <span className="text-white">{recipient}</span>
+                          <p className="mt-3 break-words text-sm font-bold text-[var(--fl-muted)]">
+                            Sent to: <span className="text-[var(--fl-text)]">{recipient}</span>
                           </p>
-                          <p className="mt-1 break-words text-sm font-bold text-[#8a93a3]">
-                            Created by: <span className="text-white">{getRepairRequestCreatorLabel(share)}</span>
+                          <p className="mt-1 break-words text-sm font-bold text-[var(--fl-muted)]">
+                            Created by: <span className="text-[var(--fl-text)]">{getRepairRequestCreatorLabel(share)}</span>
                           </p>
-                          <p className="mt-1 text-xs font-bold text-[#59626f]">
+                          <p className="mt-1 text-xs font-bold text-[var(--fl-faint)]">
                             Created {formatEmailStatusDate(share.created_at)}
                             {share.responded_at ? ` • Responded ${formatEmailStatusDate(share.responded_at)}` : ""}
                           </p>
                         </div>
 
                         <div className="grid gap-2 sm:grid-cols-4 xl:min-w-[520px]">
-                          <div className="rounded-xl border border-[#232b38] bg-[#071224] p-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8a93a3]">
+                          <div className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                               Items
                             </p>
-                            <p className="mt-1 text-lg font-semibold text-white">{item.selectedCount}</p>
+                            <p className="mt-1 text-lg font-semibold text-[var(--fl-text)]">{item.selectedCount}</p>
                           </div>
                           <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3">
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-cyan-200">
                               Requested
                             </p>
-                            <p className="mt-1 text-lg font-semibold text-white">
+                            <p className="mt-1 text-lg font-semibold text-[var(--fl-text)]">
                               {formatRepairMoney(item.requestedCredit)}
                             </p>
                           </div>
@@ -3757,7 +3757,7 @@ Service-life information is a general industry estimate only. Actual service lif
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
                               Seller
                             </p>
-                            <p className="mt-1 text-lg font-semibold text-white">
+                            <p className="mt-1 text-lg font-semibold text-[var(--fl-text)]">
                               {item.responses.length ? formatRepairMoney(item.sellerOffered) : "—"}
                             </p>
                           </div>
@@ -3770,7 +3770,7 @@ Service-life information is a general industry estimate only. Actual service lif
                                 ? "text-red-200"
                                 : item.difference > 0
                                   ? "text-emerald-200"
-                                  : "text-white"
+                                  : "text-[var(--fl-text)]"
                             }`}>
                               {item.responses.length ? formatRepairMoney(item.difference) : "—"}
                             </p>
@@ -3791,7 +3791,7 @@ Service-life information is a general industry estimate only. Actual service lif
                           <FastLinkButton
                             href={responseHref}
                             loadingText="Opening Response..."
-                            className="rounded-xl border border-teal-500 bg-teal-500/10 px-4 py-3 text-center text-sm font-semibold text-teal-200 hover:bg-teal-500/20"
+                            className="rounded-xl border border-teal-500 bg-teal-500/10 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/20"
                           >
                             Open Response
                           </FastLinkButton>
@@ -3822,7 +3822,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-sm font-bold text-[#8a93a3]">
+              <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm font-bold text-[var(--fl-muted)]">
                 No repair requests have been sent for this inspection yet. Use the Repair Request Builder to create the first one.
               </div>
             )}
@@ -4061,21 +4061,21 @@ Service-life information is a general industry estimate only. Actual service lif
             </div>
 
             {viewerActivitySummary.length > 0 && (
-              <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4">
+              <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+                    <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                       Viewers Detected
                     </p>
-                    <p className="mt-1 text-xs leading-5 text-[#59626f]">
+                    <p className="mt-1 text-xs leading-5 text-[var(--fl-faint)]">
                       Every person detected across email opens, link clicks, portal opens, report opens, agreement views, and reading-time events. This never includes your own visits to this page - only real client, realtor, and outside visitors.
                     </p>
-                    <p className="mt-1 text-xs leading-5 text-[#59626f]">
+                    <p className="mt-1 text-xs leading-5 text-[var(--fl-faint)]">
                       &quot;Unidentified Visitor&quot; means someone opened a link that didn&apos;t carry their role or email (e.g. a link forwarded without going through FLOW&apos;s send flow) - still a real visit, just not personally identified.
                     </p>
                   </div>
 
-                  <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-300">
+                  <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)]">
                     {viewerActivitySummary.length} viewer{viewerActivitySummary.length === 1 ? "" : "s"}
                   </span>
                 </div>
@@ -4084,34 +4084,34 @@ Service-life information is a general industry estimate only. Actual service lif
                   {viewerActivitySummary.map((viewer: any) => (
                     <div
                       key={viewer.key}
-                      className="rounded-xl border border-[#232b38] bg-[#071224] p-3"
+                      className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-3"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="break-all text-sm font-semibold text-teal-300">
+                          <p className="break-all text-sm font-semibold text-[var(--fl-accent-text)]">
                             {viewer.email || viewer.label}
                           </p>
 
                           {viewer.role && (
-                            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+                            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
                               {viewer.role}
                             </p>
                           )}
                         </div>
 
-                        <span className="shrink-0 rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-xs font-semibold text-teal-300">
+                        <span className="shrink-0 rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-xs font-semibold text-[var(--fl-accent-text)]">
                           {viewer.count}
                         </span>
                       </div>
 
-                      <p className="mt-3 text-xs leading-5 text-[#8a93a3]">
-                        <span className="font-bold text-white">Last activity:</span>{" "}
+                      <p className="mt-3 text-xs leading-5 text-[var(--fl-muted)]">
+                        <span className="font-bold text-[var(--fl-text)]">Last activity:</span>{" "}
                         {formatEmailStatusDate(viewer.latestAt)}
                       </p>
 
                       {viewer.totalSeconds > 0 && (
                         <p className="mt-1 text-xs leading-5 text-purple-300">
-                          <span className="font-bold text-white">Read time:</span>{" "}
+                          <span className="font-bold text-[var(--fl-text)]">Read time:</span>{" "}
                           {formatDuration(viewer.totalSeconds)}
                         </p>
                       )}
@@ -4120,7 +4120,7 @@ Service-life information is a general industry estimate only. Actual service lif
                         {Array.from(viewer.types.entries()).map(([type, count]: any) => (
                           <span
                             key={type}
-                            className="rounded-full border border-[#232b38] bg-black/30 px-2 py-1 text-[10px] font-semibold text-[#8a93a3]"
+                            className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-[10px] font-semibold text-[var(--fl-muted)]"
                           >
                             {formatViewType(type)}: {count}
                           </span>
@@ -4149,7 +4149,7 @@ Service-life information is a general industry estimate only. Actual service lif
                   Executive Summary
                 </h2>
 
-                <p className="mt-1 text-sm text-[#8a93a3]">
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   AI-generated client-friendly overview saved from this report.
                 </p>
               </div>
@@ -4173,7 +4173,7 @@ Service-life information is a general industry estimate only. Actual service lif
               )}
             </div>
 
-            <div className="mt-4 whitespace-pre-line rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-7 text-[#e8ecf3]">
+            <div className="mt-4 whitespace-pre-line rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-7 text-[var(--fl-text)]">
               {executiveSummary ||
                 "Click Generate AI Summary to create and save the executive summary for this report."}
             </div>
@@ -4186,8 +4186,8 @@ Service-life information is a general industry estimate only. Actual service lif
             defaultOpen={false}
             accentClassName="border-teal-500/40 text-teal-100"
           >
-          <div className="mb-8 rounded-2xl border border-[#232b38] bg-[#071224] p-4">
-            <h2 className="mb-4 text-2xl font-bold text-teal-300">
+          <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
+            <h2 className="mb-4 text-2xl font-bold text-[var(--fl-accent-text)]">
               Email Report
             </h2>
 
@@ -4202,7 +4202,7 @@ Service-life information is a general industry estimate only. Actual service lif
             <ResendConfirmationButton inspectionId={String(inspection.id)} />
           </div>
 
-          <div className="mb-8 rounded-2xl border border-[#232b38] bg-[#071224] p-4">
+          <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
             <h2 className="mb-4 text-2xl font-bold text-amber-300">
               Email W9 Form
             </h2>
@@ -4251,7 +4251,7 @@ Service-life information is a general industry estimate only. Actual service lif
                   Signed Agreements
                 </h2>
 
-                <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
+                <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
                   View, print, or save a PDF copy of each signed client/co-buyer agreement.
                 </p>
               </div>
@@ -4262,7 +4262,7 @@ Service-life information is a general industry estimate only. Actual service lif
             </div>
 
             {signedAgreements.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
+              <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
                 No signed agreements saved yet. Once a client or co-buyer signs, their signed copy will appear here.
               </div>
             ) : (
@@ -4270,15 +4270,15 @@ Service-life information is a general industry estimate only. Actual service lif
                 {signedAgreements.map((agreement: any) => (
                   <article
                     key={agreement.id}
-                    className="rounded-xl border border-[#232b38] bg-[#131923] p-4"
+                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
-                        <p className="break-words text-base font-semibold text-white">
+                        <p className="break-words text-base font-semibold text-[var(--fl-text)]">
                           {agreement.client_name || "Signed Client"}
                         </p>
 
-                        <p className="mt-1 break-all text-sm text-[#8a93a3]">
+                        <p className="mt-1 break-all text-sm text-[var(--fl-muted)]">
                           {agreement.client_email || "No email saved"}
                         </p>
 
@@ -4314,9 +4314,9 @@ Service-life information is a general industry estimate only. Actual service lif
             title="Property Photo"
             subtitle={propertyPhoto ? "Photo saved" : "No photo saved yet"}
             defaultOpen={Boolean(propertyPhotoUpdated || propertyPhotoError)}
-            accentClassName="border-[#232b38] text-[#e8ecf3]"
+            accentClassName="border-[var(--fl-line)] text-[var(--fl-text)]"
           >
-          <section className="mb-6 overflow-hidden rounded-2xl border border-[#232b38] bg-[#071224]">
+          <section className="mb-6 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#071224]">
             {propertyPhotoUpdated && (
               <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-300">
                 Property photo updated.
@@ -4338,7 +4338,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 className="h-56 w-full object-cover"
               />
             ) : (
-              <div className="flex h-56 items-center justify-center bg-[#0a0e13] px-4 text-center text-sm font-bold text-[#8a93a3]">
+              <div className="flex h-56 items-center justify-center bg-[var(--fl-ground)] px-4 text-center text-sm font-bold text-[var(--fl-muted)]">
                 No property photo saved yet.
               </div>
             )}
@@ -4352,12 +4352,12 @@ Service-life information is a general industry estimate only. Actual service lif
 
           <form
             action={updateInspectionDetails}
-            className="mt-8 border-t border-[#232b38] pt-6"
+            className="mt-8 border-t border-[var(--fl-line)] pt-6"
           >
             <input type="hidden" name="inspection_id" value={inspection.id} />
 
             <div className="mb-6 flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold text-teal-400">
+              <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
                 Inspection Details
               </h2>
 
@@ -4383,7 +4383,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <h3 className="mb-4 text-xl font-bold text-teal-300">
+                <h3 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">
                   Inspection Information
                 </h3>
 
@@ -4445,7 +4445,7 @@ Service-life information is a general industry estimate only. Actual service lif
               </div>
 
               <div>
-                <h3 className="mb-4 text-xl font-bold text-teal-300">
+                <h3 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">
                   Property / Site Information
                 </h3>
 
@@ -4471,7 +4471,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 </div>
 
                 <div className="mt-4">
-                  <label className="mb-1 block text-sm font-bold text-[#8a93a3]">
+                  <label className="mb-1 block text-sm font-bold text-[var(--fl-muted)]">
                     Inspection Notes (internal)
                   </label>
                   <textarea
@@ -4479,7 +4479,7 @@ Service-life information is a general industry estimate only. Actual service lif
                     defaultValue={inspection.notes || ""}
                     rows={4}
                     placeholder="Not entered"
-                    className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
+                    className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                   />
                 </div>
               </div>
@@ -4501,15 +4501,15 @@ function EngagementStatCard({
   helper?: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+      <p className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">{value}</p>
 
       {helper && (
-        <p className="mt-2 text-xs leading-5 text-[#8a93a3]">{helper}</p>
+        <p className="mt-2 text-xs leading-5 text-[var(--fl-muted)]">{helper}</p>
       )}
     </div>
   );
@@ -4544,7 +4544,7 @@ function ViewerRoleStatusCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             {title}
           </p>
 
@@ -4569,28 +4569,28 @@ function ViewerRoleStatusCard({
       </div>
 
       {!viewed ? (
-        <p className="mt-3 text-sm leading-5 text-[#8a93a3]">{emptyText}</p>
+        <p className="mt-3 text-sm leading-5 text-[var(--fl-muted)]">{emptyText}</p>
       ) : (
-        <div className="mt-4 space-y-2 text-sm text-[#8a93a3]">
+        <div className="mt-4 space-y-2 text-sm text-[var(--fl-muted)]">
           {viewerEmail && (
             <p>
-              <span className="font-bold text-white">Expected Viewer:</span>{" "}
+              <span className="font-bold text-[var(--fl-text)]">Expected Viewer:</span>{" "}
               <span className="break-all">{viewerEmail}</span>
             </p>
           )}
 
           <p>
-            <span className="font-bold text-white">First Viewed:</span>{" "}
+            <span className="font-bold text-[var(--fl-text)]">First Viewed:</span>{" "}
             {formatEmailStatusDate(firstView?.created_at)}
           </p>
 
           <p>
-            <span className="font-bold text-white">Last Viewed:</span>{" "}
+            <span className="font-bold text-[var(--fl-text)]">Last Viewed:</span>{" "}
             {formatEmailStatusDate(latestView?.created_at)}
           </p>
 
           <p>
-            <span className="font-bold text-white">Read Time:</span>{" "}
+            <span className="font-bold text-[var(--fl-text)]">Read Time:</span>{" "}
             {formatDuration(totalReadTimeSeconds)}
           </p>
         </div>
@@ -4615,25 +4615,25 @@ function EmailStatusCard({
   const failedAt = log?.failed_at || log?.bounced_at;
 
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-      <p className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {title}
       </p>
 
       {!log ? (
         <p className="mt-2 text-lg font-bold text-yellow-300">{emptyText}</p>
       ) : (
-        <div className="mt-3 space-y-2 text-sm text-[#8a93a3]">
+        <div className="mt-3 space-y-2 text-sm text-[var(--fl-muted)]">
           <p>
-            <span className="font-bold text-white">Status:</span>{" "}
+            <span className="font-bold text-[var(--fl-text)]">Status:</span>{" "}
             {log.status || "sent"}
           </p>
           <p>
-            <span className="font-bold text-white">Recipient:</span>{" "}
+            <span className="font-bold text-[var(--fl-text)]">Recipient:</span>{" "}
             {log.recipient_email || log.recipient || "N/A"}
           </p>
           <p>
-            <span className="font-bold text-white">Sent:</span>{" "}
+            <span className="font-bold text-[var(--fl-text)]">Sent:</span>{" "}
             {formatEmailStatusDate(sentAt)}
           </p>
           {deliveredAt && (
@@ -4647,7 +4647,7 @@ function EmailStatusCard({
             </p>
           )}
           {clickedAt && (
-            <p className="text-teal-300">
+            <p className="text-[var(--fl-accent-text)]">
               Link Clicked: {formatEmailStatusDate(clickedAt)}
             </p>
           )}
@@ -4678,13 +4678,13 @@ function ViewStatusCard({
   const viewers = getViewerActivityItems(logs || (log ? [log] : []));
 
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
           {title}
         </p>
 
-        <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-xs font-semibold text-teal-300">
+        <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-xs font-semibold text-[var(--fl-accent-text)]">
           {count}
         </span>
       </div>
@@ -4692,7 +4692,7 @@ function ViewStatusCard({
       {!log ? (
         <p className="mt-2 text-lg font-bold text-yellow-300">{emptyText}</p>
       ) : (
-        <div className="mt-3 space-y-2 text-sm text-[#8a93a3]">
+        <div className="mt-3 space-y-2 text-sm text-[var(--fl-muted)]">
           <p className="text-green-300">
             Opened: {formatEmailStatusDate(log.created_at)}
           </p>
@@ -4705,21 +4705,21 @@ function ViewStatusCard({
 
           {log.viewer_email && (
             <p>
-              <span className="font-bold text-white">Viewer:</span>{" "}
+              <span className="font-bold text-[var(--fl-text)]">Viewer:</span>{" "}
               {log.viewer_email}
             </p>
           )}
 
           {log.viewer_role && (
             <p>
-              <span className="font-bold text-white">Role:</span>{" "}
+              <span className="font-bold text-[var(--fl-text)]">Role:</span>{" "}
               {log.viewer_role}
             </p>
           )}
 
           {viewers.length > 0 && (
-            <div className="mt-3 border-t border-[#1a212c] pt-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+            <div className="mt-3 border-t border-[var(--fl-raised)] pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                 People detected
               </p>
 
@@ -4727,26 +4727,26 @@ function ViewStatusCard({
                 {viewers.map((viewer: any) => (
                   <div
                     key={viewer.key}
-                    className="rounded-lg border border-[#232b38] bg-black/20 px-2 py-2"
+                    className="rounded-lg border border-[var(--fl-line)] bg-black/20 px-2 py-2"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="break-all text-xs font-semibold text-teal-300">
+                        <p className="break-all text-xs font-semibold text-[var(--fl-accent-text)]">
                           {viewer.email || viewer.label}
                         </p>
                         {viewer.role && (
-                          <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[#59626f]">
+                          <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--fl-faint)]">
                             {viewer.role}
                           </p>
                         )}
                       </div>
 
-                      <span className="shrink-0 rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-300">
+                      <span className="shrink-0 rounded-full border border-teal-500/40 bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--fl-accent-text)]">
                         {viewer.count}
                       </span>
                     </div>
 
-                    <p className="mt-1 text-[10px] text-[#8a93a3]">
+                    <p className="mt-1 text-[10px] text-[var(--fl-muted)]">
                       Last: {formatEmailStatusDate(viewer.latestAt)}
                     </p>
                   </div>
@@ -4770,8 +4770,8 @@ function DefectCountCard({
   tone: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
       <p className={`mt-2 text-3xl font-semibold ${tone}`}>{value}</p>
@@ -4852,7 +4852,7 @@ function EquipmentNoteBlock({
       <p className="text-xs font-semibold uppercase tracking-wide text-cyan-300">
         {label}
       </p>
-      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#e8ecf3]">
+      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--fl-text)]">
         {clean}
       </p>
     </div>
@@ -4863,9 +4863,9 @@ function InventoryLine({ label, value }: { label: string; value?: any }) {
   if (!isKnownEquipmentValue(value)) return null;
 
   return (
-    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-[#1a212c] pb-1">
-      <span className="font-bold text-[#59626f]">{label}</span>
-      <span className="min-w-0 break-words text-right font-semibold text-[#e8ecf3]">{value}</span>
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-[var(--fl-raised)] pb-1">
+      <span className="font-bold text-[var(--fl-faint)]">{label}</span>
+      <span className="min-w-0 break-words text-right font-semibold text-[var(--fl-text)]">{value}</span>
     </div>
   );
 }
@@ -4883,7 +4883,7 @@ function EditItem({
 }) {
   return (
     <div className="mb-4">
-      <label className="mb-1 block text-sm font-bold text-[#8a93a3]">
+      <label className="mb-1 block text-sm font-bold text-[var(--fl-muted)]">
         {label}
       </label>
 
@@ -4892,7 +4892,7 @@ function EditItem({
         name={name}
         defaultValue={value || ""}
         placeholder="Not entered"
-        className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
+        className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
     </div>
   );

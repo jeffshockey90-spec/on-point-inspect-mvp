@@ -69,10 +69,10 @@ export default async function DispatchPage() {
 
   if (!ownerRow?.company_id) {
     return (
-      <main className="min-h-screen bg-[#0a0e13] px-4 py-10 text-white">
-        <div className="mx-auto max-w-2xl rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 text-center">
-          <h1 className="text-2xl font-semibold text-white">Dispatch</h1>
-          <p className="mt-3 text-[#8a93a3]">
+      <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-10 text-[var(--fl-text)]">
+        <div className="mx-auto max-w-2xl rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 text-center">
+          <h1 className="text-2xl font-semibold text-[var(--fl-text)]">Dispatch</h1>
+          <p className="mt-3 text-[var(--fl-muted)]">
             Only the company owner can assign inspections to team members.
           </p>
           <Link href="/schedule" className="mt-6 inline-block rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 hover:bg-teal-400">
@@ -143,52 +143,52 @@ export default async function DispatchPage() {
   });
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-8">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-8">
       <div className="mx-auto max-w-6xl space-y-8">
-        <section className="rounded-2xl border border-teal-500/30 bg-[#10151e] p-6 shadow-2xl md:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-400">
+        <section className="rounded-2xl border border-teal-500/30 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
             Team
           </p>
-          <h1 className="mt-3 text-4xl font-semibold text-white">Dispatch</h1>
-          <p className="mt-3 max-w-2xl text-[#8a93a3]">
+          <h1 className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">Dispatch</h1>
+          <p className="mt-3 max-w-2xl text-[var(--fl-muted)]">
             Assign inspections to team members and see who has what on their schedule.
           </p>
         </section>
 
         {teamMembers.length <= 1 ? (
-          <div className="rounded-2xl border border-dashed border-[#232b38] bg-[#131923] p-6 text-sm text-[#8a93a3]">
+          <div className="rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-sm text-[var(--fl-muted)]">
             You&apos;re the only inspector on this account right now. Add a teammate under Settings to start assigning jobs.
           </div>
         ) : (
-          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl md:p-8">
-            <h2 className="text-2xl font-semibold text-teal-300">Team Performance</h2>
-            <p className="mt-2 text-sm text-[#8a93a3]">
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl md:p-8">
+            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Team Performance</h2>
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">
               Revenue reflects amount collected per inspector across all their assigned jobs.
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {statsByInspector.map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-5">
-                  <p className="font-semibold text-white">{stat.label}</p>
+                <div key={stat.label} className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5">
+                  <p className="font-semibold text-[var(--fl-text)]">{stat.label}</p>
                   <div className="mt-4 space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-[#8a93a3]">Jobs Assigned</span>
-                      <span className="font-bold text-white">{stat.totalJobs}</span>
+                      <span className="text-[var(--fl-muted)]">Jobs Assigned</span>
+                      <span className="font-bold text-[var(--fl-text)]">{stat.totalJobs}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#8a93a3]">Published Reports</span>
-                      <span className="font-bold text-white">{stat.completedJobs}</span>
+                      <span className="text-[var(--fl-muted)]">Published Reports</span>
+                      <span className="font-bold text-[var(--fl-text)]">{stat.completedJobs}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#8a93a3]">Revenue Collected</span>
-                      <span className="font-bold text-teal-300">{formatUsd(stat.revenue)}</span>
+                      <span className="text-[var(--fl-muted)]">Revenue Collected</span>
+                      <span className="font-bold text-[var(--fl-accent-text)]">{formatUsd(stat.revenue)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#8a93a3]">Avg Job Value</span>
-                      <span className="font-bold text-white">{formatUsd(stat.avgJobValue)}</span>
+                      <span className="text-[var(--fl-muted)]">Avg Job Value</span>
+                      <span className="font-bold text-[var(--fl-text)]">{formatUsd(stat.avgJobValue)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#8a93a3]">Outstanding Balance</span>
+                      <span className="text-[var(--fl-muted)]">Outstanding Balance</span>
                       <span className="font-bold text-orange-300">{formatUsd(stat.outstanding)}</span>
                     </div>
                   </div>
@@ -198,15 +198,15 @@ export default async function DispatchPage() {
           </section>
         )}
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl md:p-8">
-          <h2 className="text-2xl font-semibold text-teal-300">Assign Inspections</h2>
-          <p className="mt-2 text-sm text-[#8a93a3]">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl md:p-8">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Assign Inspections</h2>
+          <p className="mt-2 text-sm text-[var(--fl-muted)]">
             Reassign any job to a different team member. Changes save immediately.
           </p>
 
           <div className="mt-6">
             {rows.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#232b38] bg-[#131923] p-6 text-center text-sm text-[#8a93a3]">
+              <div className="rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-sm text-[var(--fl-muted)]">
                 No inspections yet.
               </div>
             ) : (

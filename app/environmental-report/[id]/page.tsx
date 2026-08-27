@@ -257,7 +257,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
   const moldResult = moldTest?.result || "Pending";
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] p-4 text-white print:bg-white print:p-0 print:text-slate-950 md:p-8">
+    <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] print:bg-white print:p-0 print:text-slate-950 md:p-8">
       <style>{`
         @media print {
           @page {
@@ -280,8 +280,8 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
         }
       `}</style>
 
-      <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] shadow-2xl print:rounded-none print:border-0 print:bg-white print:shadow-none">
-        <div className="print-hide flex flex-wrap gap-3 border-b border-[#1a212c] bg-[#0a0e13] p-5">
+      <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] shadow-2xl print:rounded-none print:border-0 print:bg-white print:shadow-none">
+        <div className="print-hide flex flex-wrap gap-3 border-b border-[var(--fl-raised)] bg-[var(--fl-ground)] p-5">
           <PrintButton
             label="Print / Save PDF"
             className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
@@ -296,13 +296,13 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 
           <Link
             href={`/reports/${inspection.id}`}
-            className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+            className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
           >
             Back to Editable Report
           </Link>
         </div>
 
-        <section className="avoid-break overflow-hidden bg-[#0a0e13] print:bg-white">
+        <section className="avoid-break overflow-hidden bg-[var(--fl-ground)] print:bg-white">
           {propertyPhoto && (
             <img
               src={propertyPhoto}
@@ -311,8 +311,8 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
             />
           )}
 
-          <div className="bg-[#0a0e13] p-8 text-white print:bg-[#0a0e13]">
-            <p className="text-sm font-semibold uppercase tracking-[0.32em] text-teal-300">
+          <div className="bg-[var(--fl-ground)] p-8 text-[var(--fl-text)] print:bg-[var(--fl-ground)]">
+            <p className="text-sm font-semibold uppercase tracking-[0.32em] text-[var(--fl-accent-text)]">
               {branding.name}
             </p>
 
@@ -320,11 +320,11 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
               {reportTitle}
             </h1>
 
-            <p className="mt-3 text-lg font-semibold text-[#8a93a3]">
+            <p className="mt-3 text-lg font-semibold text-[var(--fl-muted)]">
               {address}
             </p>
 
-            <p className="mt-2 text-sm text-[#8a93a3]">
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">
               Protecting Your Investment. One Inspection at a Time.
             </p>
           </div>
@@ -497,7 +497,7 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
 function Info({ label, value }: { label: string; value?: any }) {
   return (
     <div className="rounded-xl border border-slate-300 bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
         {label}
       </p>
       <p className="mt-2 text-base font-bold text-slate-950">

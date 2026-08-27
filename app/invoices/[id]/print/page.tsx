@@ -200,7 +200,7 @@ export default async function InvoicePrintPage({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs font-black text-teal-300">
+                <div className="flex h-full w-full items-center justify-center text-xs font-black text-[var(--fl-accent-text)]">
                   {branding.name.slice(0, 2).toUpperCase()}
                 </div>
               )}
@@ -271,7 +271,7 @@ export default async function InvoicePrintPage({
 
         <section className="mt-8 overflow-hidden rounded-2xl border border-slate-200">
           <table className="w-full border-collapse text-left">
-            <thead className="bg-slate-950 text-white">
+            <thead className="bg-slate-950 text-[var(--fl-text)]">
               <tr>
                 <th className="px-5 py-4 text-xs font-black uppercase tracking-wide">
                   Description

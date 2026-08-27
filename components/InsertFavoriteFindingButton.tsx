@@ -185,14 +185,14 @@ export default function InsertFavoriteFindingButton({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-[#232b38] bg-[#10151e] shadow-2xl">
-            <div className="border-b border-[#232b38] p-5">
+          <div className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] shadow-2xl">
+            <div className="border-b border-[var(--fl-line)] p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-semibold text-yellow-300">
                     Insert Favorite Finding
                   </h2>
-                  <p className="mt-1 text-sm text-[#8a93a3]">
+                  <p className="mt-1 text-sm text-[var(--fl-muted)]">
                     Search saved finding templates and insert one into this report.
                   </p>
                 </div>
@@ -201,7 +201,7 @@ export default function InsertFavoriteFindingButton({
                   type="button"
                   onClick={() => setOpen(false)}
                   disabled={busy}
-                  className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-bold text-[#e8ecf3] transition active:scale-[0.98] hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                  className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
                 >
                   Close
                 </button>
@@ -213,14 +213,14 @@ export default function InsertFavoriteFindingButton({
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search findings..."
                   disabled={busy}
-                  className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
                 <select
                   value={sortMode}
                   onChange={(e) => setSortMode(e.target.value as SortMode)}
                   disabled={busy}
-                  className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <option value="favorites">Favorites First</option>
                   <option value="recent">Recently Used</option>
@@ -245,7 +245,7 @@ export default function InsertFavoriteFindingButton({
 
             <div className="max-h-[65vh] overflow-y-auto p-5">
               {loadingTemplates ? (
-                <div className="flex items-center justify-center gap-3 rounded-2xl border border-[#232b38] bg-[#071224] p-6 text-[#8a93a3]">
+                <div className="flex items-center justify-center gap-3 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6 text-[var(--fl-muted)]">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   Loading favorite findings...
                 </div>
@@ -262,13 +262,13 @@ export default function InsertFavoriteFindingButton({
                         className={`rounded-2xl border p-5 ${
                           template.is_favorite
                             ? "border-yellow-500/60 bg-yellow-500/10"
-                            : "border-[#232b38] bg-[#071224]"
+                            : "border-[var(--fl-line)] bg-[#071224]"
                         }`}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap gap-2 text-xs font-bold">
-                              <span className="rounded-full border border-[#232b38] px-2 py-1 uppercase text-[#8a93a3]">
+                              <span className="rounded-full border border-[var(--fl-line)] px-2 py-1 uppercase text-[var(--fl-muted)]">
                                 {template.section || "Inspection Details"}
                               </span>
 
@@ -278,17 +278,17 @@ export default function InsertFavoriteFindingButton({
                                 </span>
                               )}
 
-                              <span className="rounded-full border border-[#232b38] px-2 py-1 text-[#8a93a3]">
+                              <span className="rounded-full border border-[var(--fl-line)] px-2 py-1 text-[var(--fl-muted)]">
                                 Used {Number(template.usage_count || 0)}
                               </span>
                             </div>
 
-                            <h3 className="mt-3 text-xl font-semibold text-white">
+                            <h3 className="mt-3 text-xl font-semibold text-[var(--fl-text)]">
                               {template.title || "Untitled Finding"}
                             </h3>
 
                             {template.observation && (
-                              <p className="mt-2 line-clamp-4 whitespace-pre-line text-sm leading-6 text-[#8a93a3]">
+                              <p className="mt-2 line-clamp-4 whitespace-pre-line text-sm leading-6 text-[var(--fl-muted)]">
                                 {template.observation}
                               </p>
                             )}
@@ -316,7 +316,7 @@ export default function InsertFavoriteFindingButton({
                   })}
 
                   {filtered.length === 0 && (
-                    <div className="rounded-2xl border border-[#232b38] bg-[#071224] p-6 text-center text-[#8a93a3]">
+                    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6 text-center text-[var(--fl-muted)]">
                       No matching templates found.
                     </div>
                   )}

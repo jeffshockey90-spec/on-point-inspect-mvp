@@ -54,11 +54,11 @@ export default function FindingsSeverityFilter({
             className={`rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
               isActive
                 ? "border-teal-400 bg-teal-500/20 text-teal-100"
-                : "border-[#232b38] bg-[#131923]/40 text-[#8a93a3] hover:border-teal-500/60 hover:text-teal-200"
+                : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)] hover:border-teal-500/60 hover:text-[var(--fl-accent-text)]"
             }`}
           >
             {chip.label}
-            <span className={`ml-1.5 ${isActive ? "text-teal-300" : "text-[#59626f]"}`}>{count}</span>
+            <span className={`ml-1.5 ${isActive ? "text-[var(--fl-accent-text)]" : "text-[var(--fl-faint)]"}`}>{count}</span>
           </button>
         );
       })}

@@ -127,15 +127,15 @@ export default function CompanyDocumentUploader({
   }
 
   return (
-    <div className="min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 md:col-span-2">
+    <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 md:col-span-2">
       <input type="hidden" name={name} value={path} />
 
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p>
 
-      {helper && <p className="mt-2 max-w-xl text-xs leading-5 text-[#59626f]">{helper}</p>}
+      {helper && <p className="mt-2 max-w-xl text-xs leading-5 text-[var(--fl-faint)]">{helper}</p>}
 
       {path && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-[#1a212c] bg-[#0a0e13] p-3">
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-3">
           <p className="text-xs font-bold text-emerald-300">
             W9 on file{uploadedAt ? ` · uploaded ${new Date(uploadedAt).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}` : ""}
           </p>
@@ -143,7 +143,7 @@ export default function CompanyDocumentUploader({
             type="button"
             onClick={viewCurrentFile}
             disabled={viewing}
-            className="text-xs font-bold text-teal-300 underline underline-offset-2 hover:text-teal-200 disabled:opacity-60"
+            className="text-xs font-bold text-[var(--fl-accent-text)] underline underline-offset-2 hover:text-[var(--fl-accent-text)] disabled:opacity-60"
           >
             {viewing ? "Opening..." : "View / download current file"}
           </button>
@@ -175,7 +175,7 @@ export default function CompanyDocumentUploader({
               setUploadedAt(null);
               showMessage("info", "Cleared. Click Save Settings to keep this change.");
             }}
-            className="rounded-xl border border-[#232b38] px-5 py-3 text-sm font-bold text-[#e8ecf3] transition hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-[var(--fl-line)] px-5 py-3 text-sm font-bold text-[var(--fl-text)] transition hover:border-red-400 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Clear
           </button>

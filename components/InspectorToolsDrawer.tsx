@@ -58,7 +58,7 @@ const toneClasses: Record<ToolTone, string> = {
   red: "border-red-400/50 bg-red-500/10 text-red-200",
   cyan: "border-cyan-400/50 bg-cyan-500/10 text-cyan-200",
   green: "border-green-400/50 bg-green-500/10 text-green-200",
-  slate: "border-[#59626f]/50 bg-slate-500/10 text-[#e8ecf3]",
+  slate: "border-[var(--fl-faint)] bg-slate-500/10 text-[var(--fl-text)]",
 };
 
 const urgencyStyles: Record<
@@ -634,7 +634,7 @@ function ToolRow({
     <button
       type="button"
       onClick={onOpen}
-      className="flex w-full items-center gap-3 rounded-2xl border border-[#1a212c] bg-[#10151e] p-3 text-left transition active:scale-[0.99] hover:border-[#232b38]"
+      className="flex w-full items-center gap-3 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-3 text-left transition active:scale-[0.99] hover:border-[var(--fl-line)]"
     >
       <span
         className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg"
@@ -643,9 +643,9 @@ function ToolRow({
         {toolIcon(item.title)}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-semibold text-white">{item.title}</span>
+        <span className="block text-[15px] font-semibold text-[var(--fl-text)]">{item.title}</span>
         {item.helper ? (
-          <span className="block text-xs text-[#8a93a3]">{item.helper}</span>
+          <span className="block text-xs text-[var(--fl-muted)]">{item.helper}</span>
         ) : null}
       </span>
       <span className="flex shrink-0 items-center gap-2">
@@ -661,7 +661,7 @@ function ToolRow({
             {item.badge}
           </span>
         ) : null}
-        <span className="text-lg text-[#59626f]">›</span>
+        <span className="text-lg text-[var(--fl-faint)]">›</span>
       </span>
     </button>
   );
@@ -1373,7 +1373,7 @@ export default function InspectorToolsDrawer({
 
   return (
     <>
-      <section className="mb-8 overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e]">
+      <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)]">
         <button
           type="button"
           onClick={openWorkspace}
@@ -1384,14 +1384,14 @@ export default function InspectorToolsDrawer({
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200">
                 Inspector Command Center
               </p>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a93a3]">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--fl-muted)]">
                 Ctrl K
               </span>
             </div>
-            <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)] sm:text-3xl">
               Run the inspection business from here.
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
               Report writing stays on the page. Delivery, signatures, payments, AI review, engagement, repair requests, and business tools live in one polished workspace.
             </p>
           </div>
@@ -1412,7 +1412,7 @@ export default function InspectorToolsDrawer({
           </div>
         </button>
 
-        <div className="flex gap-2 overflow-x-auto border-t border-[#1a212c] bg-black/10 p-3 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-6">
+        <div className="flex gap-2 overflow-x-auto border-t border-[var(--fl-raised)] bg-black/10 p-3 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-6">
           {statusTiles.map((tile) => {
             const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
             return (
@@ -1420,7 +1420,7 @@ export default function InspectorToolsDrawer({
                 key={tile.title}
                 type="button"
                 onClick={() => handleStatusTileClick(tile)}
-                className="min-w-[170px] rounded-xl border border-[#1a212c]/70 bg-[#10151e]/60 p-3 text-left transition hover:border-[#232b38] active:scale-[0.99] sm:min-w-0"
+                className="min-w-[170px] rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-3 text-left transition hover:border-[var(--fl-line)] active:scale-[0.99] sm:min-w-0"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
@@ -1428,17 +1428,17 @@ export default function InspectorToolsDrawer({
                     {tile.badge}
                   </span>
                 </div>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
                   {tile.title}
                 </p>
-                <p className="mt-1 text-sm font-semibold text-white">{tile.label}</p>
+                <p className="mt-1 text-sm font-semibold text-[var(--fl-text)]">{tile.label}</p>
               </button>
             );
           })}
         </div>
 
         {attentionNotifications.length > 0 ? (
-          <div className="border-t border-[#1a212c] px-4 pb-4">
+          <div className="border-t border-[var(--fl-raised)] px-4 pb-4">
             <div className="grid gap-2 pt-4 sm:grid-cols-3">
               {attentionNotifications.slice(0, 3).map((item) => {
                 const style = urgencyStyles[item.urgency || "info"] || urgencyStyles.info;
@@ -1448,10 +1448,10 @@ export default function InspectorToolsDrawer({
                     key={item.id || item.title}
                     type="button"
                     onClick={() => openNotification(item)}
-                    className="flex items-center gap-2 rounded-xl border border-[#1a212c] bg-[#10151e] px-3 py-3 text-left transition hover:border-[#232b38] active:scale-[0.99]"
+                    className="flex items-center gap-2 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] px-3 py-3 text-left transition hover:border-[var(--fl-line)] active:scale-[0.99]"
                   >
                     <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
-                    <p className="min-w-0 flex-1 truncate text-xs font-semibold text-[#e8ecf3]">{item.title}</p>
+                    <p className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--fl-text)]">{item.title}</p>
                     {item.badge ? (
                       <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${style.badge}`}>
                         {item.badge}
@@ -1502,18 +1502,18 @@ export default function InspectorToolsDrawer({
                     : webglOpened
                       ? ""
                       : "cc-genie-open"
-            } sm:inset-y-[6vh] sm:mx-auto sm:max-w-5xl sm:rounded-2xl sm:border sm:border-[#232b38] sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]`}
+            } sm:inset-y-[6vh] sm:mx-auto sm:max-w-5xl sm:rounded-2xl sm:border sm:border-[var(--fl-line)] sm:shadow-[0_30px_90px_-20px_rgba(0,0,0,0.85)]`}
           >
-            <div className="shrink-0 overflow-hidden border-b border-[#1a212c] bg-[#10151e] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
+            <div className="shrink-0 overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-surface)] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#14c8d2]">
                     FLOW
                   </p>
-                  <h2 className="mt-1 text-lg font-semibold text-white sm:text-2xl lg:text-3xl">
+                  <h2 className="mt-1 text-lg font-semibold text-[var(--fl-text)] sm:text-2xl lg:text-3xl">
                     Inspector Command Center
                   </h2>
-                  <p className="mt-1 hidden text-sm leading-6 text-[#8a93a3] sm:block">
+                  <p className="mt-1 hidden text-sm leading-6 text-[var(--fl-muted)] sm:block">
                     Business operations, report intelligence, delivery controls, repair requests, and activity in one workspace.
                   </p>
                 </div>
@@ -1521,7 +1521,7 @@ export default function InspectorToolsDrawer({
                 <button
                   type="button"
                   onClick={requestClose}
-                  className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-2.5 text-sm font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c] active:scale-[0.98]"
+                  className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] active:scale-[0.98]"
                 >
                   ✕ <span className="hidden sm:inline">Close</span>
                   <span className="sm:hidden">Close</span>
@@ -1530,23 +1530,23 @@ export default function InspectorToolsDrawer({
 
               <div className="mt-2 sm:mt-3">
                 <label className="relative block">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#59626f]">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fl-faint)]">
                     ⌕
                   </span>
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Search tools, sections, actions..."
-                    className="h-[44px] w-full rounded-full border border-[#232b38] bg-[#0a0e13] pl-9 pr-3 text-sm font-bold text-white outline-none transition placeholder:text-[#59626f] focus:border-cyan-400"
+                    className="h-[44px] w-full rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] pl-9 pr-3 text-sm font-bold text-[var(--fl-text)] outline-none transition placeholder:text-[var(--fl-faint)] focus:border-cyan-400"
                   />
                 </label>
               </div>
             </div>
 
             <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-24 xl:grid xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:overflow-hidden xl:pb-0">
-              <nav className="hidden min-h-0 overflow-y-auto border-r border-[#1a212c] bg-[#10151e] p-4 xl:block">
+              <nav className="hidden min-h-0 overflow-y-auto border-r border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 xl:block">
                 <div>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#59626f]">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
                     Workspace Tools
                   </p>
                   <div className="space-y-2">
@@ -1561,16 +1561,16 @@ export default function InspectorToolsDrawer({
                           className={`w-full rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
                             active
                               ? "border-cyan-300 bg-cyan-500/15 shadow-[0_0_22px_rgba(34,211,238,0.14)]"
-                              : "border-[#232b38] bg-[#0a0e13] hover:border-cyan-500/70 hover:bg-[#131923]"
+                              : "border-[var(--fl-line)] bg-[var(--fl-ground)] hover:border-cyan-500/70 hover:bg-[var(--fl-surface-2)]"
                           }`}
                         >
                           <div className="flex min-w-0 items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="break-words text-sm font-semibold text-white">
+                              <p className="break-words text-sm font-semibold text-[var(--fl-text)]">
                                 {item.title}
                               </p>
                               {item.helper ? (
-                                <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
+                                <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
                                   {item.helper}
                                 </p>
                               ) : null}
@@ -1590,7 +1590,7 @@ export default function InspectorToolsDrawer({
                     })}
 
                     {filteredItems.length === 0 ? (
-                      <div className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 text-sm font-bold text-[#8a93a3]">
+                      <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm font-bold text-[var(--fl-muted)]">
                         No workspace tools match that search.
                       </div>
                     ) : null}
@@ -1614,14 +1614,14 @@ export default function InspectorToolsDrawer({
                           key={(n as any).id || i}
                           type="button"
                           onClick={() => openNotification(n)}
-                          className="flex w-full items-center gap-3 rounded-xl border border-red-500/30 bg-[#131923] p-3 text-left transition hover:bg-red-500/10 active:scale-[0.99]"
+                          className="flex w-full items-center gap-3 rounded-xl border border-red-500/30 bg-[var(--fl-surface-2)] p-3 text-left transition hover:bg-red-500/10 active:scale-[0.99]"
                         >
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold text-white">
+                            <span className="block truncate text-sm font-semibold text-[var(--fl-text)]">
                               {n.title || "Attention item"}
                             </span>
                             {n.message ? (
-                              <span className="mt-0.5 block truncate text-xs text-[#8a93a3]">
+                              <span className="mt-0.5 block truncate text-xs text-[var(--fl-muted)]">
                                 {n.message}
                               </span>
                             ) : null}
@@ -1645,7 +1645,7 @@ export default function InspectorToolsDrawer({
                         />
                       ))
                     ) : (
-                      <div className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 text-sm font-bold text-[#8a93a3]">
+                      <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm font-bold text-[var(--fl-muted)]">
                         No tools match that search.
                       </div>
                     )}
@@ -1654,7 +1654,7 @@ export default function InspectorToolsDrawer({
                   <>
                     {pinnedTools.length ? (
                       <>
-                        <p className="mb-2 mt-1 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#59626f]">
+                        <p className="mb-2 mt-1 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
                           Pinned · most-used
                         </p>
                         <div className="mb-4 grid grid-cols-2 gap-2.5">
@@ -1665,7 +1665,7 @@ export default function InspectorToolsDrawer({
                                 key={item.title}
                                 type="button"
                                 onClick={() => openTool(item.title)}
-                                className="relative flex min-h-[92px] flex-col gap-2 overflow-hidden rounded-2xl border border-[#232b38] bg-[#10151e] p-3.5 pt-4 text-left transition hover:border-[#232b38] active:scale-[0.98]"
+                                className="relative flex min-h-[92px] flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3.5 pt-4 text-left transition hover:border-[var(--fl-line)] active:scale-[0.98]"
                               >
                                 <span
                                   className="absolute inset-x-0 top-0 h-[3px]"
@@ -1691,7 +1691,7 @@ export default function InspectorToolsDrawer({
                                     </span>
                                   ) : null}
                                 </div>
-                                <span className="text-sm font-semibold leading-tight text-white">
+                                <span className="text-sm font-semibold leading-tight text-[var(--fl-text)]">
                                   {item.title}
                                 </span>
                               </button>
@@ -1703,7 +1703,7 @@ export default function InspectorToolsDrawer({
 
                     {toolGroups.map((group) => (
                       <div key={group.label}>
-                        <p className="mb-2 mt-4 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#59626f]">
+                        <p className="mb-2 mt-4 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
                           {group.label}
                         </p>
                         <div className="space-y-2">
@@ -1723,7 +1723,7 @@ export default function InspectorToolsDrawer({
                       (t) => t.title === "Payment" || t.title === "Agreements",
                     ).length ? (
                       <div>
-                        <p className="mb-2 mt-4 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#59626f]">
+                        <p className="mb-2 mt-4 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
                           Payments &amp; Agreements
                         </p>
                         <div className="space-y-2">
@@ -1739,7 +1739,7 @@ export default function InspectorToolsDrawer({
                                   key={tile.title}
                                   type="button"
                                   onClick={() => handleStatusTileClick(tile)}
-                                  className="flex w-full items-center gap-3 rounded-2xl border border-[#1a212c] bg-[#10151e] p-3 text-left transition hover:border-[#232b38] active:scale-[0.99]"
+                                  className="flex w-full items-center gap-3 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-3 text-left transition hover:border-[var(--fl-line)] active:scale-[0.99]"
                                 >
                                   <span
                                     className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg"
@@ -1751,16 +1751,16 @@ export default function InspectorToolsDrawer({
                                     {tile.title === "Payment" ? "💳" : "✍️"}
                                   </span>
                                   <span className="min-w-0 flex-1">
-                                    <span className="block text-[15px] font-semibold text-white">
+                                    <span className="block text-[15px] font-semibold text-[var(--fl-text)]">
                                       {tile.title === "Payment"
                                         ? "Payments & Invoices"
                                         : "Agreements"}
                                     </span>
-                                    <span className="block text-xs text-[#8a93a3]">
+                                    <span className="block text-xs text-[var(--fl-muted)]">
                                       {tile.badge || tile.label}
                                     </span>
                                   </span>
-                                  <span className="text-lg text-[#59626f]">›</span>
+                                  <span className="text-lg text-[var(--fl-faint)]">›</span>
                                 </button>
                               );
                             })}
@@ -1773,12 +1773,12 @@ export default function InspectorToolsDrawer({
                 {children}
               </div>
 
-              <aside className="hidden min-h-0 overflow-y-auto border-l border-[#1a212c] bg-[#08111f] p-4 xl:block">
-                <div className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#59626f]">
+              <aside className="hidden min-h-0 overflow-y-auto border-l border-[var(--fl-raised)] bg-[#08111f] p-4 xl:block">
+                <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--fl-faint)]">
                     Activity Feed
                   </p>
-                  <h3 className="mt-1 text-lg font-semibold text-white">What changed</h3>
+                  <h3 className="mt-1 text-lg font-semibold text-[var(--fl-text)]">What changed</h3>
 
                   <div className="mt-4 space-y-3">
                     {activityItems.length > 0 ? (
@@ -1792,25 +1792,25 @@ export default function InspectorToolsDrawer({
                             onClick={() => {
                               if (item.notification) openNotification(item.notification);
                             }}
-                            className="w-full rounded-2xl border border-[#232b38] bg-[#131923] p-3 text-left transition hover:border-cyan-400/60 hover:bg-[#131923] active:scale-[0.99]"
+                            className="w-full rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-left transition hover:border-cyan-400/60 hover:bg-[var(--fl-surface-2)] active:scale-[0.99]"
                           >
                             <div className="flex items-start gap-3">
                               <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${style.dot}`} />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between gap-2">
-                                  <p className="truncate text-sm font-semibold text-white">{item.title}</p>
+                                  <p className="truncate text-sm font-semibold text-[var(--fl-text)]">{item.title}</p>
                                   <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${style.badge}`}>
                                     {item.badge}
                                   </span>
                                 </div>
-                                <p className="mt-1 text-xs leading-5 text-[#8a93a3]">{item.helper}</p>
+                                <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">{item.helper}</p>
                               </div>
                             </div>
                           </button>
                         );
                       })
                     ) : (
-                      <p className="rounded-2xl border border-[#232b38] bg-[#0a0e13] p-3 text-sm font-bold text-[#8a93a3]">
+                      <p className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm font-bold text-[var(--fl-muted)]">
                         No major workspace activity yet.
                       </p>
                     )}

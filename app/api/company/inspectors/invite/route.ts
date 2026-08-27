@@ -162,7 +162,7 @@ export async function POST(req: Request) {
               <p>Hi ${name},</p>
               <p>${companyName} added you as an inspector on FLOW. Set your password to get started:</p>
               <p style="margin:24px 0;">
-                <a href="${actionLink}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
+                <a href="${actionLink}" style="display:inline-block;background:#14b8a6;color:var(--fl-ground);font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
                   Set Your Password
                 </a>
               </p>

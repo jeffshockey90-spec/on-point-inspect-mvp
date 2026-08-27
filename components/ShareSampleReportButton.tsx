@@ -66,8 +66,8 @@ export default function ShareSampleReportButton({
   }
 
   const buttonBase = compact
-    ? "inline-flex flex-1 items-center justify-center rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10"
-    : "inline-flex items-center justify-center rounded-xl border border-teal-500/60 px-5 py-3 font-bold text-teal-300 transition hover:bg-teal-500/10";
+    ? "inline-flex flex-1 items-center justify-center rounded-xl border border-teal-500/60 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
+    : "inline-flex items-center justify-center rounded-xl border border-teal-500/60 px-5 py-3 font-bold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10";
 
   const encodedSubject = encodeURIComponent(title);
   const encodedBody = encodeURIComponent(shareText);
@@ -99,14 +99,14 @@ export default function ShareSampleReportButton({
 
       <a
         href={`mailto:?subject=${encodedSubject}&body=${encodedBody}`}
-        className="inline-flex items-center justify-center rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300"
+        className="inline-flex items-center justify-center rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
       >
         Email
       </a>
 
       <a
         href={`sms:?&body=${smsBody}`}
-        className="inline-flex items-center justify-center rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300"
+        className="inline-flex items-center justify-center rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
       >
         Text
       </a>
@@ -115,7 +115,7 @@ export default function ShareSampleReportButton({
         type="button"
         onClick={copyLink}
         disabled={!shareUrl}
-        className="inline-flex items-center justify-center rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] transition hover:border-teal-400 hover:text-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex items-center justify-center rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {copied ? "Copied" : "Copy"}
       </button>

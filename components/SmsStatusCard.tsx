@@ -64,18 +64,18 @@ export default function SmsStatusCard() {
       : "—";
 
   return (
-    <section className="rounded-2xl border border-[#1a212c] bg-gradient-to-br from-[#10151e] to-[#10151e] p-5 shadow-xl sm:p-6 md:p-8">
+    <section className="rounded-2xl border border-[var(--fl-raised)] bg-gradient-to-br from-[var(--fl-surface)] to-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-teal-500/30 bg-teal-500/10 text-teal-300">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-teal-500/30 bg-teal-500/10 text-[var(--fl-accent-text)]">
             <MessageSquare className="h-7 w-7" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
               Text Messaging
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">SMS Alerts</h2>
-            <p className="mt-1 text-sm text-[#8a93a3]">
+            <h2 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">SMS Alerts</h2>
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
               Confirmations, reminders, and report-ready texts to clients and agents.
             </p>
           </div>
@@ -85,7 +85,7 @@ export default function SmsStatusCard() {
           className={`rounded-full border px-3 py-1 text-xs font-semibold ${
             status.configured
               ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-              : "border-[#232b38] bg-[#1a212c] text-[#8a93a3]"
+              : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]"
           }`}
         >
           {status.configured ? "Active" : "Not set up"}
@@ -93,15 +93,15 @@ export default function SmsStatusCard() {
       </div>
 
       {!status.configured ? (
-        <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
+        <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
           Add your Twilio credentials to turn on texting:{" "}
-          <span className="font-mono text-xs text-[#8a93a3]">
+          <span className="font-mono text-xs text-[var(--fl-muted)]">
             TWILIO_ACCOUNT_SID
           </span>
           ,{" "}
-          <span className="font-mono text-xs text-[#8a93a3]">TWILIO_AUTH_TOKEN</span>
+          <span className="font-mono text-xs text-[var(--fl-muted)]">TWILIO_AUTH_TOKEN</span>
           , and{" "}
-          <span className="font-mono text-xs text-[#8a93a3]">TWILIO_PHONE_NUMBER</span>{" "}
+          <span className="font-mono text-xs text-[var(--fl-muted)]">TWILIO_PHONE_NUMBER</span>{" "}
           in your Vercel environment variables. Everything else is already wired up.
         </div>
       ) : (
@@ -118,32 +118,32 @@ export default function SmsStatusCard() {
           )}
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Twilio Balance
               </p>
               <p
                 className={`mt-1 text-2xl font-semibold ${
-                  status.lowBalance ? "text-amber-300" : "text-teal-300"
+                  status.lowBalance ? "text-amber-300" : "text-[var(--fl-accent-text)]"
                 }`}
               >
                 {status.balanceError ? "Unavailable" : money(status.balance, status.currency)}
               </p>
               {status.balanceError && (
-                <p className="mt-1 text-xs text-[#59626f]">{status.balanceError}</p>
+                <p className="mt-1 text-xs text-[var(--fl-faint)]">{status.balanceError}</p>
               )}
             </div>
 
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Sending From
               </p>
-              <p className="mt-1 text-lg font-semibold text-white">{status.from || "—"}</p>
+              <p className="mt-1 text-lg font-semibold text-[var(--fl-text)]">{status.from || "—"}</p>
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl border border-[#232b38] bg-[#131923] p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Send a test text
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -152,7 +152,7 @@ export default function SmsStatusCard() {
                 value={testPhone}
                 onChange={(e) => setTestPhone(e.target.value)}
                 placeholder="+1 (240) 555-0134"
-                className="min-w-[180px] flex-1 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-teal-400"
+                className="min-w-[180px] flex-1 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
               <button
                 type="button"

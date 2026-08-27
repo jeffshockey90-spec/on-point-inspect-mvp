@@ -76,16 +76,16 @@ export default function PublicProfileGallery({
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] p-5 shadow-xl sm:p-8">
+        <div className="overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
                 Portfolio Gallery
               </p>
-              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-semibold text-[var(--fl-text)] sm:text-4xl">
                 Inspection Portfolio Gallery
               </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-[#8a93a3] sm:text-base">
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--fl-muted)] sm:text-base">
                 Tap any photo to view the full gallery without making this page longer.
               </p>
             </div>
@@ -93,7 +93,7 @@ export default function PublicProfileGallery({
             <button
               type="button"
               onClick={() => openGallery(0)}
-              className="rounded-xl border border-teal-400/60 px-5 py-3 text-center font-semibold text-teal-200 transition hover:bg-teal-500 hover:text-slate-950"
+              className="rounded-xl border border-teal-400/60 px-5 py-3 text-center font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-slate-950"
             >
               View All Photos ({cleanImages.length})
             </button>
@@ -103,7 +103,7 @@ export default function PublicProfileGallery({
             <button
               type="button"
               onClick={() => openGallery(0)}
-              className="group relative min-h-[320px] overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] text-left shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70"
+              className="group relative min-h-[320px] overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] text-left shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70"
             >
               <img
                 src={cleanImages[0].imageUrl}
@@ -118,11 +118,11 @@ export default function PublicProfileGallery({
                     {cleanImages[0].category}
                   </span>
                 )}
-                <h3 className="mt-3 text-2xl font-semibold text-white">
+                <h3 className="mt-3 text-2xl font-semibold text-[var(--fl-text)]">
                   {cleanImages[0].title || "Portfolio Photo"}
                 </h3>
                 {cleanImages[0].caption && (
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#e8ecf3]">
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--fl-text)]">
                     {cleanImages[0].caption}
                   </p>
                 )}
@@ -139,7 +139,7 @@ export default function PublicProfileGallery({
                     key={image.id}
                     type="button"
                     onClick={() => openGallery(realIndex)}
-                    className="group relative min-h-[150px] overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] text-left shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70"
+                    className="group relative min-h-[150px] overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] text-left shadow-xl transition hover:-translate-y-1 hover:border-teal-400/70"
                   >
                     <img
                       src={image.imageUrl}
@@ -153,7 +153,7 @@ export default function PublicProfileGallery({
 
                     {isLastPreview && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/55">
-                        <span className="rounded-2xl border border-white/30 bg-white/10 px-5 py-3 text-xl font-semibold text-white backdrop-blur">
+                        <span className="rounded-2xl border border-white/30 bg-white/10 px-5 py-3 text-xl font-semibold text-[var(--fl-text)] backdrop-blur">
                           +{remainingCount} More
                         </span>
                       </div>
@@ -161,7 +161,7 @@ export default function PublicProfileGallery({
 
                     {!isLastPreview && (
                       <div className="absolute inset-x-0 bottom-0 p-3">
-                        <p className="line-clamp-1 text-xs font-semibold text-white">
+                        <p className="line-clamp-1 text-xs font-semibold text-[var(--fl-text)]">
                           {image.title || image.category || "Portfolio Photo"}
                         </p>
                       </div>
@@ -176,17 +176,17 @@ export default function PublicProfileGallery({
 
       {activeImage && (
         <div
-          className="fixed inset-0 z-[100] bg-black/95 p-3 text-white backdrop-blur sm:p-6"
+          className="fixed inset-0 z-[100] bg-black/95 p-3 text-[var(--fl-text)] backdrop-blur sm:p-6"
           role="dialog"
           aria-modal="true"
         >
           <div className="mx-auto flex h-full max-w-7xl flex-col">
             <div className="flex items-center justify-between gap-3 pb-3">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
                   {activeIndex! + 1} / {cleanImages.length}
                 </p>
-                <h3 className="mt-1 truncate text-lg font-semibold text-white sm:text-2xl">
+                <h3 className="mt-1 truncate text-lg font-semibold text-[var(--fl-text)] sm:text-2xl">
                   {activeImage.title || "Portfolio Photo"}
                 </h3>
               </div>
@@ -194,13 +194,13 @@ export default function PublicProfileGallery({
               <button
                 type="button"
                 onClick={closeGallery}
-                className="rounded-xl border border-[#232b38] px-4 py-3 text-sm font-semibold text-[#e8ecf3] transition hover:border-red-400 hover:bg-red-500 hover:text-white"
+                className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition hover:border-red-400 hover:bg-red-500 hover:text-white"
               >
                 ✕ Close
               </button>
             </div>
 
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#1a212c] bg-[#0a0e13]">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-ground)]">
               <img
                 src={activeImage.imageUrl}
                 alt={activeImage.title || "Portfolio gallery photo"}
@@ -231,14 +231,14 @@ export default function PublicProfileGallery({
             </div>
 
             {(activeImage.caption || activeImage.category) && (
-              <div className="mt-3 rounded-2xl border border-[#1a212c] bg-[#0a0e13]/85 p-4">
+              <div className="mt-3 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4">
                 {activeImage.category && (
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-teal-300">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-accent-text)]">
                     {activeImage.category}
                   </p>
                 )}
                 {activeImage.caption && (
-                  <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+                  <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
                     {activeImage.caption}
                   </p>
                 )}
@@ -255,7 +255,7 @@ export default function PublicProfileGallery({
                     className={`h-16 w-20 shrink-0 overflow-hidden rounded-xl border transition ${
                       index === activeIndex
                         ? "border-teal-300 opacity-100"
-                        : "border-[#232b38] opacity-60 hover:opacity-100"
+                        : "border-[var(--fl-line)] opacity-60 hover:opacity-100"
                     }`}
                     aria-label={`Open photo ${index + 1}`}
                   >

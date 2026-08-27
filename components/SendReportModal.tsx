@@ -97,14 +97,14 @@ On Point Home Inspections LLC
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 print:hidden">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-[#232b38] bg-[#111827] p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-[var(--fl-line)] bg-[#111827] p-6 shadow-2xl">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-bold text-teal-400">
+                <h2 className="text-3xl font-bold text-[var(--fl-accent-text)]">
                   Send Report
                 </h2>
 
-                <p className="mt-2 text-[#8a93a3]">
+                <p className="mt-2 text-[var(--fl-muted)]">
                   Copy or open pre-written delivery emails for the client and
                   realtor.
                 </p>
@@ -113,14 +113,14 @@ On Point Home Inspections LLC
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-xl border border-[#232b38] px-4 py-2 font-bold text-white hover:bg-[#1a212c]"
+                className="rounded-xl border border-[var(--fl-line)] px-4 py-2 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
               >
                 Close
               </button>
             </div>
 
-            <section className="rounded-2xl border border-[#232b38] bg-[#0f172a] p-5">
-              <h3 className="text-xl font-bold text-white">Share Links</h3>
+            <section className="rounded-2xl border border-[var(--fl-line)] bg-[#0f172a] p-5">
+              <h3 className="text-xl font-bold text-[var(--fl-text)]">Share Links</h3>
 
               <div className="mt-4 space-y-4">
                 <LinkBox
@@ -139,9 +139,9 @@ On Point Home Inspections LLC
               </div>
             </section>
 
-            <section className="mt-6 rounded-2xl border border-[#232b38] bg-[#0f172a] p-5">
+            <section className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[#0f172a] p-5">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-xl font-bold text-white">
+                <h3 className="text-xl font-bold text-[var(--fl-text)]">
                   Client Email
                 </h3>
 
@@ -171,22 +171,22 @@ On Point Home Inspections LLC
                 </div>
               </div>
 
-              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
                 To: {clientEmail || "No client email saved"}
               </p>
 
-              <p className="mb-3 text-sm font-bold text-[#8a93a3]">
+              <p className="mb-3 text-sm font-bold text-[var(--fl-muted)]">
                 Subject: {clientSubject}
               </p>
 
-              <pre className="whitespace-pre-wrap rounded-xl border border-[#232b38] bg-black p-4 leading-7 text-[#8a93a3]">
+              <pre className="whitespace-pre-wrap rounded-xl border border-[var(--fl-line)] bg-black p-4 leading-7 text-[var(--fl-muted)]">
                 {clientBody}
               </pre>
             </section>
 
-            <section className="mt-6 rounded-2xl border border-[#232b38] bg-[#0f172a] p-5">
+            <section className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[#0f172a] p-5">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-xl font-bold text-white">
+                <h3 className="text-xl font-bold text-[var(--fl-text)]">
                   Realtor Email
                 </h3>
 
@@ -216,15 +216,15 @@ On Point Home Inspections LLC
                 </div>
               </div>
 
-              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+              <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
                 To: {realtorEmail || "No realtor email saved"}
               </p>
 
-              <p className="mb-3 text-sm font-bold text-[#8a93a3]">
+              <p className="mb-3 text-sm font-bold text-[var(--fl-muted)]">
                 Subject: {realtorSubject}
               </p>
 
-              <pre className="whitespace-pre-wrap rounded-xl border border-[#232b38] bg-black p-4 leading-7 text-[#8a93a3]">
+              <pre className="whitespace-pre-wrap rounded-xl border border-[var(--fl-line)] bg-black p-4 leading-7 text-[var(--fl-muted)]">
                 {realtorBody}
               </pre>
             </section>
@@ -247,13 +247,13 @@ function LinkBox({
   onCopy: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-black p-4">
-      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-black p-4">
+      <p className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
-        <code className="flex-1 break-all text-sm text-[#8a93a3]">
+        <code className="flex-1 break-all text-sm text-[var(--fl-muted)]">
           {value}
         </code>
 

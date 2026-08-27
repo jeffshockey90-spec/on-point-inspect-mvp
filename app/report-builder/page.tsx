@@ -297,12 +297,12 @@ export default function ReportBuilderPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black p-6 text-white">
+    <main className="min-h-screen bg-black p-6 text-[var(--fl-text)]">
       <div className="mx-auto max-w-5xl space-y-6">
-        <h1 className="text-4xl font-bold text-teal-400">Report Builder</h1>
+        <h1 className="text-4xl font-bold text-[var(--fl-accent-text)]">Report Builder</h1>
 
         <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
-          <h2 className="text-2xl font-bold text-teal-400">Component Info</h2>
+          <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">Component Info</h2>
 
           <select value={section} onChange={(e) => changeSection(e.target.value)} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3">
             {sections.map((s) => (
@@ -328,7 +328,7 @@ export default function ReportBuilderPage() {
         </div>
 
         <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
-          <h2 className="text-2xl font-bold text-teal-400">Finding / Defect</h2>
+          <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">Finding / Defect</h2>
 
           <select value={tag} onChange={(e) => setTag(e.target.value)} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3">
             <option value="">No Tag</option>

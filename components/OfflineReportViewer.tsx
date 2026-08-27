@@ -23,7 +23,7 @@ function getSeverityStyle(severity: any) {
     return "border-blue-500/60 bg-blue-500/10 text-blue-200";
   }
 
-  return "border-teal-500/60 bg-teal-500/10 text-teal-200";
+  return "border-teal-500/60 bg-teal-500/10 text-[var(--fl-accent-text)]";
 }
 
 function getPhotoUrl(photo: any) {
@@ -119,14 +119,14 @@ export default function OfflineReportViewer({
   const cachedAt = cache?.cachedAt ? formatAppValue(new Date(cache.cachedAt), {}) : "Unknown";
 
   return (
-    <div className="space-y-4 rounded-2xl border border-cyan-500/40 bg-[#071224] p-4 text-white">
+    <div className="space-y-4 rounded-2xl border border-cyan-500/40 bg-[#071224] p-4 text-[var(--fl-text)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
             Offline Report Viewer
           </p>
           <h1 className="mt-1 text-2xl font-semibold">{label || `Inspection ${inspectionId}`}</h1>
-          <p className="mt-1 text-sm text-[#8a93a3]">
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">
             Read-only cached report. Cached: {cachedAt}
           </p>
         </div>
@@ -135,7 +135,7 @@ export default function OfflineReportViewer({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-teal-500 px-4 py-2 font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500 hover:text-black"
+            className="rounded-xl border border-teal-500 px-4 py-2 font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500 hover:text-black"
           >
             Back to Field Tool
           </button>
@@ -147,7 +147,7 @@ export default function OfflineReportViewer({
       </div>
 
       {groupedFindings.length === 0 && (
-        <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-[#8a93a3]">
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-muted)]">
           No cached findings yet. Open the live report while online to preload the current findings.
         </div>
       )}
@@ -155,17 +155,17 @@ export default function OfflineReportViewer({
       {groupedFindings.map((group: any) => {
         const findings = group.findings || [];
         return (
-          <section key={group.section} className="overflow-hidden rounded-2xl border border-[#232b38] bg-[#10151e]">
-            <div className="border-b border-[#232b38] px-4 py-3">
-              <h2 className="text-xl font-semibold text-teal-300">{group.section}</h2>
-              <p className="text-xs font-bold text-[#8a93a3]">
+          <section key={group.section} className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)]">
+            <div className="border-b border-[var(--fl-line)] px-4 py-3">
+              <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">{group.section}</h2>
+              <p className="text-xs font-bold text-[var(--fl-muted)]">
                 {findings.length} finding{findings.length === 1 ? "" : "s"}
               </p>
             </div>
 
             <div className="space-y-3 p-3">
               {findings.length === 0 && (
-                <p className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-[#8a93a3]">
+                <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-muted)]">
                   No cached findings in this section.
                 </p>
               )}
@@ -176,9 +176,9 @@ export default function OfflineReportViewer({
                 const photoUrl = firstPhoto ? getPhotoUrl(firstPhoto) : "";
 
                 return (
-                  <article key={finding.id || `${group.section}-${finding.title}`} className="rounded-xl border border-[#232b38] bg-[#071224] p-3">
+                  <article key={finding.id || `${group.section}-${finding.title}`} className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-3">
                     <div className="flex gap-3">
-                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[#232b38] bg-black">
+                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black">
                         {photoUrl ? (
                           isVideo(firstPhoto) ? (
                             <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-cyan-300">
@@ -188,7 +188,7 @@ export default function OfflineReportViewer({
                             <img src={photoUrl} alt="Finding" className="h-full w-full object-cover" />
                           )
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase text-[#59626f]">
+                          <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase text-[var(--fl-faint)]">
                             No Photo
                           </div>
                         )}
@@ -206,18 +206,18 @@ export default function OfflineReportViewer({
                           )}
                         </div>
 
-                        <h3 className="break-words text-base font-semibold text-white">
+                        <h3 className="break-words text-base font-semibold text-[var(--fl-text)]">
                           {finding.title || finding.finding_title || finding.defect_title || "Untitled Finding"}
                         </h3>
 
                         {finding.observation && (
-                          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">{finding.observation}</p>
+                          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">{finding.observation}</p>
                         )}
                         {finding.implication && (
-                          <p className="mt-2 text-sm leading-6 text-[#8a93a3]"><b>Implication:</b> {finding.implication}</p>
+                          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]"><b>Implication:</b> {finding.implication}</p>
                         )}
                         {finding.recommendation && (
-                          <p className="mt-2 text-sm leading-6 text-[#8a93a3]"><b>Recommendation:</b> {finding.recommendation}</p>
+                          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]"><b>Recommendation:</b> {finding.recommendation}</p>
                         )}
                       </div>
                     </div>

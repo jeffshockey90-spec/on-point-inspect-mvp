@@ -46,7 +46,7 @@ function BarChart({
               textAnchor="middle"
               fontSize="9"
               fontWeight="600"
-              fill="#8a93a3"
+              fill="var(--fl-muted)"
             >
               {point.display}
             </text>
@@ -55,7 +55,7 @@ function BarChart({
               y={height + 15}
               textAnchor="middle"
               fontSize="9"
-              fill="#59626f"
+              fill="var(--fl-faint)"
             >
               {point.label}
             </text>
@@ -70,19 +70,19 @@ function BarChart({
 // so there's no charting dependency. Rendered from the server dashboard.
 export default function DashboardTrends({ data }: { data: TrendPoint[] }) {
   return (
-    <section className="rounded-xl border border-[#1a212c] bg-[#10151e] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+    <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
       <div className="mb-2 flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
             Trends
           </p>
-          <h2 className="mt-1 text-2xl font-semibold text-white">Last 6 months</h2>
+          <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">Last 6 months</h2>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
             Inspections
           </p>
           <BarChart
@@ -96,7 +96,7 @@ export default function DashboardTrends({ data }: { data: TrendPoint[] }) {
         </div>
 
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a93a3]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
             Revenue collected
           </p>
           <BarChart

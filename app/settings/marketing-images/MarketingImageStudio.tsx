@@ -653,14 +653,14 @@ export default function MarketingImageStudio({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e13] px-4 py-6 text-white sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--fl-ground)] px-4 py-6 text-[var(--fl-text)] sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[390px_1fr]">
         <aside className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-300">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--fl-accent-text)]">
             Marketing Studio
           </p>
           <h1 className="mt-2 text-2xl font-semibold">Inspection graphic</h1>
-          <p className="mt-2 text-sm text-[#8a93a3]">
+          <p className="mt-2 text-sm text-[var(--fl-muted)]">
             Select a report to pull the property address and property photo.
           </p>
 
@@ -674,7 +674,7 @@ export default function MarketingImageStudio({
                   value={selectedReportId}
                   onChange={(event) => selectReport(event.target.value)}
                   disabled={loadingReports || loadingReport}
-                  className="w-full rounded-2xl border border-white/10 bg-[#0a0e13] px-4 py-3 text-white outline-none ring-teal-300 focus:ring-2 disabled:opacity-60"
+                  className="w-full rounded-2xl border border-white/10 bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none ring-teal-300 focus:ring-2 disabled:opacity-60"
                 >
                   <option value="">
                     {loadingReports ? "Loading reports..." : "Select a report"}
@@ -707,7 +707,7 @@ export default function MarketingImageStudio({
                   <button
                     type="button"
                     onClick={() => chooseReportPhoto(reportPhotos[0])}
-                    className="w-full overflow-hidden rounded-xl border-2 border-teal-300 bg-[#0a0e13] text-left"
+                    className="w-full overflow-hidden rounded-xl border-2 border-teal-300 bg-[var(--fl-ground)] text-left"
                   >
                     <div className="aspect-[16/9] bg-black">
                       <img
@@ -716,7 +716,7 @@ export default function MarketingImageStudio({
                         className="h-full w-full object-cover"
                       />
                     </div>
-                    <p className="truncate px-3 py-2 text-xs font-bold text-[#e8ecf3]">
+                    <p className="truncate px-3 py-2 text-xs font-bold text-[var(--fl-text)]">
                       {reportPhotos[0].label || "Primary Property Photo"}
                     </p>
                   </button>
@@ -724,7 +724,7 @@ export default function MarketingImageStudio({
               ) : null}
 
               {selectedReportId && !loadingReport && !reportPhotos.length ? (
-                <p className="mt-3 text-sm text-[#8a93a3]">
+                <p className="mt-3 text-sm text-[var(--fl-muted)]">
                   No property photo found for this report. You can still upload one below.
                 </p>
               ) : null}
@@ -740,18 +740,18 @@ export default function MarketingImageStudio({
               className={
                 draggingPhoto
                   ? "rounded-2xl border-2 border-dashed border-teal-300 bg-teal-400/10 p-4"
-                  : "rounded-2xl border border-white/10 bg-[#131923] p-4"
+                  : "rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] p-4"
               }
             >
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-bold">Upload Property Photo</p>
-                  <p className="mt-1 text-xs text-[#8a93a3]">
+                  <p className="mt-1 text-xs text-[var(--fl-muted)]">
                     Optional. Drag and drop a photo here, or choose one.
                   </p>
                 </div>
                 {photo ? (
-                  <span className="rounded-full bg-teal-400/15 px-3 py-1 text-xs font-bold text-teal-200">
+                  <span className="rounded-full bg-teal-400/15 px-3 py-1 text-xs font-bold text-[var(--fl-accent-text)]">
                     Loaded
                   </span>
                 ) : null}
@@ -761,7 +761,7 @@ export default function MarketingImageStudio({
                 type="file"
                 accept="image/*,.heic,.heif,.webp,.png,.jpg,.jpeg,.gif,.bmp,.avif"
                 onChange={uploadPhoto}
-                className="block w-full cursor-pointer rounded-2xl border border-white/10 bg-[#0a0e13] p-3 text-sm text-[#e8ecf3] file:mr-3 file:rounded-xl file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:font-bold file:text-slate-950"
+                className="block w-full cursor-pointer rounded-2xl border border-white/10 bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-text)] file:mr-3 file:rounded-xl file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:font-bold file:text-slate-950"
               />
             </div>
 
@@ -771,7 +771,7 @@ export default function MarketingImageStudio({
                 value={address}
                 onChange={(event) => setAddress(event.target.value)}
                 placeholder="125 Ashland Dr"
-                className="w-full rounded-2xl border border-white/10 bg-[#131923] px-4 py-3 text-white outline-none ring-teal-300 placeholder:text-[#59626f] focus:ring-2"
+                className="w-full rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none ring-teal-300 placeholder:text-[var(--fl-faint)] focus:ring-2"
               />
             </label>
 
@@ -800,12 +800,12 @@ export default function MarketingImageStudio({
                   value={customText}
                   onChange={(event) => setCustomText(event.target.value)}
                   placeholder="INSPECTED"
-                  className="w-full rounded-2xl border border-white/10 bg-[#131923] px-4 py-3 text-white outline-none ring-teal-300 placeholder:text-[#59626f] focus:ring-2"
+                  className="w-full rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none ring-teal-300 placeholder:text-[var(--fl-faint)] focus:ring-2"
                 />
               </label>
             ) : null}
 
-            <details className="rounded-2xl border border-white/10 bg-[#131923] p-4">
+            <details className="rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] p-4">
               <summary className="cursor-pointer text-sm font-bold">
                 Logo override
               </summary>
@@ -820,17 +820,17 @@ export default function MarketingImageStudio({
                   className={
                     draggingLogo
                       ? "rounded-2xl border-2 border-dashed border-teal-300 bg-teal-400/10 p-3"
-                      : "rounded-2xl border border-white/10 bg-[#0a0e13] p-3"
+                      : "rounded-2xl border border-white/10 bg-[var(--fl-ground)] p-3"
                   }
                 >
-                  <p className="mb-2 text-xs font-bold text-[#8a93a3]">
+                  <p className="mb-2 text-xs font-bold text-[var(--fl-muted)]">
                     Drop logo here or choose file
                   </p>
                   <input
                     type="file"
                     accept="image/*,.heic,.heif,.webp,.png,.jpg,.jpeg,.gif,.bmp,.avif,.svg"
                     onChange={uploadLogo}
-                    className="block w-full cursor-pointer rounded-xl border border-white/10 bg-[#131923] p-3 text-sm text-[#e8ecf3] file:mr-3 file:rounded-xl file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:font-bold file:text-slate-950"
+                    className="block w-full cursor-pointer rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3 text-sm text-[var(--fl-text)] file:mr-3 file:rounded-xl file:border-0 file:bg-teal-400 file:px-3 file:py-2 file:font-bold file:text-slate-950"
                   />
                 </div>
                 {logoOverride ? (
@@ -872,7 +872,7 @@ export default function MarketingImageStudio({
                 type="button"
                 onClick={share}
                 disabled={busy}
-                className="rounded-2xl border border-teal-300/40 px-4 py-3 text-sm font-semibold text-teal-200 hover:bg-teal-300/10 disabled:opacity-50"
+                className="rounded-2xl border border-teal-300/40 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-300/10 disabled:opacity-50"
               >
                 Share
               </button>
@@ -884,7 +884,7 @@ export default function MarketingImageStudio({
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold">Preview</h2>
-              <p className="text-sm text-[#8a93a3]">
+              <p className="text-sm text-[var(--fl-muted)]">
                 Output matches the example: logo badge, angled stamp, black address bar.
               </p>
             </div>
@@ -892,7 +892,7 @@ export default function MarketingImageStudio({
               type="button"
               onClick={preview}
               disabled={busy}
-              className="rounded-2xl border border-teal-300/40 px-4 py-2 text-sm font-bold text-teal-200 hover:bg-teal-300/10 disabled:opacity-50"
+              className="rounded-2xl border border-teal-300/40 px-4 py-2 text-sm font-bold text-[var(--fl-accent-text)] hover:bg-teal-300/10 disabled:opacity-50"
             >
               Refresh Preview
             </button>
@@ -907,8 +907,8 @@ export default function MarketingImageStudio({
             }
             className={
               draggingPhoto
-                ? "mx-auto aspect-square w-full max-w-[760px] overflow-hidden rounded-2xl border-2 border-dashed border-teal-300 bg-[#131923] shadow-2xl"
-                : "mx-auto aspect-square w-full max-w-[760px] overflow-hidden rounded-2xl border border-white/10 bg-[#131923] shadow-2xl"
+                ? "mx-auto aspect-square w-full max-w-[760px] overflow-hidden rounded-2xl border-2 border-dashed border-teal-300 bg-[var(--fl-surface-2)] shadow-2xl"
+                : "mx-auto aspect-square w-full max-w-[760px] overflow-hidden rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] shadow-2xl"
             }
           >
             <canvas ref={canvasRef} className="h-full w-full" />
@@ -919,7 +919,7 @@ export default function MarketingImageStudio({
                     🏠
                   </div>
                   <p className="text-lg font-semibold">Select a report photo or upload one</p>
-                  <p className="mt-2 text-sm text-[#8a93a3]">
+                  <p className="mt-2 text-sm text-[var(--fl-muted)]">
                     Choose a report from the dropdown, drag a photo here, or upload one.
                   </p>
                 </div>
@@ -948,7 +948,7 @@ function OptionButton({
       className={
         active
           ? "rounded-2xl border border-teal-300 bg-teal-400 px-3 py-3 text-sm font-semibold text-slate-950"
-          : "rounded-2xl border border-white/10 bg-[#131923] px-3 py-3 text-sm font-bold text-[#e8ecf3] hover:bg-white/10"
+          : "rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] px-3 py-3 text-sm font-bold text-[var(--fl-text)] hover:bg-white/10"
       }
     >
       {children}

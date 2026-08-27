@@ -117,7 +117,7 @@ export default function RelatedFindingsEditor({
           <p className="text-xs font-semibold uppercase tracking-wide text-indigo-300">
             🔗 Related Findings
           </p>
-          <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
+          <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
             Link findings you believe share a cause. The AI writes a client-friendly note so the
             report shows they may be related.
           </p>
@@ -145,15 +145,15 @@ export default function RelatedFindingsEditor({
       )}
 
       {!open && linkedChips.length > 0 && finding.related_note && (
-        <p className="mt-2 text-xs leading-5 text-[#8a93a3]">{finding.related_note}</p>
+        <p className="mt-2 text-xs leading-5 text-[var(--fl-muted)]">{finding.related_note}</p>
       )}
 
       {open && (
         <div className="mt-3 space-y-3">
           {others.length === 0 ? (
-            <p className="text-xs text-[#8a93a3]">No other findings to link yet.</p>
+            <p className="text-xs text-[var(--fl-muted)]">No other findings to link yet.</p>
           ) : (
-            <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-[#232b38] bg-[#131923] p-2">
+            <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2">
               {others.map((f) => {
                 const id = String(f.id);
                 const checked = selectedIds.includes(id);
@@ -161,7 +161,7 @@ export default function RelatedFindingsEditor({
                   <label
                     key={id}
                     className={`flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 transition ${
-                      checked ? "bg-indigo-500/10" : "hover:bg-[#1a212c]"
+                      checked ? "bg-indigo-500/10" : "hover:bg-[var(--fl-raised)]"
                     }`}
                   >
                     <input
@@ -171,10 +171,10 @@ export default function RelatedFindingsEditor({
                       className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-400"
                     />
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-bold text-white">
+                      <span className="block truncate text-sm font-bold text-[var(--fl-text)]">
                         {f.title || "Untitled finding"}
                       </span>
-                      <span className="block truncate text-[11px] text-[#8a93a3]">
+                      <span className="block truncate text-[11px] text-[var(--fl-muted)]">
                         {f.section || "—"}
                       </span>
                     </span>
@@ -185,7 +185,7 @@ export default function RelatedFindingsEditor({
           )}
 
           <div>
-            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
               Related observations note (shown to the client)
             </label>
             <textarea
@@ -193,7 +193,7 @@ export default function RelatedFindingsEditor({
               onChange={(e) => setNote(e.target.value)}
               rows={3}
               placeholder="Explain how these findings may be related, or draft it with AI below."
-              className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] p-2 text-sm text-white outline-none placeholder:text-[#59626f] focus:border-indigo-400"
+              className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-2 text-sm text-[var(--fl-text)] outline-none placeholder:text-[var(--fl-faint)] focus:border-indigo-400"
             />
           </div>
 
@@ -202,7 +202,7 @@ export default function RelatedFindingsEditor({
               value={aiHint}
               onChange={(e) => setAiHint(e.target.value)}
               placeholder="Tell AI how to word it (e.g. 'possible east-side settlement, stay non-alarming')"
-              className="min-w-0 flex-1 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none placeholder:text-[#59626f] focus:border-indigo-400"
+              className="min-w-0 flex-1 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none placeholder:text-[var(--fl-faint)] focus:border-indigo-400"
             />
             <button
               type="button"

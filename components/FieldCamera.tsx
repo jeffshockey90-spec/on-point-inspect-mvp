@@ -766,7 +766,7 @@ export default function FieldCamera({
         Field Camera
       </p>
       <h2 className="mt-1 text-xl font-semibold">Photo + Video Camera</h2>
-      <p className="mt-1 text-sm text-[#8a93a3]">
+      <p className="mt-1 text-sm text-[var(--fl-muted)]">
         Open once and switch between Photo and Video without closing the camera.
         Media is added to <strong>{destinationLabel}</strong>.
       </p>
@@ -778,7 +778,7 @@ export default function FieldCamera({
           className={`mt-3 flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition [touch-action:manipulation] ${
             muteAudio
               ? "border-red-400/60 bg-red-500/10 text-red-200"
-              : "border-[#232b38] bg-black/30 text-[#e8ecf3]"
+              : "border-[var(--fl-line)] bg-black/30 text-[var(--fl-text)]"
           }`}
         >
           <span>{muteAudio ? "🔇 Video sound: Off" : "🎤 Video sound: On"}</span>
@@ -849,7 +849,7 @@ export default function FieldCamera({
       </button>
     </div>
   ) : (
-    <div className="fixed inset-0 z-[2147483647] h-[100dvh] w-screen overflow-hidden bg-black text-white">
+    <div className="fixed inset-0 z-[2147483647] h-[100dvh] w-screen overflow-hidden bg-black text-[var(--fl-text)]">
       <video
         ref={videoRef}
         autoPlay
@@ -902,13 +902,13 @@ export default function FieldCamera({
             if (!recording) setOpen(false);
           }}
           disabled={recording}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-black/65 text-2xl text-white backdrop-blur disabled:opacity-40"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-black/65 text-2xl text-[var(--fl-text)] backdrop-blur disabled:opacity-40"
         >
           ✕
         </button>
 
         <div className="min-w-0 flex-1 rounded-2xl border border-white/15 bg-black/65 px-3 py-2 text-center backdrop-blur">
-          <p className="truncate text-sm font-semibold text-white">
+          <p className="truncate text-sm font-semibold text-[var(--fl-text)]">
             {destinationLabel}
           </p>
           <p className="text-[11px] font-bold text-cyan-200">
@@ -926,7 +926,7 @@ export default function FieldCamera({
             type="button"
             onClick={toggleTorch}
             className={`flex h-12 w-12 items-center justify-center rounded-full text-xl backdrop-blur ${
-              torchOn ? "bg-yellow-300 text-black" : "bg-black/65 text-white"
+              torchOn ? "bg-yellow-300 text-black" : "bg-black/65 text-[var(--fl-text)]"
             }`}
           >
             ⚡
@@ -941,7 +941,7 @@ export default function FieldCamera({
           className={`rounded-full px-3 py-2 text-xs font-semibold backdrop-blur ${
             focusLocked
               ? "bg-yellow-300 text-black"
-              : "bg-black/65 text-white"
+              : "bg-black/65 text-[var(--fl-text)]"
           }`}
         >
           {focusLocked ? "🔒 FOCUS" : "🎯 FOCUS"}
@@ -951,7 +951,7 @@ export default function FieldCamera({
           type="button"
           onClick={toggleMacroMode}
           className={`rounded-full px-3 py-2 text-xs font-semibold backdrop-blur ${
-            macroMode ? "bg-cyan-300 text-black" : "bg-black/65 text-white"
+            macroMode ? "bg-cyan-300 text-black" : "bg-black/65 text-[var(--fl-text)]"
           }`}
         >
           🔍 CLOSE-UP
@@ -963,7 +963,7 @@ export default function FieldCamera({
           className={`rounded-full px-3 py-2 text-xs font-semibold backdrop-blur ${
             autoSaveGallery
               ? "bg-emerald-300 text-black"
-              : "bg-black/65 text-white"
+              : "bg-black/65 text-[var(--fl-text)]"
           }`}
         >
           {autoSaveGallery ? "✓ GALLERY" : "GALLERY OFF"}
@@ -992,7 +992,7 @@ export default function FieldCamera({
             }}
             disabled={recording}
             className={`rounded-full px-5 py-2 text-xs font-semibold ${
-              captureMode === "photo" ? "bg-white text-black" : "text-white"
+              captureMode === "photo" ? "bg-white text-black" : "text-[var(--fl-text)]"
             } disabled:opacity-40`}
           >
             PHOTO
@@ -1013,7 +1013,7 @@ export default function FieldCamera({
         </div>
 
         {message && (
-          <div className="mx-auto mb-3 max-w-[680px] rounded-xl bg-black/70 px-4 py-2 text-center text-xs font-bold text-white backdrop-blur">
+          <div className="mx-auto mb-3 max-w-[680px] rounded-xl bg-black/70 px-4 py-2 text-center text-xs font-bold text-[var(--fl-text)] backdrop-blur">
             {message}
           </div>
         )}
@@ -1029,7 +1029,7 @@ export default function FieldCamera({
             type="button"
             onClick={toggleFacingCamera}
             disabled={recording}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-black/65 text-2xl text-white backdrop-blur disabled:opacity-40"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-black/65 text-2xl text-[var(--fl-text)] backdrop-blur disabled:opacity-40"
           >
             🔄
           </button>

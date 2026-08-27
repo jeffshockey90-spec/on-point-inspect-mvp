@@ -34,12 +34,12 @@ export default function AIInsightCard({
   }) =>
     items && items.length ? (
       <div className="mt-4">
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#8a93a3]">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--fl-muted)]">
           {title}
         </h3>
         <ul className="space-y-1">
           {items.map((item, i) => (
-            <li key={i} className="text-sm text-[#e8ecf3]">
+            <li key={i} className="text-sm text-[var(--fl-text)]">
               ✓ {item}
             </li>
           ))}
@@ -48,13 +48,13 @@ export default function AIInsightCard({
     ) : null;
 
   return (
-    <div className="rounded-2xl border border-cyan-500/30 bg-[#131923] p-5 shadow-lg">
+    <div className="rounded-2xl border border-cyan-500/30 bg-[var(--fl-surface-2)] p-5 shadow-lg">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
             AI Intelligence
           </p>
-          <h2 className="mt-1 text-xl font-semibold text-white">
+          <h2 className="mt-1 text-xl font-semibold text-[var(--fl-text)]">
             {insight.title || "Inspection Brain"}
           </h2>
         </div>
@@ -63,7 +63,7 @@ export default function AIInsightCard({
           <div className="text-3xl font-semibold text-cyan-300">
             {confidence}%
           </div>
-          <div className="text-xs uppercase text-[#8a93a3]">
+          <div className="text-xs uppercase text-[var(--fl-muted)]">
             Confidence
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function AIInsightCard({
       <Section title="Evidence Used" items={insight.evidence} />
       <Section title="Learning" items={insight.learning} />
 
-      <div className="mt-5 border-t border-[#232b38] pt-3 text-xs text-[#59626f]">
+      <div className="mt-5 border-t border-[var(--fl-line)] pt-3 text-xs text-[var(--fl-faint)]">
         AI Version: {insight.version || "Inspection Brain v2"}
       </div>
     </div>

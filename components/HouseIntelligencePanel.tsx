@@ -90,11 +90,11 @@ export default function HouseIntelligencePanel({
             House Intelligence
           </p>
 
-          <h2 className="mt-1 text-xl font-semibold text-white">
+          <h2 className="mt-1 text-xl font-semibold text-[var(--fl-text)]">
             Inspection Memory
           </h2>
 
-          <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
             Live property facts learned from findings, equipment scans, photos,
             and report review.
           </p>
@@ -113,15 +113,15 @@ export default function HouseIntelligencePanel({
       </div>
 
       {!memory ? (
-        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm leading-6 text-[#8a93a3]">
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
           House Memory will appear after this inspection has findings or equipment
           records. Refresh after scanning equipment or saving findings.
         </div>
       ) : (
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Coverage
               </p>
               <p className="mt-1 text-2xl font-semibold text-cyan-300">
@@ -135,17 +135,17 @@ export default function HouseIntelligencePanel({
               </div>
             </div>
 
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Facts
               </p>
-              <p className="mt-1 text-2xl font-semibold text-white">
+              <p className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
                 {facts.length}
               </p>
             </div>
 
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 AI Confidence
               </p>
               <p className={`mt-1 text-2xl font-semibold ${confidenceTone(averageConfidence)}`}>
@@ -154,8 +154,8 @@ export default function HouseIntelligencePanel({
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
               Systems Learned
             </p>
 
@@ -169,7 +169,7 @@ export default function HouseIntelligencePanel({
                     className={`rounded-lg border px-3 py-2 text-xs font-bold ${
                       complete
                         ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                        : "border-[#232b38] bg-black/30 text-[#8a93a3]"
+                        : "border-[var(--fl-line)] bg-black/30 text-[var(--fl-muted)]"
                     }`}
                   >
                     {complete ? "✓" : "○"} {system}
@@ -180,23 +180,23 @@ export default function HouseIntelligencePanel({
           </div>
 
           {Object.keys(groupedFacts).length > 0 && (
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Known Property Facts
               </p>
 
               <div className="mt-3 space-y-3">
                 {Object.entries(groupedFacts).map(([system, items]) => (
-                  <div key={system} className="rounded-xl border border-[#232b38] bg-black/30 p-3">
+                  <div key={system} className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3">
                     <p className="text-sm font-semibold text-cyan-300">{system}</p>
 
                     <div className="mt-2 space-y-2">
                       {items.slice(0, 4).map((fact, index) => (
                         <div key={`${system}-${fact.label}-${index}`}>
-                          <p className="text-xs font-semibold text-white">
+                          <p className="text-xs font-semibold text-[var(--fl-text)]">
                             {fact.label}
                           </p>
-                          <p className="text-xs leading-5 text-[#8a93a3]">
+                          <p className="text-xs leading-5 text-[var(--fl-muted)]">
                             {fact.value}
                           </p>
                           {fact.confidence !== undefined && (

@@ -15,14 +15,14 @@ export default function OnlinePaymentFeeFields({
   return (
     <>
       <label className="block min-w-0">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
           Fee Type
         </p>
         <select
           name="online_payment_fee_type"
           value={feeType}
           onChange={(event) => setFeeType(event.target.value)}
-          className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+          className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           <option value="percentage">Percentage of balance</option>
           <option value="flat">Flat dollar amount</option>
@@ -31,13 +31,13 @@ export default function OnlinePaymentFeeFields({
       </label>
 
       <label className="block min-w-0">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
           Fee Amount
         </p>
 
         {isStripeFee ? (
           <>
-            <div className="flex w-full min-w-0 items-center rounded-xl border border-dashed border-[#232b38] bg-[#131923] p-3 text-[#59626f]">
+            <div className="flex w-full min-w-0 items-center rounded-xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-faint)]">
               Calculated automatically
             </div>
             <input type="hidden" name="online_payment_fee_amount" value={defaultFeeAmount} />
@@ -50,11 +50,11 @@ export default function OnlinePaymentFeeFields({
             min="0"
             defaultValue={String(defaultFeeAmount)}
             placeholder="e.g. 3.95 for 3.95%, or 15 for $15 flat"
-            className="w-full min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400"
+            className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
           />
         )}
 
-        <p className="mt-1 text-xs text-[#59626f]">
+        <p className="mt-1 text-xs text-[var(--fl-faint)]">
           {isStripeFee
             ? "Your payout will always match the invoice balance exactly - the client's card covers the rest."
             : 'Enter a percent (e.g. 3.95) if Fee Type is Percentage, or a dollar amount (e.g. 15) if Fee Type is Flat.'}

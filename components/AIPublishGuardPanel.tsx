@@ -198,7 +198,7 @@ function IssueCard({
             <button type="button" onClick={startFinding} className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-100 hover:bg-rose-400/20">Add Finding</button>
             <button type="button" onClick={addLimitation} className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-400/20">Add Limitation</button>
             <button type="button" onClick={markReviewed} disabled={resolved} className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-100 hover:bg-emerald-400/20 disabled:opacity-50">{resolved ? "Reviewed" : "Mark Reviewed"}</button>
-            <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-[#59626f]/30 bg-slate-500/10 px-3 py-2 text-xs font-semibold text-[#e8ecf3] hover:bg-slate-500/20">Collapse</button>
+            <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-[var(--fl-faint)] bg-slate-500/10 px-3 py-2 text-xs font-semibold text-[var(--fl-text)] hover:bg-slate-500/20">Collapse</button>
           </div>
         </div>
       )}
@@ -258,8 +258,8 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-300">AI Publish Guard</p>
-          <h2 className="mt-1 text-2xl font-semibold text-white">AI Quality Control Center</h2>
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">Finds missing safety evidence, incomplete systems, contradictions, missing media, and liability-sensitive documentation—then gives you one-tap ways to resolve each item.</p>
+          <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">AI Quality Control Center</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">Finds missing safety evidence, incomplete systems, contradictions, missing media, and liability-sensitive documentation—then gives you one-tap ways to resolve each item.</p>
         </div>
         <button type="button" onClick={runGuard} disabled={loading || !inspectionId} className="rounded-xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60">{loading ? "Checking..." : result ? "Run Again" : "Run Publish Guard"}</button>
       </div>
@@ -267,7 +267,7 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
       {message && <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{message}</div>}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <div className={`rounded-xl border p-4 ${effectiveScore === null ? "border-[#232b38] bg-[#131923] text-[#8a93a3]" : scoreTone(effectiveScore)}`}>
+        <div className={`rounded-xl border p-4 ${effectiveScore === null ? "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]" : scoreTone(effectiveScore)}`}>
           <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Inspection Completeness</p>
           <p className="mt-1 text-3xl font-semibold">{effectiveScore === null ? "—" : effectiveScore}{effectiveScore !== null && <span className="text-base opacity-80"> / 100</span>}</p>
           {result && <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/30"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${effectiveScore}%` }} /></div>}
@@ -277,37 +277,37 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
           <p className="mt-1 text-xl font-semibold">{activeIssues.length === 0 && result ? "Ready" : result?.recommendation || "Not checked yet"}</p>
           {result && <p className="mt-2 text-xs font-bold opacity-80">{activeIssues.length} unresolved · {resolvedIds.length} reviewed</p>}
         </div>
-        <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">Reviewed</p>
-          <p className="mt-2 text-sm text-[#8a93a3]">Findings: <span className="font-semibold text-white">{result?.findingCount ?? "—"}</span></p>
-          <p className="mt-1 text-sm text-[#8a93a3]">Equipment: <span className="font-semibold text-white">{result?.equipmentCount ?? "—"}</span></p>
-          <p className="mt-1 text-sm text-[#8a93a3]">Media: <span className="font-semibold text-white">{result?.photoCount ?? "—"}</span></p>
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Reviewed</p>
+          <p className="mt-2 text-sm text-[var(--fl-muted)]">Findings: <span className="font-semibold text-[var(--fl-text)]">{result?.findingCount ?? "—"}</span></p>
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">Equipment: <span className="font-semibold text-[var(--fl-text)]">{result?.equipmentCount ?? "—"}</span></p>
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">Media: <span className="font-semibold text-[var(--fl-text)]">{result?.photoCount ?? "—"}</span></p>
         </div>
       </div>
 
       {result && (
         <div className="mt-5 grid gap-4 xl:grid-cols-[0.8fr_1.4fr]">
-          <aside className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">System Status</h3>
+          <aside className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">System Status</h3>
             <div className="mt-3 space-y-2">
               {groupedSections.length === 0 ? <p className="text-sm font-bold text-emerald-300">✓ All reviewed systems are clear.</p> : groupedSections.map(([section, meta]) => (
-                <button key={section} type="button" onClick={() => findAndScrollToSection(section)} className="flex w-full items-center justify-between rounded-lg border border-[#232b38] bg-black/20 px-3 py-2 text-left hover:bg-white/5">
-                  <span className="text-sm font-semibold text-white">{section}</span>
+                <button key={section} type="button" onClick={() => findAndScrollToSection(section)} className="flex w-full items-center justify-between rounded-lg border border-[var(--fl-line)] bg-black/20 px-3 py-2 text-left hover:bg-white/5">
+                  <span className="text-sm font-semibold text-[var(--fl-text)]">{section}</span>
                   <span className={meta.critical ? "text-xs font-semibold text-red-300" : "text-xs font-semibold text-amber-300"}>{meta.critical ? "●" : "⚠"} {meta.issueCount}</span>
                 </button>
               ))}
             </div>
-            <h3 className="mt-5 text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">Final Suggestions</h3>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-[#8a93a3]">{(result.suggestions?.length ? result.suggestions : ["Perform final inspector review before publishing."]).map((item, index) => <li key={index}>✓ {item}</li>)}</ul>
+            <h3 className="mt-5 text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Final Suggestions</h3>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--fl-muted)]">{(result.suggestions?.length ? result.suggestions : ["Perform final inspector review before publishing."]).map((item, index) => <li key={index}>✓ {item}</li>)}</ul>
           </aside>
 
-          <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">Actionable Publish Guard Issues</h3>
-              <span className="rounded-full border border-[#232b38] bg-black/30 px-2 py-1 text-xs font-semibold text-[#8a93a3]">{activeIssues.length}</span>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Actionable Publish Guard Issues</h3>
+              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">{activeIssues.length}</span>
             </div>
             {displayedIssues.length === 0 ? <p className="mt-3 text-sm font-bold text-emerald-300">No unresolved publish guard issues detected.</p> : <div className="mt-3 space-y-3">{displayedIssues.map((issue) => <IssueCard key={issue.id} issue={issue} inspectionId={inspectionId} resolved={resolvedIds.includes(issue.id)} onResolved={(id) => setResolvedIds((current) => current.includes(id) ? current : [...current, id])} />)}</div>}
-            {activeIssues.length > displayedIssues.length && <p className="mt-3 text-xs font-bold text-[#8a93a3]">Showing the first {displayedIssues.length} of {activeIssues.length} unresolved issues.</p>}
+            {activeIssues.length > displayedIssues.length && <p className="mt-3 text-xs font-bold text-[var(--fl-muted)]">Showing the first {displayedIssues.length} of {activeIssues.length} unresolved issues.</p>}
           </div>
         </div>
       )}

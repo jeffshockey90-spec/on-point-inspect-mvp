@@ -100,17 +100,17 @@ export default function WeatherWidget({
     <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-5">
       <p className="text-xs font-semibold uppercase tracking-wider text-sky-300">{locLabel}</p>
       {state === "loading" ? (
-        <p className="mt-3 text-sm text-[#8a93a3]">Loading conditions…</p>
+        <p className="mt-3 text-sm text-[var(--fl-muted)]">Loading conditions…</p>
       ) : (
         <div className="mt-2 flex items-center gap-4">
           <span className="text-5xl leading-none">{EMOJI[weather.conditionSimple] || "🌡️"}</span>
           <div>
-            <p className="text-3xl font-semibold text-white">
+            <p className="text-3xl font-semibold text-[var(--fl-text)]">
               {weather.temperatureF != null ? `${weather.temperatureF}°F` : "—"}
             </p>
-            <p className="text-sm text-[#8a93a3]">{weather.conditionText}</p>
+            <p className="text-sm text-[var(--fl-muted)]">{weather.conditionText}</p>
             {(weather.highF != null || weather.lowF != null) && (
-              <p className="mt-1 text-xs text-[#8a93a3]">
+              <p className="mt-1 text-xs text-[var(--fl-muted)]">
                 {weather.highF != null ? `H ${weather.highF}°` : ""}
                 {weather.highF != null && weather.lowF != null ? " · " : ""}
                 {weather.lowF != null ? `L ${weather.lowF}°` : ""}

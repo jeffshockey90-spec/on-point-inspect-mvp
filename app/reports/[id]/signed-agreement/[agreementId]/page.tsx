@@ -117,7 +117,7 @@ export default async function SignedAgreementPage({ params }: PageProps) {
 
   if (inspectionError || !inspection) {
     return (
-      <main style={{ background: "#020617", color: "white", minHeight: "100vh", padding: 40 }}>
+      <main style={{ background: "var(--fl-ground)", color: "white", minHeight: "100vh", padding: 40 }}>
         <h1>Inspection Lookup Failed</h1>
         <pre>{JSON.stringify({ userId: user.id, inspectionId: id, inspectionError }, null, 2)}</pre>
       </main>
@@ -132,7 +132,7 @@ export default async function SignedAgreementPage({ params }: PageProps) {
 
   if (agreementError || !agreement) {
     return (
-      <main style={{ background: "#020617", color: "white", minHeight: "100vh", padding: 40 }}>
+      <main style={{ background: "var(--fl-ground)", color: "white", minHeight: "100vh", padding: 40 }}>
         <h1>Signed Agreement Not Found</h1>
         <p>This agreement could not be found.</p>
         <pre>{JSON.stringify({ inspectionId: id, agreementId, agreementError }, null, 2)}</pre>
@@ -158,7 +158,7 @@ export default async function SignedAgreementPage({ params }: PageProps) {
   const signature = String(agreement.client_signature || "").trim();
 
   return (
-    <main className="min-h-screen bg-[#020617] p-4 text-white md:p-8 print:bg-white print:p-0 print:text-black">
+    <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] md:p-8 print:bg-white print:p-0 print:text-black">
       <div className="mx-auto max-w-5xl space-y-6 print:max-w-none print:space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
           <FastLinkButton
@@ -172,7 +172,7 @@ export default async function SignedAgreementPage({ params }: PageProps) {
           <PrintButton label="Print / Save PDF" />
         </div>
 
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl print:border-black print:bg-white print:text-black">
+        <section className="rounded-2xl border border-slate-800 bg-[var(--fl-surface)] p-6 shadow-xl print:border-black print:bg-white print:text-black">
           <h1 className="text-4xl font-extrabold">
             Signed Inspection Agreement
           </h1>
@@ -197,7 +197,7 @@ export default async function SignedAgreementPage({ params }: PageProps) {
 
           {(agreement.agreement_hash || agreement.esign_consent_text) && (
             <div className="mt-4 border-t border-slate-800 pt-4 print:border-black">
-              <p className="text-xs font-black uppercase tracking-wide text-teal-300 print:text-black">
+              <p className="text-xs font-black uppercase tracking-wide text-[var(--fl-accent-text)] print:text-black">
                 Certificate of Electronic Signature
               </p>
               {agreement.esign_consent_text && (
@@ -219,7 +219,7 @@ export default async function SignedAgreementPage({ params }: PageProps) {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-800 bg-[#0b1220] p-6 shadow-xl print:hidden">
+        <section className="rounded-2xl border border-slate-800 bg-[var(--fl-surface)] p-6 shadow-xl print:hidden">
           <h2 className="text-2xl font-extrabold">
             Client Signature
           </h2>
@@ -240,11 +240,11 @@ export default async function SignedAgreementPage({ params }: PageProps) {
           )}
         </section>
 
-        <div className="rounded-2xl border border-teal-500 bg-[#0b1220] p-5 shadow-xl print:hidden">
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">
+        <div className="rounded-2xl border border-teal-500 bg-[var(--fl-surface)] p-5 shadow-xl print:hidden">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
             Signed Agreement Editor
           </p>
-          <h2 className="mt-2 text-2xl font-black text-white">
+          <h2 className="mt-2 text-2xl font-black text-[var(--fl-text)]">
             Agreement Body
           </h2>
           <p className="mt-1 text-sm text-slate-400">

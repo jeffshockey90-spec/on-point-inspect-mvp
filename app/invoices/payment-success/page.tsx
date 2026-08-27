@@ -22,8 +22,8 @@ export default async function InvoicePaymentSuccessPage({
   const tone = cancelled ? "#f59e0b" : "#14b8a6";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] px-6 py-16 text-white">
-      <div className="w-full max-w-lg rounded-2xl border border-[#232b38] bg-[#10151e] p-8 text-center shadow-xl">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] px-6 py-16 text-[var(--fl-text)]">
+      <div className="w-full max-w-lg rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-8 text-center shadow-xl">
         <div
           className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full text-3xl"
           style={{ background: `${tone}22`, color: tone }}
@@ -31,7 +31,7 @@ export default async function InvoicePaymentSuccessPage({
           {cancelled ? "!" : "✓"}
         </div>
         <h1 className="text-2xl font-semibold">{heading}</h1>
-        <p className="mt-3 leading-7 text-[#8a93a3]">{body}</p>
+        <p className="mt-3 leading-7 text-[var(--fl-muted)]">{body}</p>
       </div>
     </main>
   );

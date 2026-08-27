@@ -91,33 +91,33 @@ export default function InspectionDetailsEditor({
   }
 
   return (
-    <div className="mt-6 space-y-4 rounded-xl border border-[#232b38] bg-[#111827] p-5">
+    <div className="mt-6 space-y-4 rounded-xl border border-[var(--fl-line)] bg-[#111827] p-5">
       <div>
-        <label className="mb-2 block text-sm font-bold text-[#8a93a3]">
+        <label className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">
           Weather
         </label>
         <input
           value={weather}
           onChange={(e) => setWeather(e.target.value)}
           disabled={busy}
-          className="w-full rounded-lg border border-[#232b38] bg-black p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-bold text-[#8a93a3]">
+        <label className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">
           Present / In Attendance
         </label>
         <input
           value={attendance}
           onChange={(e) => setAttendance(e.target.value)}
           disabled={busy}
-          className="w-full rounded-lg border border-[#232b38] bg-black p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-bold text-[#8a93a3]">
+        <label className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">
           Inspection Method
         </label>
         <textarea
@@ -125,7 +125,7 @@ export default function InspectionDetailsEditor({
           onChange={(e) => setInspectionMethod(e.target.value)}
           rows={4}
           disabled={busy}
-          className="w-full rounded-lg border border-[#232b38] bg-black p-3 text-white outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </div>
 
@@ -147,7 +147,7 @@ export default function InspectionDetailsEditor({
           type="button"
           onClick={() => setEditing(false)}
           disabled={busy}
-          className="rounded-xl border border-[#232b38] px-5 py-2 font-bold text-white transition active:scale-[0.98] hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+          className="rounded-xl border border-[var(--fl-line)] px-5 py-2 font-bold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
         >
           Cancel
         </button>

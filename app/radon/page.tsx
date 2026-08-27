@@ -98,7 +98,7 @@ function getResultStyle(result: string) {
     return "border-green-500/40 bg-green-500/10 text-green-300";
   }
 
-  return "border-[#59626f]/40 bg-slate-500/10 text-[#8a93a3]";
+  return "border-[var(--fl-faint)] bg-slate-500/10 text-[var(--fl-muted)]";
 }
 
 function buildSummary(average: any) {
@@ -250,20 +250,20 @@ export default function RadonPage() {
   }, [inspections]);
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
                 FLOW
               </p>
 
-              <h1 className="mt-4 text-5xl font-semibold text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">
                 Radon Testing
               </h1>
 
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Manage radon tests, readings, device details, and client-friendly
                 summaries for inspections with radon services.
               </p>
@@ -271,7 +271,7 @@ export default function RadonPage() {
 
             <Link
               href="/"
-              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+              className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
             >
               Back to Dashboard
             </Link>
@@ -308,22 +308,22 @@ export default function RadonPage() {
           />
         </section>
 
-        <section className="mt-8 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-semibold text-teal-300">
+        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
             Radon Test List
           </h2>
 
-          <p className="mt-2 text-sm text-[#8a93a3]">
+          <p className="mt-2 text-sm text-[var(--fl-muted)]">
             Results are classified automatically: under 2.0 is Low, 2.0–3.9 is
             Monitor, and 4.0+ is Action Recommended.
           </p>
 
           {loading ? (
-            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-8 text-center text-[#8a93a3]">
+            <div className="mt-6 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center text-[var(--fl-muted)]">
               Loading radon tests...
             </div>
           ) : inspections.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-8 text-center text-[#8a93a3]">
+            <div className="mt-6 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center text-[var(--fl-muted)]">
               No radon jobs found yet. Create an inspection with Radon Only,
               Home + Radon, or Home + Radon + Mold to see it here.
             </div>
@@ -340,23 +340,23 @@ export default function RadonPage() {
                 return (
                   <div
                     key={inspection.id}
-                    className="rounded-2xl border border-[#1a212c] bg-[#131923] p-5"
+                    className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-5"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="text-xl font-semibold text-white">
+                        <p className="text-xl font-semibold text-[var(--fl-text)]">
                           {inspection.property_address ||
                             inspection.address ||
                             "Untitled Inspection"}
                         </p>
 
-                        <p className="mt-1 text-sm text-[#8a93a3]">
+                        <p className="mt-1 text-sm text-[var(--fl-muted)]">
                           {inspection.client_name || "No client"} •{" "}
                           {formatDate(inspection.inspection_date)} • ID #
                           {inspection.id}
                         </p>
 
-                        <p className="mt-1 text-sm text-[#59626f]">
+                        <p className="mt-1 text-sm text-[var(--fl-faint)]">
                           {inspection.inspection_type ||
                             inspection.services ||
                             "Radon Service"}
@@ -440,7 +440,7 @@ export default function RadonPage() {
                       />
 
                       <label>
-                        <span className="text-sm font-bold text-[#8a93a3]">
+                        <span className="text-sm font-bold text-[var(--fl-muted)]">
                           Report Status
                         </span>
 
@@ -453,7 +453,7 @@ export default function RadonPage() {
                               event.target.value
                             )
                           }
-                          className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+                          className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Completed">Completed</option>
@@ -465,7 +465,7 @@ export default function RadonPage() {
                     </div>
 
                     <label className="mt-4 block">
-                      <span className="text-sm font-bold text-[#8a93a3]">
+                      <span className="text-sm font-bold text-[var(--fl-muted)]">
                         Notes
                       </span>
                       <textarea
@@ -474,16 +474,16 @@ export default function RadonPage() {
                           updateForm(inspection.id, "notes", event.target.value)
                         }
                         rows={3}
-                        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+                        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
                         placeholder="Closed-house conditions, device placement, limitations, or other radon notes..."
                       />
                     </label>
 
-                    <div className="mt-4 rounded-xl border border-[#232b38] bg-[#10151e] p-4">
-                      <p className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+                    <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
+                      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                         Client Summary
                       </p>
-                      <p className="mt-2 text-sm leading-7 text-[#e8ecf3]">
+                      <p className="mt-2 text-sm leading-7 text-[var(--fl-text)]">
                         {summary}
                       </p>
                     </div>
@@ -500,7 +500,7 @@ export default function RadonPage() {
 
                       <Link
                         href={`/reports/${inspection.id}`}
-                        className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+                        className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
                       >
                         View Report
                       </Link>
@@ -547,18 +547,18 @@ function MetricCard({
 }) {
   const colors: Record<string, string> = {
     green: "border-green-500/40 bg-green-950/20 text-green-300",
-    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
     blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
     red: "border-red-500/40 bg-red-950/20 text-red-300",
   };
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${colors[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+      <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }
@@ -629,7 +629,7 @@ function LabReportField({
 
   return (
     <label>
-      <span className="text-sm font-bold text-[#8a93a3]">
+      <span className="text-sm font-bold text-[var(--fl-muted)]">
         Official Report (upload PDF or paste a link)
       </span>
       <input
@@ -637,11 +637,11 @@ function LabReportField({
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Upload the PDF, or paste a link"
-        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
       />
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <label
-          className={`inline-flex items-center gap-2 rounded-lg border border-teal-500/50 px-3 py-2 text-sm font-bold text-teal-300 transition hover:bg-teal-500/10 ${
+          className={`inline-flex items-center gap-2 rounded-lg border border-teal-500/50 px-3 py-2 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 ${
             uploading ? "cursor-wait opacity-70" : "cursor-pointer"
           }`}
         >
@@ -659,7 +659,7 @@ function LabReportField({
             href={value}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-bold text-teal-400 underline"
+            className="text-sm font-bold text-[var(--fl-accent-text)] underline"
           >
             View current
           </a>
@@ -668,7 +668,7 @@ function LabReportField({
       {error ? (
         <p className="mt-1 text-xs font-bold text-red-400">{error}</p>
       ) : (
-        <p className="mt-1 text-xs text-[#59626f]">
+        <p className="mt-1 text-xs text-[var(--fl-faint)]">
           Remember to Save after uploading.
         </p>
       )}
@@ -689,12 +689,12 @@ function Field({
 }) {
   return (
     <label>
-      <span className="text-sm font-bold text-[#8a93a3]">{label}</span>
+      <span className="text-sm font-bold text-[var(--fl-muted)]">{label}</span>
       <input
         type={type}
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
       />
     </label>
   );
@@ -711,12 +711,12 @@ function DateTimeField({
 }) {
   return (
     <label>
-      <span className="text-sm font-bold text-[#8a93a3]">{label}</span>
+      <span className="text-sm font-bold text-[var(--fl-muted)]">{label}</span>
       <input
         type="datetime-local"
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-[#232b38] bg-black px-4 py-3 text-white"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
       />
     </label>
   );

@@ -93,14 +93,14 @@ export default function AgreementBodyEditor({
   }
 
   return (
-    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[#232b38] bg-[#071224] shadow-2xl shadow-black/20">
-      <div className="flex flex-col gap-3 border-b border-[#1a212c] bg-gradient-to-r from-[#10151e] via-[#0b1628] to-[#10151e] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#071224] shadow-2xl shadow-black/20">
+      <div className="flex flex-col gap-3 border-b border-[var(--fl-raised)] bg-gradient-to-r from-[var(--fl-surface)] via-[#0b1628] to-[var(--fl-surface)] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-teal-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">
             Agreement Text
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-white">Edit the full agreement</h2>
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+          <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">Edit the full agreement</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             Change the wording, fix a detail, or write a one-off agreement. Only works
             before it is signed. To switch which agreement template is used, use the
             Selected Agreements panel above.
@@ -116,7 +116,7 @@ export default function AgreementBodyEditor({
           <button
             type="button"
             onClick={openEditor}
-            className="shrink-0 rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500 hover:text-slate-950"
+            className="shrink-0 rounded-2xl border border-teal-500/70 bg-teal-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-slate-950"
           >
             Edit agreement text
           </button>
@@ -126,14 +126,14 @@ export default function AgreementBodyEditor({
       {expanded && (
         <div className="p-4 sm:p-5">
           {loading ? (
-            <p className="text-sm font-bold text-[#8a93a3]">Loading agreement…</p>
+            <p className="text-sm font-bold text-[var(--fl-muted)]">Loading agreement…</p>
           ) : loadError ? (
             <p className="rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm font-bold text-red-300">
               {loadError}
             </p>
           ) : signed ? (
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-              <p className="text-sm font-bold text-[#8a93a3]">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+              <p className="text-sm font-bold text-[var(--fl-muted)]">
                 This agreement has already been signed, so its text is locked and can no
                 longer be edited. The signed copy stays exactly as the client signed it.
               </p>
@@ -145,11 +145,11 @@ export default function AgreementBodyEditor({
                 onChange={(e) => setBody(e.target.value)}
                 rows={20}
                 spellCheck
-                className="w-full resize-y rounded-2xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 font-mono text-sm leading-6 text-white outline-none focus:border-teal-400"
+                className="w-full resize-y rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 font-mono text-sm leading-6 text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
 
               {status && (
-                <p className="mt-3 rounded-xl border border-[#232b38] bg-[#131923] px-4 py-2 text-sm font-bold text-teal-300">
+                <p className="mt-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2 text-sm font-bold text-[var(--fl-accent-text)]">
                   {status}
                 </p>
               )}
@@ -167,7 +167,7 @@ export default function AgreementBodyEditor({
                   type="button"
                   onClick={resetToAuto}
                   disabled={saving || !hasCustomBody}
-                  className="rounded-2xl border border-[#232b38] px-5 py-3 text-sm font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-2xl border border-[var(--fl-line)] px-5 py-3 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Reset to auto-generated
                 </button>
@@ -175,13 +175,13 @@ export default function AgreementBodyEditor({
                   type="button"
                   onClick={() => setExpanded(false)}
                   disabled={saving}
-                  className="rounded-2xl border border-[#232b38] px-5 py-3 text-sm font-semibold text-[#8a93a3] transition hover:bg-[#1a212c] disabled:opacity-50"
+                  className="rounded-2xl border border-[var(--fl-line)] px-5 py-3 text-sm font-semibold text-[var(--fl-muted)] transition hover:bg-[var(--fl-raised)] disabled:opacity-50"
                 >
                   Close
                 </button>
               </div>
 
-              <p className="mt-3 text-xs leading-5 text-[#59626f]">
+              <p className="mt-3 text-xs leading-5 text-[var(--fl-faint)]">
                 Tip: change the inspection date or time (or switch templates) and the
                 auto-generated agreement updates on its own — you only need this editor
                 for custom wording.

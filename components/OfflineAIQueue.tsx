@@ -152,14 +152,14 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
   const reportItems = items.filter((item) => item.reportId === reportId);
 
   return (
-    <section className="mt-8 rounded-2xl border border-[#232b38] bg-[#10151e] p-6 print:hidden">
+    <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 print:hidden">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-teal-400">
+          <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
             Offline AI Queue
           </h2>
 
-          <p className="mt-1 text-sm text-[#8a93a3]">
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">
             {online
               ? "Online — queued findings can sync."
               : "Offline — findings will save locally until service returns."}
@@ -179,7 +179,7 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
           <button
             type="button"
             onClick={clearSynced}
-            className="touch-manipulation rounded-xl border border-[#232b38] px-4 py-3 font-bold text-white hover:bg-[#1a212c]"
+            className="touch-manipulation rounded-xl border border-[var(--fl-line)] px-4 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
           >
             Clear Synced
           </button>
@@ -187,32 +187,32 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
       </div>
 
       {message && (
-        <p className="mt-4 rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-teal-300">
+        <p className="mt-4 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-accent-text)]">
           {message}
         </p>
       )}
 
       <div className="mt-5 space-y-3">
         {reportItems.length === 0 ? (
-          <p className="text-sm text-[#59626f]">
+          <p className="text-sm text-[var(--fl-faint)]">
             No offline findings queued for this report.
           </p>
         ) : (
           reportItems.map((item) => (
             <div
               key={item.id}
-              className="rounded-xl border border-[#1a212c] bg-[#0a0e13] p-4"
+              className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-bold text-white">{item.section}</p>
-                  <p className="text-sm text-[#8a93a3]">{item.note}</p>
-                  <p className="mt-1 text-xs text-[#59626f]">
+                  <p className="font-bold text-[var(--fl-text)]">{item.section}</p>
+                  <p className="text-sm text-[var(--fl-muted)]">{item.note}</p>
+                  <p className="mt-1 text-xs text-[var(--fl-faint)]">
                     {formatAppValue(new Date(item.createdAt), {})}
                   </p>
                 </div>
 
-                <span className="rounded-full bg-[#1a212c] px-3 py-1 text-xs uppercase text-teal-300">
+                <span className="rounded-full bg-[var(--fl-raised)] px-3 py-1 text-xs uppercase text-[var(--fl-accent-text)]">
                   {item.status}
                 </span>
               </div>
@@ -221,7 +221,7 @@ export default function OfflineAIQueue({ reportId }: { reportId: string }) {
                 <img
                   src={item.imageDataUrl}
                   alt="Queued offline finding"
-                  className="mt-3 max-h-60 w-full rounded-lg border border-[#232b38] object-contain"
+                  className="mt-3 max-h-60 w-full rounded-lg border border-[var(--fl-line)] object-contain"
                 />
               )}
 

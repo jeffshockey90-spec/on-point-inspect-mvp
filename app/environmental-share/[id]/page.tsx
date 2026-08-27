@@ -290,7 +290,7 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
 
   if (inspectionError || !inspection) {
     return (
-      <main className="min-h-screen bg-[#0a0e13] p-10 text-white">
+      <main className="min-h-screen bg-[var(--fl-ground)] p-10 text-[var(--fl-text)]">
         Environmental report not found.
       </main>
     );
@@ -329,12 +329,12 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
       : `/client-portal/${id}`;
 
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] p-6 text-white">
-        <div className="max-w-md rounded-2xl border border-[#232b38] bg-[#131923] p-8 text-center">
-          <h1 className="text-2xl font-semibold text-teal-300">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
+        <div className="max-w-md rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center">
+          <h1 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
             Results available after payment
           </h1>
-          <p className="mt-3 leading-7 text-[#8a93a3]">
+          <p className="mt-3 leading-7 text-[var(--fl-muted)]">
             Your radon/mold lab results will be viewable here once payment is
             complete. You can pay from your client portal.
           </p>
@@ -379,9 +379,9 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
   const moldResult = moldTest?.result || "Pending";
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] p-4 text-white md:p-8">
-      <div className="mx-auto max-w-[80rem] overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] shadow-2xl">
-        <section className="relative overflow-hidden border-b border-[#1a212c] bg-[#0a0e13]">
+    <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] md:p-8">
+      <div className="mx-auto max-w-[80rem] overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] shadow-2xl">
+        <section className="relative overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-ground)]">
           {propertyPhoto ? (
             <>
               <img
@@ -389,22 +389,22 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
                 alt="Property"
                 className="h-[320px] w-full object-cover md:h-[460px]"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#10151e] via-[#10151e]/35 to-black/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--fl-surface)] via-[var(--fl-surface)] to-black/20" />
             </>
           ) : (
-            <div className="h-[320px] bg-gradient-to-br from-[#10151e] via-[#10151e] to-[#10151e]" />
+            <div className="h-[320px] bg-gradient-to-br from-[var(--fl-surface)] via-[var(--fl-surface)] to-[var(--fl-surface)]" />
           )}
 
           <div className="absolute inset-x-0 bottom-0 p-6 md:p-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.38em] text-teal-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.38em] text-[var(--fl-accent-text)]">
               {branding.name}
             </p>
 
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-6xl">
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[var(--fl-text)] md:text-6xl">
               {reportTitle}
             </h1>
 
-            <p className="mt-4 max-w-3xl text-lg font-semibold leading-8 text-[#e8ecf3]">
+            <p className="mt-4 max-w-3xl text-lg font-semibold leading-8 text-[var(--fl-text)]">
               {address}
             </p>
           </div>
@@ -431,8 +431,8 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
             </Link>
           </div>
 
-          <section className="rounded-2xl border border-[#232b38] bg-[#071224] p-6">
-            <h2 className="text-2xl font-semibold text-teal-300">
+          <section className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6">
+            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
               Service Overview
             </h2>
 
@@ -452,13 +452,13 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
           </section>
 
           {showRadon && (
-            <section className="mt-8 rounded-2xl border border-[#232b38] bg-[#071224] p-6">
+            <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.28em] text-teal-300">
+                  <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">
                     Radon Testing Results
                   </p>
-                  <h2 className="mt-2 text-3xl font-semibold text-white">
+                  <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
                     Radon Summary
                   </h2>
                 </div>
@@ -479,19 +479,19 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
                 <Info label="Serial Number" value={radonTest?.serial_number || "N/A"} />
               </div>
 
-              <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-5">
-                <h3 className="text-xl font-semibold text-white">
+              <div className="mt-6 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
+                <h3 className="text-xl font-semibold text-[var(--fl-text)]">
                   Client Summary
                 </h3>
-                <p className="mt-3 whitespace-pre-line leading-7 text-[#8a93a3]">
+                <p className="mt-3 whitespace-pre-line leading-7 text-[var(--fl-muted)]">
                   {radonSummary(radonTest?.average_pci)}
                 </p>
               </div>
 
               {radonTest?.notes && (
-                <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-5">
-                  <h3 className="text-xl font-semibold text-white">Notes</h3>
-                  <p className="mt-3 whitespace-pre-line leading-7 text-[#8a93a3]">
+                <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
+                  <h3 className="text-xl font-semibold text-[var(--fl-text)]">Notes</h3>
+                  <p className="mt-3 whitespace-pre-line leading-7 text-[var(--fl-muted)]">
                     {radonTest.notes}
                   </p>
                 </div>
@@ -500,13 +500,13 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
           )}
 
           {showMold && (
-            <section className="mt-8 rounded-2xl border border-[#232b38] bg-[#071224] p-6">
+            <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.28em] text-teal-300">
+                  <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">
                     Mold Sampling Results
                   </p>
-                  <h2 className="mt-2 text-3xl font-semibold text-white">
+                  <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
                     Mold Summary
                   </h2>
                 </div>
@@ -539,21 +539,21 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
                 <Info label="Mold Fee" value={money(inspection.mold_fee)} />
               </div>
 
-              <div className="mt-6 rounded-xl border border-[#232b38] bg-[#131923] p-5">
-                <h3 className="text-xl font-semibold text-white">
+              <div className="mt-6 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
+                <h3 className="text-xl font-semibold text-[var(--fl-text)]">
                   Client Summary
                 </h3>
-                <p className="mt-3 whitespace-pre-line leading-7 text-[#8a93a3]">
+                <p className="mt-3 whitespace-pre-line leading-7 text-[var(--fl-muted)]">
                   {moldSummary(moldTest, inspection)}
                 </p>
               </div>
 
               {moldTest?.findings && (
-                <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-5">
-                  <h3 className="text-xl font-semibold text-white">
+                <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
+                  <h3 className="text-xl font-semibold text-[var(--fl-text)]">
                     Lab Findings / Summary
                   </h3>
-                  <p className="mt-3 whitespace-pre-line leading-7 text-[#8a93a3]">
+                  <p className="mt-3 whitespace-pre-line leading-7 text-[var(--fl-muted)]">
                     {moldTest.findings}
                   </p>
                 </div>
@@ -574,11 +574,11 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
             </section>
           )}
 
-          <section className="mt-8 rounded-2xl border border-[#232b38] bg-[#071224] p-6">
-            <h2 className="text-2xl font-semibold text-teal-300">
+          <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6">
+            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
               Environmental Testing Disclaimer
             </h2>
-            <p className="mt-3 leading-7 text-[#8a93a3]">
+            <p className="mt-3 leading-7 text-[var(--fl-muted)]">
               This report documents the environmental testing service(s)
               requested for the property listed above. Unless a full home
               inspection was also performed, this report is limited to the
@@ -594,11 +594,11 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
 
 function Info({ label, value }: { label: string; value?: any }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-2 text-base font-bold text-white">
+      <p className="mt-2 text-base font-bold text-[var(--fl-text)]">
         {value || "N/A"}
       </p>
     </div>

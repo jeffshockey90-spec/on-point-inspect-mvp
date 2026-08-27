@@ -69,7 +69,7 @@ export default function GenerateSummaryButton({
         onClick={generateSummary}
         disabled={busy}
         aria-busy={busy}
-        className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-teal-300 transition hover:bg-teal-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+        className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-teal-500 bg-[#071224] px-5 py-3 font-bold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
       >
         {busy && (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -85,7 +85,7 @@ export default function GenerateSummaryButton({
       </button>
 
       {generated && !busy && (
-        <span className="text-xs font-semibold text-teal-300">
+        <span className="text-xs font-semibold text-[var(--fl-accent-text)]">
           Executive summary saved.
         </span>
       )}

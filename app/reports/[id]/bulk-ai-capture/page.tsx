@@ -620,17 +620,17 @@ export default function BulkAICapturePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] p-4 text-white md:p-8">
+    <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] md:p-8">
       <div className="mx-auto max-w-6xl space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.35em] text-teal-400">
+            <p className="text-sm font-bold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
               FLOW AI
             </p>
 
             <h1 className="mt-2 text-4xl font-extrabold">Bulk AI Capture</h1>
 
-            <p className="mt-3 max-w-3xl text-[#8a93a3]">
+            <p className="mt-3 max-w-3xl text-[var(--fl-muted)]">
               Upload multiple inspection photos or videos. Review each AI finding,
               preview similar finding merges, then save clean grouped findings to the report.
             </p>
@@ -638,14 +638,14 @@ export default function BulkAICapturePage() {
 
           <Link
             href={inspectionId ? `/reports/${inspectionId}` : "/reports"}
-            className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+            className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
           >
             Back To Report
           </Link>
         </div>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6">
-          <h2 className="mb-5 text-2xl font-bold text-teal-400">Upload Photos</h2>
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6">
+          <h2 className="mb-5 text-2xl font-bold text-[var(--fl-accent-text)]">Upload Photos</h2>
 
           <MediaUploadButtons onChange={handleFileChange} />
 
@@ -654,13 +654,13 @@ export default function BulkAICapturePage() {
             onChange={(e) => setGlobalNote(e.target.value)}
             rows={4}
             placeholder="Optional note for all photos..."
-            className="mt-5 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-teal-400"
+            className="mt-5 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
           />
 
           <div className="mt-5 rounded-2xl border border-purple-800 bg-purple-950/20 p-4">
             <h3 className="text-lg font-extrabold text-purple-300">AI Guidance Memory</h3>
 
-            <p className="mt-1 text-sm text-[#8a93a3]">
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
               Optional saved guidance for how you want Bulk AI Capture to write and route findings on this device.
             </p>
 
@@ -669,7 +669,7 @@ export default function BulkAICapturePage() {
               onChange={(e) => setAiMemory(e.target.value)}
               rows={4}
               placeholder="Example: Always keep findings concise. Route sink, drain, supply, toilet, tub, shower, water heater, and visible leaks to Plumbing."
-              className="mt-4 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-purple-400"
+              className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-purple-400"
             />
 
             <button
@@ -721,13 +721,13 @@ export default function BulkAICapturePage() {
             <button
               onClick={() => router.push(`/reports/${inspectionId}`)}
               disabled={!inspectionId || busy}
-              className="rounded-xl border border-[#232b38] px-6 py-3 font-bold text-[#e8ecf3] transition hover:bg-[#1a212c] disabled:opacity-50"
+              className="rounded-xl border border-[var(--fl-line)] px-6 py-3 font-bold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:opacity-50"
             >
               Return to Report
             </button>
           </div>
 
-          <p className="mt-4 text-sm text-[#8a93a3]">
+          <p className="mt-4 text-sm text-[var(--fl-muted)]">
             Selected media: {items.length} / {MAX_PHOTOS} · Ready to save: {reviewCount} · Merged into other findings: {mergedCount} · Saved: {savedCount}
           </p>
         </section>
@@ -775,7 +775,7 @@ function MediaUploadButtons({
 }) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
-      <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-teal-300 hover:bg-teal-500 hover:text-black">
+      <label className="cursor-pointer rounded-xl border border-teal-500 bg-teal-500/10 p-4 text-center font-bold text-[var(--fl-accent-text)] hover:bg-teal-500 hover:text-black">
         📷 Take Photos
         <input
           type="file"
@@ -809,7 +809,7 @@ function MediaUploadButtons({
         />
       </label>
 
-      <p className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-sm text-[#8a93a3] md:col-span-3">
+      <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-muted)] md:col-span-3">
         Photos can be analyzed by AI. Videos are saved to the report as media attachments and can be reviewed by the client.
       </p>
     </div>
@@ -837,7 +837,7 @@ function MergePreviewPanel({
         <div>
           <h2 className="text-2xl font-semibold text-cyan-300">Review Merge Plan</h2>
 
-          <p className="mt-1 text-sm text-[#8a93a3]">
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">
             Nothing has merged yet. Review these matches, then confirm if they look correct.
           </p>
         </div>
@@ -854,7 +854,7 @@ function MergePreviewPanel({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+            className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
           >
             Cancel
           </button>
@@ -871,7 +871,7 @@ function MergePreviewPanel({
           return (
             <div
               key={`${merge.sourceId}-${merge.targetId}`}
-              className="rounded-xl border border-cyan-800 bg-[#131923] p-4"
+              className="rounded-xl border border-cyan-800 bg-[var(--fl-surface-2)] p-4"
             >
               <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-cyan-300">
                 Merge Match {index + 1} · {Math.round(merge.confidence * 100)}% confidence
@@ -883,7 +883,7 @@ function MergePreviewPanel({
                 <MergeMiniCard label="Will merge into" item={target} />
               </div>
 
-              <p className="mt-3 rounded-lg border border-[#232b38] bg-[#131923] p-3 text-sm text-[#8a93a3]">
+              <p className="mt-3 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm text-[var(--fl-muted)]">
                 Reason: {merge.reason}
               </p>
             </div>
@@ -902,8 +902,8 @@ function MergeMiniCard({
   item: BulkItem;
 }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
@@ -921,9 +921,9 @@ function MergeMiniCard({
         />
       )}
 
-      <p className="font-semibold text-white">{item.title}</p>
-      <p className="mt-1 text-sm text-[#8a93a3]">{item.section}</p>
-      <p className="mt-1 text-sm text-[#8a93a3]">{item.severity}</p>
+      <p className="font-semibold text-[var(--fl-text)]">{item.title}</p>
+      <p className="mt-1 text-sm text-[var(--fl-muted)]">{item.section}</p>
+      <p className="mt-1 text-sm text-[var(--fl-muted)]">{item.severity}</p>
     </div>
   );
 }
@@ -951,17 +951,17 @@ function PhotoReviewCard({
 
   return (
     <div
-      className={`rounded-2xl border bg-[#10151e] p-5 ${
-        isMergedChild ? "border-cyan-700 ring-1 ring-cyan-700/60" : "border-[#1a212c]"
+      className={`rounded-2xl border bg-[var(--fl-surface)] p-5 ${
+        isMergedChild ? "border-cyan-700 ring-1 ring-cyan-700/60" : "border-[var(--fl-raised)]"
       }`}
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-xl font-extrabold text-teal-300">
+          <h3 className="text-xl font-extrabold text-[var(--fl-accent-text)]">
             {item.file.type.startsWith("video/") ? "Video" : "Photo"} {index + 1}
           </h3>
 
-          <p className="text-sm text-[#8a93a3]">{item.file.name}</p>
+          <p className="text-sm text-[var(--fl-muted)]">{item.file.name}</p>
         </div>
 
         <StatusBadge status={item.status} />
@@ -973,9 +973,9 @@ function PhotoReviewCard({
             This photo will merge into:
           </p>
 
-          <p className="mt-2 text-lg font-semibold text-white">{mergedIntoItem.title}</p>
+          <p className="mt-2 text-lg font-semibold text-[var(--fl-text)]">{mergedIntoItem.title}</p>
 
-          <p className="mt-1 text-sm text-[#8a93a3]">
+          <p className="mt-1 text-sm text-[var(--fl-muted)]">
             Section: {mergedIntoItem.section} · Severity: {mergedIntoItem.severity}
           </p>
         </div>
@@ -989,14 +989,14 @@ function PhotoReviewCard({
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
             {mergedChildren.map((child, childIndex) => (
-              <div key={child.id} className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-2">
+              <div key={child.id} className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-2">
                 <img
                   src={child.previewUrl}
                   alt={`Merged photo ${childIndex + 1}`}
                   className="h-28 w-full rounded-md object-contain"
                 />
 
-                <p className="mt-2 line-clamp-2 text-xs font-bold text-[#8a93a3]">
+                <p className="mt-2 line-clamp-2 text-xs font-bold text-[var(--fl-muted)]">
                   {child.title}
                 </p>
               </div>
@@ -1011,13 +1011,13 @@ function PhotoReviewCard({
             <video
               src={item.previewUrl}
               controls
-              className="max-h-[320px] w-full rounded-xl border border-[#232b38] bg-black"
+              className="max-h-[320px] w-full rounded-xl border border-[var(--fl-line)] bg-black"
             />
           ) : (
             <img
               src={item.previewUrl}
               alt={`Preview ${index + 1}`}
-              className="max-h-[320px] w-full rounded-xl border border-[#232b38] object-contain"
+              className="max-h-[320px] w-full rounded-xl border border-[var(--fl-line)] object-contain"
             />
           )}
 
@@ -1027,7 +1027,7 @@ function PhotoReviewCard({
             rows={4}
             disabled={isMergedChild}
             placeholder="Optional note for this photo..."
-            className="mt-4 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+            className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
           />
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -1077,7 +1077,7 @@ function PhotoReviewCard({
             onChange={(e) => updateItem(item.id, { title: e.target.value })}
             disabled={isMergedChild}
             placeholder="Finding title"
-            className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+            className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -1085,7 +1085,7 @@ function PhotoReviewCard({
               value={item.section}
               onChange={(e) => updateItem(item.id, { section: e.target.value })}
               disabled={isMergedChild}
-              className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+              className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
             >
               {SECTIONS.map((section) => (
                 <option key={section}>{section}</option>
@@ -1096,7 +1096,7 @@ function PhotoReviewCard({
               value={item.severity}
               onChange={(e) => updateItem(item.id, { severity: e.target.value })}
               disabled={isMergedChild}
-              className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+              className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
             >
               {SEVERITIES.map((severity) => (
                 <option key={severity}>{severity}</option>
@@ -1196,7 +1196,7 @@ function StatusBadge({ status }: { status: BulkItem["status"] }) {
   };
 
   return (
-    <span className="rounded-full border border-[#232b38] bg-[#0a0e13] px-3 py-1 text-sm font-bold text-[#e8ecf3]">
+    <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-1 text-sm font-bold text-[var(--fl-text)]">
       {labelMap[status]}
     </span>
   );
@@ -1215,7 +1215,7 @@ function MiniTextArea({
 }) {
   return (
     <label className="block">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
@@ -1224,7 +1224,7 @@ function MiniTextArea({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
       />
     </label>
   );
@@ -1243,7 +1243,7 @@ function SmallInput({
 }) {
   return (
     <label className="block">
-      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+      <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
@@ -1251,7 +1251,7 @@ function SmallInput({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] p-2 text-white outline-none focus:border-teal-400 disabled:opacity-60"
+        className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-2 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
       />
     </label>
   );

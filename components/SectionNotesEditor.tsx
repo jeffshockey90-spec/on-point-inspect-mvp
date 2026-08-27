@@ -52,7 +52,7 @@ export default function SectionNotesEditor({
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
           placeholder="e.g. The attic was only partially accessible due to stored belongings."
-          className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm text-white outline-none focus:border-amber-400"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-amber-400"
         />
         {error && <p className="mt-2 text-xs font-bold text-red-300">{error}</p>}
         <div className="mt-2 flex flex-wrap gap-2">
@@ -72,7 +72,7 @@ export default function SectionNotesEditor({
               setError("");
             }}
             disabled={saving}
-            className="rounded-lg border border-[#232b38] px-4 py-2 text-xs font-semibold text-[#8a93a3] transition hover:bg-[#1a212c] disabled:opacity-60"
+            className="rounded-lg border border-[var(--fl-line)] px-4 py-2 text-xs font-semibold text-[var(--fl-muted)] transition hover:bg-[var(--fl-raised)] disabled:opacity-60"
           >
             Cancel
           </button>
@@ -89,7 +89,7 @@ export default function SectionNotesEditor({
           setDraft("");
           setEditing(true);
         }}
-        className="rounded-lg border border-dashed border-[#232b38] px-3 py-2 text-xs font-semibold text-[#8a93a3] transition hover:border-amber-400 hover:text-amber-200"
+        className="rounded-lg border border-dashed border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-amber-400 hover:text-amber-200"
       >
         + Add section note
       </button>
@@ -106,7 +106,7 @@ export default function SectionNotesEditor({
             setDraft(notes);
             setEditing(true);
           }}
-          className="shrink-0 rounded-lg border border-[#232b38] px-3 py-1.5 text-xs font-semibold text-[#8a93a3] transition hover:border-amber-400 hover:text-amber-200"
+          className="shrink-0 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-amber-400 hover:text-amber-200"
         >
           Edit
         </button>

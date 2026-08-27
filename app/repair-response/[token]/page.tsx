@@ -213,7 +213,7 @@ export default async function RepairResponsePage({ params }: PageProps) {
 
   if (shareError || !share) {
     return (
-      <main className="min-h-screen bg-[#0a0e13] p-4 text-white md:p-8">
+      <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] md:p-8">
         <section className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-6">
           <h1 className="text-2xl font-semibold text-red-200">Repair Request Not Found</h1>
           <p className="mt-3 text-red-100">
@@ -339,34 +339,34 @@ export default async function RepairResponsePage({ params }: PageProps) {
     Boolean(share.responded_at);
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] p-4 pb-20 text-white md:p-8">
-      <section className="mx-auto mb-5 max-w-5xl rounded-2xl border border-[#232b38] bg-[#10151e] p-5 md:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-300">
+    <main className="min-h-screen bg-[var(--fl-ground)] p-4 pb-20 text-[var(--fl-text)] md:p-8">
+      <section className="mx-auto mb-5 max-w-5xl rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5 md:p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
           {branding.name}
         </p>
-        <h1 className="mt-3 text-3xl font-semibold text-white">
+        <h1 className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">
           Repair Request Response
         </h1>
-        <p className="mt-2 text-[#e8ecf3]">{propertyAddress}</p>
+        <p className="mt-2 text-[var(--fl-text)]">{propertyAddress}</p>
 
         <div className="mt-5 grid gap-4 md:grid-cols-4">
-          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
             <p className="text-xs font-semibold uppercase text-blue-200">Selected Items</p>
-            <p className="mt-2 font-semibold text-white">{selectedIds.length}</p>
+            <p className="mt-2 font-semibold text-[var(--fl-text)]">{selectedIds.length}</p>
           </div>
-          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
             <p className="text-xs font-semibold uppercase text-blue-200">Requested Credit</p>
-            <p className="mt-2 font-semibold text-white">{formatMoney(requestedCreditTotal)}</p>
+            <p className="mt-2 font-semibold text-[var(--fl-text)]">{formatMoney(requestedCreditTotal)}</p>
           </div>
-          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
             <p className="text-xs font-semibold uppercase text-blue-200">Recipient</p>
-            <p className="mt-2 break-words font-semibold text-white">
+            <p className="mt-2 break-words font-semibold text-[var(--fl-text)]">
               {share.recipient_email || "Secure recipient"}
             </p>
           </div>
-          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4">
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
             <p className="text-xs font-semibold uppercase text-blue-200">Status</p>
-            <p className="mt-2 font-semibold text-white">
+            <p className="mt-2 font-semibold text-[var(--fl-text)]">
               {alreadySubmitted ? "completed" : share.status || "sent"}
             </p>
           </div>
@@ -381,7 +381,7 @@ export default async function RepairResponsePage({ params }: PageProps) {
               {findings.map((finding: any) => (
                 <span
                   key={finding.id}
-                  className="rounded-full border border-cyan-400/50 bg-[#0a0e13] px-3 py-1 text-xs font-semibold text-cyan-200"
+                  className="rounded-full border border-cyan-400/50 bg-[var(--fl-ground)] px-3 py-1 text-xs font-semibold text-cyan-200"
                 >
                   Item #{finding.item_number}
                 </span>
@@ -391,9 +391,9 @@ export default async function RepairResponsePage({ params }: PageProps) {
         ) : null}
 
         {share.summary ? (
-          <div className="mt-5 rounded-xl border border-[#232b38] bg-[#0a0e13] p-4">
+          <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
             <p className="text-xs font-semibold uppercase text-blue-200">Summary</p>
-            <p className="mt-3 whitespace-pre-line leading-7 text-white">{share.summary}</p>
+            <p className="mt-3 whitespace-pre-line leading-7 text-[var(--fl-text)]">{share.summary}</p>
           </div>
         ) : null}
       </section>

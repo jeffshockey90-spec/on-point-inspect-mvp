@@ -170,20 +170,20 @@ export default function GoogleBusinessConnect({
           <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
             Google Business Profile
           </p>
-          <h3 className="mt-2 text-xl font-semibold text-white">
+          <h3 className="mt-2 text-xl font-semibold text-[var(--fl-text)]">
             {connectedPlaceId ? "Google Connected" : "Connect Google Reviews"}
           </h3>
-          <p className="mt-2 text-sm leading-6 text-[#8a93a3]">
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             Search for your Google Business Profile, connect it, and FLOW will display your rating and recent review snippets on your public profile.
           </p>
         </div>
 
         {connectedPlaceId && (
-          <div className="rounded-2xl border border-yellow-300/40 bg-[#131923] px-4 py-3 text-center">
+          <div className="rounded-2xl border border-yellow-300/40 bg-[var(--fl-surface-2)] px-4 py-3 text-center">
             <p className="text-2xl font-semibold text-yellow-200">
               ★ {rating || "—"}
             </p>
-            <p className="text-xs font-bold text-[#8a93a3]">
+            <p className="text-xs font-bold text-[var(--fl-muted)]">
               {reviewCount || 0} Google Reviews
             </p>
           </div>
@@ -191,10 +191,10 @@ export default function GoogleBusinessConnect({
       </div>
 
       {connectedPlaceId && (
-        <div className="mt-4 rounded-xl border border-[#232b38] bg-[#131923] p-4 text-sm text-[#8a93a3]">
-          <p className="font-semibold text-white">{connectedName}</p>
-          <p className="mt-1 break-all text-xs text-[#59626f]">Place ID: {connectedPlaceId}</p>
-          {syncedAt && <p className="mt-2 text-xs text-[#8a93a3]">Last synced: {formatAppValue(new Date(syncedAt), {})}</p>}
+        <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">
+          <p className="font-semibold text-[var(--fl-text)]">{connectedName}</p>
+          <p className="mt-1 break-all text-xs text-[var(--fl-faint)]">Place ID: {connectedPlaceId}</p>
+          {syncedAt && <p className="mt-2 text-xs text-[var(--fl-muted)]">Last synced: {formatAppValue(new Date(syncedAt), {})}</p>}
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap">
             <button
               type="button"
@@ -217,10 +217,10 @@ export default function GoogleBusinessConnect({
             )}
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-[#232b38] bg-[#131923] p-3">
+          <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white">New review push alerts</p>
-              <p className="mt-1 text-xs leading-5 text-[#8a93a3]">
+              <p className="text-sm font-semibold text-[var(--fl-text)]">New review push alerts</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
                 Get a phone push the moment a new Google review comes in.
               </p>
             </div>
@@ -250,7 +250,7 @@ export default function GoogleBusinessConnect({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Example: On Point Home Inspections Halfway MD"
-          className="min-w-0 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3 text-white outline-none focus:border-yellow-300"
+          className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-yellow-300"
         />
         <button
           type="button"
@@ -266,11 +266,11 @@ export default function GoogleBusinessConnect({
       {places.length > 0 && (
         <div className="mt-4 space-y-3">
           {places.map((place) => (
-            <div key={place.placeId} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+            <div key={place.placeId} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="font-semibold text-white">{place.name}</p>
-                  <p className="mt-1 text-sm text-[#8a93a3]">{place.address}</p>
+                  <p className="font-semibold text-[var(--fl-text)]">{place.name}</p>
+                  <p className="mt-1 text-sm text-[var(--fl-muted)]">{place.address}</p>
                   <p className="mt-2 text-sm font-bold text-yellow-200">
                     ★ {place.rating || "—"} · {place.reviewCount || 0} reviews
                   </p>

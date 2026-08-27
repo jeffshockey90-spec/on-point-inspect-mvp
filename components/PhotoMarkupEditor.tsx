@@ -614,11 +614,11 @@ function PhotoMarkupEditor({
     `flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold transition active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation] ${
       tool === toolName
         ? "border border-[#65c832] bg-black/60 text-[#65c832]"
-        : "text-[#e8ecf3] hover:bg-white/10"
+        : "text-[var(--fl-text)] hover:bg-white/10"
     }`;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col bg-black text-white">
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-black text-[var(--fl-text)]">
       <div className="flex items-center justify-between border-b border-white/10 bg-black px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)]">
         <button
           type="button"
@@ -630,12 +630,12 @@ function PhotoMarkupEditor({
             setSaving(false);
             onCancel?.();
           }}
-          className="inline-flex items-center justify-center rounded-xl px-3 py-2 text-lg font-semibold text-white transition active:scale-[0.96] hover:text-[#8a93a3] [touch-action:manipulation]"
+          className="inline-flex items-center justify-center rounded-xl px-3 py-2 text-lg font-semibold text-[var(--fl-text)] transition active:scale-[0.96] hover:text-[var(--fl-muted)] [touch-action:manipulation]"
         >
           Cancel
         </button>
 
-        <h2 className="text-xl font-semibold text-white">Markup Photo</h2>
+        <h2 className="text-xl font-semibold text-[var(--fl-text)]">Markup Photo</h2>
 
         <button
           type="button"
@@ -911,7 +911,7 @@ function PhotoMarkupEditor({
             type="button"
             onClick={undo}
             disabled={saving || historyIndex <= 0}
-            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[#e8ecf3] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
           >
             <span className="text-2xl leading-none">↶</span>
             <span>Undo</span>
@@ -921,7 +921,7 @@ function PhotoMarkupEditor({
             type="button"
             onClick={redo}
             disabled={saving || historyIndex >= history.length - 1}
-            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[#e8ecf3] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
           >
             <span className="text-2xl leading-none">↷</span>
             <span>Redo</span>
@@ -971,7 +971,7 @@ function PhotoMarkupEditor({
             type="button"
             onClick={deleteSelected}
             disabled={!selectedId || saving}
-            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[#e8ecf3] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
           >
             <span className="text-3xl leading-none">⌫</span>
             <span>Delete</span>
@@ -981,7 +981,7 @@ function PhotoMarkupEditor({
             type="button"
             onClick={duplicateSelected}
             disabled={!selectedId || saving}
-            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[#e8ecf3] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
           >
             <span className="text-2xl leading-none">⧉</span>
             <span>Duplicate</span>
@@ -995,7 +995,7 @@ function PhotoMarkupEditor({
               saving ||
               items.find((item) => item.id === selectedId)?.type !== "text"
             }
-            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[#e8ecf3] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+            className="flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.96] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
           >
             <span className="text-2xl leading-none">✎</span>
             <span>Edit Text</span>
@@ -1012,7 +1012,7 @@ function PhotoMarkupEditor({
           </button>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-sm text-[#8a93a3]">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-sm text-[var(--fl-muted)]">
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
             <input
               type="checkbox"
@@ -1024,7 +1024,7 @@ function PhotoMarkupEditor({
             <span className="font-bold">Keep tool active for multiple markups</span>
           </label>
 
-          <span className="text-center text-[#8a93a3]">
+          <span className="text-center text-[var(--fl-muted)]">
             Select a markup to move, resize, recolor, duplicate, edit, or delete it.
           </span>
         </div>

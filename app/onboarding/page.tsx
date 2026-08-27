@@ -91,7 +91,7 @@ export default async function OnboardingPage() {
     (agreementsRaw || []).length > 0 || hasCustomStandardsOfPractice;
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)]">
       <div className="mx-auto max-w-7xl">
         <OnboardingChecklist
           inspectionCount={inspections.length}

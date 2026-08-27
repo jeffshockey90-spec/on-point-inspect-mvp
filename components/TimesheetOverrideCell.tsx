@@ -44,7 +44,7 @@ export default function TimesheetOverrideCell({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 rounded-lg border border-[#232b38] px-2 py-1 text-[11px] font-semibold text-[#8a93a3] transition hover:border-teal-400 hover:text-teal-300"
+        className="inline-flex items-center gap-1 rounded-lg border border-[var(--fl-line)] px-2 py-1 text-[11px] font-semibold text-[var(--fl-muted)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
       >
         <Pencil className="h-3 w-3" />
         {manual ? "Edit" : "Correct"}
@@ -62,7 +62,7 @@ export default function TimesheetOverrideCell({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="hrs"
-        className="w-16 rounded-lg border border-[#232b38] bg-black px-2 py-1 text-right text-xs text-white outline-none focus:border-teal-400"
+        className="w-16 rounded-lg border border-[var(--fl-line)] bg-black px-2 py-1 text-right text-xs text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
       <button
         type="button"
@@ -77,7 +77,7 @@ export default function TimesheetOverrideCell({
           type="button"
           onClick={() => save(true)}
           disabled={saving}
-          className="rounded-lg border border-[#232b38] px-2 py-1 text-[11px] font-semibold text-[#8a93a3] hover:text-red-300"
+          className="rounded-lg border border-[var(--fl-line)] px-2 py-1 text-[11px] font-semibold text-[var(--fl-muted)] hover:text-red-300"
         >
           Clear
         </button>
@@ -86,7 +86,7 @@ export default function TimesheetOverrideCell({
         type="button"
         onClick={() => setOpen(false)}
         disabled={saving}
-        className="text-[11px] font-semibold text-[#59626f]"
+        className="text-[11px] font-semibold text-[var(--fl-faint)]"
       >
         ✕
       </button>

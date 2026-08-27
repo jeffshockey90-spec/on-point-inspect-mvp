@@ -342,7 +342,7 @@ function radonClientInfo(avg: any) {
   if (!v) {
     return {
       label: "Pending",
-      cls: "border-[#232b38] bg-[#131923] text-[#8a93a3]",
+      cls: "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]",
       summary: "Radon results have not been finalized yet.",
     };
   }
@@ -595,7 +595,7 @@ export default function ClientPortalPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] text-[var(--fl-text)]">
         Loading client portal...
       </main>
     );
@@ -603,7 +603,7 @@ export default function ClientPortalPage() {
 
   if (!inspection) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0a0e13] px-6 text-center text-white">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[var(--fl-ground)] px-6 text-center text-[var(--fl-text)]">
         <p>
           {loadFailed
             ? "Couldn't load this report link. This may be a temporary connection issue, or the link may be invalid or expired."
@@ -613,7 +613,7 @@ export default function ClientPortalPage() {
           <button
             type="button"
             onClick={loadInspection}
-            className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-teal-300 hover:bg-teal-500/10"
+            className="rounded-xl border border-teal-500 px-5 py-3 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
           >
             Try Again
           </button>
@@ -665,13 +665,13 @@ export default function ClientPortalPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 pb-6 pt-4 text-white md:px-8 md:pb-8">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 pb-6 pt-4 text-[var(--fl-text)] md:px-8 md:pb-8">
       <PortalAutoTranslate inspectionId={inspectionId} />
       <div className="mx-auto max-w-[80rem] space-y-6">
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#232b38] bg-[#10151e] px-4 py-2 font-bold text-[#e8ecf3] transition active:scale-[0.98] hover:border-teal-500 hover:text-teal-300 [touch-action:manipulation]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-4 py-2 font-bold text-[var(--fl-text)] transition active:scale-[0.98] hover:border-teal-500 hover:text-[var(--fl-accent-text)] [touch-action:manipulation]"
           aria-label="Go back"
         >
           <span aria-hidden="true">←</span> Back
@@ -688,9 +688,9 @@ export default function ClientPortalPage() {
           </div>
         )}
 
-        <section className="overflow-hidden rounded-2xl border border-[#1a212c] bg-[#10151e] shadow-2xl">
+        <section className="overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] shadow-2xl">
           {propertyPhoto && !propertyPhotoFailed && (
-            <div className="relative border-b border-[#1a212c] bg-black">
+            <div className="relative border-b border-[var(--fl-raised)] bg-black">
               <img
                 src={propertyPhoto}
                 alt="Property"
@@ -700,26 +700,26 @@ export default function ClientPortalPage() {
                 onError={() => setPropertyPhotoFailed(true)}
                 className="h-72 w-full object-cover md:h-96"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#10151e] via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--fl-surface)] via-transparent to-transparent" />
             </div>
           )}
 
           <div className="p-6 md:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-teal-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
               {companyBranding?.name || "Your Home Inspection Company"}
             </p>
 
             <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
               <div>
-                <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
+                <h1 className="text-4xl font-semibold tracking-tight text-[var(--fl-text)] md:text-5xl">
                   Client Portal
                 </h1>
 
-                <p className="mt-3 max-w-3xl text-lg leading-7 text-[#8a93a3]">
+                <p className="mt-3 max-w-3xl text-lg leading-7 text-[var(--fl-muted)]">
                   {propertyAddress}
                 </p>
 
-                <p className="mt-2 text-sm text-[#8a93a3]">
+                <p className="mt-2 text-sm text-[var(--fl-muted)]">
                   Protecting Your Investment. One Inspection at a Time.
                 </p>
               </div>
@@ -781,7 +781,7 @@ export default function ClientPortalPage() {
               Report Access Requirements
             </h2>
 
-            <p className="mt-2 text-[#8a93a3]">
+            <p className="mt-2 text-[var(--fl-muted)]">
               The report will unlock when all requirements below are complete.
             </p>
 
@@ -812,7 +812,7 @@ export default function ClientPortalPage() {
               Your Report Is Ready
             </h2>
 
-            <p className="mt-2 text-[#8a93a3]">
+            <p className="mt-2 text-[var(--fl-muted)]">
               Agreement, payment, and report publishing are complete. You can now view or download your inspection report.
             </p>
 
@@ -851,11 +851,11 @@ export default function ClientPortalPage() {
               Executive Summary
             </h2>
 
-            <p className="mt-2 text-[#8a93a3]">
+            <p className="mt-2 text-[var(--fl-muted)]">
               This client-friendly overview summarizes the report findings in plain language.
             </p>
 
-            <div className="mt-5 whitespace-pre-line rounded-xl border border-[#232b38] bg-[#131923] p-5 text-sm leading-7 text-[#e8ecf3]">
+            <div className="mt-5 whitespace-pre-line rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm leading-7 text-[var(--fl-text)]">
               {inspection.executive_summary}
             </div>
           </section>
@@ -867,7 +867,7 @@ export default function ClientPortalPage() {
               Environmental Test Results
             </h2>
 
-            <p className="mt-2 text-[#8a93a3]">
+            <p className="mt-2 text-[var(--fl-muted)]">
               Your radon and/or mold testing results are summarized below.
             </p>
 
@@ -875,19 +875,19 @@ export default function ClientPortalPage() {
               {hasRadonService(inspection) && radonTest && (() => {
                 const info = radonClientInfo(radonTest.average_pci);
                 return (
-                  <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-5">
+                  <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+                      <span className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                         Radon
                       </span>
                       <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${info.cls}`}>
                         {info.label}
                       </span>
                     </div>
-                    <p className="mt-3 text-3xl font-semibold text-white">
+                    <p className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">
                       {radonTest.average_pci ? `${radonTest.average_pci} pCi/L` : "Pending"}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-[#8a93a3]">{info.summary}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">{info.summary}</p>
                     {radonReportUrl && (
                       <a
                         href={radonReportUrl}
@@ -903,16 +903,16 @@ export default function ClientPortalPage() {
               })()}
 
               {hasMoldService(inspection) && moldTest && (
-                <div className="rounded-xl border border-[#232b38] bg-[#10151e] p-5">
+                <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+                    <span className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                       Mold
                     </span>
-                    <span className="rounded-full border border-[#232b38] bg-[#131923] px-3 py-1 text-xs font-semibold text-[#e8ecf3]">
+                    <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-1 text-xs font-semibold text-[var(--fl-text)]">
                       {moldTest.lab_status || "Pending"}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[#8a93a3]">
+                  <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">
                     {moldTest.findings ||
                       moldTest.notes ||
                       "Mold sampling was performed. See the official lab report for the full results."}
@@ -934,8 +934,8 @@ export default function ClientPortalPage() {
         )}
 
         <section className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl lg:col-span-2">
-            <h2 className="text-2xl font-bold text-teal-300">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl lg:col-span-2">
+            <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
               Inspection Details
             </h2>
 
@@ -955,8 +955,8 @@ export default function ClientPortalPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-            <h2 className="text-2xl font-bold text-teal-300">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+            <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
               Payment Summary
             </h2>
 
@@ -1019,8 +1019,8 @@ export default function ClientPortalPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-          <h2 className="text-2xl font-bold text-teal-300">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+          <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
             Client Actions
           </h2>
 
@@ -1067,10 +1067,10 @@ export default function ClientPortalPage() {
                 <a
                   href={reportHref}
                   target="_blank"
-                  className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-4 font-bold text-teal-300 hover:bg-teal-500/10"
+                  className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-4 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
                 >
                   <span className="block text-lg">View Report</span>
-                  <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
+                  <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
                     Open the client report.
                   </span>
                 </a>
@@ -1081,7 +1081,7 @@ export default function ClientPortalPage() {
                   className="rounded-xl border border-cyan-500 bg-[#071224] px-6 py-4 font-bold text-cyan-300 hover:bg-cyan-500/10"
                 >
                   <span className="block text-lg">Download PDF</span>
-                  <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
+                  <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
                     Printable report version.
                   </span>
                 </a>
@@ -1092,7 +1092,7 @@ export default function ClientPortalPage() {
                   className="rounded-xl border border-orange-500 bg-[#071224] px-6 py-4 font-bold text-orange-300 hover:bg-orange-500/10"
                 >
                   <span className="block text-lg">Repair Request</span>
-                  <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
+                  <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
                     Open repair request builder.
                   </span>
                 </a>
@@ -1103,14 +1103,14 @@ export default function ClientPortalPage() {
                   className="rounded-xl border border-emerald-500 bg-[#071224] px-6 py-4 font-bold text-emerald-300 hover:bg-emerald-500/10"
                 >
                   <span className="block text-lg">🏠 Home Maintenance Hub</span>
-                  <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
+                  <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
                     Your systems, service life, and upkeep plan.
                   </span>
                 </a>
               </>
             ) : (
-              <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-6 py-4 text-[#8a93a3] md:col-span-3">
-                <p className="text-lg font-bold text-white">
+              <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-6 py-4 text-[var(--fl-muted)] md:col-span-3">
+                <p className="text-lg font-bold text-[var(--fl-text)]">
                   Report Actions Locked
                 </p>
                 <p className="mt-1 text-sm">
@@ -1133,7 +1133,7 @@ export default function ClientPortalPage() {
                 <span className="block text-lg">
                   {updatingReview ? "Saving Review..." : "Leave Review"}
                 </span>
-                <span className="mt-1 block text-sm font-medium text-[#8a93a3]">
+                <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
                   Mark review follow-up submitted.
                 </span>
               </span>
@@ -1142,8 +1142,8 @@ export default function ClientPortalPage() {
         </section>
 
         {checklistSections.length > 0 && (
-          <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-            <h2 className="text-2xl font-bold text-teal-300">
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+            <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
               Inspection Components
             </h2>
 
@@ -1151,9 +1151,9 @@ export default function ClientPortalPage() {
               {checklistSections.map((section) => (
                 <div
                   key={section}
-                  className="rounded-xl border border-[#1a212c] bg-[#131923] p-5"
+                  className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-5"
                 >
-                  <h3 className="text-xl font-semibold text-white">{section}</h3>
+                  <h3 className="text-xl font-semibold text-[var(--fl-text)]">{section}</h3>
 
                   {sectionNotes[section] && (
                     <p className="mt-3 whitespace-pre-wrap rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-amber-100">
@@ -1166,13 +1166,13 @@ export default function ClientPortalPage() {
                       ([groupTitle, values]) => (
                         <div
                           key={groupTitle}
-                          className="rounded-xl border border-[#232b38] bg-[#071224] p-4"
+                          className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-4"
                         >
-                          <p className="font-semibold text-teal-300">
+                          <p className="font-semibold text-[var(--fl-accent-text)]">
                             {groupTitle}
                           </p>
 
-                          <ul className="mt-3 space-y-2 text-sm text-[#8a93a3]">
+                          <ul className="mt-3 space-y-2 text-sm text-[var(--fl-muted)]">
                             {(values as string[]).map((value) => (
                               <li key={`${groupTitle}-${getChecklistDedupeKey(value)}`}>
                                 ✓ {value}
@@ -1196,7 +1196,7 @@ export default function ClientPortalPage() {
           />
         )}
 
-        <footer className="border-t border-[#1a212c] py-6 text-center text-sm text-[#59626f]">
+        <footer className="border-t border-[var(--fl-raised)] py-6 text-center text-sm text-[var(--fl-faint)]">
           {companyBranding?.name || "Your Home Inspection Company"} • Client Portal
         </footer>
       </div>
@@ -1222,10 +1222,10 @@ function StatusCard({
       className={`rounded-2xl border p-6 shadow-xl ${
         complete
           ? "border-green-500/40 bg-green-950/20"
-          : "border-[#1a212c] bg-[#10151e]"
+          : "border-[var(--fl-raised)] bg-[var(--fl-surface)]"
       }`}
     >
-      <p className="text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+      <p className="text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {title}
       </p>
 
@@ -1237,7 +1237,7 @@ function StatusCard({
         {complete ? "✓" : "•"} {status}
       </p>
 
-      <p className="mt-2 text-sm text-[#8a93a3]">
+      <p className="mt-2 text-sm text-[var(--fl-muted)]">
         {complete ? completeLabel : incompleteLabel}
       </p>
     </div>
@@ -1262,7 +1262,7 @@ function RequirementRow({
       <p className="font-bold">
         {complete ? "✓ Complete" : "• Waiting"}
       </p>
-      <p className="mt-1 text-sm text-[#8a93a3]">{label}</p>
+      <p className="mt-1 text-sm text-[var(--fl-muted)]">{label}</p>
     </div>
   );
 }
@@ -1280,7 +1280,7 @@ function ActionLink({
 }) {
   const classes =
     tone === "teal"
-      ? "border-teal-500 text-teal-300 hover:bg-teal-500/10"
+      ? "border-teal-500 text-[var(--fl-accent-text)] hover:bg-teal-500/10"
       : tone === "cyan"
       ? "border-cyan-500 text-cyan-300 hover:bg-cyan-500/10"
       : tone === "purple"
@@ -1296,7 +1296,7 @@ function ActionLink({
   const content = (
     <span>
       <span className="block text-lg">{title}</span>
-      <span className="mt-2 block text-sm font-medium text-[#8a93a3]">
+      <span className="mt-2 block text-sm font-medium text-[var(--fl-muted)]">
         {description}
       </span>
     </span>
@@ -1328,11 +1328,11 @@ function ActionLink({
 function Info({ label, value }: { label: string; value?: any }) {
   return (
     <div>
-      <p className="text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
+      <p className="text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 
-      <p className="mt-1 text-base font-semibold text-white">
+      <p className="mt-1 text-base font-semibold text-[var(--fl-text)]">
         {value || "N/A"}
       </p>
     </div>
@@ -1353,11 +1353,11 @@ function PaymentLine({
       ? "text-green-400"
       : highlight === "warning"
       ? "text-orange-300"
-      : "text-teal-300";
+      : "text-[var(--fl-accent-text)]";
 
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
 

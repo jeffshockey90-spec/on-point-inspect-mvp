@@ -381,11 +381,11 @@ export default async function OwnerDashboardPage() {
   const userEmail = String(user.email || "").toLowerCase();
   if (!OWNER_EMAILS.includes(userEmail)) {
     return (
-      <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+      <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
         <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">Owner Only</p>
           <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
-          <p className="mt-4 text-[#8a93a3]">This dashboard is only available to the FLOW owner account.</p>
+          <p className="mt-4 text-[var(--fl-muted)]">This dashboard is only available to the FLOW owner account.</p>
           <FastLinkButton href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300 hover:bg-red-500/10">
             Back to Dashboard
           </FastLinkButton>
@@ -919,14 +919,14 @@ export default async function OwnerDashboardPage() {
     .slice(0, 25);
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-2xl border border-teal-500/40 bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-400">Owner Dashboard</p>
-              <h1 className="mt-4 text-5xl font-semibold text-white">FLOW Growth Center</h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">Owner Dashboard</p>
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">FLOW Growth Center</h1>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 System-wide owner metrics for users, inspectors, reports, revenue, app growth, push notifications, and client engagement.
               </p>
             </div>
@@ -941,7 +941,7 @@ export default async function OwnerDashboardPage() {
 
               <FastLinkButton
                 href="/dashboard/owner/companies"
-                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
               >
                 🏢 Companies
               </FastLinkButton>
@@ -976,7 +976,7 @@ export default async function OwnerDashboardPage() {
 
               <FastLinkButton
                 href="/dashboard/owner/mail"
-                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
               >
                 📧 Mail &amp; Replies
               </FastLinkButton>
@@ -1012,14 +1012,14 @@ export default async function OwnerDashboardPage() {
 
               <FastLinkButton
                 href="/dashboard/owner/system"
-                className="rounded-xl border border-[#59626f] px-5 py-3 font-semibold text-[#e8ecf3] transition hover:bg-slate-700/30"
+                className="rounded-xl border border-[var(--fl-faint)] px-5 py-3 font-semibold text-[var(--fl-text)] transition hover:bg-slate-700/30"
               >
                 🩺 System Health
               </FastLinkButton>
 
               <FastLinkButton
                 href="/dashboard"
-                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
               >
                 Back to Dashboard
               </FastLinkButton>
@@ -1046,7 +1046,7 @@ export default async function OwnerDashboardPage() {
             >
               {webhookRecent ? "✓ Receiving events" : "No recent webhook events"}
             </span>
-            <span className="text-sm text-[#8a93a3]">
+            <span className="text-sm text-[var(--fl-muted)]">
               {webhookLastEventAt
                 ? `Last webhook-confirmed event: ${formatDateTime(new Date(webhookLastEventAt).toISOString())}`
                 : "No webhook-confirmed events yet — normal if there have been no payments since setup."}
@@ -1054,41 +1054,41 @@ export default async function OwnerDashboardPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Last Payment Received</p>
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Last Payment Received</p>
               {paymentLog ? (
                 <>
                   <p className="mt-2 text-3xl font-semibold text-green-300">{money(lastPaymentAmount)}</p>
-                  <p className="mt-1 truncate text-sm text-[#8a93a3]">
+                  <p className="mt-1 truncate text-sm text-[var(--fl-muted)]">
                     {lastPaymentInspection
                       ? lastPaymentInspection.property_address || lastPaymentInspection.address || `Inspection #${paymentLog.inspection_id}`
                       : paymentLog.inspection_id
                         ? `Inspection #${paymentLog.inspection_id}`
                         : "Inspection"}
                   </p>
-                  <p className="mt-1 text-xs text-[#59626f]">{formatDateTime(lastPaymentWhen)}</p>
+                  <p className="mt-1 text-xs text-[var(--fl-faint)]">{formatDateTime(lastPaymentWhen)}</p>
                 </>
               ) : (
-                <p className="mt-2 text-sm text-[#8a93a3]">No payments recorded yet.</p>
+                <p className="mt-2 text-sm text-[var(--fl-muted)]">No payments recorded yet.</p>
               )}
             </div>
 
-            <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4 md:col-span-2">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 md:col-span-2">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Recent Refunds &amp; Disputes</p>
-                <Link href="/dashboard/owner/refunds" className="text-xs font-semibold text-teal-300 hover:text-teal-200">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Recent Refunds &amp; Disputes</p>
+                <Link href="/dashboard/owner/refunds" className="text-xs font-semibold text-[var(--fl-accent-text)] hover:text-[var(--fl-accent-text)]">
                   View all →
                 </Link>
               </div>
               {refundDisputeRows.length === 0 ? (
-                <p className="mt-2 text-sm text-[#8a93a3]">None recorded. Refunds and chargebacks will appear here.</p>
+                <p className="mt-2 text-sm text-[var(--fl-muted)]">None recorded. Refunds and chargebacks will appear here.</p>
               ) : (
                 <div className="mt-3 space-y-2">
                   {refundDisputeRows.map((row) => (
-                    <div key={row.id} className="flex items-center justify-between gap-3 rounded-lg border border-[#1a212c] bg-[#10151e] px-3 py-2">
+                    <div key={row.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--fl-raised)] bg-[var(--fl-surface)] px-3 py-2">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-white">{row.address}</p>
-                        <p className="text-xs text-[#59626f]">{formatDateTime(row.when)}</p>
+                        <p className="truncate text-sm font-bold text-[var(--fl-text)]">{row.address}</p>
+                        <p className="text-xs text-[var(--fl-faint)]">{formatDateTime(row.when)}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {row.amount > 0 && <span className="text-sm font-semibold text-orange-300">{money(row.amount)}</span>}
@@ -1113,9 +1113,9 @@ export default async function OwnerDashboardPage() {
         <Panel tab="payments" title="Subscriptions & MRR" subtitle="Inspector subscription billing. MRR is the sum of active subscribers' monthly prices (per-inspector override, else the global price).">
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             <div className="rounded-xl border border-green-500/40 bg-green-950/20 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">MRR</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">MRR</p>
               <p className="mt-2 text-3xl font-semibold text-green-300">{usd(mrr)}</p>
-              <p className="mt-1 text-xs text-[#59626f]">Monthly recurring revenue</p>
+              <p className="mt-1 text-xs text-[var(--fl-faint)]">Monthly recurring revenue</p>
             </div>
             <MiniStat label="Active" value={String(activeSubscribers.length)} />
             <MiniStat label="Trialing" value={String(trialingSubscribers.length)} />
@@ -1126,28 +1126,28 @@ export default async function OwnerDashboardPage() {
             {subscriberRows.length === 0 ? (
               <EmptyState text="No active or trialing subscribers yet." />
             ) : (
-              <div className="min-w-0 overflow-hidden rounded-2xl border border-[#232b38]">
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--fl-line)]">
                 <div className="min-w-0 overflow-x-auto">
-                  <table className="min-w-full divide-y divide-[#1a212c] text-sm">
-                    <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
+                  <table className="min-w-full divide-y divide-[var(--fl-raised)] text-sm">
+                    <thead className="bg-[var(--fl-ground)] text-left text-xs uppercase tracking-wide text-[var(--fl-muted)]">
                       <tr>
                         <th className="px-4 py-3">Inspector</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3 text-right">Monthly</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
+                    <tbody className="divide-y divide-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
                       {subscriberRows.map((row) => (
-                        <tr key={row.id} className="hover:bg-[#131923]">
+                        <tr key={row.id} className="hover:bg-[var(--fl-surface-2)]">
                           <td className="px-4 py-3">
-                            <p className="max-w-[260px] truncate font-semibold text-white">{row.name}</p>
-                            {row.email && <p className="max-w-[260px] truncate text-xs text-[#59626f]">{row.email}</p>}
+                            <p className="max-w-[260px] truncate font-semibold text-[var(--fl-text)]">{row.name}</p>
+                            {row.email && <p className="max-w-[260px] truncate text-xs text-[var(--fl-faint)]">{row.email}</p>}
                           </td>
                           <td className="px-4 py-3">
                             <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase ${row.status === "active" ? "border-green-500/40 bg-green-500/10 text-green-300" : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"}`}>
                               {row.status}
                             </span>
-                            {row.founding && <span className="ml-2 rounded-full border border-teal-500/40 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase text-teal-300">Founding</span>}
+                            {row.founding && <span className="ml-2 rounded-full border border-teal-500/40 bg-teal-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase text-[var(--fl-accent-text)]">Founding</span>}
                           </td>
                           <td className="px-4 py-3 text-right font-semibold text-green-300">{usd(row.priceMonthly)}</td>
                         </tr>
@@ -1172,10 +1172,10 @@ export default async function OwnerDashboardPage() {
             {aiUserRows.length === 0 ? (
               <EmptyState text="No AI usage recorded in the last 30 days." />
             ) : (
-              <div className="min-w-0 overflow-hidden rounded-2xl border border-[#232b38]">
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--fl-line)]">
                 <div className="min-w-0 overflow-x-auto">
-                  <table className="min-w-full divide-y divide-[#1a212c] text-sm">
-                    <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
+                  <table className="min-w-full divide-y divide-[var(--fl-raised)] text-sm">
+                    <thead className="bg-[var(--fl-ground)] text-left text-xs uppercase tracking-wide text-[var(--fl-muted)]">
                       <tr>
                         <th className="px-4 py-3">Inspector</th>
                         <th className="px-4 py-3">Company</th>
@@ -1184,19 +1184,19 @@ export default async function OwnerDashboardPage() {
                         <th className="px-4 py-3 text-right">Est. Cost</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
+                    <tbody className="divide-y divide-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
                       {aiUserRows.map((row) => (
-                        <tr key={row.uid} className="hover:bg-[#131923]">
+                        <tr key={row.uid} className="hover:bg-[var(--fl-surface-2)]">
                           <td className="px-4 py-3">
-                            <p className="max-w-[220px] truncate font-semibold text-white">{row.name}</p>
-                            {row.email && <p className="max-w-[220px] truncate text-xs text-[#59626f]">{row.email}</p>}
+                            <p className="max-w-[220px] truncate font-semibold text-[var(--fl-text)]">{row.name}</p>
+                            {row.email && <p className="max-w-[220px] truncate text-xs text-[var(--fl-faint)]">{row.email}</p>}
                             {row.failures > 0 && (
                               <p className="text-[11px] text-red-300">{row.failures} failed</p>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-[#8a93a3]">{row.company || "—"}</td>
-                          <td className="px-4 py-3 text-right font-semibold text-white">{row.calls}</td>
-                          <td className="px-4 py-3 text-right font-semibold text-teal-300">{formatTokens(row.tokens)}</td>
+                          <td className="px-4 py-3 text-[var(--fl-muted)]">{row.company || "—"}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-text)]">{row.calls}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-accent-text)]">{formatTokens(row.tokens)}</td>
                           <td className="px-4 py-3 text-right font-semibold text-orange-300">{usd(row.cost)}</td>
                         </tr>
                       ))}
@@ -1211,10 +1211,10 @@ export default async function OwnerDashboardPage() {
             {aiCompanyRows.length === 0 ? (
               <EmptyState text="No company-attributed AI usage in the last 30 days." />
             ) : (
-              <div className="min-w-0 overflow-hidden rounded-2xl border border-[#232b38]">
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--fl-line)]">
                 <div className="min-w-0 overflow-x-auto">
-                  <table className="min-w-full divide-y divide-[#1a212c] text-sm">
-                    <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
+                  <table className="min-w-full divide-y divide-[var(--fl-raised)] text-sm">
+                    <thead className="bg-[var(--fl-ground)] text-left text-xs uppercase tracking-wide text-[var(--fl-muted)]">
                       <tr>
                         <th className="px-4 py-3">Company</th>
                         <th className="px-4 py-3 text-right">Calls</th>
@@ -1222,14 +1222,14 @@ export default async function OwnerDashboardPage() {
                         <th className="px-4 py-3 text-right">Est. Cost</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
+                    <tbody className="divide-y divide-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
                       {aiCompanyRows.map((row) => (
-                        <tr key={row.cid} className="hover:bg-[#131923]">
+                        <tr key={row.cid} className="hover:bg-[var(--fl-surface-2)]">
                           <td className="px-4 py-3">
-                            <p className="max-w-[240px] truncate font-semibold text-white">{row.company}</p>
+                            <p className="max-w-[240px] truncate font-semibold text-[var(--fl-text)]">{row.company}</p>
                           </td>
-                          <td className="px-4 py-3 text-right font-semibold text-white">{row.calls}</td>
-                          <td className="px-4 py-3 text-right font-semibold text-teal-300">{formatTokens(row.tokens)}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-text)]">{row.calls}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-[var(--fl-accent-text)]">{formatTokens(row.tokens)}</td>
                           <td className="px-4 py-3 text-right font-semibold text-orange-300">{usd(row.cost)}</td>
                         </tr>
                       ))}
@@ -1306,7 +1306,7 @@ export default async function OwnerDashboardPage() {
         <Panel tab="users" title="Preview Portals" subtitle="See what real inspectors' realtors and clients actually see, using your live data - no test accounts needed.">
           <div className="grid gap-6 md:grid-cols-2">
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Realtor Portal
               </p>
               {previewRealtors.length === 0 ? (
@@ -1319,9 +1319,9 @@ export default async function OwnerDashboardPage() {
                       href={`/realtor-portal?preview=${encodeURIComponent(realtor.email)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3 transition hover:border-purple-500/50"
+                      className="flex items-center justify-between rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 transition hover:border-purple-500/50"
                     >
-                      <span className="truncate text-sm font-bold text-white">{realtor.email}</span>
+                      <span className="truncate text-sm font-bold text-[var(--fl-text)]">{realtor.email}</span>
                       <span className="ml-3 shrink-0 rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-300">
                         {realtor.count} report{realtor.count === 1 ? "" : "s"}
                       </span>
@@ -1332,7 +1332,7 @@ export default async function OwnerDashboardPage() {
             </div>
 
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Client Portal
               </p>
               {previewClientReports.length === 0 ? (
@@ -1345,9 +1345,9 @@ export default async function OwnerDashboardPage() {
                       href={`/client-portal/${encodeURIComponent(report.id)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3 transition hover:border-emerald-500/50"
+                      className="flex items-center justify-between rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 transition hover:border-emerald-500/50"
                     >
-                      <span className="truncate text-sm font-bold text-white">{report.address}</span>
+                      <span className="truncate text-sm font-bold text-[var(--fl-text)]">{report.address}</span>
                       <span className="ml-3 shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
                         Open
                       </span>
@@ -1375,17 +1375,17 @@ export default async function OwnerDashboardPage() {
                 return (
                   <div
                     key={demo.id}
-                    className="rounded-2xl border border-[#232b38] bg-[#131923] p-5 shadow-xl"
+                    className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 shadow-xl"
                   >
                     <p className="text-xs font-semibold uppercase tracking-wide text-fuchsia-300">
                       Demo Report
                     </p>
 
-                    <h3 className="mt-2 line-clamp-2 text-lg font-semibold text-white">
+                    <h3 className="mt-2 line-clamp-2 text-lg font-semibold text-[var(--fl-text)]">
                       {demoAddress}
                     </h3>
 
-                    <div className="mt-3 space-y-1 text-xs text-[#8a93a3]">
+                    <div className="mt-3 space-y-1 text-xs text-[var(--fl-muted)]">
                       <p>Demo ID: #{demo.id}</p>
                       <p>Source Report: #{demo.demo_source_inspection_id || "N/A"}</p>
                       <p>Created: {formatDateTime(demo.demo_created_at || demo.created_at)}</p>
@@ -1394,7 +1394,7 @@ export default async function OwnerDashboardPage() {
                     <div className="mt-4 flex flex-wrap gap-2">
                       <FastLinkButton
                         href={demoUrl}
-                        className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-teal-300 transition hover:bg-teal-500/10"
+                        className="rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
                       >
                         View Demo
                       </FastLinkButton>
@@ -1402,7 +1402,7 @@ export default async function OwnerDashboardPage() {
                       <Link
                         href={demoUrl}
                         target="_blank"
-                        className="rounded-lg border border-[#232b38] px-3 py-2 text-xs font-semibold text-[#e8ecf3] transition hover:bg-[#1a212c]"
+                        className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)]"
                       >
                         Open Public Link
                       </Link>
@@ -1420,10 +1420,10 @@ export default async function OwnerDashboardPage() {
           {userManagementRows.length === 0 ? (
             <EmptyState text="No users found." />
           ) : (
-            <div className="min-w-0 overflow-hidden rounded-2xl border border-[#232b38]">
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--fl-line)]">
               <div className="min-w-0 overflow-x-auto">
-                <table className="min-w-full divide-y divide-[#1a212c] text-sm">
-                  <thead className="bg-[#0a0e13] text-left text-xs uppercase tracking-wide text-[#8a93a3]">
+                <table className="min-w-full divide-y divide-[var(--fl-raised)] text-sm">
+                  <thead className="bg-[var(--fl-ground)] text-left text-xs uppercase tracking-wide text-[var(--fl-muted)]">
                     <tr>
                       <th className="px-4 py-3">User</th>
                       <th className="px-4 py-3">Role</th>
@@ -1433,24 +1433,24 @@ export default async function OwnerDashboardPage() {
                       <th className="px-4 py-3">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1a212c] bg-[#131923]">
+                  <tbody className="divide-y divide-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
                     {userManagementRows.map((row) => (
-                      <tr key={row.id} className="hover:bg-[#131923]">
+                      <tr key={row.id} className="hover:bg-[var(--fl-surface-2)]">
                         <td className="px-4 py-4">
                           <div className="max-w-[280px]">
-                            <p className="truncate font-semibold text-white">{row.name}</p>
-                            <p className="mt-1 truncate text-xs text-[#8a93a3]">{row.email || "No email"}</p>
-                            <p className="mt-1 truncate text-[11px] text-[#59626f]">{row.source}</p>
+                            <p className="truncate font-semibold text-[var(--fl-text)]">{row.name}</p>
+                            <p className="mt-1 truncate text-xs text-[var(--fl-muted)]">{row.email || "No email"}</p>
+                            <p className="mt-1 truncate text-[11px] text-[var(--fl-faint)]">{row.source}</p>
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-1 text-xs font-semibold text-teal-300">
+                          <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-1 text-xs font-semibold text-[var(--fl-accent-text)]">
                             {row.role || "user"}
                           </span>
                         </td>
-                        <td className="px-4 py-4 text-right font-semibold text-white">{row.reports}</td>
+                        <td className="px-4 py-4 text-right font-semibold text-[var(--fl-text)]">{row.reports}</td>
                         <td className="px-4 py-4 text-right font-semibold text-green-300">{money(row.revenue)}</td>
-                        <td className="px-4 py-4 text-[#8a93a3]">{formatDateTime(row.lastActivity || row.createdAt)}</td>
+                        <td className="px-4 py-4 text-[var(--fl-muted)]">{formatDateTime(row.lastActivity || row.createdAt)}</td>
                         <td className="px-4 py-4">
                           <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${getUserStatusClass(row)}`}>
                             {getUserStatusLabel(row)}
@@ -1472,10 +1472,10 @@ export default async function OwnerDashboardPage() {
             ) : (
               <div className="space-y-5">
                 {growthRows.map((row) => (
-                  <div key={row.month} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+                  <div key={row.month} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                     <div className="mb-3 flex items-center justify-between gap-4">
-                      <p className="font-semibold text-white">{row.month}</p>
-                      <p className="text-sm text-[#8a93a3]">{money(row.revenue)}</p>
+                      <p className="font-semibold text-[var(--fl-text)]">{row.month}</p>
+                      <p className="text-sm text-[var(--fl-muted)]">{money(row.revenue)}</p>
                     </div>
 
                     <GrowthBar label="Users" value={row.users} max={maxUsers} tone="teal" />
@@ -1490,10 +1490,10 @@ export default async function OwnerDashboardPage() {
           <Panel title="Push Notification Setup" subtitle="Enable browser/app notifications for owner activity alerts.">
             <PushNotificationSetup />
 
-            <div className="mt-5 rounded-xl border border-[#232b38] bg-[#131923] p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">Subscriptions</p>
-              <p className="mt-2 text-3xl font-semibold text-white">{pushSubscriptions.length}</p>
-              <p className="mt-2 text-sm text-[#8a93a3]">Saved browser/device push subscriptions.</p>
+            <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Subscriptions</p>
+              <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{pushSubscriptions.length}</p>
+              <p className="mt-2 text-sm text-[var(--fl-muted)]">Saved browser/device push subscriptions.</p>
             </div>
           </Panel>
         </section>
@@ -1564,7 +1564,7 @@ export default async function OwnerDashboardPage() {
               <MiniStat label="Web" value={String(webPushEnabled.length)} />
               <MiniStat label="Total" value={String(totalPushDevices)} />
             </div>
-            <p className="mt-4 text-sm leading-6 text-[#8a93a3]">
+            <p className="mt-4 text-sm leading-6 text-[var(--fl-muted)]">
               Native push device counts will increase after users install the iOS build with native push enabled and tap Enable Native iOS Push.
             </p>
           </Panel>
@@ -1581,13 +1581,13 @@ export default async function OwnerDashboardPage() {
                   const name = getUserName(row);
 
                   return (
-                    <div key={row?.id || row?.user_id || index} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+                    <div key={row?.id || row?.user_id || index} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-white">{name}</p>
-                          <p className="mt-1 truncate text-sm text-[#8a93a3]">{email}</p>
+                          <p className="truncate font-semibold text-[var(--fl-text)]">{name}</p>
+                          <p className="mt-1 truncate text-sm text-[var(--fl-muted)]">{email}</p>
                         </div>
-                        <p className="shrink-0 text-xs font-bold text-[#59626f]">{formatDate(row?.created_at || row?.inserted_at)}</p>
+                        <p className="shrink-0 text-xs font-bold text-[var(--fl-faint)]">{formatDate(row?.created_at || row?.inserted_at)}</p>
                       </div>
                     </div>
                   );
@@ -1602,16 +1602,16 @@ export default async function OwnerDashboardPage() {
             ) : (
               <div className="space-y-3">
                 {recentEvents.map((event: any, index: number) => (
-                  <div key={event?.id || index} className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
+                  <div key={event?.id || index} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="font-semibold text-white">{getViewType(event) || "activity"}</p>
-                        <p className="mt-1 text-sm text-[#8a93a3]">
+                        <p className="font-semibold text-[var(--fl-text)]">{getViewType(event) || "activity"}</p>
+                        <p className="mt-1 text-sm text-[var(--fl-muted)]">
                           Inspection #{event?.inspection_id_bigint || event?.inspection_id || "N/A"}
                           {event?.viewer_email ? ` • ${event.viewer_email}` : ""}
                         </p>
                       </div>
-                      <p className="text-xs font-bold text-[#59626f]">{formatDateTime(event?.created_at)}</p>
+                      <p className="text-xs font-bold text-[var(--fl-faint)]">{formatDateTime(event?.created_at)}</p>
                     </div>
                   </div>
                 ))}
@@ -1632,7 +1632,7 @@ export default async function OwnerDashboardPage() {
 
 function MetricCard({ label, value, helper, tone }: { label: string; value: string; helper: string; tone: Tone }) {
   const classes: Record<Tone, string> = {
-    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
     green: "border-green-500/40 bg-green-950/20 text-green-300",
     blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
     purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
@@ -1643,41 +1643,41 @@ function MetricCard({ label, value, helper, tone }: { label: string; value: stri
 
   return (
     <div className={`min-w-0 rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">{label}</p>
-      <p className="mt-3 break-words text-4xl font-semibold text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p>
+      <p className="mt-3 break-words text-4xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }
 
 function Panel({ title, subtitle, children, tab }: { title: string; subtitle: string; children: React.ReactNode; tab?: string }) {
   return (
-    <section data-owner-tab={tab} className="min-w-0 rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
+    <section data-owner-tab={tab} className="min-w-0 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+      <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{title}</h2>
+      <p className="mt-2 text-sm text-[var(--fl-muted)]">{subtitle}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">{text}</div>;
+  return <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">{text}</div>;
 }
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#59626f]">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{value}</p>
     </div>
   );
 }
 
 function SimpleRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-[#232b38] bg-[#131923] p-4">
-      <p className="min-w-0 truncate font-bold text-[#e8ecf3]">{label}</p>
-      <p className="shrink-0 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-300">{value}</p>
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+      <p className="min-w-0 truncate font-bold text-[var(--fl-text)]">{label}</p>
+      <p className="shrink-0 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)]">{value}</p>
     </div>
   );
 }
@@ -1689,10 +1689,10 @@ function GrowthBar({ label, value, max, tone, display }: { label: string; value:
   return (
     <div className="mt-3">
       <div className="mb-1 flex justify-between text-xs">
-        <span className="font-bold text-[#8a93a3]">{label}</span>
-        <span className="text-[#8a93a3]">{display || value}</span>
+        <span className="font-bold text-[var(--fl-muted)]">{label}</span>
+        <span className="text-[var(--fl-muted)]">{display || value}</span>
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-[#0a0e13]">
+      <div className="h-3 overflow-hidden rounded-full bg-[var(--fl-ground)]">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
       </div>
     </div>

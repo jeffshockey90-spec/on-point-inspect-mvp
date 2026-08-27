@@ -126,16 +126,16 @@ export default function SendRealtorReportDropdown({
 
   if (!inspections.length) {
     return (
-      <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-5 text-[#8a93a3]">
+      <div className="rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-5 text-[var(--fl-muted)]">
         No inspections are linked to this realtor yet.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-5">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-5">
       <label className="block">
-        <span className="mb-2 block text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <span className="mb-2 block text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
           Select Realtor Inspection
         </span>
 
@@ -146,7 +146,7 @@ export default function SendRealtorReportDropdown({
             clearMessage();
           }}
           disabled={sending}
-          className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 font-bold text-white outline-none focus:border-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 font-bold text-[var(--fl-text)] outline-none focus:border-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <option value="">Choose an inspection...</option>
 
@@ -175,7 +175,7 @@ export default function SendRealtorReportDropdown({
         {selectedInspectionId && (
           <a
             href={`/reports/${selectedInspectionId}`}
-            className="w-full rounded-xl border border-teal-500 px-5 py-3 text-center font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 sm:w-auto [touch-action:manipulation]"
+            className="w-full rounded-xl border border-teal-500 px-5 py-3 text-center font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500/10 sm:w-auto [touch-action:manipulation]"
           >
             Open Selected Report
           </a>

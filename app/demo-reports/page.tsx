@@ -48,11 +48,11 @@ export default async function DemoReportsPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[#0a0e13] p-8 text-white">
+      <main className="min-h-screen bg-[var(--fl-ground)] p-8 text-[var(--fl-text)]">
         <h1 className="text-3xl font-bold text-red-400">
           Error loading demo reports
         </h1>
-        <p className="mt-4 text-[#8a93a3]">{error.message}</p>
+        <p className="mt-4 text-[var(--fl-muted)]">{error.message}</p>
       </main>
     );
   }
@@ -60,7 +60,7 @@ export default async function DemoReportsPage() {
   const rows = inspections || [];
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-7xl">
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -68,7 +68,7 @@ export default async function DemoReportsPage() {
               Demo Reports
             </h1>
 
-            <p className="mt-3 text-[#8a93a3]">
+            <p className="mt-3 text-[var(--fl-muted)]">
               Sample and demo inspections are kept separate from normal saved inspections.
             </p>
           </div>
@@ -93,8 +93,8 @@ export default async function DemoReportsPage() {
         </div>
 
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-[#1a212c] bg-[#131923] p-8">
-            <p className="text-[#8a93a3]">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-8">
+            <p className="text-[var(--fl-muted)]">
               No demo reports found. Use Save As Sample/Demo from a completed report and it will show here.
             </p>
           </div>
@@ -123,9 +123,9 @@ export default async function DemoReportsPage() {
               return (
                 <div
                   key={inspection.id}
-                  className="overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#131923] shadow-xl"
+                  className="overflow-hidden rounded-2xl border border-cyan-500/30 bg-[var(--fl-surface-2)] shadow-xl"
                 >
-                  <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[#0a0e13] text-[#59626f]">
+                  <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[var(--fl-ground)] text-[var(--fl-faint)]">
                     {propertyPhoto ? (
                       <img
                         src={propertyPhoto}
@@ -144,29 +144,29 @@ export default async function DemoReportsPage() {
                   </div>
 
                   <div className="p-6">
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-2xl font-bold text-[var(--fl-text)]">
                       {inspection.property_address || "Untitled Demo Report"}
                     </h2>
 
-                    <p className="mt-3 text-[#8a93a3]">
+                    <p className="mt-3 text-[var(--fl-muted)]">
                       {inspection.city || ""}
                       {inspection.state ? `, ${inspection.state}` : ""}{" "}
                       {inspection.zip || ""}
                     </p>
 
-                    <div className="mt-5 space-y-2 text-sm text-[#8a93a3]">
+                    <div className="mt-5 space-y-2 text-sm text-[var(--fl-muted)]">
                       <p>
-                        <span className="font-bold text-white">Client:</span>{" "}
+                        <span className="font-bold text-[var(--fl-text)]">Client:</span>{" "}
                         {inspection.client_name || "Demo Client"}
                       </p>
 
                       <p>
-                        <span className="font-bold text-white">Realtor:</span>{" "}
+                        <span className="font-bold text-[var(--fl-text)]">Realtor:</span>{" "}
                         {inspection.realtor_name || "N/A"}
                       </p>
 
                       <p>
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-[var(--fl-text)]">
                           Inspection Date:
                         </span>{" "}
                         {inspection.inspection_date || "N/A"}
@@ -185,7 +185,7 @@ export default async function DemoReportsPage() {
                       <FastLinkButton
                         href={`/reports/${inspection.id}`}
                         loadingText="Opening Editor..."
-                        className="rounded-xl border border-[#232b38] px-5 py-3 text-center font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
+                        className="rounded-xl border border-[var(--fl-line)] px-5 py-3 text-center font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
                       >
                         Edit Demo
                       </FastLinkButton>

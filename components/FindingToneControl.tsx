@@ -72,7 +72,7 @@ export default function FindingToneControl({
 
   return (
     <div className={`rounded-xl border border-teal-500/30 bg-teal-950/20 p-3 ${className}`}>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-teal-300">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
         Adjust the tone
       </p>
       <div className="flex flex-wrap gap-2">
@@ -103,7 +103,7 @@ export default function FindingToneControl({
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             placeholder='e.g. "less scary but keep the safety note" or "mention it may be older"'
-            className="flex-1 rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm font-semibold text-[#e8ecf3] placeholder:text-[#59626f]"
+            className="flex-1 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-2 text-sm font-semibold text-[var(--fl-text)] placeholder:text-[var(--fl-faint)]"
           />
           <button
             type="button"
@@ -117,7 +117,7 @@ export default function FindingToneControl({
       )}
 
       {err && <p className="mt-2 text-xs font-bold text-rose-300">{err}</p>}
-      <p className="mt-2 text-[11px] leading-4 text-[#59626f]">
+      <p className="mt-2 text-[11px] leading-4 text-[var(--fl-faint)]">
         Rewrites wording only — it won’t downplay a real safety issue.
       </p>
     </div>

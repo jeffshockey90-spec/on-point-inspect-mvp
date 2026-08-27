@@ -39,7 +39,7 @@ export default function InspectionRouteCard({
   const hasDistance = Boolean(distanceMiles || driveMinutes);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-[#232b38] bg-[#10151e] shadow-xl">
+    <section className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] shadow-xl">
       {embedSrc && (
         <iframe
           src={embedSrc}
@@ -52,21 +52,21 @@ export default function InspectionRouteCard({
 
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Property Location
           </p>
-          <p className="mt-1 break-words text-sm text-[#8a93a3]">{fullAddress}</p>
+          <p className="mt-1 break-words text-sm text-[var(--fl-muted)]">{fullAddress}</p>
 
           {hasDistance ? (
-            <p className="mt-1 text-sm font-semibold text-teal-300">
+            <p className="mt-1 text-sm font-semibold text-[var(--fl-accent-text)]">
               {distanceMiles ? `${distanceMiles} mi` : ""}
               {distanceMiles && driveMinutes ? " · " : ""}
               {driveMinutes ? `~${driveMinutes} min drive` : ""}
             </p>
           ) : officeAddress ? (
-            <p className="mt-1 text-xs text-[#59626f]">Calculating drive distance...</p>
+            <p className="mt-1 text-xs text-[var(--fl-faint)]">Calculating drive distance...</p>
           ) : (
-            <p className="mt-1 text-xs text-[#59626f]">
+            <p className="mt-1 text-xs text-[var(--fl-faint)]">
               Add a starting address in Settings to see drive distance here.
             </p>
           )}

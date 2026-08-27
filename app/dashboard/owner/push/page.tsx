@@ -149,13 +149,13 @@ function getUserKey(row: any) {
 
 function RestrictedOwner() {
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">
           Owner Only
         </p>
         <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
-        <p className="mt-4 text-[#8a93a3]">
+        <p className="mt-4 text-[var(--fl-muted)]">
           This owner tool is only available to the FLOW owner account.
         </p>
         <Link
@@ -174,7 +174,7 @@ function OwnerNav() {
     <div className="flex flex-wrap gap-3">
       <Link
         href="/dashboard/owner"
-        className="rounded-xl border border-teal-500 px-4 py-3 font-semibold text-teal-300 transition hover:bg-teal-500/10"
+        className="rounded-xl border border-teal-500 px-4 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
       >
         Owner
       </Link>
@@ -216,7 +216,7 @@ function OwnerNav() {
       </Link>
       <Link
         href="/dashboard/owner/system"
-        className="rounded-xl border border-[#59626f] px-4 py-3 font-semibold text-[#e8ecf3] transition hover:bg-slate-700/30"
+        className="rounded-xl border border-[var(--fl-faint)] px-4 py-3 font-semibold text-[var(--fl-text)] transition hover:bg-slate-700/30"
       >
         🩺 System
       </Link>
@@ -236,7 +236,7 @@ function MetricCard({
   tone: Tone;
 }) {
   const classes: Record<Tone, string> = {
-    teal: "border-teal-500/40 bg-teal-950/20 text-teal-300",
+    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
     green: "border-green-500/40 bg-green-950/20 text-green-300",
     blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
     purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
@@ -247,11 +247,11 @@ function MetricCard({
 
   return (
     <div className={`rounded-2xl border p-6 shadow-xl ${classes[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-3 text-4xl font-semibold text-white">{value}</p>
-      <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{helper}</p>
+      <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">{helper}</p>
     </div>
   );
 }
@@ -266,9 +266,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[#1a212c] bg-[#10151e] p-6 shadow-xl">
-      <h2 className="text-2xl font-semibold text-teal-300">{title}</h2>
-      <p className="mt-2 text-sm text-[#8a93a3]">{subtitle}</p>
+    <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+      <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{title}</h2>
+      <p className="mt-2 text-sm text-[var(--fl-muted)]">{subtitle}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
@@ -276,7 +276,7 @@ function Panel({
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-[#232b38] bg-[#131923] p-6 text-center text-[#8a93a3]">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">
       {text}
     </div>
   );
@@ -374,18 +374,18 @@ export default async function OwnerPushPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-2xl border border-yellow-500/40 bg-[#10151e] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-yellow-500/40 bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-yellow-400">
                 Owner Push Center
               </p>
-              <h1 className="mt-4 text-5xl font-semibold text-white">
+              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">
                 Broadcasts & Device Notifications
               </h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-[#8a93a3]">
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--fl-muted)]">
                 Send owner-only push announcements to all users, all inspectors,
                 native iOS devices, web devices, or a single user.
               </p>
@@ -446,18 +446,18 @@ export default async function OwnerPushPage() {
               {sentEvents.slice(0, 20).map((event: any, index: number) => (
                 <div
                   key={event?.id || index}
-                  className="rounded-xl border border-[#232b38] bg-[#131923] p-4"
+                  className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="font-semibold text-white">
+                      <p className="font-semibold text-[var(--fl-text)]">
                         {event?.event_type || "push_event"}
                       </p>
-                      <p className="mt-1 text-sm text-[#8a93a3]">
+                      <p className="mt-1 text-sm text-[var(--fl-muted)]">
                         {event?.path || "/dashboard/owner/push"}
                       </p>
                     </div>
-                    <p className="text-xs font-bold text-[#59626f]">
+                    <p className="text-xs font-bold text-[var(--fl-faint)]">
                       {formatDateTime(event?.created_at)}
                     </p>
                   </div>

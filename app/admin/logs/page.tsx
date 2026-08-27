@@ -25,20 +25,20 @@ function LogTable({
   rows: LogRow[] | null;
 }) {
   return (
-    <section className="rounded-2xl border border-teal-800/50 bg-[#131923]/80 p-5 shadow-lg">
-      <h2 className="mb-4 text-xl font-bold text-teal-300">
+    <section className="rounded-2xl border border-teal-800/50 bg-[var(--fl-surface-2)] p-5 shadow-lg">
+      <h2 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">
         {title}
       </h2>
 
       {!rows || rows.length === 0 ? (
-        <p className="text-sm text-[#8a93a3]">
+        <p className="text-sm text-[var(--fl-muted)]">
           No logs yet.
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-[#232b38] text-[#8a93a3]">
+              <tr className="border-b border-[var(--fl-line)] text-[var(--fl-muted)]">
                 <th className="p-2">Date</th>
                 <th className="p-2">ID</th>
                 <th className="p-2">Details</th>
@@ -49,18 +49,18 @@ function LogTable({
               {rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-b border-[#1a212c] align-top text-[#e8ecf3]"
+                  className="border-b border-[var(--fl-raised)] align-top text-[var(--fl-text)]"
                 >
-                  <td className="whitespace-nowrap p-2 text-[#8a93a3]">
+                  <td className="whitespace-nowrap p-2 text-[var(--fl-muted)]">
                     {formatDate(row.created_at)}
                   </td>
 
-                  <td className="p-2 text-[#8a93a3]">
+                  <td className="p-2 text-[var(--fl-muted)]">
                     {row.id}
                   </td>
 
                   <td className="p-2">
-                    <pre className="max-h-56 overflow-auto rounded-xl bg-[#0a0e13] p-3 text-xs text-[#e8ecf3]">
+                    <pre className="max-h-56 overflow-auto rounded-xl bg-[var(--fl-ground)] p-3 text-xs text-[var(--fl-text)]">
                       {JSON.stringify(row, null, 2)}
                     </pre>
                   </td>
@@ -117,18 +117,18 @@ export default async function AdminLogsPage() {
     .limit(25);
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)]">
       <div className="mx-auto max-w-7xl space-y-8">
         <header>
-          <p className="text-sm font-semibold uppercase tracking-wide text-teal-400">
+          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
             Admin
           </p>
 
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-[var(--fl-text)]">
             System Logs
           </h1>
 
-          <p className="mt-2 max-w-3xl text-[#8a93a3]">
+          <p className="mt-2 max-w-3xl text-[var(--fl-muted)]">
             Read-only production logging dashboard for app activity,
             audit trails, emails, Stripe payments, and AI requests.
           </p>

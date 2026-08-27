@@ -13,7 +13,7 @@ type Props = {
 };
 
 const TAB_LABELS: Array<{ key: ShareTab; label: string; tone: string }> = [
-  { key: "summary", label: "Summary", tone: "border-teal-500 text-teal-300" },
+  { key: "summary", label: "Summary", tone: "border-teal-500 text-[var(--fl-accent-text)]" },
   { key: "full", label: "Full Report", tone: "border-cyan-500 text-cyan-300" },
   { key: "disclaimers", label: "Disclaimers", tone: "border-purple-500 text-purple-300" },
   { key: "standards", label: "Standards", tone: "border-sky-500 text-sky-300" },
@@ -137,7 +137,7 @@ export default function ShareReportTabs({
   return (
     <div
       ref={navRef}
-      className="sticky top-0 z-40 mt-8 border-y border-[#232b38] bg-[#10151e]/95 px-3 py-3 backdrop-blur print:hidden"
+      className="sticky top-0 z-40 mt-8 border-y border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-3 backdrop-blur print:hidden"
       aria-label="Report views"
     >
       <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1">

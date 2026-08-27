@@ -368,7 +368,7 @@ export default function NewInspectionPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#050816] p-10 text-white">
+        <main className="min-h-screen bg-[var(--fl-ground)] p-10 text-[var(--fl-text)]">
           Loading...
         </main>
       }
@@ -1336,10 +1336,10 @@ function NewInspectionPageContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050816] px-4 pb-24 pt-6 text-white md:px-8">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 pb-24 pt-6 text-[var(--fl-text)] md:px-8">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-6 rounded-2xl border border-zinc-800 bg-[#10151e] p-5 md:p-8">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-400">
+        <header className="mb-6 rounded-2xl border border-zinc-800 bg-[var(--fl-surface)] p-5 md:p-8">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
             FLOW
           </p>
 
@@ -1351,7 +1351,7 @@ function NewInspectionPageContent() {
         <section className="grid gap-5 lg:grid-cols-2">
           <Card title="Client Info">
             <div className="rounded-xl border border-zinc-800 bg-black/20 p-4">
-              <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-teal-300">
+              <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                 Primary Client
               </p>
 
@@ -1388,7 +1388,7 @@ function NewInspectionPageContent() {
                 className="rounded-xl border border-teal-500/30 bg-teal-500/5 p-4"
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-teal-300">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                     Co-Buyer {index + 1}
                   </p>
 
@@ -1426,7 +1426,7 @@ function NewInspectionPageContent() {
             <button
               type="button"
               onClick={addCoClient}
-              className="w-full rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/20"
+              className="w-full rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
             >
               + Add Co-Buyer
             </button>
@@ -1447,11 +1447,11 @@ function NewInspectionPageContent() {
                 }}
                 onFocus={() => setShowRealtorMatches(true)}
                 placeholder="Start typing realtor name..."
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
               />
 
               {showRealtorMatches && filteredRealtors.length > 0 && (
-                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-zinc-700 bg-[#0a0e13] shadow-2xl">
+                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-zinc-700 bg-[var(--fl-ground)] shadow-2xl">
                   {filteredRealtors.map((realtor) => (
                     <button
                       key={realtor.id}
@@ -1459,7 +1459,7 @@ function NewInspectionPageContent() {
                       onClick={() => selectRealtor(realtor)}
                       className="block w-full border-b border-zinc-800 px-4 py-3 text-left hover:bg-teal-500/10"
                     >
-                      <span className="block font-bold text-white">
+                      <span className="block font-bold text-[var(--fl-text)]">
                         {realtor.name}
                       </span>
                       <span className="mt-1 block text-sm text-zinc-400">
@@ -1499,7 +1499,7 @@ function NewInspectionPageContent() {
                 value={propertyAddress}
                 onChange={(e) => handleAddressInputChange(e.target.value)}
                 placeholder="Start typing property address..."
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
               />
             </div>
 
@@ -1543,7 +1543,7 @@ function NewInspectionPageContent() {
               type="button"
               onClick={runManualPropertyLookup}
               disabled={loadingProperty || !propertyAddress.trim()}
-              className="w-full rounded-xl border border-teal-500/60 bg-teal-500/10 px-4 py-3 font-semibold text-teal-300 hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-xl border border-teal-500/60 bg-teal-500/10 px-4 py-3 font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loadingProperty ? "Looking Up Property..." : "Lookup Property Info"}
             </button>
@@ -1566,7 +1566,7 @@ function NewInspectionPageContent() {
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-wide text-teal-300">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                     Property Photo
                   </p>
                   <p className="mt-1 text-xs leading-5 text-zinc-400">
@@ -1574,7 +1574,7 @@ function NewInspectionPageContent() {
                   </p>
                 </div>
 
-                <label className="inline-flex cursor-pointer rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/20">
+                <label className="inline-flex cursor-pointer rounded-xl border border-teal-500/50 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20">
                   {propertyPhotoUploading
                     ? "Uploading..."
                     : propertyImage
@@ -1611,7 +1611,7 @@ function NewInspectionPageContent() {
                   }`}
                 >
                   <span className="text-3xl">📷</span>
-                  <span className="mt-2 block font-semibold text-teal-300">
+                  <span className="mt-2 block font-semibold text-[var(--fl-accent-text)]">
                     {propertyPhotoUploading ? "Uploading property photo..." : "Drop or upload property photo"}
                   </span>
                   <span className="mt-1 block text-xs text-zinc-400">
@@ -1658,8 +1658,8 @@ function NewInspectionPageContent() {
           </Card>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#10151e] p-5">
-          <h2 className="mb-1 text-xl font-bold text-teal-400">Additional Services</h2>
+        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[var(--fl-surface)] p-5">
+          <h2 className="mb-1 text-xl font-bold text-[var(--fl-accent-text)]">Additional Services</h2>
           <p className="mb-4 text-sm text-zinc-400">
             Add any other paid service (sewer scope, termite, water quality, etc.) with its own
             price. Each one attaches its matching agreement and shows its own fee on the agreement
@@ -1684,7 +1684,7 @@ function NewInspectionPageContent() {
                           const value = e.target.value;
                           updateAddonService(addon.id, { type: value, ...addonDefaultsFor(value) });
                         }}
-                        className="w-full rounded-xl border border-zinc-700 bg-[#10151e] px-3 py-2.5 text-white outline-none focus:border-teal-400"
+                        className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface)] px-3 py-2.5 text-[var(--fl-text)] outline-none focus:border-teal-400"
                       >
                         {addonOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -1697,7 +1697,7 @@ function NewInspectionPageContent() {
                           value={addon.label}
                           onChange={(e) => updateAddonService(addon.id, { label: e.target.value })}
                           placeholder="Service name (e.g. Well Flow Test)"
-                          className="mt-2 w-full rounded-xl border border-zinc-700 bg-[#10151e] px-3 py-2.5 text-white outline-none placeholder:text-zinc-500 focus:border-teal-400"
+                          className="mt-2 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface)] px-3 py-2.5 text-[var(--fl-text)] outline-none placeholder:text-zinc-500 focus:border-teal-400"
                         />
                       )}
                     </div>
@@ -1706,7 +1706,7 @@ function NewInspectionPageContent() {
                       <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-zinc-500">
                         Price
                       </label>
-                      <div className="flex items-center rounded-xl border border-zinc-700 bg-[#10151e] px-3">
+                      <div className="flex items-center rounded-xl border border-zinc-700 bg-[var(--fl-surface)] px-3">
                         <span className="text-zinc-400">$</span>
                         <input
                           inputMode="decimal"
@@ -1717,7 +1717,7 @@ function NewInspectionPageContent() {
                             })
                           }
                           placeholder="0"
-                          className="w-24 bg-transparent px-2 py-2.5 text-white outline-none placeholder:text-zinc-500"
+                          className="w-24 bg-transparent px-2 py-2.5 text-[var(--fl-text)] outline-none placeholder:text-zinc-500"
                         />
                       </div>
                     </div>
@@ -1738,22 +1738,22 @@ function NewInspectionPageContent() {
           <button
             type="button"
             onClick={addAddonService}
-            className="mt-3 rounded-xl border border-teal-500/60 px-4 py-2.5 text-sm font-semibold text-teal-300 hover:bg-teal-500/10"
+            className="mt-3 rounded-xl border border-teal-500/60 px-4 py-2.5 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
           >
             + Add service
           </button>
 
           {addonTotal > 0 && (
             <p className="mt-3 text-sm text-zinc-300">
-              Add-ons: <span className="font-bold text-white">${addonTotal.toFixed(2)}</span> ·
+              Add-ons: <span className="font-bold text-[var(--fl-text)]">${addonTotal.toFixed(2)}</span> ·
               Grand total:{" "}
-              <span className="font-semibold text-teal-300">${grandTotal.toFixed(2)}</span>
+              <span className="font-semibold text-[var(--fl-accent-text)]">${grandTotal.toFixed(2)}</span>
             </p>
           )}
         </section>
 
-        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#10151e] p-5">
-          <h2 className="mb-4 text-xl font-bold text-teal-400">Agreement</h2>
+        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[var(--fl-surface)] p-5">
+          <h2 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">Agreement</h2>
 
           <p className="mb-4 text-sm text-zinc-400">
             This will be emailed to the client automatically once the inspection is created. The
@@ -1779,8 +1779,8 @@ function NewInspectionPageContent() {
           />
         </section>
 
-        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[#10151e] p-5">
-          <h2 className="mb-4 text-xl font-bold text-teal-400">
+        <section className="mt-6 rounded-2xl border border-zinc-800 bg-[var(--fl-surface)] p-5">
+          <h2 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">
             Schedule + Quote
           </h2>
 
@@ -1793,7 +1793,7 @@ function NewInspectionPageContent() {
               <select
                 value={inspectionDate}
                 onChange={(e) => setInspectionDate(e.target.value)}
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
               >
                 <option value="">Select Date</option>
 
@@ -1827,7 +1827,7 @@ function NewInspectionPageContent() {
               <select
                 value={inspectionTime}
                 onChange={(e) => setInspectionTime(e.target.value)}
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
               >
                 <option value="">Select Time</option>
 
@@ -1846,7 +1846,7 @@ function NewInspectionPageContent() {
               <select
                 value={serviceMode}
                 onChange={(e) => setServiceMode(e.target.value as ServiceMode)}
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
               >
                 {serviceTypeOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -1918,7 +1918,7 @@ function NewInspectionPageContent() {
                 <p className="text-sm font-bold uppercase tracking-wide text-zinc-400">
                   {priceOverridden ? "Custom Price" : "Auto Pricing"}
                 </p>
-                <p className="mt-2 text-4xl font-semibold text-teal-300">
+                <p className="mt-2 text-4xl font-semibold text-[var(--fl-accent-text)]">
                   ${effectiveTotal}
                 </p>
               </div>
@@ -1926,7 +1926,7 @@ function NewInspectionPageContent() {
                 <button
                   type="button"
                   onClick={() => setPriceOverridden(false)}
-                  className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-semibold text-teal-200 transition hover:bg-teal-500/10"
+                  className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
                 >
                   Reset to auto (${quote.total})
                 </button>
@@ -1940,10 +1940,10 @@ function NewInspectionPageContent() {
               <p>Mold Surface Samples: ${quote.moldSurfaceFee}</p>
               <p>Travel Fee: ${quote.travelFee}</p>
               <p>Discount: -${quote.discount}</p>
-              <p className="font-bold text-white">Total: ${effectiveTotal}</p>
+              <p className="font-bold text-[var(--fl-text)]">Total: ${effectiveTotal}</p>
             </div>
             {priceOverridden && (
-              <p className="mt-3 text-xs text-teal-200/80">
+              <p className="mt-3 text-xs text-[var(--fl-accent-text)]">
                 Using your custom price
                 {quote.discount > 0
                   ? ` of $${Number(price) || 0}, minus the $${quote.discount} discount`
@@ -1966,7 +1966,7 @@ function NewInspectionPageContent() {
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
             placeholder="Notes"
-            className="mt-4 w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white"
+            className="mt-4 w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
           />
         </section>
 
@@ -1981,12 +1981,12 @@ function NewInspectionPageContent() {
 
       {showBillingPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-teal-500 bg-[#10151e] p-6 shadow-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-400">
+          <div className="w-full max-w-lg rounded-2xl border border-teal-500 bg-[var(--fl-surface)] p-6 shadow-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
               FLOW Billing
             </p>
 
-            <h2 className="mt-3 text-3xl font-semibold text-white">
+            <h2 className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">
               Your Trial Has Ended
             </h2>
 
@@ -2013,7 +2013,7 @@ function NewInspectionPageContent() {
               <button
                 type="button"
                 onClick={() => setShowBillingPopup(false)}
-                className="rounded-xl border border-zinc-700 px-4 py-3 font-semibold text-white hover:bg-zinc-800"
+                className="rounded-xl border border-zinc-700 px-4 py-3 font-semibold text-[var(--fl-text)] hover:bg-zinc-800"
               >
                 Close
               </button>
@@ -2033,8 +2033,8 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-[#10151e] p-5">
-      <h2 className="mb-4 text-xl font-bold text-teal-400">{title}</h2>
+    <div className="rounded-2xl border border-zinc-800 bg-[var(--fl-surface)] p-5">
+      <h2 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">{title}</h2>
       <div className="space-y-4">{children}</div>
     </div>
   );
@@ -2094,7 +2094,7 @@ function Input({
           : "number"
       }
       min="0"
-      className={`w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white ${className}`}
+      className={`w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)] ${className}`}
     />
   );
 }

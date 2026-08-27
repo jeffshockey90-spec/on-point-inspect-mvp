@@ -21,7 +21,7 @@ export default function GlobalError({
       <body>
         <main style={{
           minHeight: "100vh",
-          background: "#0a0e13",
+          background: "var(--fl-ground)",
           color: "white",
           display: "flex",
           alignItems: "center",
@@ -33,7 +33,7 @@ export default function GlobalError({
             width: "100%",
             maxWidth: "720px",
             border: "1px solid rgba(239, 68, 68, 0.45)",
-            background: "#10151e",
+            background: "var(--fl-surface)",
             borderRadius: "16px",
             padding: "32px",
           }}>
@@ -82,7 +82,7 @@ export default function GlobalError({
                 border: "0",
                 borderRadius: "12px",
                 background: "#14b8a6",
-                color: "#020617",
+                color: "var(--fl-ground)",
                 padding: "14px 20px",
                 fontWeight: 900,
                 cursor: "pointer",

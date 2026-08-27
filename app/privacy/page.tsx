@@ -1,16 +1,16 @@
 export default function PrivacyPolicyPage() {
   return (
-    <main className="min-h-screen bg-[#0a0e13] text-[#e8ecf3] px-6 py-10">
-      <div className="mx-auto max-w-5xl rounded-2xl border border-teal-700/40 bg-[#131923] p-8 shadow-xl">
-        <h1 className="text-4xl font-bold text-teal-300 mb-4">
+    <main className="min-h-screen bg-[var(--fl-ground)] text-[var(--fl-text)] px-6 py-10">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-teal-700/40 bg-[var(--fl-surface-2)] p-8 shadow-xl">
+        <h1 className="text-4xl font-bold text-[var(--fl-accent-text)] mb-4">
           Privacy Policy
         </h1>
 
-        <p className="text-sm text-[#8a93a3] mb-8">
+        <p className="text-sm text-[var(--fl-muted)] mb-8">
           Last Updated: August 7, 2026
         </p>
 
-        <div className="space-y-6 text-[#e8ecf3] leading-7">
+        <div className="space-y-6 text-[var(--fl-text)] leading-7">
           <p>
             FLOW ("Platform", "we", "our", or "us") provides
             software tools for home inspectors and inspection companies to
@@ -18,7 +18,7 @@ export default function PrivacyPolicyPage() {
             communications, photos, analytics, and related business operations.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             1. Information We Collect
           </h2>
 
@@ -35,7 +35,7 @@ export default function PrivacyPolicyPage() {
             <li>Device and browser information</li>
           </ul>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             2. How We Use Information
           </h2>
 
@@ -46,7 +46,7 @@ export default function PrivacyPolicyPage() {
             legal obligations.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             3. Payment Processing
           </h2>
 
@@ -55,7 +55,7 @@ export default function PrivacyPolicyPage() {
             card information.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             4. Data Sharing
           </h2>
 
@@ -65,7 +65,7 @@ export default function PrivacyPolicyPage() {
             providers, or legal authorities when required by law.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             5. SMS / Text Message Communications
           </h2>
 
@@ -98,7 +98,7 @@ export default function PrivacyPolicyPage() {
             messages described above.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             6. Data Security
           </h2>
 
@@ -108,7 +108,7 @@ export default function PrivacyPolicyPage() {
             security.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             7. Account Privacy
           </h2>
 
@@ -118,7 +118,7 @@ export default function PrivacyPolicyPage() {
             and related records.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             8. Data Retention
           </h2>
 
@@ -128,7 +128,7 @@ export default function PrivacyPolicyPage() {
             with legal obligations.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             9. Account Deletion
           </h2>
 
@@ -139,7 +139,7 @@ export default function PrivacyPolicyPage() {
             resolution obligations.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             10. Third-Party Services
           </h2>
 
@@ -150,7 +150,7 @@ export default function PrivacyPolicyPage() {
             third-party services.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             11. Children
           </h2>
 
@@ -158,7 +158,7 @@ export default function PrivacyPolicyPage() {
             The Platform is not intended for children under 13 years of age.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             12. Changes
           </h2>
 
@@ -167,7 +167,7 @@ export default function PrivacyPolicyPage() {
             Platform constitutes acceptance of any updates.
           </p>
 
-          <h2 className="text-xl font-bold text-teal-300">
+          <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
             13. Contact
           </h2>
 

@@ -218,7 +218,7 @@ export default function SendFullReportButton({ inspectionId }: Props) {
             clearMessage();
           }}
           disabled={sending}
-          className="ml-0 inline-flex w-full items-center justify-center rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#8a93a3] hover:bg-[#1a212c] disabled:opacity-60 sm:ml-2 sm:w-auto"
+          className="ml-0 inline-flex w-full items-center justify-center rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] disabled:opacity-60 sm:ml-2 sm:w-auto"
         >
           Cancel Override
         </button>

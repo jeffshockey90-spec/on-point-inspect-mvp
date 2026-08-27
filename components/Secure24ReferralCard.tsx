@@ -80,7 +80,7 @@ export default function Secure24ReferralCard({
           <ShieldCheck className="h-6 w-6 shrink-0 text-emerald-400" />
           <div>
             <p className="font-semibold text-emerald-300">Request sent</p>
-            <p className="mt-1 text-sm text-[#8a93a3]">
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
               Thanks — {SECURE24_BRAND} will reach out to you about home security.
             </p>
           </div>
@@ -90,21 +90,21 @@ export default function Secure24ReferralCard({
   }
 
   return (
-    <section className="mt-10 rounded-2xl border border-[#232b38] bg-[#131923]/40 p-6">
+    <section className="mt-10 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6">
       <div className="flex items-start gap-3">
-        <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-teal-400" />
+        <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-[var(--fl-accent-text)]" />
         <div className="min-w-0">
-          <h3 className="text-lg font-semibold text-white">{SECURE24_HEADLINE}</h3>
-          <p className="mt-1 text-sm leading-6 text-[#8a93a3]">{SECURE24_BLURB}</p>
+          <h3 className="text-lg font-semibold text-[var(--fl-text)]">{SECURE24_HEADLINE}</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">{SECURE24_BLURB}</p>
 
           <label className="mt-4 flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
-              className="mt-1 h-4 w-4 shrink-0 rounded border-[#59626f] bg-[#1a212c] accent-teal-500"
+              className="mt-1 h-4 w-4 shrink-0 rounded border-[var(--fl-faint)] bg-[var(--fl-raised)] accent-teal-500"
             />
-            <span className="text-xs leading-5 text-[#8a93a3]">{SECURE24_CONSENT_TEXT}</span>
+            <span className="text-xs leading-5 text-[var(--fl-muted)]">{SECURE24_CONSENT_TEXT}</span>
           </label>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -116,7 +116,7 @@ export default function Secure24ReferralCard({
             >
               {status === "sending" ? "Sending…" : "Request a call"}
             </button>
-            <span className="text-xs text-[#59626f]">
+            <span className="text-xs text-[var(--fl-faint)]">
               Not interested? Just ignore this — nothing is sent unless you ask.
             </span>
           </div>

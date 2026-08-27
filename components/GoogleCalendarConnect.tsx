@@ -58,12 +58,12 @@ export default function GoogleCalendarConnect() {
   }
 
   return (
-    <div className="rounded-2xl border border-[#232b38] bg-[#131923]/40 p-5">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
       <div className="flex items-start gap-3">
         <Calendar className="mt-0.5 h-6 w-6 shrink-0 text-cyan-300" />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-white">Google Calendar</p>
-          <p className="mt-1 max-w-xl text-sm leading-6 text-[#8a93a3]">
+          <p className="font-semibold text-[var(--fl-text)]">Google Calendar</p>
+          <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--fl-muted)]">
             Push your scheduled inspections onto your Google Calendar so they show up alongside
             everything else. Re-syncing updates existing events instead of duplicating them.
           </p>
@@ -94,12 +94,12 @@ export default function GoogleCalendarConnect() {
                   type="button"
                   onClick={disconnect}
                   disabled={busy}
-                  className="rounded-xl border border-[#232b38] px-4 py-2.5 text-sm font-semibold text-[#8a93a3] transition hover:border-red-400 hover:text-red-300 disabled:opacity-50"
+                  className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-red-300 disabled:opacity-50"
                 >
                   Disconnect
                 </button>
               </div>
-              {syncMsg && <p className="mt-3 text-sm font-bold text-[#8a93a3]">{syncMsg}</p>}
+              {syncMsg && <p className="mt-3 text-sm font-bold text-[var(--fl-muted)]">{syncMsg}</p>}
             </div>
           ) : status && !status.configured ? (
             <p className="mt-4 text-sm text-amber-300">

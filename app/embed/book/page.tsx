@@ -19,7 +19,7 @@ export default async function EmbedBookPage({
   const availability = await getBookingAvailability(company?.id || null);
 
   return (
-    <main className="p-3 text-white">
+    <main className="p-3 text-[var(--fl-text)]">
       <EmbedAutoHeight />
       <BookingRequestForm
         companySlug={companySlug}

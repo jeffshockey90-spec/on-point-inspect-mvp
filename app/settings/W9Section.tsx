@@ -38,9 +38,9 @@ function HistoryRow({ entry, isCurrent }: { entry: HistoryEntry; isCurrent: bool
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-[#1a212c] bg-[#0a0e13] px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--fl-raised)] bg-[var(--fl-ground)] px-3 py-2">
       <div>
-        <p className="text-xs font-bold text-[#e8ecf3]">
+        <p className="text-xs font-bold text-[var(--fl-text)]">
           {new Date(entry.created_at).toLocaleString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
           {isCurrent && (
             <span className="ml-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-300">
@@ -54,7 +54,7 @@ function HistoryRow({ entry, isCurrent }: { entry: HistoryEntry; isCurrent: bool
         type="button"
         onClick={view}
         disabled={viewing}
-        className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-bold text-teal-300 hover:bg-teal-500/10 disabled:opacity-60"
+        className="shrink-0 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10 disabled:opacity-60"
       >
         {viewing ? "Opening..." : "View"}
       </button>
@@ -103,8 +103,8 @@ export default function W9Section({
       />
 
       {history.length > 0 && (
-        <div className="rounded-xl border border-[#232b38] bg-[#0a0e13] p-4">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             W9 History ({history.length})
           </p>
           <div className="space-y-2">

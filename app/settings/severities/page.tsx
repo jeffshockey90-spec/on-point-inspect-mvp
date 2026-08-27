@@ -23,15 +23,15 @@ export default async function SeveritySettingsPage() {
   if (!ownerMembership) redirect("/settings");
 
   return (
-    <main className="min-h-screen bg-[#0a0e13] px-4 py-8 text-white md:px-6 md:py-10">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
-          <Link href="/settings" className="text-sm font-bold text-[#8a93a3] hover:text-teal-300">
+          <Link href="/settings" className="text-sm font-bold text-[var(--fl-muted)] hover:text-[var(--fl-accent-text)]">
             ← Settings
           </Link>
-          <p className="mt-4 text-sm font-semibold uppercase tracking-[0.3em] text-teal-300">Report</p>
+          <p className="mt-4 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">Report</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Severity Levels</h1>
-          <p className="mt-4 max-w-2xl text-[#8a93a3]">
+          <p className="mt-4 max-w-2xl text-[var(--fl-muted)]">
             Rename the severity levels, recolor them, reorder them (top = least serious), and add
             your own. Your names and colors show across every report, the client view, and the PDF.
             Mark a level as a <strong>safety/critical concern</strong> so it still counts toward

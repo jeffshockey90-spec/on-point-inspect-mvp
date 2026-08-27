@@ -316,11 +316,11 @@ export default function InspectorAvailabilitySettings() {
   return (
     <section className="mb-6 rounded-2xl border border-teal-500/30 bg-teal-950/10 p-5 sm:p-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
           Public Scheduling
         </p>
 
-        <h2 className="mt-2 text-xl font-semibold text-teal-200 sm:text-2xl">
+        <h2 className="mt-2 text-xl font-semibold text-[var(--fl-accent-text)] sm:text-2xl">
           Booking Availability
         </h2>
 
@@ -443,13 +443,13 @@ export default function InspectorAvailabilitySettings() {
                       addTime();
                     }
                   }}
-                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-white outline-none transition focus:border-teal-400 sm:max-w-xs"
+                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-[var(--fl-text)] outline-none transition focus:border-teal-400 sm:max-w-xs"
                 />
 
                 <button
                   type="button"
                   onClick={addTime}
-                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10"
+                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
                 >
                   + Add Time
                 </button>
@@ -460,7 +460,7 @@ export default function InspectorAvailabilitySettings() {
                   defaultTimes.map((time) => (
                     <div
                       key={time}
-                      className="inline-flex items-center gap-2 rounded-full border border-teal-500/40 bg-teal-500/10 py-2 pl-4 pr-2 text-sm font-semibold text-teal-200"
+                      className="inline-flex items-center gap-2 rounded-full border border-teal-500/40 bg-teal-500/10 py-2 pl-4 pr-2 text-sm font-semibold text-[var(--fl-accent-text)]"
                     >
                       <span>{formatTime(time, timeFormat)}</span>
                       <button
@@ -505,13 +505,13 @@ export default function InspectorAvailabilitySettings() {
                       addBlockedDate();
                     }
                   }}
-                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-white outline-none transition focus:border-teal-400 sm:max-w-xs"
+                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-[var(--fl-text)] outline-none transition focus:border-teal-400 sm:max-w-xs"
                 />
 
                 <button
                   type="button"
                   onClick={addBlockedDate}
-                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/10"
+                  className="min-h-12 rounded-xl border border-teal-500/60 px-5 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
                 >
                   + Block Date
                 </button>
@@ -525,7 +525,7 @@ export default function InspectorAvailabilitySettings() {
                       className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/80 px-4 py-3"
                     >
                       <div className="min-w-0">
-                        <p className="font-semibold text-white">
+                        <p className="font-semibold text-[var(--fl-text)]">
                           {formatDate(date, timeZone)}
                         </p>
                         <p className="mt-1 text-xs text-zinc-500">{date}</p>

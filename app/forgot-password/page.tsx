@@ -34,14 +34,14 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050816] p-6">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--fl-ground)] p-6">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-[-12%] h-[440px] w-[600px] -translate-x-1/2 rounded-full bg-teal-500/20 blur-[140px]" />
         <div className="absolute bottom-[-18%] right-[-8%] h-[380px] w-[440px] rounded-full bg-cyan-500/10 blur-[130px]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(20,200,210,0.10),transparent_55%)]" />
       </div>
 
-      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#131923] p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] p-8 shadow-[0_28px_90px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         <div className="flex justify-center">
           <img
             src="/flow-logo-mark.png"
@@ -50,21 +50,21 @@ export default function ForgotPasswordPage() {
           />
         </div>
 
-        <p className="mt-3 text-center text-lg font-semibold text-white">
+        <p className="mt-3 text-center text-lg font-semibold text-[var(--fl-text)]">
           Reset your password
         </p>
 
         {sent ? (
           <div className="mt-6 space-y-4">
-            <div className="rounded-lg border border-teal-800 bg-teal-950 p-3 text-sm text-teal-300">
+            <div className="rounded-lg border border-teal-800 bg-teal-950 p-3 text-sm text-[var(--fl-accent-text)]">
               If an account exists for {cleanedEmailDisplay(email)}, we&apos;ve sent a
               password reset link. Check your inbox (and spam folder).
             </div>
 
-            <p className="text-center text-sm text-[#8a93a3]">
+            <p className="text-center text-sm text-[var(--fl-muted)]">
               <a
                 href="/login"
-                className="text-teal-400 hover:underline"
+                className="text-[var(--fl-accent-text)] hover:underline"
               >
                 Back to sign in
               </a>
@@ -75,13 +75,13 @@ export default function ForgotPasswordPage() {
             onSubmit={handleSubmit}
             className="mt-6 space-y-4"
           >
-            <p className="text-sm text-[#8a93a3]">
+            <p className="text-sm text-[var(--fl-muted)]">
               Enter the email address on your account and we&apos;ll send you a
               link to reset your password.
             </p>
 
             <div>
-              <label className="text-sm text-[#8a93a3]">
+              <label className="text-sm text-[var(--fl-muted)]">
                 Email
               </label>
 
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-[#232b38] bg-[#131923] px-4 py-3.5 text-white outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
+                className="mt-1.5 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3.5 text-[var(--fl-text)] outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20"
               />
             </div>
 
@@ -108,10 +108,10 @@ export default function ForgotPasswordPage() {
               {loading ? "Sending..." : "Send Reset Link"}
             </button>
 
-            <p className="text-center text-sm text-[#8a93a3]">
+            <p className="text-center text-sm text-[var(--fl-muted)]">
               <a
                 href="/login"
-                className="text-teal-400 hover:underline"
+                className="text-[var(--fl-accent-text)] hover:underline"
               >
                 Back to sign in
               </a>

@@ -104,7 +104,7 @@ export default function PushAlertsPanel() {
   }
 
   return (
-    <section className="rounded-2xl border border-[#1a212c] bg-gradient-to-br from-[#10151e] to-[#10151e] p-5 shadow-xl sm:p-6 md:p-8">
+    <section className="rounded-2xl border border-[var(--fl-raised)] bg-gradient-to-br from-[var(--fl-surface)] to-[var(--fl-surface)] p-5 shadow-xl sm:p-6 md:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-300">
@@ -114,8 +114,8 @@ export default function PushAlertsPanel() {
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-indigo-300">
               Notifications
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">Push Alerts</h2>
-            <p className="mt-1 text-sm text-[#8a93a3]">
+            <h2 className="mt-2 text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">Push Alerts</h2>
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
               {TOTAL} alerts wired up. Tap Test to send any one to your own devices.
             </p>
           </div>
@@ -140,21 +140,21 @@ export default function PushAlertsPanel() {
       <div className="mt-5 space-y-5">
         {CATALOG.map((g) => (
           <div key={g.group}>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#59626f]">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
               {g.group}
             </p>
-            <div className="overflow-hidden rounded-xl border border-[#232b38]">
-              <div className="divide-y divide-[#1a212c]">
+            <div className="overflow-hidden rounded-xl border border-[var(--fl-line)]">
+              <div className="divide-y divide-[var(--fl-raised)]">
                 {g.items.map((a) => {
                   const state = results[a.eventType];
                   return (
                     <div
                       key={a.eventType}
-                      className="flex items-center justify-between gap-3 bg-[#0a0e13]/50 px-3 py-2.5"
+                      className="flex items-center justify-between gap-3 bg-[var(--fl-ground)] px-3 py-2.5"
                     >
                       <div className="min-w-0">
-                        <p className="truncate font-bold text-white">{a.label}</p>
-                        <p className="truncate text-xs text-[#59626f]">Fires when {a.when}.</p>
+                        <p className="truncate font-bold text-[var(--fl-text)]">{a.label}</p>
+                        <p className="truncate text-xs text-[var(--fl-faint)]">Fires when {a.when}.</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {state === "ok" && <span className="text-xs font-bold text-emerald-400">Sent ✓</span>}
@@ -177,7 +177,7 @@ export default function PushAlertsPanel() {
         ))}
       </div>
 
-      <p className="mt-4 text-xs text-[#59626f]">
+      <p className="mt-4 text-xs text-[var(--fl-faint)]">
         Tests go only to your own devices. If nothing arrives, enable push on this device with the
         &ldquo;Enable notifications&rdquo; button above.
       </p>

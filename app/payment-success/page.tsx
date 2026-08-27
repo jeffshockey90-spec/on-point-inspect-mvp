@@ -303,21 +303,21 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#0a0e13] p-6 text-white">
-      <section className="w-full max-w-2xl rounded-2xl border border-[#1a212c] bg-[#10151e] p-8 shadow-xl">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
+      <section className="w-full max-w-2xl rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-xl">
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
           FLOW
         </p>
 
-        <h1 className="mt-4 text-4xl font-semibold text-white">
+        <h1 className="mt-4 text-4xl font-semibold text-[var(--fl-text)]">
           {paid ? "Payment Successful" : "Payment Verification"}
         </h1>
 
-        <p className="mt-4 text-lg leading-8 text-[#8a93a3]">{message}</p>
+        <p className="mt-4 text-lg leading-8 text-[var(--fl-muted)]">{message}</p>
 
         {paid && (
-          <div className="mt-6 space-y-3 rounded-xl border border-[#232b38] bg-[#131923] p-5">
-            <p className="font-bold text-white">
+          <div className="mt-6 space-y-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
+            <p className="font-bold text-[var(--fl-text)]">
               Inspection Balance Paid: {money(balancePaid)}
             </p>
 
@@ -330,7 +330,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
             </p>
 
             {verifiedStripeAccount && (
-              <p className="break-all text-xs text-[#59626f]">
+              <p className="break-all text-xs text-[var(--fl-faint)]">
                 Paid through inspector Stripe account: {verifiedStripeAccount}
               </p>
             )}
@@ -349,7 +349,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
 
           <Link
             href="/dashboard"
-            className="w-full rounded-xl border border-[#232b38] px-6 py-3 text-center font-bold text-[#e8ecf3] hover:bg-[#1a212c] sm:w-auto"
+            className="w-full rounded-xl border border-[var(--fl-line)] px-6 py-3 text-center font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] sm:w-auto"
           >
             Dashboard
           </Link>

@@ -104,7 +104,7 @@ export default function SettingsSectionTabs({
     <div className="lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-8">
       {/* Mobile / tablet: horizontal scroll strip */}
       <div
-        className="sticky top-0 z-40 -mx-3 border-y border-[#232b38] bg-[#10151e]/95 px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border lg:hidden"
+        className="sticky top-0 z-40 -mx-3 border-y border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border lg:hidden"
         aria-label="Settings sections"
       >
         <div className="-mx-3 flex gap-2 overflow-x-auto overscroll-x-contain px-3 pb-1 pr-6 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:px-0">
@@ -120,7 +120,7 @@ export default function SettingsSectionTabs({
                 className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-semibold transition duration-100 active:scale-[0.98] [touch-action:manipulation] ${
                   active
                     ? "border-[#1ac5b4] bg-[#1ac5b4] text-[#06120f]"
-                    : "border-[#232b38] bg-[#131923] text-[#e8ecf3]"
+                    : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
                 }`}
               >
                 {label}
@@ -136,7 +136,7 @@ export default function SettingsSectionTabs({
           {groups.map((group) => (
             <div key={group.name || "_"}>
               {group.name ? (
-                <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#59626f]">
+                <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--fl-faint)]">
                   {group.name}
                 </p>
               ) : null}
@@ -152,8 +152,8 @@ export default function SettingsSectionTabs({
                       aria-pressed={active}
                       className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${
                         active
-                          ? "bg-[#1ac5b4]/[0.12] text-white"
-                          : "text-[#8a93a3] hover:bg-white/[0.04] hover:text-[#e8ecf3]"
+                          ? "bg-[#1ac5b4]/[0.12] text-[var(--fl-text)]"
+                          : "text-[var(--fl-muted)] hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
                       }`}
                     >
                       <span

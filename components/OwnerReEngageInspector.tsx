@@ -150,7 +150,7 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
     <div className="space-y-3 rounded-xl border border-orange-500/40 bg-orange-950/10 p-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wide text-orange-300">Re-engage by email</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-xs font-bold text-[#8a93a3] hover:text-[#e8ecf3]">
+        <button type="button" onClick={() => setOpen(false)} className="text-xs font-bold text-[var(--fl-muted)] hover:text-[var(--fl-text)]">
           Close
         </button>
       </div>
@@ -158,7 +158,7 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
       <select
         value={templateId}
         onChange={(e) => pick(e.target.value)}
-        className="w-full rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm text-white outline-none focus:border-orange-400"
+        className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-orange-400"
       >
         <option value="">Choose a message…</option>
         {TEMPLATES.map((t) => (
@@ -174,17 +174,17 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Subject"
-            className="w-full rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm text-white outline-none focus:border-orange-400"
+            className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-orange-400"
           />
           <textarea
             value={loading ? "Loading your latest updates…" : body}
             onChange={(e) => setBody(e.target.value)}
             rows={13}
             placeholder="Message"
-            className="w-full rounded-lg border border-[#232b38] bg-[#10151e] px-3 py-2 text-sm leading-6 text-white outline-none focus:border-orange-400"
+            className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-2 text-sm leading-6 text-[var(--fl-text)] outline-none focus:border-orange-400"
           />
-          <p className="text-[11px] text-[#59626f]">
-            Sends from FLOW to <span className="font-bold text-[#8a93a3]">{email}</span>; replies come back to you. An
+          <p className="text-[11px] text-[var(--fl-faint)]">
+            Sends from FLOW to <span className="font-bold text-[var(--fl-muted)]">{email}</span>; replies come back to you. An
             &quot;Open FLOW&quot; button is added automatically.
           </p>
           <button

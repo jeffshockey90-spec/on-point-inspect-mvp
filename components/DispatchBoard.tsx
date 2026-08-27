@@ -78,13 +78,13 @@ export default function DispatchBoard({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <label className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
+        <label className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
           Filter by inspector
         </label>
         <select
           value={filterInspectorId}
           onChange={(event) => setFilterInspectorId(event.target.value)}
-          className="rounded-xl border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-sm font-bold text-white outline-none focus:border-teal-400"
+          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm font-bold text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           <option value="all">All Inspectors</option>
           {teamMembers.map((member) => (
@@ -102,7 +102,7 @@ export default function DispatchBoard({
       )}
 
       {visibleRows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#232b38] bg-[#131923] p-6 text-center text-sm text-[#8a93a3]">
+        <div className="rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-sm text-[var(--fl-muted)]">
           No inspections match this filter.
         </div>
       ) : (
@@ -110,30 +110,30 @@ export default function DispatchBoard({
           {visibleRows.map((row) => (
             <div
               key={row.id}
-              className="flex flex-col gap-3 rounded-2xl border border-[#232b38] bg-[#0a0e13] p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
                 <Link
                   href={`/reports/${row.id}`}
-                  className="break-words font-semibold text-white hover:text-teal-300"
+                  className="break-words font-semibold text-[var(--fl-text)] hover:text-[var(--fl-accent-text)]"
                 >
                   {row.address}
                 </Link>
-                <p className="mt-1 text-sm text-[#8a93a3]">
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   {row.client} &middot; {formatDate(row.date)}
                   {row.time ? ` at ${row.time}` : ""}
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wide text-[#59626f]">
+                <span className="text-xs font-bold uppercase tracking-wide text-[var(--fl-faint)]">
                   Assigned:
                 </span>
                 <select
                   value={row.inspectorId}
                   disabled={savingId === row.id}
                   onChange={(event) => reassign(row.id, event.target.value)}
-                  className="rounded-xl border border-teal-500/50 bg-[#10151e] px-3 py-2 text-sm font-bold text-teal-200 outline-none transition focus:border-teal-400 disabled:opacity-60"
+                  className="rounded-xl border border-teal-500/50 bg-[var(--fl-surface)] px-3 py-2 text-sm font-bold text-[var(--fl-accent-text)] outline-none transition focus:border-teal-400 disabled:opacity-60"
                 >
                   {teamMembers.map((member) => (
                     <option key={member.userId} value={member.userId}>
@@ -142,7 +142,7 @@ export default function DispatchBoard({
                   ))}
                 </select>
                 {savingId === row.id && (
-                  <span className="text-xs font-bold text-[#59626f]">Saving...</span>
+                  <span className="text-xs font-bold text-[var(--fl-faint)]">Saving...</span>
                 )}
               </div>
             </div>

@@ -317,12 +317,12 @@ export default function QuotePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050816] px-4 pb-24 pt-6 text-white md:px-8">
+    <main className="min-h-screen bg-[var(--fl-ground)] px-4 pb-24 pt-6 text-[var(--fl-text)] md:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="rounded-2xl border border-zinc-800 bg-[#10151e] p-6 md:p-8">
+        <section className="rounded-2xl border border-zinc-800 bg-[var(--fl-surface)] p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.25em] text-teal-400">
+              <p className="text-sm font-bold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
                 FLOW
               </p>
 
@@ -338,7 +338,7 @@ export default function QuotePage() {
 
             <Link
               href="/settings/pricing"
-              className="shrink-0 rounded-xl border border-teal-500/60 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/10"
+              className="shrink-0 rounded-xl border border-teal-500/60 px-4 py-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
             >
               Manage My Pricing →
             </Link>
@@ -358,7 +358,7 @@ export default function QuotePage() {
                   value={propertyAddress}
                   onChange={(e) => setPropertyAddress(e.target.value)}
                   placeholder="Start typing an address..."
-                  className="w-full rounded-xl border border-zinc-700 bg-black p-3 text-white"
+                  className="w-full rounded-xl border border-zinc-700 bg-black p-3 text-[var(--fl-text)]"
                 />
               </label>
 
@@ -368,7 +368,7 @@ export default function QuotePage() {
                     type="button"
                     onClick={runManualPropertyLookup}
                     disabled={loadingProperty}
-                    className="rounded-xl border border-zinc-700 bg-black px-4 py-2 text-sm font-bold text-white transition hover:border-teal-500 disabled:opacity-50"
+                    className="rounded-xl border border-zinc-700 bg-black px-4 py-2 text-sm font-bold text-[var(--fl-text)] transition hover:border-teal-500 disabled:opacity-50"
                   >
                     {loadingProperty ? "Looking Up..." : "Lookup Property Info"}
                   </button>
@@ -403,7 +403,7 @@ export default function QuotePage() {
                           onChange={() => toggleService(service.id)}
                           className="h-4 w-4 shrink-0 accent-teal-500"
                         />
-                        <span className="text-sm font-bold text-white">{service.name}</span>
+                        <span className="text-sm font-bold text-[var(--fl-text)]">{service.name}</span>
                       </label>
                     );
                   })}
@@ -421,7 +421,7 @@ export default function QuotePage() {
                     }}
                   />
                   {sqftAutoFilled && (
-                    <p className="text-xs font-bold text-teal-400">
+                    <p className="text-xs font-bold text-[var(--fl-accent-text)]">
                       Auto-filled — verify before quoting
                     </p>
                   )}
@@ -472,15 +472,15 @@ export default function QuotePage() {
                   Total Quote
                 </p>
 
-                <p className="mt-1 text-5xl font-semibold text-teal-400">
+                <p className="mt-1 text-5xl font-semibold text-[var(--fl-accent-text)]">
                   ${quote.total}
                 </p>
               </div>
 
               <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4 text-sm leading-6 text-zinc-400">
-                <p className="font-bold text-white">Your Pricing Rules</p>
+                <p className="font-bold text-[var(--fl-text)]">Your Pricing Rules</p>
                 <p className="mt-2">{pricingRulesSummary}</p>
-                <Link href="/settings/pricing" className="mt-2 inline-block font-bold text-teal-400 hover:text-teal-300">
+                <Link href="/settings/pricing" className="mt-2 inline-block font-bold text-[var(--fl-accent-text)] hover:text-[var(--fl-accent-text)]">
                   Edit these rates →
                 </Link>
               </div>
@@ -490,7 +490,7 @@ export default function QuotePage() {
 
         <Card title="Quote Message">
           <textarea
-            className="h-36 w-full rounded-2xl border border-zinc-700 bg-black p-4 text-white"
+            className="h-36 w-full rounded-2xl border border-zinc-700 bg-black p-4 text-[var(--fl-text)]"
             value={message}
             readOnly
           />
@@ -530,7 +530,7 @@ function Input({
       <span className="text-sm font-bold text-zinc-300">{label}</span>
 
       <input
-        className="w-full rounded-xl border border-zinc-700 bg-black p-3 text-white"
+        className="w-full rounded-xl border border-zinc-700 bg-black p-3 text-[var(--fl-text)]"
         type="number"
         min="0"
         value={value}
