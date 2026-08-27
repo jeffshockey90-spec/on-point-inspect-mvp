@@ -16,68 +16,48 @@ type ImportedFinding = {
 
 const require = createRequire(import.meta.url);
 
-const KNOWN_SECTIONS = [
-  "Inspection Details",
-  "Exterior",
-  "Roof",
-  "Basement, Foundation, Crawlspace & Structure",
-  "Heating",
-  "Cooling",
-  "Plumbing",
-  "Electrical",
-  "Fireplace",
-  "Attic, Insulation & Ventilation",
-  "Doors, Windows & Interior",
-  "Built-in Appliances",
-  "Garage",
+// --- ligature repair. pdf-parse drops fi/fl/ffi/ff/ft glyphs; sometimes it
+// leaves a space where the glyph was ("de ciency"), sometimes nothing
+// ("qualied"). Fix both forms for common inspection vocabulary. ---
+const LIGATURE_FIXES: [RegExp, string][] = [
+  [/ ciency\b/gi, "ficiency"], [/ ciencies\b/gi, "ficiencies"], [/ cient\b/gi, "ficient"],
+  [/ nishes\b/g, " finishes"], [/ nished\b/g, " finished"], [/ nish\b/g, " finish"],
+  [/ ashing\b/gi, " flashing"], [/ ow\b/g, " flow"], [/ oor\b/g, " floor"],
+  [/ tment\b/g, " fitment"], [/ tting\b/g, " fitting"], [/ ttings\b/g, " fittings"],
+  [/ replace\b/gi, " fireplace"], [/ eld\b/g, " field"],
+  [/\bcerti ?ed\b/gi, "certified"], [/\bquali ?ed\b/gi, "qualified"], [/\bquali ?cation\b/gi, "qualification"],
+  [/\bveri ?ed\b/gi, "verified"], [/\bveri ?cation\b/gi, "verification"],
+  [/\bidenti ?ed\b/gi, "identified"], [/\bnoti ?ed\b/gi, "notified"],
+  [/\bspeci ?ed\b/gi, "specified"], [/\bspeci ?c\b/gi, "specific"], [/\bspeci ?cations?\b/gi, "specifications"],
+  [/\bde ?ciency\b/gi, "deficiency"], [/\bde ?ciencies\b/gi, "deficiencies"], [/\bde ?cient\b/gi, "deficient"],
+  [/\bef ?ciency\b/gi, "efficiency"], [/\bef ?cient\b/gi, "efficient"], [/\bsuf ?cient\b/gi, "sufficient"],
+  [/\bin ?ltration\b/gi, "infiltration"], [/\bclassi ?cation\b/gi, "classification"],
+  [/\bSo ?ts\b/g, "Soffits"], [/\bSo ?t\b/g, "Soffit"], [/\bso ?ts\b/g, "soffits"], [/\bso ?t\b/g, "soffit"],
+  [/\bRoo ?ng\b/g, "Roofing"], [/\broo ?ng\b/g, "roofing"],
+  [/\bha separated\b/g, "has separated"],
 ];
 
-const SECTION_NUMBER_MAP: Record<string, string> = {
-  "1": "Inspection Details",
-  "2": "Exterior",
-  "3": "Roof",
-  "4": "Basement, Foundation, Crawlspace & Structure",
-  "5": "Heating",
-  "6": "Cooling",
-  "7": "Plumbing",
-  "8": "Electrical",
-  "9": "Fireplace",
-  "10": "Attic, Insulation & Ventilation",
-  "11": "Doors, Windows & Interior",
-  "12": "Built-in Appliances",
-  "13": "Garage",
-};
-
-const NOISE_PATTERNS = [
-  /^1070\s+Gora/i,
-  /On Point Home Inspections LLC/i,
-  /^Page\s+\d+/i,
-  /^Video$/i,
-  /^\(click here to view on web\)$/i,
-  /^section-[a-z0-9-]+$/i,
-  /^SUMMARY$/i,
-  /^Information$/i,
-  /^Deficiencies$/i,
-  /^General$/i,
-];
+function fixLigatures(value: string) {
+  let out = value;
+  for (const [re, rep] of LIGATURE_FIXES) out = out.replace(re, rep);
+  return out.replace(/  +/g, " ");
+}
 
 function cleanText(value: string) {
-  return String(value || "")
-    .replace(/\r/g, "\n")
-    .replace(/\u0000/g, "f")
-    .replace(/\u00a0/g, " ")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n[ \t]+/g, "\n")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return fixLigatures(
+    String(value || "")
+      .replace(/\r/g, "\n")
+      .replace(/\x00/g, "")
+      .replace(/[^\S\n]+/g, " ")
+      .replace(/ *\n */g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  );
 }
 
 function titleCase(value: string) {
   const clean = String(value || "").trim();
-
   if (!clean) return "";
-
   return clean
     .toLowerCase()
     .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
@@ -86,7 +66,21 @@ function titleCase(value: string) {
     .replace(/\bHvac\b/g, "HVAC")
     .replace(/\bOsb\b/g, "OSB")
     .replace(/\bPvc\b/g, "PVC")
+    .replace(/\bCo\b/g, "CO")
     .replace(/\bAo\b/g, "AO");
+}
+
+// Map an inspector's section name onto FLOW's standard names where they match;
+// otherwise keep it as a custom section (FLOW supports custom sections).
+const SECTION_ALIASES: Record<string, string> = {
+  appliances: "Built-in Appliances",
+  "built-in appliances": "Built-in Appliances",
+  "built in appliances": "Built-in Appliances",
+  structure: "Basement, Foundation, Crawlspace & Structure",
+};
+function canonSection(name: string) {
+  const n = String(name || "").trim().replace(/\s+/g, " ");
+  return SECTION_ALIASES[n.toLowerCase()] || n;
 }
 
 function extractEmail(text: string) {
@@ -94,96 +88,159 @@ function extractEmail(text: string) {
 }
 
 function extractPhone(text: string) {
-  return (
-    text.match(/(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)?.[0] ||
-    ""
-  );
+  return text.match(/(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)?.[0] || "";
 }
 
 function normalizeSeverity(value: string) {
   const clean = String(value || "").toLowerCase();
-
   if (clean.includes("safety") || clean.includes("hazard") || clean.includes("major")) {
     return "Safety Concern";
   }
-
   if (clean.includes("maintenance") || clean.includes("monitor")) {
     return "Maintenance";
   }
-
   if (clean.includes("informational") || clean.includes("information")) {
     return "Informational";
   }
-
   return "Recommended Repair";
 }
 
-function normalizeSection(value: string) {
-  const clean = String(value || "")
-    .replace(/^\d+:\s*/, "")
-    .trim();
-
-  if (!clean) return "Inspection Details";
-
-  const exact = KNOWN_SECTIONS.find(
-    (section) => section.toLowerCase() === clean.toLowerCase()
-  );
-
-  if (exact) return exact;
-
-  const match = KNOWN_SECTIONS.find((section) =>
-    clean.toLowerCase().includes(section.toLowerCase())
-  );
-
-  return match || clean || "Inspection Details";
+// Build number -> section name from the TABLE OF CONTENTS ("3: Exterior").
+// Keep the FIRST match per number (the TOC's title-case name) so the later
+// uppercase in-body section headers don't overwrite it.
+function buildSectionMap(lines: string[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const line of lines) {
+    const m = line.match(/^(\d+):\s+(.+)$/);
+    if (m && !map[m[1]]) {
+      const name = m[2].trim();
+      if (name.length <= 45 && !/page \d+/i.test(name)) map[m[1]] = canonSection(name);
+    }
+  }
+  return map;
 }
 
-function sectionFromFindingNumber(line: string) {
-  const number = line.match(/^(\d+)\./)?.[1] || "";
-  return SECTION_NUMBER_MAP[number] || "Inspection Details";
+function isUpperTitle(line: string) {
+  const l = String(line || "").trim();
+  if (l.length < 3) return false;
+  const letters = l.replace(/[^A-Za-z]/g, "");
+  return letters.length >= 3 && l === l.toUpperCase();
 }
 
-function isFindingHeader(line: string) {
-  return /^\d+\.\d+\.\d+\s+/.test(line.trim());
-}
+// A summary line embeds the section + subsystem + title:
+//   "3.2.1 Exterior - Siding, Flashing & Trim: Siding Damage"
+const SUMMARY_LINE = /^(\d+)\.(\d+)\.(\d+)\s+(.+?)\s-\s(.+?):\s+(.+)$/;
+// A body finding header is just number + subsystem: "3.2.1 Siding, Flashing & Trim"
+const FINDING_HDR = /^(\d+)\.(\d+)\.(\d+)\s+(.+)$/;
+const SECTION_HDR = /^\d+:\s+/;
+const GRID_ROW = /^\d+\.\d+[A-Za-z]/; // section rating grid rows like "3.2Siding...X"
+const FOOTER =
+  /Above and Beyond|Page \d+ of \d+|^section-[A-Za-z0-9]|^IN = Inspected|^INNINPD|1236 Rosita/i;
 
-function isSectionHeader(line: string) {
-  return /^\d+:\s+/.test(line.trim());
-}
+function parseFindings(text: string, sectionMap: Record<string, string>): ImportedFinding[] {
+  const lines = text.split("\n").map((line) => line.trim());
 
-function isNoiseLine(line: string) {
-  const clean = String(line || "").trim();
-  return !clean || NOISE_PATTERNS.some((pattern) => pattern.test(clean));
-}
+  // Pass 1 - summary lines: authoritative section + clean title, in order.
+  const summary: Record<string, { section: string; title: string }> = {};
+  const order: string[] = [];
+  for (const line of lines) {
+    const m = line.match(SUMMARY_LINE);
+    if (!m) continue;
+    const num = `${m[1]}.${m[2]}.${m[3]}`;
+    if (summary[num]) continue;
+    summary[num] = {
+      section: canonSection(sectionMap[m[1]] || m[4].trim()),
+      title: titleCase(m[6].trim()),
+    };
+    order.push(num);
+  }
 
-function isLabelLine(line: string) {
-  return /:$/.test(line.trim()) || /^[A-Z][A-Za-z\s,&/-]+:\s+/.test(line.trim());
-}
+  // Pass 2 - body headers: the narrative (observation + recommendation).
+  const body: Record<
+    string,
+    { title: string; observation: string; recommendation: string; location: string }
+  > = {};
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (SUMMARY_LINE.test(line)) continue; // skip the summary block
+    const m = line.match(FINDING_HDR);
+    if (!m) continue;
+    const num = `${m[1]}.${m[2]}.${m[3]}`;
 
-function isLikelyTitleLine(line: string) {
-  const clean = String(line || "").trim();
+    let j = i + 1;
+    while (j < lines.length && (!lines[j] || FOOTER.test(lines[j]))) j += 1;
+    const titleRaw = lines[j] || "";
+    const bodyTitle = isUpperTitle(titleRaw) ? titleCase(titleRaw) : "";
+    if (bodyTitle) j += 1;
 
-  if (clean.length < 4) return false;
-  if (isNoiseLine(clean)) return false;
-  if (isFindingHeader(clean) || isSectionHeader(clean)) return false;
-  if (/^(recommendation|maintenance item|safety hazard|informational|information)$/i.test(clean)) return false;
-  if (isLabelLine(clean)) return false;
+    let location = "";
+    if (j < lines.length && isUpperTitle(lines[j]) && lines[j].length < 60) {
+      location = titleCase(lines[j]);
+      j += 1;
+    }
 
-  const letters = clean.replace(/[^A-Za-z]/g, "");
-  if (letters.length < 4) return false;
+    const narrative: string[] = [];
+    let recommendation = "";
+    let inRec = false;
+    for (; j < lines.length; j += 1) {
+      const ln = lines[j];
+      if (FINDING_HDR.test(ln) || SECTION_HDR.test(ln) || GRID_ROW.test(ln)) break;
+      if (!ln || FOOTER.test(ln)) continue;
+      if (/^Recommendation$/i.test(ln)) {
+        inRec = true;
+        continue;
+      }
+      if (/^(Information|Limitations|Observations|General)$/i.test(ln)) continue;
+      if (inRec) recommendation += (recommendation ? " " : "") + ln;
+      else narrative.push(ln);
+    }
 
-  return clean === clean.toUpperCase();
-}
+    let observation = narrative.join(" ").trim();
+    if (!recommendation) {
+      const idx = observation.search(/\bRecommend\b/);
+      if (idx > 40) {
+        recommendation = observation.slice(idx).trim();
+        observation = observation.slice(0, idx).trim();
+      }
+    }
 
-function cleanImportedContent(lines: string[]) {
-  return lines
-    .map((line) => line.trim())
-    .filter((line) => !isNoiseLine(line))
-    .filter((line) => !/^Implication:?$/i.test(line))
-    .filter((line) => !/^Recommendation:?$/i.test(line))
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+    body[num] = { title: bodyTitle, observation, recommendation, location };
+  }
+
+  const nums = order.length ? [...order] : Object.keys(body);
+  for (const num of Object.keys(body)) if (!nums.includes(num)) nums.push(num);
+
+  const findings: ImportedFinding[] = nums.map((num) => {
+    const s = summary[num] || ({} as { section?: string; title?: string });
+    const b =
+      body[num] ||
+      ({} as { title?: string; observation?: string; recommendation?: string; location?: string });
+    const section = s.section || sectionMap[num.split(".")[0]] || "Inspection Details";
+    const title = s.title || b.title || "Imported Finding";
+    let observation = b.observation || "";
+    if (b.location) {
+      observation = observation ? `Location: ${b.location}. ${observation}` : `Location: ${b.location}.`;
+    }
+    if (!observation) {
+      observation = "Imported from the Spectora report - review this finding before publishing.";
+    }
+    return {
+      section,
+      title,
+      observation,
+      implication: "",
+      recommendation: b.recommendation || "",
+      severity: normalizeSeverity(`${title} ${observation} ${b.recommendation || ""}`),
+    };
+  });
+
+  // Drop non-finding rows that occasionally sneak in.
+  return findings.filter((f) => {
+    const t = f.title.toLowerCase();
+    if (!t || t === "information" || t === "deficiencies" || t === "limitations") return false;
+    if (t.includes("standards of practice")) return false;
+    return true;
+  });
 }
 
 function extractCoverInfo(text: string) {
@@ -250,218 +307,6 @@ function extractCoverInfo(text: string) {
   };
 }
 
-function splitRecommendation(text: string) {
-  const clean = cleanText(text);
-
-  const explicit = clean.match(/([\s\S]*?)(?:\n|^)(Recommend(?:ation)?[:\s][\s\S]*)$/i);
-  if (explicit && explicit[1].trim().length > 50) {
-    return {
-      observation: explicit[1].trim(),
-      recommendation: explicit[2].trim(),
-    };
-  }
-
-  const markers = [
-    "Recommend ",
-    "Have ",
-    "Repair ",
-    "Replace ",
-    "Install ",
-    "Monitor ",
-    "Secure ",
-    "Contact a qualified",
-    "Contact a qualifed",
-  ];
-
-  for (const marker of markers) {
-    const index = clean.indexOf(marker);
-
-    if (index > 80) {
-      return {
-        observation: clean.slice(0, index).trim(),
-        recommendation: clean.slice(index).trim(),
-      };
-    }
-  }
-
-  return {
-    observation: clean,
-    recommendation: "",
-  };
-}
-
-function titleFromSummaryLine(line: string) {
-  const match = line.match(/^\d+\.\d+\.\d+\s+(.+?)\s+-\s+(.+?):\s+(.+)$/);
-  if (!match) return "";
-
-  return titleCase(match[3]);
-}
-
-function parseBodyFindings(lines: string[]) {
-  const findings: ImportedFinding[] = [];
-  const seen = new Set<string>();
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const headerLine = lines[index];
-
-    if (!isFindingHeader(headerLine)) continue;
-
-    const numberMatch = headerLine.match(/^(\d+\.\d+\.\d+)\s+(.+)$/);
-    if (!numberMatch) continue;
-
-    const section = sectionFromFindingNumber(headerLine);
-    const summaryTitle = titleFromSummaryLine(headerLine);
-
-    let systemTitle = "";
-    let defectTitle = summaryTitle;
-    let severity = "";
-    let cursor = index + 1;
-
-    if (!defectTitle) {
-      for (; cursor < Math.min(lines.length, index + 10); cursor += 1) {
-        const line = lines[cursor];
-
-        if (isFindingHeader(line) || isSectionHeader(line)) break;
-        if (isNoiseLine(line)) continue;
-
-        if (/^(maintenance item|recommendation|safety hazard|informational|information)$/i.test(line)) {
-          severity = line;
-          continue;
-        }
-
-        if (!systemTitle && !isLikelyTitleLine(line)) {
-          systemTitle = line;
-          continue;
-        }
-
-        if (isLikelyTitleLine(line)) {
-          const titleParts = [line];
-          const next = lines[cursor + 1] || "";
-
-          if (isLikelyTitleLine(next)) {
-            titleParts.push(next);
-            cursor += 1;
-          }
-
-          defectTitle = titleCase(titleParts.join(" "));
-          cursor += 1;
-          break;
-        }
-      }
-    }
-
-    if (!defectTitle) {
-      defectTitle = titleCase(systemTitle || numberMatch[2]);
-    }
-
-    const contentLines: string[] = [];
-
-    for (let contentCursor = cursor; contentCursor < lines.length; contentCursor += 1) {
-      const nextLine = lines[contentCursor];
-
-      if (isFindingHeader(nextLine)) break;
-      if (isSectionHeader(nextLine)) break;
-
-      if (/^(maintenance item|recommendation|safety hazard|informational|information)$/i.test(nextLine)) {
-        severity = nextLine;
-        continue;
-      }
-
-      contentLines.push(nextLine);
-    }
-
-    const rawContent = cleanImportedContent(contentLines);
-    const { observation, recommendation } = splitRecommendation(rawContent);
-
-    const key = `${section}:${defectTitle}`.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    findings.push({
-      section,
-      title: defectTitle || "Imported Finding",
-      observation: observation || "Imported from PDF report. Review and edit this finding before publishing.",
-      implication: "",
-      recommendation,
-      severity: normalizeSeverity(severity),
-    });
-  }
-
-  return findings.filter((finding) => {
-    const title = finding.title.toLowerCase();
-    const observation = finding.observation.toLowerCase();
-
-    if (title.includes("inspection details")) return false;
-    if (title.includes("standards of practice")) return false;
-    if (title === "information" || title === "deficiencies") return false;
-    if (observation.includes("summary 1070")) return false;
-
-    return finding.title;
-  });
-}
-
-function parseSummaryFindings(lines: string[]) {
-  const findings: ImportedFinding[] = [];
-  const seen = new Set<string>();
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    const title = titleFromSummaryLine(line);
-    if (!title) continue;
-
-    const match = line.match(/^\d+\.\d+\.\d+\s+(.+?)\s+-\s+(.+?):\s+(.+)$/);
-    if (!match) continue;
-
-    const finding: ImportedFinding = {
-      section: normalizeSection(match[1]),
-      title,
-      observation: "Imported from PDF report. Review and edit this finding before publishing.",
-      implication: "",
-      recommendation: "",
-      severity: "Recommended Repair",
-    };
-
-    const key = `${finding.section}:${finding.title}`.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    findings.push(finding);
-  }
-
-  return findings;
-}
-
-function mergeFindings(primary: ImportedFinding[], fallback: ImportedFinding[]) {
-  const merged: ImportedFinding[] = [];
-  const seen = new Set<string>();
-
-  [...primary, ...fallback].forEach((finding) => {
-    const key = `${finding.section}:${finding.title}`.toLowerCase();
-
-    if (seen.has(key)) return;
-    seen.add(key);
-
-    merged.push(finding);
-  });
-
-  return merged;
-}
-
-function parseFindings(text: string): ImportedFinding[] {
-  const lines = cleanText(text)
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const bodyFindings = parseBodyFindings(lines);
-  const summaryFindings = parseSummaryFindings(lines);
-
-  if (bodyFindings.length > 0) {
-    return bodyFindings;
-  }
-
-  return summaryFindings;
-}
-
 async function readPdfText(buffer: Buffer): Promise<string> {
   const pdfParse = require("pdf-parse/lib/pdf-parse.js");
   const result = await pdfParse(buffer);
@@ -492,21 +337,20 @@ export async function POST(request: Request) {
     const text = await readPdfText(buffer);
 
     if (!text) {
-      return NextResponse.json(
-        { error: "Could not read text from this PDF." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Could not read text from this PDF." }, { status: 400 });
     }
 
-    const coverInfo = extractCoverInfo(text);
-    const findings = parseFindings(text);
+    const lines = text.split("\n").map((line) => line.trim());
+    const sectionMap = buildSectionMap(lines);
 
-    const reportType =
-      text.toLowerCase().includes("spectora")
-        ? "Spectora"
-        : text.toLowerCase().includes("residential report")
-          ? "PDF Residential Report"
-          : "PDF";
+    const coverInfo = extractCoverInfo(text);
+    const findings = parseFindings(text, sectionMap);
+
+    const reportType = text.toLowerCase().includes("spectora")
+      ? "Spectora"
+      : text.toLowerCase().includes("residential report")
+        ? "PDF Residential Report"
+        : "PDF";
 
     return NextResponse.json({
       report: {
