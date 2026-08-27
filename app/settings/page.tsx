@@ -31,14 +31,14 @@ import AppVersionTag from "../../components/AppVersionTag";
 import TeamManagement from "../../components/TeamManagement";
 
 const SETTINGS_TABS = [
-  { key: "notifications", label: "Notifications", anchorId: "notifications" },
-  { key: "company-profile", label: "Company Profile", anchorId: "company-profile" },
-  { key: "team", label: "Team", anchorId: "team" },
-  { key: "payments", label: "Payments", anchorId: "payments" },
-  { key: "public-profile", label: "Public Profile", anchorId: "public-profile" },
-  { key: "standards-of-practice", label: "Standards of Practice", anchorId: "standards-of-practice" },
-  { key: "time-location", label: "Time & Location", anchorId: "time-location" },
-  { key: "delete-account", label: "Delete Account", anchorId: "delete-account" },
+  { key: "company-profile", label: "Company Profile", anchorId: "company-profile", group: "Company" },
+  { key: "team", label: "Team", anchorId: "team", group: "Company" },
+  { key: "standards-of-practice", label: "Standards of Practice", anchorId: "standards-of-practice", group: "Company" },
+  { key: "payments", label: "Payments", anchorId: "payments", group: "Money" },
+  { key: "public-profile", label: "Public Profile", anchorId: "public-profile", group: "Presence" },
+  { key: "notifications", label: "Notifications", anchorId: "notifications", group: "Preferences" },
+  { key: "time-location", label: "Time & Location", anchorId: "time-location", group: "Preferences" },
+  { key: "delete-account", label: "Delete Account", anchorId: "delete-account", group: "Account" },
 ];
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
