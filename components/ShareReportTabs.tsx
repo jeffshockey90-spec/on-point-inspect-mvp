@@ -137,7 +137,7 @@ export default function ShareReportTabs({
   return (
     <div
       ref={navRef}
-      className="sticky top-0 z-40 mt-8 border-y border-slate-700 bg-[#0f172a]/95 px-3 py-3 backdrop-blur print:hidden"
+      className="sticky top-0 z-40 mt-8 border-y border-[#232b38] bg-[#0f172a]/95 px-3 py-3 backdrop-blur print:hidden"
       aria-label="Report views"
     >
       <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
@@ -150,7 +150,7 @@ export default function ShareReportTabs({
               onClick={() => applyTab(key, false)}
               aria-pressed={active}
               data-fast-click="true"
-              className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-black transition duration-100 active:scale-[0.98] [touch-action:manipulation] ${
+              className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-semibold transition duration-100 active:scale-[0.98] [touch-action:manipulation] ${
                 active
                   ? "border-teal-400 bg-teal-500 text-slate-950"
                   : `bg-[#071224] ${tone}`

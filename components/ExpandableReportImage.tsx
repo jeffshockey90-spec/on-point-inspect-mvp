@@ -29,7 +29,7 @@ function ExpandableReportImage({
   alt = "Report image",
   className = "max-h-[260px] w-full object-cover",
   buttonClassName =
-    "block w-full overflow-hidden rounded-xl border border-slate-700 bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300",
+    "block w-full overflow-hidden rounded-xl border border-[#232b38] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300",
   badgeText = "Tap to enlarge",
   images,
   index = 0,
@@ -96,7 +96,7 @@ function ExpandableReportImage({
             <button
               type="button"
               aria-label="Close expanded image"
-              className="fixed right-4 top-4 z-[2147483647] min-h-12 rounded-full border border-white/30 bg-black/90 px-4 py-2 text-sm font-black text-white shadow-xl active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
+              className="fixed right-4 top-4 z-[2147483647] min-h-12 rounded-full border border-white/30 bg-black/90 px-4 py-2 text-sm font-semibold text-white shadow-xl active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
               onClick={(event) => {
                 event.stopPropagation();
                 setExpanded(false);
@@ -106,7 +106,7 @@ function ExpandableReportImage({
             </button>
 
             {gallery && (
-              <span className="fixed left-1/2 top-4 z-[2147483647] -translate-x-1/2 rounded-full border border-white/30 bg-black/90 px-4 py-2 text-sm font-black text-white shadow-xl">
+              <span className="fixed left-1/2 top-4 z-[2147483647] -translate-x-1/2 rounded-full border border-white/30 bg-black/90 px-4 py-2 text-sm font-semibold text-white shadow-xl">
                 {activeIndex + 1} / {galleryCount}
               </span>
             )}
@@ -115,7 +115,7 @@ function ExpandableReportImage({
               <button
                 type="button"
                 aria-label="Previous photo"
-                className="fixed left-2 top-1/2 z-[2147483647] min-h-12 min-w-12 -translate-y-1/2 rounded-full border border-white/30 bg-black/90 px-4 py-3 text-xl font-black text-white shadow-xl active:scale-[0.98] active:opacity-80 [touch-action:manipulation] sm:left-4"
+                className="fixed left-2 top-1/2 z-[2147483647] min-h-12 min-w-12 -translate-y-1/2 rounded-full border border-white/30 bg-black/90 px-4 py-3 text-xl font-semibold text-white shadow-xl active:scale-[0.98] active:opacity-80 [touch-action:manipulation] sm:left-4"
                 onClick={(event) => {
                   event.stopPropagation();
                   setActiveIndex((current) => (current - 1 + galleryCount) % galleryCount);
@@ -129,7 +129,7 @@ function ExpandableReportImage({
               <button
                 type="button"
                 aria-label="Next photo"
-                className="fixed right-2 top-1/2 z-[2147483647] min-h-12 min-w-12 -translate-y-1/2 rounded-full border border-white/30 bg-black/90 px-4 py-3 text-xl font-black text-white shadow-xl active:scale-[0.98] active:opacity-80 [touch-action:manipulation] sm:right-4"
+                className="fixed right-2 top-1/2 z-[2147483647] min-h-12 min-w-12 -translate-y-1/2 rounded-full border border-white/30 bg-black/90 px-4 py-3 text-xl font-semibold text-white shadow-xl active:scale-[0.98] active:opacity-80 [touch-action:manipulation] sm:right-4"
                 onClick={(event) => {
                   event.stopPropagation();
                   setActiveIndex((current) => (current + 1) % galleryCount);
@@ -143,7 +143,7 @@ function ExpandableReportImage({
               src={displaySrc}
               alt={displayAlt}
               decoding="async"
-              className="max-h-[92vh] max-w-[96vw] rounded-2xl border border-slate-600 bg-black object-contain shadow-2xl"
+              className="max-h-[92vh] max-w-[96vw] rounded-2xl border border-[#232b38] bg-black object-contain shadow-2xl"
               onClick={(event) => event.stopPropagation()}
             />
           </div>,
@@ -173,7 +173,7 @@ function ExpandableReportImage({
           className={className}
         />
 
-        <span className="pointer-events-none absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white">
+        <span className="pointer-events-none absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
           {gallery ? `${badgeText} • ${galleryCount} photos` : badgeText}
         </span>
       </button>

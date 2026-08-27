@@ -121,7 +121,7 @@ export default function ReportBuilderSectionTabs({
   return (
     <div className="mb-8">
       <div
-        className="sticky top-0 z-40 border-y border-slate-700 bg-[#0f172a]/95 px-3 py-3 backdrop-blur xl:hidden"
+        className="sticky top-0 z-40 border-y border-[#232b38] bg-[#0f172a]/95 px-3 py-3 backdrop-blur xl:hidden"
         aria-label="Report sections"
       >
         <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
@@ -134,10 +134,10 @@ export default function ReportBuilderSectionTabs({
                 type="button"
                 onClick={() => applyTab(key, false)}
                 aria-pressed={active}
-                className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-black transition duration-100 active:scale-[0.98] [touch-action:manipulation] ${
+                className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-semibold transition duration-100 active:scale-[0.98] [touch-action:manipulation] ${
                   active
                     ? "border-teal-400 bg-teal-500 text-slate-950"
-                    : "border-slate-700 bg-[#071224] text-slate-200"
+                    : "border-[#232b38] bg-[#071224] text-[#e8ecf3]"
                 }`}
               >
                 {label}

@@ -284,14 +284,14 @@ export default function ReportSummaryPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
+    <main className="min-h-screen bg-[#0a0e13] px-6 py-10 text-white">
       <div className="mx-auto max-w-[96rem]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-4xl font-extrabold text-teal-400">
               Realtor Summary
             </h1>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-[#8a93a3]">
               Generate an editable AI summary and review a client-facing card summary of notable findings.
             </p>
           </div>
@@ -317,7 +317,7 @@ export default function ReportSummaryPage() {
 
             <Link
               href={`/reports/${reportId}`}
-              className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800"
+              className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
             >
               Back to Report
             </Link>
@@ -330,15 +330,15 @@ export default function ReportSummaryPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-slate-700 bg-[#071224] p-8 shadow-xl">
+        <div className="rounded-2xl border border-[#232b38] bg-[#071224] p-8 shadow-xl">
           {!summary && !loading && (
-            <p className="mb-5 text-slate-400">
+            <p className="mb-5 text-[#8a93a3]">
               Click Generate Summary to create a defect-focused client/realtor summary.
             </p>
           )}
 
           {loading ? (
-            <p className="text-lg text-slate-300">
+            <p className="text-lg text-[#8a93a3]">
               Generating defect-focused report summary...
             </p>
           ) : (
@@ -347,7 +347,7 @@ export default function ReportSummaryPage() {
               onChange={(e) => setSummary(e.target.value)}
               rows={18}
               placeholder="Generated summary will appear here..."
-              className="w-full rounded-xl border border-slate-700 bg-[#020617] p-5 text-white outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-5 text-white outline-none focus:border-teal-400"
             />
           )}
         </div>
@@ -358,10 +358,10 @@ export default function ReportSummaryPage() {
               <p className="text-sm font-bold uppercase tracking-[0.3em] text-teal-400">
                 Client Summary Cards
               </p>
-              <h2 className="mt-2 text-3xl font-black text-white">
+              <h2 className="mt-2 text-3xl font-semibold text-white">
                 Key Findings Summary
               </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
                 This is a Spectora-style summary view grouped by severity. It does not replace the full report; it helps clients and agents quickly review the important findings.
               </p>
             </div>
@@ -370,32 +370,32 @@ export default function ReportSummaryPage() {
               <p className="text-xs font-bold uppercase tracking-wide text-teal-300">
                 Total Summary Items
               </p>
-              <p className="mt-1 text-4xl font-black text-white">
+              <p className="mt-1 text-4xl font-semibold text-white">
                 {defectCount}
               </p>
             </div>
           </div>
 
           {findingsLoading ? (
-            <div className="mt-6 rounded-xl border border-slate-700 bg-[#020617] p-6 text-slate-300">
+            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#0a0e13] p-6 text-[#8a93a3]">
               Loading finding cards...
             </div>
           ) : groupedFindings.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-slate-700 bg-[#020617] p-6 text-slate-300">
+            <div className="mt-6 rounded-xl border border-[#232b38] bg-[#0a0e13] p-6 text-[#8a93a3]">
               No report findings are available for the card summary yet.
             </div>
           ) : (
             <div className="mt-6 space-y-6">
               {groupedFindings.map((group) => (
-                <div key={group.key} className="rounded-2xl border border-slate-700 bg-[#0f172a] p-5">
+                <div key={group.key} className="rounded-2xl border border-[#232b38] bg-[#10151e] p-5">
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-2xl font-black text-white">{group.title}</h3>
-                      <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
+                      <h3 className="text-2xl font-semibold text-white">{group.title}</h3>
+                      <p className="mt-1 max-w-3xl text-sm leading-6 text-[#8a93a3]">
                         {group.description}
                       </p>
                     </div>
-                    <span className="rounded-full border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
+                    <span className="rounded-full border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3]">
                       {group.findings.length} item{group.findings.length === 1 ? "" : "s"}
                     </span>
                   </div>
@@ -426,9 +426,9 @@ function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId:
       href={`/reports/${reportId}#section-${cleanText(finding.section)
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")}`}
-      className="group overflow-hidden rounded-2xl border border-slate-700 bg-[#020617] transition hover:-translate-y-0.5 hover:border-teal-400"
+      className="group overflow-hidden rounded-2xl border border-[#232b38] bg-[#0a0e13] transition hover:-translate-y-0.5 hover:border-teal-400"
     >
-      <div className="h-44 overflow-hidden border-b border-slate-800 bg-black">
+      <div className="h-44 overflow-hidden border-b border-[#1a212c] bg-black">
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -437,7 +437,7 @@ function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId:
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center px-4 text-center text-xs font-black uppercase tracking-wide text-slate-500">
+          <div className="flex h-full w-full items-center justify-center px-4 text-center text-xs font-semibold uppercase tracking-wide text-[#59626f]">
             No Photo
           </div>
         )}
@@ -446,25 +446,25 @@ function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId:
       <div className="p-4">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span
-            className="rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-wide"
+            className="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
             style={severityBadgeStyle(severityConfig, finding.severity)}
           >
             {finding.severity || "Recommended Repair"}
           </span>
-          <span className="rounded-full border border-slate-700 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-slate-300">
+          <span className="rounded-full border border-[#232b38] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#8a93a3]">
             {finding.section || "Report"}
           </span>
         </div>
 
-        <h4 className="line-clamp-2 text-lg font-black leading-tight text-white">
+        <h4 className="line-clamp-2 text-lg font-semibold leading-tight text-white">
           {title}
         </h4>
 
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300">
+        <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#8a93a3]">
           {summary}
         </p>
 
-        <p className="mt-4 text-sm font-black text-cyan-300">
+        <p className="mt-4 text-sm font-semibold text-cyan-300">
           Open Finding →
         </p>
       </div>

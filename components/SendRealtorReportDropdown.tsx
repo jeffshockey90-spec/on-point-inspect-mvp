@@ -126,16 +126,16 @@ export default function SendRealtorReportDropdown({
 
   if (!inspections.length) {
     return (
-      <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-slate-400">
+      <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-5 text-[#8a93a3]">
         No inspections are linked to this realtor yet.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-5">
+    <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-5">
       <label className="block">
-        <span className="mb-2 block text-sm font-black uppercase tracking-wide text-slate-400">
+        <span className="mb-2 block text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
           Select Realtor Inspection
         </span>
 
@@ -146,7 +146,7 @@ export default function SendRealtorReportDropdown({
             clearMessage();
           }}
           disabled={sending}
-          className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 font-bold text-white outline-none focus:border-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 font-bold text-white outline-none focus:border-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <option value="">Choose an inspection...</option>
 
@@ -164,7 +164,7 @@ export default function SendRealtorReportDropdown({
           onClick={sendReport}
           disabled={sending || !realtorEmail || !selectedInspectionId}
           aria-busy={sending}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-5 py-3 font-black text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-5 py-3 font-semibold text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
         >
           {sending && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -175,7 +175,7 @@ export default function SendRealtorReportDropdown({
         {selectedInspectionId && (
           <a
             href={`/reports/${selectedInspectionId}`}
-            className="w-full rounded-xl border border-teal-500 px-5 py-3 text-center font-black text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 sm:w-auto [touch-action:manipulation]"
+            className="w-full rounded-xl border border-teal-500 px-5 py-3 text-center font-semibold text-teal-300 transition active:scale-[0.98] hover:bg-teal-500/10 sm:w-auto [touch-action:manipulation]"
           >
             Open Selected Report
           </a>

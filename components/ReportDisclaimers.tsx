@@ -791,15 +791,15 @@ function ReportDisclaimers({
   );
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-[#071224]">
+    <div className="rounded-2xl border border-[#232b38] bg-[#071224]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-slate-800/50"
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-[#1a212c]/50"
       >
         <div>
-          <h3 className="text-xl font-black text-teal-300">Disclaimers</h3>
-          <p className="mt-1 text-sm text-slate-400">
+          <h3 className="text-xl font-semibold text-teal-300">Disclaimers</h3>
+          <p className="mt-1 text-sm text-[#8a93a3]">
             {rows.length > 0
               ? `${rows.length} disclaimer${rows.length === 1 ? "" : "s"} turned on`
               : "No disclaimers turned on"}
@@ -809,7 +809,7 @@ function ReportDisclaimers({
           </p>
         </div>
 
-        <span className="rounded-xl border border-slate-600 px-4 py-2 text-sm font-black text-slate-200">
+        <span className="rounded-xl border border-[#232b38] px-4 py-2 text-sm font-semibold text-[#e8ecf3]">
           {open ? "Hide" : "Show"}
         </span>
       </button>
@@ -818,7 +818,7 @@ function ReportDisclaimers({
 
       {message && (
         <div
-          className={`border-t border-slate-700 px-5 py-3 text-sm font-bold ${
+          className={`border-t border-[#232b38] px-5 py-3 text-sm font-bold ${
             messageType === "success"
               ? "bg-emerald-950/30 text-emerald-300"
               : "bg-red-950/30 text-red-300"
@@ -833,7 +833,7 @@ function ReportDisclaimers({
         <div className="border-t border-cyan-500/30 bg-cyan-500/10 px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">
                 AI Recommended Disclaimers
               </p>
               <p className="mt-1 text-sm font-bold leading-6 text-cyan-50">
@@ -847,7 +847,7 @@ function ReportDisclaimers({
                 setOpen(true);
                 window.setTimeout(() => document.getElementById("ai-disclaimer-suggestions")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
               }}
-              className="rounded-xl border border-cyan-300 bg-cyan-400/10 px-4 py-2 text-sm font-black text-cyan-100 hover:bg-cyan-400/20"
+              className="rounded-xl border border-cyan-300 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/20"
             >
               Review Suggestions
             </button>
@@ -856,7 +856,7 @@ function ReportDisclaimers({
       )}
 
       {rows.length > 0 && (
-        <div className="border-t border-slate-700 px-5 py-3">
+        <div className="border-t border-[#232b38] px-5 py-3">
           <div className="flex flex-wrap gap-2">
             {rows.map((row) => (
               <button
@@ -873,14 +873,14 @@ function ReportDisclaimers({
       )}
 
       {open && (
-        <div className="space-y-5 border-t border-slate-700 p-5">
+        <div className="space-y-5 border-t border-[#232b38] p-5">
           <div id="ai-disclaimer-suggestions" className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-sm font-black uppercase tracking-wide text-cyan-300">
+                <p className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
                   AI Recommended Disclaimers
                 </p>
-                <p className="mt-1 text-sm leading-6 text-slate-300">
+                <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
                   {inspectionYear
                     ? `Home built in ${inspectionYear}. Suggested disclaimers are generated from the year built and the findings you have documented.`
                     : "Enter or auto-fill the year built on the report. The system also scans findings for conditions that may need disclaimers."}
@@ -889,7 +889,7 @@ function ReportDisclaimers({
 
               <div className="flex flex-wrap gap-2">
                 {inspectionYear ? (
-                  <span className="w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-black text-cyan-100">
+                  <span className="w-fit rounded-full border border-cyan-400/60 bg-cyan-500/15 px-3 py-1 text-xs font-semibold text-cyan-100">
                     Year Built: {inspectionYear}
                   </span>
                 ) : null}
@@ -898,7 +898,7 @@ function ReportDisclaimers({
                     type="button"
                     onClick={addAllSuggestedDisclaimers}
                     disabled={saving}
-                    className="rounded-full border border-emerald-400/60 bg-emerald-500/15 px-3 py-1 text-xs font-black text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-60"
+                    className="rounded-full border border-emerald-400/60 bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-60"
                   >
                     Add All Suggested
                   </button>
@@ -911,19 +911,19 @@ function ReportDisclaimers({
                 {recommendedSuggestions.map((rule) => (
                   <div
                     key={rule.topic}
-                    className="rounded-xl border border-cyan-400/40 bg-[#020617] p-4 text-left transition hover:border-cyan-300 hover:bg-cyan-500/10"
+                    className="rounded-xl border border-cyan-400/40 bg-[#0a0e13] p-4 text-left transition hover:border-cyan-300 hover:bg-cyan-500/10"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-base font-black text-white">{rule.topic}</p>
+                        <p className="text-base font-semibold text-white">{rule.topic}</p>
                         <p className="mt-1 text-sm font-bold text-cyan-200">{rule.label}</p>
                       </div>
-                      <span className="shrink-0 rounded-full border border-slate-500/60 bg-slate-500/10 px-3 py-1 text-[10px] font-black uppercase text-slate-200">
+                      <span className="shrink-0 rounded-full border border-[#59626f]/60 bg-slate-500/10 px-3 py-1 text-[10px] font-semibold uppercase text-[#e8ecf3]">
                         {rule.source}
                       </span>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-300">{rule.reason}</p>
-                    <div className="mt-3 rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs leading-5 text-slate-400">
+                    <p className="mt-3 text-sm leading-6 text-[#8a93a3]">{rule.reason}</p>
+                    <div className="mt-3 rounded-lg border border-[#232b38] bg-[#131923] p-3 text-xs leading-5 text-[#8a93a3]">
                       {rule.disclaimerText}
                     </div>
 
@@ -932,7 +932,7 @@ function ReportDisclaimers({
                         type="button"
                         onClick={() => addSuggestedDisclaimer(rule)}
                         disabled={saving}
-                        className="rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-xs font-black text-cyan-100 hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Add Disclaimer
                       </button>
@@ -941,7 +941,7 @@ function ReportDisclaimers({
                         type="button"
                         onClick={() => declineSuggestedDisclaimer(rule)}
                         disabled={saving}
-                        className="rounded-full border border-slate-500/70 bg-slate-500/10 px-4 py-2 text-xs font-black text-slate-200 hover:bg-slate-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-full border border-[#59626f]/70 bg-slate-500/10 px-4 py-2 text-xs font-semibold text-[#e8ecf3] hover:bg-slate-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         Decline
                       </button>
@@ -956,13 +956,13 @@ function ReportDisclaimers({
             ) : null}
 
             {declinedSuggestions.length > 0 ? (
-              <div className="mt-4 rounded-xl border border-slate-600 bg-slate-950/70 p-4">
+              <div className="mt-4 rounded-xl border border-[#232b38] bg-[#131923] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#8a93a3]">
                       Declined Suggestions
                     </p>
-                    <p className="mt-1 text-sm leading-6 text-slate-400">
+                    <p className="mt-1 text-sm leading-6 text-[#8a93a3]">
                       These suggestions are hidden from AI Recommended unless you restore them.
                     </p>
                   </div>
@@ -971,7 +971,7 @@ function ReportDisclaimers({
                     type="button"
                     onClick={restoreAllDeclinedSuggestions}
                     disabled={saving}
-                    className="rounded-full border border-slate-400/70 bg-slate-500/10 px-3 py-1 text-xs font-black text-slate-100 hover:bg-slate-500/20 disabled:opacity-60"
+                    className="rounded-full border border-slate-400/70 bg-slate-500/10 px-3 py-1 text-xs font-semibold text-[#e8ecf3] hover:bg-slate-500/20 disabled:opacity-60"
                   >
                     Restore All
                   </button>
@@ -984,7 +984,7 @@ function ReportDisclaimers({
                       type="button"
                       onClick={() => restoreSuggestedDisclaimer(rule.topic)}
                       disabled={saving}
-                      className="rounded-full border border-slate-500/70 bg-[#020617] px-3 py-2 text-xs font-bold text-slate-200 hover:border-cyan-400 hover:text-cyan-100 disabled:opacity-60"
+                      className="rounded-full border border-[#59626f]/70 bg-[#0a0e13] px-3 py-2 text-xs font-bold text-[#e8ecf3] hover:border-cyan-400 hover:text-cyan-100 disabled:opacity-60"
                     >
                       Restore {rule.topic}
                     </button>
@@ -994,8 +994,8 @@ function ReportDisclaimers({
             ) : null}
           </div>
 
-          <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-4">
-            <p className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-400">
+          <div className="rounded-xl border border-[#232b38] bg-[#0a0e13]/50 p-4">
+            <p className="mb-3 text-sm font-bold uppercase tracking-wide text-[#8a93a3]">
               Turn Disclaimers On / Off
             </p>
 
@@ -1012,7 +1012,7 @@ function ReportDisclaimers({
                     className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                       selected
                         ? "border-yellow-400 bg-yellow-500/15 text-yellow-100"
-                        : "border-slate-600 bg-[#020617] text-white hover:border-yellow-400 hover:bg-yellow-500/10"
+                        : "border-[#232b38] bg-[#0a0e13] text-white hover:border-yellow-400 hover:bg-yellow-500/10"
                     } disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     <span
@@ -1031,8 +1031,8 @@ function ReportDisclaimers({
               })}
             </div>
 
-            <div className="mt-4 rounded-xl border border-slate-700 bg-[#020617] p-3">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
+            <div className="mt-4 rounded-xl border border-[#232b38] bg-[#0a0e13] p-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#8a93a3]">
                 + Custom Disclaimer
               </p>
 
@@ -1041,14 +1041,14 @@ function ReportDisclaimers({
                   value={customTopic}
                   onChange={(event) => setCustomTopic(event.target.value)}
                   placeholder="Add custom disclaimer topic..."
-                  className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-[#020617] px-3 py-2 text-white outline-none focus:border-yellow-400"
+                  className="min-w-0 flex-1 rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-2 text-white outline-none focus:border-yellow-400"
                 />
 
                 <button
                   type="button"
                   onClick={addCustomDisclaimer}
                   disabled={saving || !customTopic.trim()}
-                  className="rounded-lg border border-yellow-500 px-4 py-2 text-sm font-black text-yellow-300 hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg border border-yellow-500 px-4 py-2 text-sm font-semibold text-yellow-300 hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Add
                 </button>
@@ -1077,14 +1077,14 @@ function ReportDisclaimers({
             </p>
 
             <label className="mt-4 block">
-              <p className="mb-2 text-sm font-bold text-slate-300">
+              <p className="mb-2 text-sm font-bold text-[#8a93a3]">
                 Active Disclaimer
               </p>
 
               <select
                 value={activeTopic}
                 onChange={(event) => setActiveTopic(event.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-purple-400"
+                className="w-full rounded-xl border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-purple-400"
               >
                 {[
                   ...DEFAULT_DISCLAIMER_TOPICS,
@@ -1100,7 +1100,7 @@ function ReportDisclaimers({
               onChange={(event) => setRoughNotes(event.target.value)}
               rows={3}
               placeholder="Example: home built before 1978, no testing performed, older painted surfaces may contain lead..."
-              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] p-4 text-white outline-none focus:border-purple-400"
+              className="mt-4 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-purple-400"
             />
 
             <div className="mt-3 flex flex-wrap gap-3">
@@ -1108,7 +1108,7 @@ function ReportDisclaimers({
                 type="button"
                 onClick={generateDisclaimer}
                 disabled={generating || saving || !roughNotes.trim()}
-                className="rounded-xl bg-purple-500 px-5 py-3 font-black text-white hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-purple-500 px-5 py-3 font-semibold text-white hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {generating ? "Generating..." : "AI Fill Disclaimer"}
               </button>
@@ -1117,7 +1117,7 @@ function ReportDisclaimers({
                 type="button"
                 onClick={saveActiveDisclaimer}
                 disabled={saving || !generatedText.trim()}
-                className="rounded-xl border border-teal-500 px-5 py-3 font-black text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-teal-300 hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Save Disclaimer Text
               </button>
@@ -1128,7 +1128,7 @@ function ReportDisclaimers({
               onChange={(event) => setGeneratedText(event.target.value)}
               rows={6}
               placeholder="Disclaimer text will appear here..."
-              className="mt-4 w-full rounded-xl border border-slate-700 bg-[#020617] p-4 text-white outline-none focus:border-purple-400"
+              className="mt-4 w-full rounded-xl border border-[#232b38] bg-[#0a0e13] p-4 text-white outline-none focus:border-purple-400"
             />
           </div>
         </div>

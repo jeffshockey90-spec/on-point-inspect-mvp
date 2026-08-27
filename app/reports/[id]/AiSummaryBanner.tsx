@@ -14,12 +14,12 @@ export default function AiSummaryBanner({
           Report Summary
         </h2>
 
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-[#8a93a3]">
           Saved summary visible to the client and realtor when the report is shared.
         </p>
       </div>
 
-      <div className="whitespace-pre-line rounded-xl border border-slate-700 bg-[#020817]/70 p-5 text-base leading-8 text-slate-100">
+      <div className="whitespace-pre-line rounded-xl border border-[#232b38] bg-[#131923] p-5 text-base leading-8 text-[#e8ecf3]">
         {summary}
       </div>
     </section>

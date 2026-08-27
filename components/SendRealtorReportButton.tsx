@@ -113,7 +113,7 @@ export default function SendRealtorReportButton({
         onClick={sendReport}
         disabled={sending || !realtorEmail}
         aria-busy={sending}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 px-4 py-2 text-sm font-black text-purple-300 transition active:scale-[0.98] hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 px-4 py-2 text-sm font-semibold text-purple-300 transition active:scale-[0.98] hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
         title={realtorEmail || "No realtor email saved"}
       >
         {sending && (

@@ -46,21 +46,21 @@ export default function ReportTemplateSwitcher({
   }
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-[#0b1220] px-3 py-2.5">
+    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-[#1a212c] bg-[#10151e] px-3 py-2.5">
       <span className="fl-lbl">Template</span>
       <select
         value={value}
         disabled={busy}
         onChange={(e) => apply(e.target.value)}
-        className="rounded-lg border border-slate-700 bg-[#020617] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-teal-400 disabled:opacity-60"
+        className="rounded-lg border border-[#232b38] bg-[#0a0e13] px-3 py-1.5 text-sm font-bold text-white outline-none focus:border-teal-400 disabled:opacity-60"
       >
         <option value="">Standard sections</option>
         {templates.map((t) => (
           <option key={t.id} value={t.id}>{t.name}</option>
         ))}
       </select>
-      {busy && <span className="text-xs text-slate-400">Applying…</span>}
-      <span className="ml-auto text-xs text-slate-500">Switching never deletes findings.</span>
+      {busy && <span className="text-xs text-[#8a93a3]">Applying…</span>}
+      <span className="ml-auto text-xs text-[#59626f]">Switching never deletes findings.</span>
     </div>
   );
 }

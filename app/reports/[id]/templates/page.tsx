@@ -225,15 +225,15 @@ export default async function FindingTemplatesPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#020617] text-white">
+    <main className="min-h-screen bg-[#0a0e13] text-white">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-black text-teal-400">
+            <h1 className="text-4xl font-semibold text-teal-400">
               Favorite Findings / Templates
             </h1>
 
-            <p className="mt-2 text-slate-400">
+            <p className="mt-2 text-[#8a93a3]">
               Type a quick note, let AI
               expand it, save reusable
               findings, and insert them
@@ -243,14 +243,14 @@ export default async function FindingTemplatesPage({
 
           <Link
             href={`/reports/${inspection.id}`}
-            className="rounded-xl border border-slate-600 px-5 py-3 font-bold text-slate-200 hover:bg-slate-800"
+            className="rounded-xl border border-[#232b38] px-5 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
           >
             Back to Report
           </Link>
         </div>
 
-        <section className="mb-8 rounded-2xl border border-slate-700 bg-[#0f172a] p-6">
-          <h2 className="mb-5 text-2xl font-black text-teal-300">
+        <section className="mb-8 rounded-2xl border border-[#232b38] bg-[#10151e] p-6">
+          <h2 className="mb-5 text-2xl font-semibold text-teal-300">
             Create New Template
           </h2>
 
@@ -267,7 +267,7 @@ export default async function FindingTemplatesPage({
             <AITemplateGenerator />
 
             <div>
-              <label className="mb-1 block text-sm font-bold text-slate-400">
+              <label className="mb-1 block text-sm font-bold text-[#8a93a3]">
                 Title
               </label>
 
@@ -275,14 +275,14 @@ export default async function FindingTemplatesPage({
                 name="title"
                 required
                 placeholder="Example: Missing GFCI Protection"
-                className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+                className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
               />
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
               <select
                 name="section"
-                className="rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+                className="rounded-lg border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
               >
                 <option>
                   Exterior
@@ -339,7 +339,7 @@ export default async function FindingTemplatesPage({
 
               <select
                 name="severity"
-                className="rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+                className="rounded-lg border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
               >
                 <option>
                   Safety / Major
@@ -366,34 +366,34 @@ export default async function FindingTemplatesPage({
               name="observation"
               placeholder="Observation"
               rows={5}
-              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+              className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
             />
 
             <textarea
               name="implication"
               placeholder="Implication"
               rows={5}
-              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+              className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
             />
 
             <textarea
               name="recommendation"
               placeholder="Recommendation"
               rows={5}
-              className="w-full rounded-lg border border-slate-700 bg-[#020617] px-4 py-3 text-white outline-none focus:border-teal-400"
+              className="w-full rounded-lg border border-[#232b38] bg-[#0a0e13] px-4 py-3 text-white outline-none focus:border-teal-400"
             />
 
             <div className="flex flex-wrap gap-3">
               <button
                 type="submit"
-                className="rounded-xl bg-teal-500 px-6 py-3 font-black text-slate-950 hover:bg-teal-400"
+                className="rounded-xl bg-teal-500 px-6 py-3 font-semibold text-slate-950 hover:bg-teal-400"
               >
                 Save Template
               </button>
 
               <Link
                 href={`/reports/${inspection.id}`}
-                className="rounded-xl border border-slate-600 px-6 py-3 font-bold text-slate-200 hover:bg-slate-800"
+                className="rounded-xl border border-[#232b38] px-6 py-3 font-bold text-[#e8ecf3] hover:bg-[#1a212c]"
               >
                 Cancel
               </Link>
@@ -402,13 +402,13 @@ export default async function FindingTemplatesPage({
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-2xl font-black text-teal-300">
+          <h2 className="text-2xl font-semibold text-teal-300">
             Saved Templates
           </h2>
 
           {(templates || []).length ===
             0 && (
-            <div className="rounded-2xl border border-slate-700 bg-[#0f172a] p-6 text-slate-400">
+            <div className="rounded-2xl border border-[#232b38] bg-[#10151e] p-6 text-[#8a93a3]">
               No saved templates yet.
             </div>
           )}
@@ -417,17 +417,17 @@ export default async function FindingTemplatesPage({
             (template: any) => (
               <div
                 key={template.id}
-                className="rounded-2xl border border-slate-700 bg-[#0f172a] p-6"
+                className="rounded-2xl border border-[#232b38] bg-[#10151e] p-6"
               >
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-bold uppercase text-slate-400">
+                    <p className="text-sm font-bold uppercase text-[#8a93a3]">
                       {
                         template.section
                       }
                     </p>
 
-                    <h3 className="mt-1 text-2xl font-black text-white">
+                    <h3 className="mt-1 text-2xl font-semibold text-white">
                       {template.title}
                     </h3>
 
@@ -462,7 +462,7 @@ export default async function FindingTemplatesPage({
 
                       <button
                         type="submit"
-                        className="rounded-xl bg-green-500 px-5 py-3 font-black text-slate-950 hover:bg-green-400"
+                        className="rounded-xl bg-green-500 px-5 py-3 font-semibold text-slate-950 hover:bg-green-400"
                       >
                         Insert Into
                         Report
@@ -544,11 +544,11 @@ function TextBlock({
 }) {
   return (
     <div className="mb-4">
-      <h4 className="mb-1 font-black text-teal-300">
+      <h4 className="mb-1 font-semibold text-teal-300">
         {title}
       </h4>
 
-      <p className="whitespace-pre-wrap leading-7 text-slate-300">
+      <p className="whitespace-pre-wrap leading-7 text-[#8a93a3]">
         {value}
       </p>
     </div>

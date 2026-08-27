@@ -58,7 +58,7 @@ export default function ReportContactEditor({
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-900 p-5 print:hidden">
+    <div className="mt-6 rounded-2xl border border-[#232b38] bg-[#131923] p-5 print:hidden">
       <h2 className="mb-5 text-xl font-bold text-teal-400">
         Edit Client & Realtor Info
       </h2>
@@ -70,7 +70,7 @@ export default function ReportContactEditor({
             setClientName(e.target.value)
           }
           placeholder="Client Name"
-          className="rounded-lg border border-slate-700 bg-slate-950 p-3 text-white"
+          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
         />
 
         <input
@@ -79,7 +79,7 @@ export default function ReportContactEditor({
             setClientEmail(e.target.value)
           }
           placeholder="Client Email"
-          className="rounded-lg border border-slate-700 bg-slate-950 p-3 text-white"
+          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
         />
 
         <input
@@ -88,7 +88,7 @@ export default function ReportContactEditor({
             setClientPhone(e.target.value)
           }
           placeholder="Client Phone"
-          className="rounded-lg border border-slate-700 bg-slate-950 p-3 text-white"
+          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
         />
 
         <input
@@ -97,7 +97,7 @@ export default function ReportContactEditor({
             setRealtorName(e.target.value)
           }
           placeholder="Realtor Name"
-          className="rounded-lg border border-slate-700 bg-slate-950 p-3 text-white"
+          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white"
         />
 
         <input
@@ -106,7 +106,7 @@ export default function ReportContactEditor({
             setRealtorEmail(e.target.value)
           }
           placeholder="Realtor Email"
-          className="rounded-lg border border-slate-700 bg-slate-950 p-3 text-white md:col-span-2"
+          className="rounded-lg border border-[#232b38] bg-[#0a0e13] p-3 text-white md:col-span-2"
         />
       </div>
 

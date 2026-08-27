@@ -134,7 +134,7 @@ function ReviewList({
   title,
   items,
   emptyText,
-  tone = "text-slate-200",
+  tone = "text-[#e8ecf3]",
 }: {
   title: string;
   items?: any[];
@@ -144,13 +144,13 @@ function ReviewList({
   const cleanItems = toReviewItems(items);
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
+    <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-black uppercase tracking-wide text-slate-400">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
           {title}
         </h3>
 
-        <span className="rounded-full border border-slate-600 bg-black/30 px-2 py-1 text-xs font-black text-slate-300">
+        <span className="rounded-full border border-[#232b38] bg-black/30 px-2 py-1 text-xs font-semibold text-[#8a93a3]">
           {cleanItems.length}
         </span>
       </div>
@@ -165,10 +165,10 @@ function ReviewList({
                 <button
                   type="button"
                   onClick={() => jumpToFinding(item.findingId, item.section)}
-                  className={`flex w-full items-start justify-between gap-2 rounded-lg border border-slate-700 bg-black/20 px-3 py-2 text-left text-sm leading-6 transition hover:border-purple-400/60 hover:bg-purple-500/10 ${tone}`}
+                  className={`flex w-full items-start justify-between gap-2 rounded-lg border border-[#232b38] bg-black/20 px-3 py-2 text-left text-sm leading-6 transition hover:border-purple-400/60 hover:bg-purple-500/10 ${tone}`}
                 >
                   <span className="min-w-0">{item.text}</span>
-                  <span className="mt-0.5 shrink-0 text-xs font-black text-purple-300">
+                  <span className="mt-0.5 shrink-0 text-xs font-semibold text-purple-300">
                     Fix →
                   </span>
                 </button>
@@ -259,15 +259,15 @@ export default function AIReportReviewPanel({
     <section className="mb-8 rounded-2xl border border-purple-500/40 bg-purple-950/20 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-purple-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-300">
             AI Report Review
           </p>
 
-          <h2 className="mt-1 text-2xl font-black text-white">
+          <h2 className="mt-1 text-2xl font-semibold text-white">
             Second Set of Eyes Before Publish
           </h2>
 
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#8a93a3]">
             Runs an AI quality check for missing recommendations, missing implications,
             missing photos, duplicate concerns, section issues, equipment documentation,
             and report completeness. Inspector has final say.
@@ -278,7 +278,7 @@ export default function AIReportReviewPanel({
           type="button"
           onClick={runReview}
           disabled={loading}
-          className="rounded-xl bg-purple-500 px-5 py-3 text-sm font-black text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-purple-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Reviewing Report..." : "🧠 Run AI Review"}
         </button>
@@ -294,7 +294,7 @@ export default function AIReportReviewPanel({
         <div className="mt-4 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-black text-amber-200">{serviceError.title}</p>
+              <p className="text-sm font-semibold text-amber-200">{serviceError.title}</p>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-amber-100/90">
                 {serviceError.message}
               </p>
@@ -308,7 +308,7 @@ export default function AIReportReviewPanel({
                   type="button"
                   onClick={runReview}
                   disabled={loading}
-                  className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-black text-black disabled:opacity-60"
+                  className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-black disabled:opacity-60"
                 >
                   Retry AI Review
                 </button>
@@ -316,7 +316,7 @@ export default function AIReportReviewPanel({
               <button
                 type="button"
                 onClick={() => document.getElementById("publish-guard")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="rounded-lg border border-slate-500 bg-slate-900 px-4 py-2 text-sm font-black text-white"
+                className="rounded-lg border border-[#59626f] bg-[#131923] px-4 py-2 text-sm font-semibold text-white"
               >
                 View Publish Guard
               </button>
@@ -336,47 +336,47 @@ export default function AIReportReviewPanel({
         <div
           className={`rounded-xl border p-4 ${
             score === null
-              ? "border-slate-700 bg-[#020817]/70 text-slate-300"
+              ? "border-[#232b38] bg-[#020817]/70 text-[#8a93a3]"
               : scoreTone(score)
           }`}
         >
-          <p className="text-xs font-black uppercase tracking-wide opacity-80">
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
             Report Score
           </p>
 
-          <p className="mt-2 text-4xl font-black">
+          <p className="mt-2 text-4xl font-semibold">
             {score === null ? "—" : score}
             {score !== null && <span className="text-xl opacity-80"> / 100</span>}
           </p>
         </div>
 
         <div className={`rounded-xl border p-4 ${recommendationTone(publishRecommendation)}`}>
-          <p className="text-xs font-black uppercase tracking-wide opacity-80">
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
             Publish Recommendation
           </p>
 
-          <p className="mt-2 text-xl font-black">{publishRecommendation}</p>
+          <p className="mt-2 text-xl font-semibold">{publishRecommendation}</p>
         </div>
 
-        <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4 text-slate-300">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+        <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-4 text-[#8a93a3]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#8a93a3]">
             Report Data Reviewed
           </p>
 
           <p className="mt-2 text-sm">
-            Findings: <span className="font-black text-white">{review?.findingCount ?? "—"}</span>
+            Findings: <span className="font-semibold text-white">{review?.findingCount ?? "—"}</span>
           </p>
           <p className="mt-1 text-sm">
-            Equipment: <span className="font-black text-white">{review?.equipmentCount ?? "—"}</span>
+            Equipment: <span className="font-semibold text-white">{review?.equipmentCount ?? "—"}</span>
           </p>
           <p className="mt-1 text-sm">
-            Media: <span className="font-black text-white">{review?.photoCount ?? "—"}</span>
+            Media: <span className="font-semibold text-white">{review?.photoCount ?? "—"}</span>
           </p>
         </div>
       </div>
 
       {safeText(review?.summary) && (
-        <div className="mt-5 rounded-xl border border-slate-700 bg-[#020817]/70 p-4 text-sm leading-7 text-slate-100">
+        <div className="mt-5 rounded-xl border border-[#232b38] bg-[#020817]/70 p-4 text-sm leading-7 text-[#e8ecf3]">
           {safeText(review?.summary)}
         </div>
       )}
@@ -427,8 +427,8 @@ export default function AIReportReviewPanel({
             emptyText="No extra suggestions."
           />
 
-          <div className="rounded-xl border border-slate-700 bg-[#020817]/70 p-4">
-            <h3 className="text-sm font-black uppercase tracking-wide text-slate-400">
+          <div className="rounded-xl border border-[#232b38] bg-[#020817]/70 p-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[#8a93a3]">
               Automated Base Checks
             </h3>
 
@@ -444,16 +444,16 @@ export default function AIReportReviewPanel({
                       <button
                         type="button"
                         onClick={() => jumpToFinding(item.findingId, item.section)}
-                        className="flex w-full items-start justify-between gap-2 rounded-lg border border-slate-700 bg-black/20 px-3 py-2 text-left text-sm leading-6 text-slate-300 transition hover:border-purple-400/60 hover:bg-purple-500/10"
+                        className="flex w-full items-start justify-between gap-2 rounded-lg border border-[#232b38] bg-black/20 px-3 py-2 text-left text-sm leading-6 text-[#8a93a3] transition hover:border-purple-400/60 hover:bg-purple-500/10"
                       >
                         <span className="min-w-0">{item.text}</span>
-                        <span className="mt-0.5 shrink-0 text-xs font-black text-purple-300">
+                        <span className="mt-0.5 shrink-0 text-xs font-semibold text-purple-300">
                           Fix →
                         </span>
                       </button>
                     </li>
                   ) : (
-                    <li key={index} className="text-sm leading-6 text-slate-300">
+                    <li key={index} className="text-sm leading-6 text-[#8a93a3]">
                       {item.text}
                     </li>
                   ),
