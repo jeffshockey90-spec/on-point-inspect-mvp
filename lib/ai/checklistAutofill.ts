@@ -159,19 +159,53 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
 export const MATERIAL_FIELDS: Record<string, { groupTitle: string; options: string[] }[]> = {
   "Exterior": [
     { groupTitle: "Siding Material", options: ["Brick Veneer", "Plastic", "Logs", "Stone Veneer", "Concrete", "Stucco", "Fiber Cement", "Stone", "Wood", "Vinyl", "Shingles", "Brick", "Engineered Wood", "Masonry", "Asphalt", "Metal"] },
-    { groupTitle: "Driveway Material", options: ["Concrete", "Asphalt", "Cobblestone", "Pavers", "Gravel", "Brick", "Street Parking", "Dirt"] },
+    { groupTitle: "Exterior Entry Door", options: ["Wood", "Steel", "Single Pane", "Glass", "Hollow Core", "Fiberglass"] },
     { groupTitle: "Appurtenance Material", options: ["Composite", "Wood", "Concrete", "Masonry"] },
+    { groupTitle: "Driveway Material", options: ["Concrete", "Asphalt", "Cobblestone", "Pavers", "Gravel", "Brick", "Street Parking", "Dirt"] },
   ],
   "Roof": [
-    { groupTitle: "Roof Covering Material", options: ["Solar", "Ceramic", "Asbestos", "Tile", "Metal", "Concrete", "Fiberglass", "Slate", "Asphalt", "Wood"] },
     { groupTitle: "Roof Type/Style", options: ["Gambrel", "Combination", "Hip", "Mansard", "Shed", "Gable", "Flat"] },
+    { groupTitle: "Roof Covering Material", options: ["Solar", "Ceramic", "Asbestos", "Tile", "Metal", "Concrete", "Fiberglass", "Slate", "Asphalt", "Wood"] },
     { groupTitle: "Gutter Material", options: ["Aluminum", "Copper", "Vinyl", "Steel", "Seamless Aluminum", "None"] },
+    { groupTitle: "Flashing Material", options: ["Aluminum", "Lead", "Foam", "Asphalt", "Copper", "Rubber"] },
   ],
   "Basement, Foundation, Crawlspace & Structure": [
     { groupTitle: "Foundation Material", options: ["Brick", "Concrete", "Rock", "Pier and Beam", "Stone", "Masonry Block", "Slab on Grade"] },
+    { groupTitle: "Basement/Crawlspace Floor", options: ["Concrete", "Wood", "Vapor Barrier", "Dirt", "Gravel"] },
+    { groupTitle: "Structure Material", options: ["Wood Beams", "Slab", "Wood I-Joists", "Steel I-Beams", "CMU", "Concrete", "Steel Joists", "Engineered Floor Trusses", "Inaccessible"] },
+    { groupTitle: "Sub-Floor", options: ["Inaccessible", "Plank", "OSB", "Plywood"] },
+  ],
+  "Plumbing": [
+    { groupTitle: "Water Supply Material", options: ["Copper", "PVC", "Hose", "Poly", "Galvanized", "Unknown", "Pex"] },
+    { groupTitle: "Distribution Material", options: ["Copper", "Galvanized", "Pex", "Unknown", "PVC", "Hose", "Poly"] },
+    { groupTitle: "Drain Material", options: ["ABS", "Copper", "PVC", "Lead", "Iron", "Unknown"] },
+  ],
+  "Electrical": [
+    { groupTitle: "Panel Type", options: ["Circuit Breaker", "Fuses"] },
+    { groupTitle: "Wiring Method", options: ["Conduit", "Not Visible", "Surface Mounted Distribution", "Knob & Tube", "Romex"] },
+    { groupTitle: "Branch Wire 15 and 20 AMP", options: ["Aluminum", "Copper"] },
+  ],
+  "Attic, Insulation & Ventilation": [
+    { groupTitle: "Insulation Type", options: ["Batt", "Foam-board", "Fiberglass", "Cellulose", "None", "Vermiculite", "Blown", "Foiled-faced", "Loose-fill", "Mineral Wool", "Spray Foam", "Unknown"] },
+    { groupTitle: "Ventilation Type", options: ["Gable Vents", "Passive", "Soffit Vents", "Turbines", "Attic Fan", "None Found", "Ridge Vents", "Thermostatically Controlled Fan", "Whole House Fan"] },
+    { groupTitle: "Dryer Vent", options: ["Metal", "None Found", "Rigid PVC", "Plastic (Flex)", "Metal (Flex)", "Unknown", "Vinyl (Flex)"] },
+  ],
+  "Doors, Windows & Interior": [
+    { groupTitle: "Interior Doors", options: ["Wood", "Hollow Core", "Metal"] },
+    { groupTitle: "Window Type", options: ["Casement", "Single Pane", "Sliders", "Storm", "Drop-down", "Single-hung", "Double-hung", "Thermal"] },
+    { groupTitle: "Floor Coverings", options: ["Bamboo", "Carpet", "Engineered Wood", "Laminate", "Tile", "Brick", "Concrete", "Hardwood", "Linoleum", "Vinyl"] },
+    { groupTitle: "Wall Material", options: ["Brick", "Paneling", "Wood", "Tile", "Compressed Board", "Drywall", "Plaster", "Gypsum Board", "Unfinished", "Wallpaper"] },
+    { groupTitle: "Ceiling Material", options: ["Ceiling Tiles", "Gypsum Board", "Popcorn", "Unfinished", "Wood", "Compressed Board", "Plaster", "Suspended Ceiling Panels", "Wallpaper", "Drywall"] },
+    { groupTitle: "Cabinetry", options: ["Laminate", "Plastic", "Metal", "Wood"] },
+    { groupTitle: "Countertop Material", options: ["Composite", "Concrete", "Granite", "Metal", "Quartz", "Stainless Steel", "Wood Butcher Block", "Laminate", "Corian", "Marble", "Porcelain", "Recycled Glass", "Tile"] },
+  ],
+  "Built-in Appliances": [
+    { groupTitle: "Range/Oven Energy Source", options: ["Coal", "Gas", "Electric", "Wood"] },
+    { groupTitle: "Exhaust Hood Type", options: ["None", "Vented", "Re-circulate"] },
   ],
   "Garage": [
     { groupTitle: "Garage Door Material", options: ["Aluminum", "Wood Composite", "Vinyl", "Insulated", "Steel", "Wood", "Fiberglass", "Glass"] },
+    { groupTitle: "Garage Door Type", options: ["Sliding", "Up-and-Over", "Automatic", "Folding", "Roll-Up", "Sectional"] },
   ],
 };
 

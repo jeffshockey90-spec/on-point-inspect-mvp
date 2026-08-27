@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
-import { buildEquipmentFills, writeChecklistFills } from "../../lib/ai/checklistAutofill";
+import { buildEquipmentFills, buildMaterialFills, writeChecklistFills } from "../../lib/ai/checklistAutofill";
 import { isLikelyNetworkError } from "../../lib/networkError";
 import {
   createFullImageForUpload,
@@ -2177,10 +2177,27 @@ function FieldPageContent() {
           "Review the AI finding and edit before saving.",
       });
 
+      // Auto-fill the section's material/type system info (siding, roof
+      // covering, floor covering, etc.) that the AI identified from the photo --
+      // fills only empty fields, never overwrites the inspector's picks.
+      let filledNote = "";
+      try {
+        const fills = buildMaterialFills(data.section || section, data.sectionInfo);
+        if (fills.length && selectedReport) {
+          const written = await writeChecklistFills(supabase, selectedReport, fills);
+          if (written > 0) {
+            filledNote = ` Auto-filled section info: ${fills.map((f) => f.groupTitle).join(", ")}.`;
+          }
+        }
+      } catch {
+        // best-effort; never block the finding
+      }
+
       setMessage(
-        images.length === 1
+        (images.length === 1
           ? "AI analyzed the photo. Review and edit the finding before saving."
-          : `AI analyzed ${images.length} photos together. Review and edit the finding before saving.`,
+          : `AI analyzed ${images.length} photos together. Review and edit the finding before saving.`) +
+          filledNote,
       );
     } catch (error: any) {
       setMessage(error?.message || "AI photo analysis failed.");

@@ -4,6 +4,7 @@ import { inspectionBrain } from "../../../../lib/ai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import { loadFlowStyle } from "../../../../lib/ai/flowWriter";
+import { MATERIAL_FIELDS } from "../../../../lib/ai/checklistAutofill";
 
 export const runtime = "nodejs";
 
@@ -79,6 +80,7 @@ type DefectRecognitionResult = {
   detected_objects?: string[];
   detectedMaterials?: string[];
   detected_materials?: string[];
+  sectionInfo?: Record<string, any>;
   detectedConditions?: string[];
   detected_conditions?: string[];
   evidence?: string[];
@@ -326,11 +328,17 @@ Return this exact JSON structure:
   "detectedObjects": [],
   "detectedMaterials": [],
   "detectedConditions": [],
+  "sectionInfo": {},
   "evidence": [],
   "reasoning": "",
   "inspectorGuidance": "",
   "flags": []
 }
+
+SECTION SYSTEM-INFO (sectionInfo):
+Also identify the visible material/type for the section you assign, to auto-fill that section's system info. Include a field ONLY for the section you chose, ONLY when you can CLEARLY identify it from the photo, and choose the value ONLY from that section's allowed options below (or, if it's clearly a material not in the list, a short specific material name). Omit any field you're not sure about — accuracy over completeness; leave it out rather than guessing. If nothing is clearly identifiable, return {}.
+Allowed material/type fields per section (groupTitle: allowed options):
+${JSON.stringify(MATERIAL_FIELDS)}
 
 Client-facing writing rules:
 - Title should be short and specific.
@@ -465,6 +473,16 @@ Important:
       detectedObjects: cleanStringArray(parsed.detectedObjects || parsed.detected_objects),
       detectedMaterials: cleanStringArray(parsed.detectedMaterials || parsed.detected_materials),
       detectedConditions: cleanStringArray(parsed.detectedConditions || parsed.detected_conditions),
+      // Structured material/type values for the assigned section's system info
+      // (the Field Tool feeds this to buildMaterialFills to auto-fill the checklist).
+      sectionInfo:
+        parsed.sectionInfo && typeof parsed.sectionInfo === "object"
+          ? Object.fromEntries(
+              Object.entries(parsed.sectionInfo)
+                .filter(([, v]) => typeof v === "string" && String(v).trim())
+                .map(([k, v]) => [k, String(v).trim()]),
+            )
+          : {},
       evidence: cleanStringArray(parsed.evidence),
       reasoning: cleanText(parsed.reasoning),
       inspectorGuidance:
