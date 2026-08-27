@@ -24,6 +24,23 @@ const PANEL_MANUFACTURER = ["Challenger", "Federal Pioneer", "Cutler Hammer", "G
 const PANEL_CAPACITY = ["60 AMP", "100 AMP", "125 AMP", "150 AMP", "200 AMP", "225 AMP", "400 AMP", "800 AMP"];
 const HEATING_ENERGY = ["Coal", "Gas", "Oil", "Solar", "Natural Gas", "Corn", "Kerosene", "Propane", "Electric", "Wood"];
 const COOLING_ENERGY = ["Ceiling Fan", "Whole House Fan", "Window AC", "Heat Pump", "Oil", "Gas", "Electric", "Central Air Conditioner", "Swamp Cooler", "Attic Fan"];
+const HEATING_BRAND = ["Rheem", "American Standard", "York", "Trane", "Payne", "Coleman", "Carrier", "Bryant", "Lennox", "Goodman", "Amana"];
+const HEATING_TYPE = ["Radiant Heat", "Electric Baseboard", "Space Heater", "Forced Air", "Hydronic", "Electric Wall Heater", "Steam Boiler", "Heat Pump", "Gas-Fired Heat", "None"];
+const COOLING_BRAND = ["Amana", "Frigidaire", "Carrier", "Coleman", "Goodman", "Lennox", "Rheem", "York", "Trane", "Bryant", "Maytag", "General Electric", "Luxaire", "Armstrong", "Unknown"];
+
+// The heating unit type / heat-delivery method, inferred from the equipment text.
+function pickHeatType(t: string): string | null {
+  if (t.includes("heat pump")) return "Heat Pump";
+  if (t.includes("steam")) return "Steam Boiler";
+  if (t.includes("boiler") || t.includes("hydronic")) return "Hydronic";
+  if (t.includes("radiant")) return "Radiant Heat";
+  if (t.includes("baseboard")) return "Electric Baseboard";
+  if (t.includes("wall heater")) return "Electric Wall Heater";
+  if (t.includes("space heater")) return "Space Heater";
+  if (t.includes("gas-fired") || t.includes("gas fired")) return "Gas-Fired Heat";
+  if (t.includes("furnace") || t.includes("forced air") || t.includes("air handler")) return "Forced Air";
+  return null;
+}
 
 const UNKNOWN_VALUES = new Set([
   "unknown", "n/a", "na", "not available", "not visible", "not readable",
@@ -131,6 +148,7 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
   // Heat pumps read as both — route by the analyzer's chosen section.
   const preferCooling = String(er.section || "").toLowerCase() === "cooling";
   if (isCooling(t) && (preferCooling || !isHeating(t))) {
+    if (isKnown(er.manufacturer)) fills.push(optionFill("Cooling", "Brand", String(er.manufacturer), COOLING_BRAND));
     let typeOpt: string | null = null;
     if (t.includes("central air")) typeOpt = "Central Air Conditioner";
     else if (t.includes("heat pump")) typeOpt = "Heat Pump";
@@ -146,11 +164,15 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
   }
 
   if (isHeating(t)) {
+    if (isKnown(er.manufacturer)) fills.push(optionFill("Heating", "Brand", String(er.manufacturer), HEATING_BRAND));
     if (isKnown(er.fuelType)) {
       const opt = matchFuel(String(er.fuelType), HEATING_ENERGY);
       if (opt) fills.push({ section: "Heating", groupTitle: "Energy Source", kind: "option", value: opt, matched: true });
       else fills.push({ section: "Heating", groupTitle: "Energy Source", kind: "option", value: String(er.fuelType).trim(), matched: false });
     }
+    // The heat-delivery method / unit type (Forced Air, Heat Pump, Boiler, etc.).
+    const heatType = pickHeatType(t) || (isKnown(er.heatType) ? matchOption(String(er.heatType), HEATING_TYPE) : null);
+    if (heatType) fills.push({ section: "Heating", groupTitle: "Heat Type", kind: "option", value: heatType, matched: true });
     return fills;
   }
 
