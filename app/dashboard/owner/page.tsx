@@ -1027,7 +1027,7 @@ export default async function OwnerDashboardPage() {
           </div>
         </section>
 
-        <div className="lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+        <div className="lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-8">
         <OwnerDashboardTabs />
 
         <div className="min-w-0 space-y-8">

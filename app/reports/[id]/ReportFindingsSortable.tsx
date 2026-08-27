@@ -879,7 +879,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         </div>
       )}
 
-      <div className="xl:grid xl:grid-cols-[13rem_minmax(0,1fr)] xl:items-start xl:gap-6">
+      <div className="xl:grid xl:grid-cols-[13rem_minmax(0,1fr)] xl:gap-6">
         {/* Desktop: vertical section rail */}
         {(orderedGroups || []).length > 1 && (
           <aside className="hidden xl:block" aria-label="Jump to inspection section">
