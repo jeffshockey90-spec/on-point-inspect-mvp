@@ -447,12 +447,12 @@ img {
   --fl-faint: #7c8698;
   --fl-accent: #0f9e90;
   --fl-accent-2: #0c8478;
-  --fl-accent-text: #0c8478;
-  --fl-warn-text: #8a5a00;
-  --fl-good-text: #0a7d5c;
-  --fl-crit-text: #c22f2f;
-  --fl-info-text: #0e6f8f;
-  --fl-purple-text: #6d28d9;
+  --fl-accent-text: #0a6b61;
+  --fl-warn-text: #6a4300;
+  --fl-good-text: #076043;
+  --fl-crit-text: #a81f1f;
+  --fl-info-text: #0a5268;
+  --fl-purple-text: #571fb0;
   --fl-accent-bg: rgba(15, 158, 144, 0.10);
   --fl-accent-line: rgba(15, 158, 144, 0.35);
   --fl-good: #0f9d76;
