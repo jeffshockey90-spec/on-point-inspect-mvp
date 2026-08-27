@@ -233,13 +233,13 @@ export default function OwnerSupportChat() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
+    <main className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] px-4 pt-8 pb-28 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-7xl space-y-6">
         <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">Owner Support Chat</p>
-              <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Inspector Messages</h1>
+              <h1 className="mt-3 text-3xl font-semibold sm:text-4xl md:text-5xl">Inspector Messages</h1>
               <p className="mt-4 text-[var(--fl-muted)]">Read and reply to inspector support messages.</p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -350,7 +350,7 @@ export default function OwnerSupportChat() {
                   >
                     <p className="truncate font-semibold text-[var(--fl-text)]">{thread.inspector_name || thread.inspector_email || "Inspector"}</p>
                     <p className="mt-1 truncate text-xs text-[var(--fl-muted)]">{thread.inspector_email || "No email"}</p>
-                    <p className="mt-2 line-clamp-2 text-sm text-[var(--fl-muted)]">{thread.last_message || "No messages"}</p>
+                    <p className="mt-2 line-clamp-2 break-words [overflow-wrap:anywhere] text-sm text-[var(--fl-muted)]">{thread.last_message || "No messages"}</p>
                     <p className="mt-2 text-xs font-bold text-[var(--fl-accent-text)]">{formatDate(thread.last_message_at)}</p>
                   </button>
                 ))
@@ -371,12 +371,12 @@ export default function OwnerSupportChat() {
                     const isOwner = item.sender_role === "owner";
                     return (
                       <div key={item.id} className={`flex ${isOwner ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[85%] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-500/10" : "border-blue-500/30 bg-blue-500/10"}`}>
+                        <div className={`min-w-0 max-w-[85%] break-words [overflow-wrap:anywhere] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-500/10" : "border-blue-500/30 bg-blue-500/10"}`}>
                           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                             {isOwner ? "You" : selected.inspector_name || "Inspector"} · {formatDate(item.created_at)}
                           </p>
                           {item.message && (
-                            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]">{item.message}</p>
+                            <p className="mt-2 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-6 text-[var(--fl-text)]">{item.message}</p>
                           )}
                           {item.attachment_url && (
                             <AttachmentView url={item.attachment_url} name={item.attachment_name} type={item.attachment_type} />

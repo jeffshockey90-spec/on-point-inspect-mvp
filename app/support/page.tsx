@@ -236,7 +236,7 @@ export default function SupportPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
+    <main className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] px-4 pt-8 pb-28 text-[var(--fl-text)] md:px-6 md:py-10">
       <div className="mx-auto max-w-4xl space-y-6">
         <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">Support Chat</p>
@@ -261,12 +261,12 @@ export default function SupportPage() {
                     const isOwner = item.sender_role === "owner";
                     return (
                       <div key={item.id} className={`flex ${isOwner ? "justify-start" : "justify-end"}`}>
-                        <div className={`max-w-[85%] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-500/10" : "border-blue-500/30 bg-blue-500/10"}`}>
+                        <div className={`min-w-0 max-w-[85%] break-words [overflow-wrap:anywhere] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-500/10" : "border-blue-500/30 bg-blue-500/10"}`}>
                           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                             {isOwner ? "Owner Reply" : "You"} · {formatDate(item.created_at)}
                           </p>
                           {item.message && (
-                            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]">{item.message}</p>
+                            <p className="mt-2 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-6 text-[var(--fl-text)]">{item.message}</p>
                           )}
                           {item.attachment_url && (
                             <AttachmentView url={item.attachment_url} name={item.attachment_name} type={item.attachment_type} />
