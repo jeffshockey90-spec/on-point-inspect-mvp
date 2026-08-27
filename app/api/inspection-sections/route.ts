@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { getSessionUser, authorizeInspection } from "../../../lib/apiAuth";
-import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
+import { resolveReportSections } from "../../../lib/reportSections";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,14 +44,16 @@ export async function GET(req: Request) {
     if (!authorized) return NextResponse.json({ sections: BASE_SECTIONS });
 
     const [{ data: inspection }, { data: overrides }] = await Promise.all([
-      admin.from("inspections").select("service_mode, report_section_order").eq("id", inspectionId).maybeSingle(),
+      admin.from("inspections").select("service_mode, report_section_order, template_sections").eq("id", inspectionId).maybeSingle(),
       admin.from("report_section_overrides").select("*").eq("inspection_id", inspectionId).order("sort_order", { ascending: true }),
     ]);
 
-    const sections = filterSectionsForServiceMode(
-      resolveActiveSections(BASE_SECTIONS, overrides || [], (inspection as any)?.report_section_order),
-      (inspection as any)?.service_mode,
-    );
+    const sections = resolveReportSections({
+      overrides: overrides || [],
+      customOrder: (inspection as any)?.report_section_order,
+      serviceMode: (inspection as any)?.service_mode,
+      templateSections: (inspection as any)?.template_sections,
+    });
 
     return NextResponse.json({ sections: sections.length ? sections : BASE_SECTIONS });
   } catch {

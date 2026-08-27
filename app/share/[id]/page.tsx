@@ -4,7 +4,7 @@ import { severityBadgeStyle } from "../../../lib/severity/severityConfig";
 import { headers } from "next/headers";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
-import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
+import { resolveReportSections } from "../../../lib/reportSections";
 import { formatClockTime } from "../../../lib/app-time";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
@@ -1320,14 +1320,12 @@ export default async function PublicSharePage({
     }
   }
 
-  const activeSectionOrder = filterSectionsForServiceMode(
-    resolveActiveSections(
-      SECTION_ORDER,
-      reportSectionsRaw || [],
-      (inspection as any).report_section_order,
-    ),
-    inspection.service_mode,
-  );
+  const activeSectionOrder = resolveReportSections({
+    overrides: reportSectionsRaw || [],
+    customOrder: (inspection as any).report_section_order,
+    serviceMode: inspection.service_mode,
+    templateSections: (inspection as any).template_sections,
+  });
 
   if (findingsError) {
     return (

@@ -2,7 +2,7 @@
 import { formatAppValue } from "../../../lib/app-time";
 import { isPaymentComplete } from "../../../lib/inspectionStatus";
 import { Camera } from "lucide-react";
-import { resolveActiveSections, filterSectionsForServiceMode } from "../../../lib/reportSections";
+import { resolveActiveSections, filterSectionsForServiceMode, resolveReportSections } from "../../../lib/reportSections";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { loadSeverityConfigForInspection } from "../../../lib/severity/loadSeverityConfig";
 import { severityIsCritical } from "../../../lib/severity/severityConfig";
@@ -1917,14 +1917,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     console.error("Report sections load error:", reportSectionsResult.error);
   }
 
-  const activeSectionOrder = filterSectionsForServiceMode(
-    resolveActiveSections(
-      SECTION_ORDER,
-      reportSectionsResult.data || [],
-      (inspection as any).report_section_order,
-    ),
-    inspection.service_mode,
-  );
+  const activeSectionOrder = resolveReportSections({
+    overrides: reportSectionsResult.data || [],
+    customOrder: (inspection as any).report_section_order,
+    serviceMode: inspection.service_mode,
+    templateSections: (inspection as any).template_sections,
+  });
 
   const deletedReportSections = (reportSectionsResult.data || []).filter(
     (row: any) => row.deleted_at,

@@ -5,6 +5,24 @@ export type ReportSectionOverride = {
   sort_order: number;
 };
 
+// The fixed baseline home-inspection section order. The single source of truth
+// for the default sections; report pages/PDF/field tool used to each declare
+// their own copy.
+export const BASE_SECTION_ORDER = [
+  "Exterior",
+  "Roof",
+  "Basement, Foundation, Crawlspace & Structure",
+  "Heating",
+  "Cooling",
+  "Plumbing",
+  "Electrical",
+  "Fireplace",
+  "Attic, Insulation & Ventilation",
+  "Doors, Windows & Interior",
+  "Built-in Appliances",
+  "Garage",
+];
+
 // The fixed baseline section list is written for a full home inspection.
 // A mold/radon-only visit (inspections.service_mode not starting with
 // "home") never touched these, so hide them by default instead of showing
@@ -114,4 +132,30 @@ export function resolveActiveSections(
     .map((name, index) => ({ name, index }))
     .sort((a, b) => rank(a.name) - rank(b.name) || a.index - b.index)
     .map((entry) => entry.name);
+}
+
+// The one place that turns an inspection into its active report sections,
+// honoring (in priority): an applied REPORT TEMPLATE (an explicit section list
+// snapshotted onto the inspection) → the per-report custom sections/deletions/
+// order → otherwise the base list trimmed for radon/mold-only visits.
+//
+// When a template is applied, its list IS the section set — the service-mode
+// trim is skipped (the template already says exactly which sections to show).
+// The AI camera / field tool, report builder, share report, and PDF all resolve
+// through this, so they stay perfectly in sync.
+export function resolveReportSections(opts: {
+  overrides: ReportSectionOverride[] | null | undefined;
+  customOrder?: string[] | null;
+  serviceMode?: string | null;
+  templateSections?: string[] | null;
+}): string[] {
+  const template =
+    Array.isArray(opts.templateSections) && opts.templateSections.length
+      ? opts.templateSections.map((s) => String(s)).filter(Boolean)
+      : null;
+
+  const base = template || BASE_SECTION_ORDER;
+  const resolved = resolveActiveSections(base, opts.overrides, opts.customOrder);
+
+  return template ? resolved : filterSectionsForServiceMode(resolved, opts.serviceMode);
 }

@@ -1,6 +1,6 @@
 
 import { formatAppValue } from "../../../../lib/app-time";
-import { resolveActiveSections, filterSectionsForServiceMode } from "../../../../lib/reportSections";
+import { resolveReportSections } from "../../../../lib/reportSections";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { authorizeInspection } from "../../../../lib/apiAuth";
 import { loadSeverityConfigForInspection } from "../../../../lib/severity/loadSeverityConfig";
@@ -2252,14 +2252,12 @@ export async function GET(req: Request, { params }: RouteProps) {
       }
     }
 
-    const activeSectionOrder = filterSectionsForServiceMode(
-      resolveActiveSections(
-        SECTION_ORDER,
-        reportSectionsRaw || [],
-        (inspection as any).report_section_order,
-      ),
-      inspection.service_mode,
-    );
+    const activeSectionOrder = resolveReportSections({
+      overrides: reportSectionsRaw || [],
+      customOrder: (inspection as any).report_section_order,
+      serviceMode: inspection.service_mode,
+      templateSections: (inspection as any).template_sections,
+    });
 
     const findingIds = normalizedFindings.map((finding: any) => cleanText(finding.id)).filter(Boolean);
     const photosRaw = await loadPhotos(admin, inspectionId, findingIds);
