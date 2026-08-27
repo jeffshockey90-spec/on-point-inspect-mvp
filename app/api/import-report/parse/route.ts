@@ -1,9 +1,13 @@
 import { createRequire } from "module";
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { PDFDocument, PDFName, PDFRawStream } from "pdf-lib";
+import sharp from "sharp";
+import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 type ImportedFinding = {
   section: string;
@@ -12,6 +16,8 @@ type ImportedFinding = {
   implication: string;
   recommendation: string;
   severity: string;
+  page?: number;
+  photos?: string[];
 };
 
 const require = createRequire(import.meta.url);
@@ -140,6 +146,16 @@ const FOOTER =
 function parseFindings(text: string, sectionMap: Record<string, string>): ImportedFinding[] {
   const lines = text.split("\n").map((line) => line.trim());
 
+  // Page of each line, from the "Page N of M" footers. A finding sits on the
+  // page whose footer comes next after it, so scan backward carrying the page.
+  const pageOfLine = new Array(lines.length).fill(0);
+  let nextPage = 0;
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const pm = lines[i].match(/Page (\d+) of \d+/);
+    if (pm) nextPage = parseInt(pm[1], 10);
+    pageOfLine[i] = nextPage;
+  }
+
   // Pass 1 - summary lines: authoritative section + clean title, in order.
   const summary: Record<string, { section: string; title: string }> = {};
   const order: string[] = [];
@@ -158,7 +174,7 @@ function parseFindings(text: string, sectionMap: Record<string, string>): Import
   // Pass 2 - body headers: the narrative (observation + recommendation).
   const body: Record<
     string,
-    { title: string; observation: string; recommendation: string; location: string }
+    { title: string; observation: string; recommendation: string; location: string; page: number }
   > = {};
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
@@ -166,6 +182,7 @@ function parseFindings(text: string, sectionMap: Record<string, string>): Import
     const m = line.match(FINDING_HDR);
     if (!m) continue;
     const num = `${m[1]}.${m[2]}.${m[3]}`;
+    const page = pageOfLine[i] || 0;
 
     let j = i + 1;
     while (j < lines.length && (!lines[j] || FOOTER.test(lines[j]))) j += 1;
@@ -204,7 +221,7 @@ function parseFindings(text: string, sectionMap: Record<string, string>): Import
       }
     }
 
-    body[num] = { title: bodyTitle, observation, recommendation, location };
+    body[num] = { title: bodyTitle, observation, recommendation, location, page };
   }
 
   const nums = order.length ? [...order] : Object.keys(body);
@@ -214,7 +231,7 @@ function parseFindings(text: string, sectionMap: Record<string, string>): Import
     const s = summary[num] || ({} as { section?: string; title?: string });
     const b =
       body[num] ||
-      ({} as { title?: string; observation?: string; recommendation?: string; location?: string });
+      ({} as { title?: string; observation?: string; recommendation?: string; location?: string; page?: number });
     const section = s.section || sectionMap[num.split(".")[0]] || "Inspection Details";
     const title = s.title || b.title || "Imported Finding";
     let observation = b.observation || "";
@@ -231,6 +248,8 @@ function parseFindings(text: string, sectionMap: Record<string, string>): Import
       implication: "",
       recommendation: b.recommendation || "",
       severity: normalizeSeverity(`${title} ${observation} ${b.recommendation || ""}`),
+      page: b.page || 0,
+      photos: [] as string[],
     };
   });
 
@@ -313,6 +332,126 @@ async function readPdfText(buffer: Buffer): Promise<string> {
   return cleanText(result?.text || "");
 }
 
+function supabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+// Pull the embedded JPEG photos out of the PDF (skipping tiny icons), normalize
+// them with sharp, upload to the public company-assets bucket, and return each
+// photo's URL plus the PDF page it appeared on (for mapping to findings).
+async function extractAndUploadPhotos(
+  buffer: Buffer
+): Promise<{ page: number; url: string }[]> {
+  const admin = supabaseAdmin();
+  if (!admin) return [];
+
+  let pdf: PDFDocument;
+  try {
+    pdf = await PDFDocument.load(buffer, { ignoreEncryption: true });
+  } catch {
+    return [];
+  }
+  const ctx = pdf.context;
+
+  // Map each image XObject ref -> the (1-based) page it first appears on.
+  const refToPage = new Map<string, number>();
+  const pages = pdf.getPages();
+  for (let i = 0; i < pages.length; i += 1) {
+    const res = pages[i].node.Resources();
+    if (!res) continue;
+    let xobj: any = res.get(PDFName.of("XObject"));
+    if (xobj && !xobj.entries) {
+      try {
+        xobj = ctx.lookup(xobj);
+      } catch {
+        xobj = null;
+      }
+    }
+    if (!xobj || !xobj.entries) continue;
+    for (const [, value] of xobj.entries()) {
+      const key = value?.toString?.();
+      if (key && !refToPage.has(key)) refToPage.set(key, i + 1);
+    }
+  }
+
+  const sessionId = randomUUID();
+  const out: { page: number; url: string }[] = [];
+  let idx = 0;
+
+  for (const [ref, obj] of ctx.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFRawStream)) continue;
+    const dict = obj.dict;
+    if ((dict.get(PDFName.of("Subtype")) as any)?.encodedName !== "/Image") continue;
+    if ((dict.get(PDFName.of("Filter")) as any)?.encodedName !== "/DCTDecode") continue;
+    const w = (dict.get(PDFName.of("Width")) as any)?.numberValue || 0;
+    const h = (dict.get(PDFName.of("Height")) as any)?.numberValue || 0;
+    if (w < 250 || h < 250) continue; // skip icons / logos
+
+    const page = refToPage.get(ref.toString()) || 0;
+    let jpeg: any = Buffer.from(obj.contents);
+    try {
+      jpeg = await sharp(jpeg)
+        .rotate()
+        .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 82 })
+        .toBuffer();
+    } catch {
+      // fall back to the raw JPEG bytes
+    }
+
+    const path = `import/${sessionId}/${idx}.jpg`;
+    idx += 1;
+    const { error } = await admin.storage
+      .from("company-assets")
+      .upload(path, jpeg, { contentType: "image/jpeg", upsert: false });
+    if (error) continue;
+    const { data } = admin.storage.from("company-assets").getPublicUrl(path);
+    if (data?.publicUrl) out.push({ page, url: data.publicUrl });
+  }
+
+  return out;
+}
+
+// Attach each photo to a finding: prefer a finding on the photo's exact page
+// (round-robin when a page has several), otherwise the nearest earlier finding.
+function attachPhotosToFindings(
+  findings: ImportedFinding[],
+  photos: { page: number; url: string }[]
+) {
+  const byPage = new Map<number, ImportedFinding[]>();
+  findings.forEach((f) => {
+    f.photos = [];
+    const p = f.page || 0;
+    if (p > 0) {
+      if (!byPage.has(p)) byPage.set(p, []);
+      byPage.get(p)!.push(f);
+    }
+  });
+  const cursor = new Map<number, number>();
+
+  for (const ph of photos) {
+    // Pages 1-4 are the cover, table of contents, summary, and inspection
+    // details -- their images are the house cover / report chrome, not defect
+    // photos, so skip them.
+    if (ph.page <= 4) continue;
+    // Attach to a finding on the same page, or an immediately adjacent page
+    // (round-robin when a page has several findings). Drop photos with no
+    // nearby finding (section-info images).
+    const list =
+      (byPage.get(ph.page)?.length && byPage.get(ph.page)) ||
+      (byPage.get(ph.page + 1)?.length && byPage.get(ph.page + 1)) ||
+      (byPage.get(ph.page - 1)?.length && byPage.get(ph.page - 1)) ||
+      null;
+    if (!list) continue;
+    const c = cursor.get(ph.page) || 0;
+    list[c % list.length].photos!.push(ph.url);
+    cursor.set(ph.page, c + 1);
+  }
+}
+
 export async function GET() {
   return NextResponse.json({
     ok: true,
@@ -345,6 +484,15 @@ export async function POST(request: Request) {
 
     const coverInfo = extractCoverInfo(text);
     const findings = parseFindings(text, sectionMap);
+
+    // Extract the embedded photos and attach them to the matching findings so
+    // they carry into the FLOW report (and its downloadable PDF).
+    try {
+      const photos = await extractAndUploadPhotos(buffer);
+      if (photos.length) attachPhotosToFindings(findings, photos);
+    } catch (photoError) {
+      console.error("Import photo extraction failed:", photoError);
+    }
 
     const reportType = text.toLowerCase().includes("spectora")
       ? "Spectora"
