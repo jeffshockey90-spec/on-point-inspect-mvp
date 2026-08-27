@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
+import { buildEquipmentFills, writeChecklistFills } from "../../lib/ai/checklistAutofill";
 import { isLikelyNetworkError } from "../../lib/networkError";
 import {
   createFullImageForUpload,
@@ -2377,10 +2378,27 @@ function FieldPageContent() {
           : "Save to Equipment Inventory if the data is correct.",
       });
 
+      // Auto-fill the section's system info (brand, fuel/power, capacity, etc.)
+      // from what the analyzer read -- fills only empty fields, so it never
+      // overwrites something the inspector already picked.
+      let filledNote = "";
+      try {
+        const fills = buildEquipmentFills(data);
+        if (fills.length && selectedReport) {
+          const written = await writeChecklistFills(supabase, selectedReport, fills);
+          if (written > 0) {
+            filledNote = ` Auto-filled section info: ${fills.map((f) => f.groupTitle).join(", ")}.`;
+          }
+        }
+      } catch {
+        // section-info autofill is best-effort; never block the analysis result
+      }
+
       setMessage(
-        shouldCreateEquipmentFinding(data)
+        (shouldCreateEquipmentFinding(data)
           ? `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. It will save to Equipment Inventory and create a finding because the analyzer found a reportable condition.`
-          : `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. This appears informational and will save to Equipment Inventory only.`,
+          : `Equipment analyzed using ${images.length} photo${images.length === 1 ? "" : "s"}. This appears informational and will save to Equipment Inventory only.`) +
+          filledNote,
       );
     } catch (error: any) {
       setMessage(error?.message || "Equipment analysis failed. Try again.");
