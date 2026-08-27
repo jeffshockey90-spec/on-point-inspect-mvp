@@ -49,7 +49,7 @@ export default function ReportLanguageSwitcher({
         onChange={(e) => change(e.target.value)}
         disabled={pending}
         aria-label="Choose report language"
-        className="ml-auto rounded-lg border border-teal-500/40 bg-[#071224] px-3 py-1.5 text-sm font-semibold text-[var(--fl-text)] focus:border-teal-300 focus:outline-none disabled:opacity-50"
+        className="ml-auto rounded-lg border border-teal-500/40 bg-[var(--fl-surface-2)] px-3 py-1.5 text-sm font-semibold text-[var(--fl-text)] focus:border-teal-300 focus:outline-none disabled:opacity-50"
       >
         <option value="en">English</option>
         {languages.map((l) => (
@@ -62,7 +62,7 @@ export default function ReportLanguageSwitcher({
 
       {pending && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-[var(--fl-surface-2)] backdrop-blur-sm print:hidden">
-          <div className="mx-4 max-w-sm rounded-2xl border border-teal-500/50 bg-[#0f172a] p-6 text-center shadow-2xl">
+          <div className="mx-4 max-w-sm rounded-2xl border border-teal-500/50 bg-[var(--fl-surface-2)] p-6 text-center shadow-2xl">
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-teal-500/30 border-t-teal-400" />
             <p className="text-base font-semibold text-[var(--fl-text)]">
               Preparing your report in {pendingLabel}…

@@ -1365,7 +1365,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
                                       muted
                                       playsInline
                                       preload="metadata"
-                                      className={`finding-photo-print w-full rounded-xl border bg-black object-contain ${photoHeightClass}`}
+                                      className={`finding-photo-print w-full rounded-xl border bg-[var(--fl-surface-2)] object-contain ${photoHeightClass}`}
                                     >
                                       Your browser does not support video playback.
                                     </video>

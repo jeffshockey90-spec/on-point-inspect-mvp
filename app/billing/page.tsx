@@ -123,13 +123,13 @@ export default async function BillingPage({
         </section>
 
         {params.success && (
-          <div className="rounded-2xl border border-green-500/40 bg-green-950/20 p-5 font-bold text-green-200">
+          <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-5 font-bold text-green-200">
             Payment started successfully. Your account will update as soon as Stripe confirms the subscription.
           </div>
         )}
 
         {params.cancelled && (
-          <div className="rounded-2xl border border-yellow-500/40 bg-yellow-950/20 p-5 font-bold text-yellow-200">
+          <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-5 font-bold text-yellow-200">
             Checkout was cancelled. You can subscribe any time.
           </div>
         )}

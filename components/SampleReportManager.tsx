@@ -170,7 +170,7 @@ export default function SampleReportManager({
   }
 
   return (
-    <section className="mb-8 max-w-full overflow-hidden rounded-2xl border border-teal-500/40 bg-teal-950/20 p-4 shadow-xl">
+    <section className="mb-8 max-w-full overflow-hidden rounded-2xl border border-teal-500/40 bg-teal-500/10 p-4 shadow-xl">
       <div className="flex max-w-full flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <p className="break-words text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
@@ -276,13 +276,13 @@ export default function SampleReportManager({
       </div>
 
       {message && (
-        <p className="mt-4 max-w-full break-words rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-3 text-sm font-bold text-emerald-300">
+        <p className="mt-4 max-w-full break-words rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300">
           {message}
         </p>
       )}
 
       {error && (
-        <p className="mt-4 max-w-full break-words rounded-xl border border-red-500/40 bg-red-950/30 p-3 text-sm font-bold text-red-300">
+        <p className="mt-4 max-w-full break-words rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">
           {error}
         </p>
       )}

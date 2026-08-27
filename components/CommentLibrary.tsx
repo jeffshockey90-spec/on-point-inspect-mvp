@@ -348,7 +348,7 @@ export default function CommentLibrary({
       </div>
 
       {message && (
-        <div className="mb-4 rounded-xl border border-green-500/40 bg-green-950/30 p-3 text-sm font-bold text-green-300">
+        <div className="mb-4 rounded-xl border border-green-500/40 bg-green-500/10 p-3 text-sm font-bold text-green-300">
           {message}
         </div>
       )}
@@ -358,13 +358,13 @@ export default function CommentLibrary({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search saved comments..."
-          className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         />
 
         <select
           value={sectionFilter}
           onChange={(e) => setSectionFilter(e.target.value)}
-          className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           <option value="All">All Sections</option>
           {SECTIONS.map((section) => (
@@ -377,7 +377,7 @@ export default function CommentLibrary({
         <select
           value={severityFilter}
           onChange={(e) => setSeverityFilter(e.target.value)}
-          className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           <option value="All">All Severities</option>
           {SEVERITIES.map((severity) => (
@@ -390,7 +390,7 @@ export default function CommentLibrary({
         <select
           value={sortMode}
           onChange={(e) => setSortMode(e.target.value as SortMode)}
-          className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+          className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
         >
           <option value="favorites">Favorites First</option>
           <option value="recent">Recently Used</option>
@@ -418,11 +418,11 @@ export default function CommentLibrary({
       </div>
 
       {loading ? (
-        <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-black p-4 text-[var(--fl-muted)]">
+        <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-muted)]">
           Loading comments...
         </p>
       ) : filtered.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-black p-4 text-[var(--fl-muted)]">
+        <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-muted)]">
           No saved comments found.
         </p>
       ) : (
@@ -440,7 +440,7 @@ export default function CommentLibrary({
                 className={`rounded-xl border p-4 ${
                   comment.is_favorite
                     ? "border-yellow-500/60 bg-yellow-500/10"
-                    : "border-[var(--fl-line)] bg-black"
+                    : "border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
                 }`}
               >
                 {!isEditing ? (

@@ -297,40 +297,40 @@ export default function ReportBuilderPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black p-6 text-[var(--fl-text)]">
+    <main className="min-h-screen bg-[var(--fl-surface-2)] p-6 text-[var(--fl-text)]">
       <div className="mx-auto max-w-5xl space-y-6">
         <h1 className="text-4xl font-bold text-[var(--fl-accent-text)]">Report Builder</h1>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
+        <div className="rounded-2xl border border-zinc-800 bg-[var(--fl-ground)] p-5 space-y-4">
           <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">Component Info</h2>
 
-          <select value={section} onChange={(e) => changeSection(e.target.value)} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3">
+          <select value={section} onChange={(e) => changeSection(e.target.value)} className="w-full rounded border border-zinc-700 bg-[var(--fl-surface)] p-3">
             {sections.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
 
-          <select value={component} onChange={(e) => changeComponent(e.target.value)} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3">
+          <select value={component} onChange={(e) => changeComponent(e.target.value)} className="w-full rounded border border-zinc-700 bg-[var(--fl-surface)] p-3">
             {Object.keys(components[section]).map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
 
-          <select value={selectedValue} onChange={(e) => setSelectedValue(e.target.value)} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3">
+          <select value={selectedValue} onChange={(e) => setSelectedValue(e.target.value)} className="w-full rounded border border-zinc-700 bg-[var(--fl-surface)] p-3">
             {components[section][component].map((v) => (
               <option key={v} value={v}>{v}</option>
             ))}
           </select>
 
-          <button onClick={saveComponentInfo} disabled={savingItem} className="rounded bg-teal-600 px-5 py-3 font-bold hover:bg-teal-700 disabled:bg-zinc-700">
+          <button onClick={saveComponentInfo} disabled={savingItem} className="rounded bg-teal-600 px-5 py-3 font-bold hover:bg-teal-700 disabled:bg-[var(--fl-line)]">
             {savingItem ? "Saving..." : "Save Component Info"}
           </button>
         </div>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 space-y-4">
+        <div className="rounded-2xl border border-zinc-800 bg-[var(--fl-ground)] p-5 space-y-4">
           <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">Finding / Defect</h2>
 
-          <select value={tag} onChange={(e) => setTag(e.target.value)} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3">
+          <select value={tag} onChange={(e) => setTag(e.target.value)} className="w-full rounded border border-zinc-700 bg-[var(--fl-surface)] p-3">
             <option value="">No Tag</option>
             <option value="Maintenance Item">Maintenance Item</option>
             <option value="Recommendation">Recommendation</option>
@@ -339,23 +339,23 @@ export default function ReportBuilderPage() {
             <option value="Qualified Professional">Qualified Professional</option>
           </select>
 
-          <input type="file" accept="image/*" onChange={handlePhotoChange} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3" />
+          <input type="file" accept="image/*" onChange={handlePhotoChange} className="w-full rounded border border-zinc-700 bg-[var(--fl-surface)] p-3" />
 
           {photoPreview && <img src={photoPreview} alt="Preview" className="max-h-[500px] w-full rounded border border-zinc-700 object-contain" />}
 
-          <button onClick={analyzePhoto} disabled={!photo || analyzing} className="rounded bg-teal-600 px-5 py-3 font-bold hover:bg-teal-700 disabled:bg-zinc-700">
+          <button onClick={analyzePhoto} disabled={!photo || analyzing} className="rounded bg-teal-600 px-5 py-3 font-bold hover:bg-teal-700 disabled:bg-[var(--fl-line)]">
             {analyzing ? "Analyzing..." : "Analyze Photo"}
           </button>
 
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded border border-zinc-700 bg-zinc-900 p-3" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded border border-zinc-700 bg-[var(--fl-surface)] p-3" />
 
-          <textarea value={observation} onChange={(e) => setObservation(e.target.value)} placeholder="Observation" rows={4} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3" />
+          <textarea value={observation} onChange={(e) => setObservation(e.target.value)} placeholder="Observation" rows={4} className="w-full rounded border border-zinc-700 bg-[var(--fl-surface)] p-3" />
 
-          <textarea value={implication} onChange={(e) => setImplication(e.target.value)} placeholder="Implication" rows={4} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3" />
+          <textarea value={implication} onChange={(e) => setImplication(e.target.value)} placeholder="Implication" rows={4} className="w-full rounded border border-zinc-700 bg-[var(--fl-surface)] p-3" />
 
-          <textarea value={recommendation} onChange={(e) => setRecommendation(e.target.value)} placeholder="Recommendation" rows={4} className="w-full rounded border border-zinc-700 bg-zinc-900 p-3" />
+          <textarea value={recommendation} onChange={(e) => setRecommendation(e.target.value)} placeholder="Recommendation" rows={4} className="w-full rounded border border-zinc-700 bg-[var(--fl-surface)] p-3" />
 
-          <button onClick={saveFinding} disabled={savingFinding} className="rounded bg-teal-600 px-5 py-3 font-bold hover:bg-teal-700 disabled:bg-zinc-700">
+          <button onClick={saveFinding} disabled={savingFinding} className="rounded bg-teal-600 px-5 py-3 font-bold hover:bg-teal-700 disabled:bg-[var(--fl-line)]">
             {savingFinding ? "Saving..." : "Save Finding"}
           </button>
         </div>

@@ -295,7 +295,7 @@ export default async function PaySplitsPage({
                 type="date"
                 name="from"
                 defaultValue={from}
-                className="rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
             </label>
             <label className="flex flex-col gap-1">
@@ -304,7 +304,7 @@ export default async function PaySplitsPage({
                 type="date"
                 name="to"
                 defaultValue={to}
-                className="rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
             </label>
             <button
@@ -448,10 +448,10 @@ function MetricCard({
   tone: "teal" | "green" | "blue" | "purple";
 }) {
   const colors: Record<string, string> = {
-    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
-    green: "border-green-500/40 bg-green-950/20 text-green-300",
-    blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
+    teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
+    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
   };
 
   return (

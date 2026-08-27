@@ -93,7 +93,7 @@ export default function AgreementBodyEditor({
   }
 
   return (
-    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#071224] shadow-2xl shadow-black/20">
+    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] shadow-2xl shadow-black/20">
       <div className="flex flex-col gap-3 border-b border-[var(--fl-raised)] bg-gradient-to-r from-[var(--fl-surface)] via-[#0b1628] to-[var(--fl-surface)] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">
@@ -128,7 +128,7 @@ export default function AgreementBodyEditor({
           {loading ? (
             <p className="text-sm font-bold text-[var(--fl-muted)]">Loading agreement…</p>
           ) : loadError ? (
-            <p className="rounded-xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm font-bold text-red-300">
+            <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
               {loadError}
             </p>
           ) : signed ? (

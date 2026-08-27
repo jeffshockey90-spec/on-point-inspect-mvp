@@ -110,14 +110,14 @@ export default function RealtorProfileEditor({
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name"
             disabled={saving}
-            className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
+            className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
           />
           <input
             value={brokerage}
             onChange={(e) => setBrokerage(e.target.value)}
             placeholder="Brokerage (optional)"
             disabled={saving}
-            className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
+            className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
           />
 
           {error && <p className="text-sm font-semibold text-red-400">{error}</p>}

@@ -40,7 +40,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
     </label>
   );
@@ -123,7 +123,7 @@ function LabReportField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Upload the PDF, or paste a link"
-        className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <label
@@ -213,7 +213,7 @@ function MoldForm({
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
       <h3 className="mb-4 text-xl font-bold text-purple-300">Mold Test</h3>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -228,7 +228,7 @@ function MoldForm({
           <select
             value={labStatus}
             onChange={(e) => setLabStatus(e.target.value)}
-            className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
           >
             <option value="Pending Collection">Pending Collection</option>
             <option value="Pending">Pending Lab Results</option>
@@ -353,7 +353,7 @@ function RadonForm({
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
       <h3 className="mb-4 text-xl font-bold text-purple-300">Radon Test</h3>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -367,7 +367,7 @@ function RadonForm({
           <select
             value={reportStatus}
             onChange={(e) => setReportStatus(e.target.value)}
-            className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+            className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
           >
             <option value="Pending">Pending</option>
             <option value="Completed">Completed</option>
@@ -466,7 +466,7 @@ function NotifyButton({ inspectionId }: { inspectionId: string }) {
   }
 
   return (
-    <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-4">
+    <div className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-4">
       <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
         Alert everyone
       </p>

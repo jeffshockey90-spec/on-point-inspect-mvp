@@ -835,7 +835,7 @@ export default function ImportReportPage() {
               className={`rounded-xl border px-5 py-3 font-semibold ${
                 importMode === "spectora"
                   ? "border-teal-400 bg-teal-500 text-black"
-                  : "border-[var(--fl-line)] bg-black text-[var(--fl-text)]"
+                  : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
               }`}
             >
               Import Spectora Link
@@ -850,7 +850,7 @@ export default function ImportReportPage() {
               className={`rounded-xl border px-5 py-3 font-semibold ${
                 importMode === "pdf"
                   ? "border-amber-400 bg-amber-500 text-black"
-                  : "border-[var(--fl-line)] bg-black text-[var(--fl-text)]"
+                  : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
               }`}
             >
               Upload PDF
@@ -867,7 +867,7 @@ export default function ImportReportPage() {
                 value={spectoraUrl}
                 onChange={(event) => setSpectoraUrl(event.target.value)}
                 placeholder="https://reports.spectora.com/v/reports/..."
-                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
 
               <button
@@ -891,7 +891,7 @@ export default function ImportReportPage() {
                 type="file"
                 accept="application/pdf"
                 onChange={(event) => setFile(event.target.files?.[0] || null)}
-                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
               />
 
               <button
@@ -924,7 +924,7 @@ export default function ImportReportPage() {
                   href={parsedReport.coverPhotoUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-5 block rounded-2xl border border-[var(--fl-line)] bg-black p-3"
+                  className="mt-5 block rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3"
                   title="Open full cover photo"
                 >
                   <img
@@ -1016,7 +1016,7 @@ export default function ImportReportPage() {
 
                             <div className="mt-4 grid gap-3 sm:grid-cols-2">
                               {Object.entries(group.fields).map(([label, value]) => (
-                                <div key={label} className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3">
+                                <div key={label} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                                   <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                                     {label}
                                   </p>
@@ -1035,7 +1035,7 @@ export default function ImportReportPage() {
                                     href={photoUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="rounded-xl border border-[var(--fl-line)] bg-black p-2"
+                                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2"
                                     title="Open full photo"
                                   >
                                     <img
@@ -1078,7 +1078,7 @@ export default function ImportReportPage() {
                                     href={photoUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="rounded-lg border border-[var(--fl-line)] bg-black p-1"
+                                    className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-1"
                                     title="Open full photo"
                                   >
                                     <img
@@ -1137,7 +1137,7 @@ export default function ImportReportPage() {
                     key={`${finding.title}-${index}`}
                     className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)]"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--fl-line)] bg-[#07111f] px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3">
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fl-muted)]">
                           {finding.section || "Inspection Details"}
@@ -1172,7 +1172,7 @@ export default function ImportReportPage() {
                               href={photoUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="rounded-xl border border-[var(--fl-line)] bg-black p-2"
+                              className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2"
                               title="Open full photo"
                             >
                               <img
@@ -1293,7 +1293,7 @@ function Input({
       <input
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
     </label>
   );
@@ -1315,7 +1315,7 @@ function Textarea({
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
         rows={4}
-        className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
     </label>
   );

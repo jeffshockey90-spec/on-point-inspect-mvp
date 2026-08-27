@@ -62,7 +62,7 @@ export default function TimesheetOverrideCell({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="hrs"
-        className="w-16 rounded-lg border border-[var(--fl-line)] bg-black px-2 py-1 text-right text-xs text-[var(--fl-text)] outline-none focus:border-teal-400"
+        className="w-16 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-1 text-right text-xs text-[var(--fl-text)] outline-none focus:border-teal-400"
       />
       <button
         type="button"

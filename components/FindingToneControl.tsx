@@ -71,7 +71,7 @@ export default function FindingToneControl({
   ];
 
   return (
-    <div className={`rounded-xl border border-teal-500/30 bg-teal-950/20 p-3 ${className}`}>
+    <div className={`rounded-xl border border-teal-500/30 bg-teal-500/10 p-3 ${className}`}>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
         Adjust the tone
       </p>

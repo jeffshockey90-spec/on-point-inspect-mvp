@@ -183,7 +183,7 @@ export default function ReportDeliveryGuard({
 
   if (!hasAgreementBlock && !hasPaymentBlock) {
     return (
-      <div className="mb-6 rounded-2xl border border-emerald-500 bg-emerald-950/20 p-5">
+      <div className="mb-6 rounded-2xl border border-emerald-500 bg-emerald-500/10 p-5">
         <h2 className="text-2xl font-extrabold text-emerald-300">
           Delivery Requirements Complete
         </h2>
@@ -224,7 +224,7 @@ export default function ReportDeliveryGuard({
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-yellow-500 bg-yellow-950/20 p-5">
+    <div className="mb-6 rounded-2xl border border-yellow-500 bg-yellow-500/10 p-5">
       <h2 className="text-2xl font-extrabold text-yellow-300">
         Delivery Requirements Pending
       </h2>
@@ -235,7 +235,7 @@ export default function ReportDeliveryGuard({
       </p>
 
       {hasAgreementBlock && (
-        <div className="mt-5 rounded-xl border border-yellow-500 bg-yellow-950/30 p-4">
+        <div className="mt-5 rounded-xl border border-yellow-500 bg-yellow-500/10 p-4">
           <h3 className="font-semibold text-yellow-300">
             Agreement Signatures Pending
           </h3>
@@ -259,7 +259,7 @@ export default function ReportDeliveryGuard({
       )}
 
       {hasPaymentBlock && (
-        <div className="mt-5 rounded-xl border border-orange-500 bg-orange-950/30 p-4">
+        <div className="mt-5 rounded-xl border border-orange-500 bg-orange-500/10 p-4">
           <h3 className="font-semibold text-orange-300">
             Payment Not Complete
           </h3>

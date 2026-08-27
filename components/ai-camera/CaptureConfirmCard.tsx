@@ -40,7 +40,7 @@ type Props = {
 };
 
 const inputClass =
-  "mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400";
+  "mt-1 w-full rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400";
 const labelClass = "text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]";
 
 function Field({
@@ -215,7 +215,7 @@ export default function CaptureConfirmCard({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3">
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-[var(--fl-surface-2)]">
           {isVideo ? (
             <video
               src={mediaPreviewUrl}
@@ -274,7 +274,7 @@ export default function CaptureConfirmCard({
 
         {/* Attach this capture to a defect already in the report */}
         {canAttach && (
-          <div className="mt-3 rounded-xl border border-white/10 bg-black/40 p-3">
+          <div className="mt-3 rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
             <label className={labelClass}>Attach to an existing defect</label>
             <select
               className={inputClass}
@@ -314,7 +314,7 @@ export default function CaptureConfirmCard({
                 ✍️ Adjust write-up from inspector note
               </button>
             ) : (
-              <div className="rounded-xl border border-cyan-400/40 bg-black/40 p-3">
+              <div className="rounded-xl border border-cyan-400/40 bg-[var(--fl-surface-2)] p-3">
                 <label className={labelClass}>Inspector note for AI</label>
                 <textarea
                   className={`${inputClass} min-h-16`}
@@ -512,7 +512,7 @@ export default function CaptureConfirmCard({
               </div>
 
               {/* Full equipment intelligence the analyzer returned (read-only). */}
-              <div className="rounded-xl border border-white/10 bg-black/40 p-3">
+              <div className="rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
                 <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-cyan-300">
                   AI Equipment Intelligence
                 </p>
@@ -680,7 +680,7 @@ export default function CaptureConfirmCard({
                       key={fillKey(f)}
                       type="button"
                       onClick={() => toggleFill(f)}
-                      className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-left"
+                      className="flex w-full items-center gap-2 rounded-lg border border-white/10 bg-[var(--fl-surface-2)] px-2.5 py-2 text-left"
                     >
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-xs font-semibold ${
@@ -711,7 +711,7 @@ export default function CaptureConfirmCard({
         </div>
 
         {error && (
-          <div className="mt-4 rounded-lg border border-red-500/50 bg-red-950/60 px-3 py-2 text-sm text-red-200">
+          <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
             {error}
           </div>
         )}

@@ -23,7 +23,7 @@ export default function CollapsibleReportSection({
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
-        className={`flex w-full items-center justify-between gap-3 rounded-2xl border bg-[#071224] px-5 py-4 text-left shadow-xl transition hover:bg-[#0b1a2e] ${accentClassName}`}
+        className={`flex w-full items-center justify-between gap-3 rounded-2xl border bg-[var(--fl-surface-2)] px-5 py-4 text-left shadow-xl transition hover:bg-[var(--fl-surface-2)] ${accentClassName}`}
       >
         <div className="min-w-0">
           <h2 className="text-lg font-semibold">{title}</h2>

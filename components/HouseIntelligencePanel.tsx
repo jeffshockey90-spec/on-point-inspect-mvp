@@ -83,7 +83,7 @@ export default function HouseIntelligencePanel({
       : 0;
 
   return (
-    <section className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4 shadow-xl">
+    <section className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 shadow-xl">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
@@ -127,7 +127,7 @@ export default function HouseIntelligencePanel({
               <p className="mt-1 text-2xl font-semibold text-cyan-300">
                 {progress}%
               </p>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/40">
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
                 <div
                   className="h-full bg-cyan-400"
                   style={{ width: `${progress}%` }}
@@ -169,7 +169,7 @@ export default function HouseIntelligencePanel({
                     className={`rounded-lg border px-3 py-2 text-xs font-bold ${
                       complete
                         ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                        : "border-[var(--fl-line)] bg-black/30 text-[var(--fl-muted)]"
+                        : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
                     }`}
                   >
                     {complete ? "✓" : "○"} {system}
@@ -187,7 +187,7 @@ export default function HouseIntelligencePanel({
 
               <div className="mt-3 space-y-3">
                 {Object.entries(groupedFacts).map(([system, items]) => (
-                  <div key={system} className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3">
+                  <div key={system} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                     <p className="text-sm font-semibold text-cyan-300">{system}</p>
 
                     <div className="mt-2 space-y-2">

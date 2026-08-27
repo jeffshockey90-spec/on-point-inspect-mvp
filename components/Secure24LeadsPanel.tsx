@@ -52,7 +52,7 @@ export default function Secure24LeadsPanel() {
       ) : !data ? (
         <p className="mt-6 text-sm text-[var(--fl-muted)]">Couldn't load referral leads.</p>
       ) : data.total === 0 && data.errors === 0 ? (
-        <p className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-[var(--fl-muted)]">
+        <p className="mt-6 rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">
           No referral leads yet. Once an inspector turns the referral on and a client opts in, leads
           will show up here.
         </p>
@@ -63,11 +63,11 @@ export default function Secure24LeadsPanel() {
               <p className="text-3xl font-semibold text-[var(--fl-accent-text)]">{data.total}</p>
               <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">Total leads sent</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <div className="rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] p-4">
               <p className="text-3xl font-semibold text-[var(--fl-text)]">{data.thisMonth}</p>
               <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">This month</p>
             </div>
-            <div className={`rounded-2xl border p-4 ${data.errors > 0 ? "border-amber-500/30 bg-amber-500/10" : "border-white/10 bg-black/30"}`}>
+            <div className={`rounded-2xl border p-4 ${data.errors > 0 ? "border-amber-500/30 bg-amber-500/10" : "border-white/10 bg-[var(--fl-surface-2)]"}`}>
               <p className={`text-3xl font-semibold ${data.errors > 0 ? "text-amber-300" : "text-[var(--fl-faint)]"}`}>{data.errors}</p>
               <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Failed sends</p>
             </div>
@@ -103,7 +103,7 @@ export default function Secure24LeadsPanel() {
                 {data.recent.map((r, idx) => (
                   <div
                     key={`${r.inspection_id}-${idx}`}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/5 bg-black/20 px-3 py-2 text-sm"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/5 bg-[var(--fl-surface-2)] px-3 py-2 text-sm"
                   >
                     <span className="font-bold text-[var(--fl-text)]">{r.client_name}</span>
                     <span className="text-[var(--fl-faint)]">{r.inspector_email}</span>

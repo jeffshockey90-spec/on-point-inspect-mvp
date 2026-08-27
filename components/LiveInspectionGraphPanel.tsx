@@ -90,12 +90,12 @@ export default function LiveInspectionGraphPanel({
       </button>
 
       {current && (
-        <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
+        <div className="mt-3 rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-[var(--fl-text)]">{current.section}</p>
             <span className="text-sm font-semibold">{current.score}%</span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/40">
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
             <div className="h-full rounded-full bg-cyan-400" style={{ width: `${current.score}%` }} />
           </div>
           {current.missingRequirements.length > 0 && (
@@ -110,12 +110,12 @@ export default function LiveInspectionGraphPanel({
         <div className="mt-4 space-y-4">
           <div className="grid gap-2 sm:grid-cols-2">
             {graph.sections.map((section) => (
-              <div key={section.section} className="rounded-xl border border-white/10 bg-black/25 p-3">
+              <div key={section.section} className="rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-semibold text-[var(--fl-text)]">{section.section}</p>
                   <span className="text-xs font-semibold">{section.score}%</span>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/40">
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
                   <div className="h-full rounded-full bg-teal-400" style={{ width: `${section.score}%` }} />
                 </div>
                 <p className="mt-2 text-[11px] text-[var(--fl-muted)]">
@@ -137,7 +137,7 @@ export default function LiveInspectionGraphPanel({
               </p>
               <div className="mt-3 space-y-2">
                 {graph.relationships.slice(0, compact ? 3 : 6).map((relationship) => (
-                  <div key={relationship.id} className="rounded-lg bg-black/25 p-3">
+                  <div key={relationship.id} className="rounded-lg bg-[var(--fl-surface-2)] p-3">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-semibold text-[var(--fl-text)]">{relationship.title}</p>
                       <span className="text-[11px] font-semibold text-purple-200">

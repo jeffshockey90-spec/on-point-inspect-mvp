@@ -294,7 +294,7 @@ export default function VoiceOnlyInspectionMode({
         {active ? "■ Stop Voice-Only Mode" : "🎙 Start Voice-Only Mode"}
       </button>
 
-      <div className="mt-3 rounded-xl border border-[var(--fl-line)] bg-black/35 p-3">
+      <div className="mt-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
           Status
         </p>
@@ -320,7 +320,7 @@ export default function VoiceOnlyInspectionMode({
           {savedFindings.map((finding) => (
             <div
               key={finding.id}
-              className="rounded-xl border border-emerald-500/30 bg-black/30 px-3 py-2"
+              className="rounded-xl border border-emerald-500/30 bg-[var(--fl-surface-2)] px-3 py-2"
             >
               <p className="font-semibold">{finding.title}</p>
               <p className="text-xs text-[var(--fl-muted)]">

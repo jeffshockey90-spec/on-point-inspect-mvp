@@ -212,7 +212,7 @@ export default function PublicProfileGallery({
                   <button
                     type="button"
                     onClick={showPrevious}
-                    className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-2xl font-semibold text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:left-5 sm:h-14 sm:w-14"
+                    className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-[var(--fl-surface-2)] text-2xl font-semibold text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:left-5 sm:h-14 sm:w-14"
                     aria-label="Previous photo"
                   >
                     ‹
@@ -221,7 +221,7 @@ export default function PublicProfileGallery({
                   <button
                     type="button"
                     onClick={showNext}
-                    className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-2xl font-semibold text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:right-5 sm:h-14 sm:w-14"
+                    className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-[var(--fl-surface-2)] text-2xl font-semibold text-white backdrop-blur transition hover:bg-teal-500 hover:text-slate-950 sm:right-5 sm:h-14 sm:w-14"
                     aria-label="Next photo"
                   >
                     ›

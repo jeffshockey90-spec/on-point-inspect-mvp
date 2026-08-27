@@ -104,7 +104,7 @@ export default function InspectorActivityPanel() {
             {steps.map((s) => {
               const Icon = s.icon;
               return (
-                <div key={s.key} className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <div key={s.key} className="rounded-2xl border border-white/10 bg-[var(--fl-surface-2)] p-4">
                   <div className="flex items-center gap-2 text-[var(--fl-accent-text)]">
                     <Icon className="h-4 w-4" />
                     <span className="text-xs font-semibold uppercase tracking-wide">{s.label}</span>

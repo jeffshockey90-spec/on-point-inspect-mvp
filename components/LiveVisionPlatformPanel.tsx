@@ -98,7 +98,7 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
         </div>
       </div>
 
-      <div className="h-2 overflow-hidden rounded-full bg-black/30">
+      <div className="h-2 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
         <div className="h-full rounded-full bg-violet-400 transition-[width] duration-300" style={{ width: `${current?.score || 0}%` }} />
       </div>
 
@@ -109,15 +109,15 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
       )}
 
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-xl border border-emerald-400/30 bg-black/20 p-2">
+        <div className="rounded-xl border border-emerald-400/30 bg-[var(--fl-surface-2)] p-2">
           <p className="text-lg font-semibold text-emerald-200">{current?.covered.length || 0}</p>
           <p className="text-[10px] font-bold text-[var(--fl-muted)]">Covered</p>
         </div>
-        <div className="rounded-xl border border-yellow-400/30 bg-black/20 p-2">
+        <div className="rounded-xl border border-yellow-400/30 bg-[var(--fl-surface-2)] p-2">
           <p className="text-lg font-semibold text-yellow-200">{current?.missing.length || 0}</p>
           <p className="text-[10px] font-bold text-[var(--fl-muted)]">Missing</p>
         </div>
-        <div className="rounded-xl border border-cyan-400/30 bg-black/20 p-2">
+        <div className="rounded-xl border border-cyan-400/30 bg-[var(--fl-surface-2)] p-2">
           <p className="text-lg font-semibold text-cyan-200">{sectionObjects.length}</p>
           <p className="text-[10px] font-bold text-[var(--fl-muted)]">Objects</p>
         </div>
@@ -128,18 +128,18 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-yellow-200">Still Missing</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {current.missing.slice(0, 8).map((item) => (
-              <span key={item} className="rounded-full border border-yellow-300/30 bg-black/20 px-2.5 py-1 text-xs font-bold text-yellow-100">○ {item}</span>
+              <span key={item} className="rounded-full border border-yellow-300/30 bg-[var(--fl-surface-2)] px-2.5 py-1 text-xs font-bold text-yellow-100">○ {item}</span>
             ))}
           </div>
         </div>
       ) : null}
 
       {sectionObjects.length ? (
-        <details open className="rounded-xl border border-[var(--fl-line)] bg-black/20 p-3">
+        <details open className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
           <summary className="cursor-pointer text-sm font-semibold text-[var(--fl-text)]">Digital Twin objects ({sectionObjects.length})</summary>
           <div className="mt-3 space-y-2">
             {sectionObjects.map((item) => (
-              <div key={item.key} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+              <div key={item.key} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-[var(--fl-surface-2)] px-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{item.documented ? "✓" : "◉"} {item.label}</p>
                   <p className="text-[10px] text-[var(--fl-muted)]">Seen {item.seenCount}× · {Math.round(item.confidence * 100)}% confidence</p>
@@ -180,7 +180,7 @@ export default function LiveVisionPlatformPanel({ inspectionId, section, online 
         </div>
       ) : null}
 
-      <button type="button" onClick={() => void refresh()} disabled={loading} className="min-h-11 w-full rounded-xl border border-violet-300/40 bg-black/20 px-3 py-2 text-sm font-semibold text-violet-100 disabled:opacity-50">
+      <button type="button" onClick={() => void refresh()} disabled={loading} className="min-h-11 w-full rounded-xl border border-violet-300/40 bg-[var(--fl-surface-2)] px-3 py-2 text-sm font-semibold text-violet-100 disabled:opacity-50">
         {loading ? "Syncing vision memory…" : "Sync Vision Memory"}
       </button>
     </section>

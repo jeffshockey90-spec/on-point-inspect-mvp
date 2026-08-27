@@ -322,7 +322,7 @@ export default async function InspectorDirectoryPage({
                   <div className="flex items-start gap-4">
                     <div className="relative shrink-0">
                       {logoUrl ? (
-                        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[var(--fl-line)] bg-black/30 p-2">
+                        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2">
                           <img
                             src={logoUrl}
                             alt={`${companyName} logo`}

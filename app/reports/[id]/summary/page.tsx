@@ -330,7 +330,7 @@ export default function ReportSummaryPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-8 shadow-xl">
+        <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 shadow-xl">
           {!summary && !loading && (
             <p className="mb-5 text-[var(--fl-muted)]">
               Click Generate Summary to create a defect-focused client/realtor summary.
@@ -352,7 +352,7 @@ export default function ReportSummaryPage() {
           )}
         </div>
 
-        <section className="mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
+        <section className="mt-8 rounded-2xl border border-teal-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
@@ -428,7 +428,7 @@ function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId:
         .replace(/[^a-z0-9]+/g, "-")}`}
       className="group overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] transition hover:-translate-y-0.5 hover:border-teal-400"
     >
-      <div className="h-44 overflow-hidden border-b border-[var(--fl-raised)] bg-black">
+      <div className="h-44 overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
         {photoUrl ? (
           <img
             src={photoUrl}

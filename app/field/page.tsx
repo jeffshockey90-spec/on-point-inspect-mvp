@@ -4536,7 +4536,7 @@ function FieldPageContent() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[var(--fl-surface)] p-4 text-[var(--fl-text)]">
       <div className="mx-auto grid min-w-0 max-w-7xl gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="min-w-0 rounded-2xl bg-[#111827] p-5 shadow-2xl">
+        <div className="min-w-0 rounded-2xl bg-[var(--fl-surface)] p-5 shadow-2xl">
           <h1 className="mb-2 text-3xl font-bold text-[var(--fl-accent-text)]">
             FLOW Field Workflow
           </h1>
@@ -4547,7 +4547,7 @@ function FieldPageContent() {
             back online.
           </p>
 
-          <div className="mb-4 rounded-xl border border-[var(--fl-line)] bg-black/40 p-4 text-sm text-[var(--fl-muted)]">
+          <div className="mb-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span
                 className={`font-semibold ${online ? "text-green-300" : "text-yellow-300"}`}
@@ -4580,7 +4580,7 @@ function FieldPageContent() {
           )}
 
           {message && (
-            <div className="mb-5 rounded-xl border border-teal-500/40 bg-teal-950/20 p-4 text-sm font-bold text-[var(--fl-accent-text)]">
+            <div className="mb-5 rounded-xl border border-teal-500/40 bg-teal-500/10 p-4 text-sm font-bold text-[var(--fl-accent-text)]">
               {message}
             </div>
           )}
@@ -4611,7 +4611,7 @@ function FieldPageContent() {
                     });
                   }
                 }}
-                className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-4 text-[var(--fl-text)]"
+                className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"
               >
                 <option value="">Select Report</option>
                 {reports.map((report) => (
@@ -4632,7 +4632,7 @@ function FieldPageContent() {
               )}
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-black/25">
+            <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
               <div className="overflow-x-auto border-b border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-1">
                 <div className="grid min-w-[760px] grid-cols-5 gap-1">
                   <button
@@ -4752,7 +4752,7 @@ function FieldPageContent() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[var(--fl-line)] bg-black/35 p-4">
+            <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <label
                 htmlFor="field-workflow"
                 className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-muted)]"
@@ -4815,7 +4815,7 @@ function FieldPageContent() {
               onAddMedia={(files) => addFiles(files)}
             />
 
-            <div className="rounded-2xl border border-[var(--fl-line)] bg-black/30 p-4">
+            <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-accent-text)]">
@@ -4851,7 +4851,7 @@ function FieldPageContent() {
                 Camera remains a separate tool below it.
               </p>
 
-              <div className="mt-3 flex items-center justify-between rounded-xl border border-[var(--fl-line)] bg-black/35 px-3 py-2">
+              <div className="mt-3 flex items-center justify-between rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
                   Selected Media
                 </span>
@@ -4873,7 +4873,7 @@ function FieldPageContent() {
                       onChange={(event) => setOrganizeNote(event.target.value)}
                       rows={2}
                       placeholder="Direct the AI — e.g. 'the panel photos are one finding, the water heater is separate' or 'note the double-tap in group 1'"
-                      className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 leading-6 text-[var(--fl-text)]"
+                      className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 leading-6 text-[var(--fl-text)]"
                     />
                   </div>
 
@@ -5015,13 +5015,13 @@ function FieldPageContent() {
             )}
 
             {message && (
-              <div className="mt-1 rounded-xl border border-cyan-500/40 bg-cyan-950/30 px-4 py-3 text-sm font-bold leading-5 text-cyan-100">
+              <div className="mt-1 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-bold leading-5 text-cyan-100">
                 {message}
               </div>
             )}
 
             {equipmentResult && !equipmentResult.error && (
-              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4">
+              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4">
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
@@ -5049,7 +5049,7 @@ function FieldPageContent() {
                 <EquipmentCard equipment={equipmentResult} />
 
                 {equipmentResult.clientSummary && (
-                  <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-black/30 p-4 text-sm leading-6 text-[var(--fl-text)]">
+                  <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-text)]">
                     {equipmentResult.clientSummary}
                   </div>
                 )}
@@ -5088,15 +5088,15 @@ function FieldPageContent() {
                     setExistingFindingSearch(event.target.value)
                   }
                   placeholder="Search title, section, or severity..."
-                  className="mb-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-purple-400"
+                  className="mb-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-purple-400"
                 />
 
                 {loadingExistingFindings ? (
-                  <div className="rounded-xl border border-[var(--fl-line)] bg-black/40 p-4 text-sm font-bold text-[var(--fl-muted)]">
+                  <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm font-bold text-[var(--fl-muted)]">
                     Loading report findings...
                   </div>
                 ) : groupedExistingFindings.length === 0 ? (
-                  <div className="rounded-xl border border-[var(--fl-line)] bg-black/40 p-4 text-sm font-bold text-[var(--fl-muted)]">
+                  <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm font-bold text-[var(--fl-muted)]">
                     No matching findings were found.
                   </div>
                 ) : (
@@ -5122,7 +5122,7 @@ function FieldPageContent() {
                                 className={`w-full rounded-xl border p-3 text-left transition active:scale-[0.99] [touch-action:manipulation] ${
                                   selected
                                     ? "border-purple-300 bg-purple-500/30 ring-2 ring-purple-300/40"
-                                    : "border-[var(--fl-line)] bg-black/50 hover:border-purple-500/60 hover:bg-black/70"
+                                    : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-purple-500/60 hover:bg-[var(--fl-surface-2)]"
                                 }`}
                               >
                                 <div className="flex items-start justify-between gap-3">
@@ -5155,7 +5155,7 @@ function FieldPageContent() {
                 )}
 
                 {selectedExistingFinding && (
-                  <div className="mt-4 rounded-xl border border-purple-400/50 bg-black/40 p-3">
+                  <div className="mt-4 rounded-xl border border-purple-400/50 bg-[var(--fl-surface-2)] p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-300">
                       Adding Media To
                     </p>
@@ -5236,7 +5236,7 @@ function FieldPageContent() {
                     return (
                     <div
                       key={group.id}
-                      className="overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black/40 p-3"
+                      className="overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
@@ -5258,7 +5258,7 @@ function FieldPageContent() {
                                 .value as AIMediaGroup["classification"],
                             })
                           }
-                          className="w-full shrink-0 rounded-lg border border-[var(--fl-line)] bg-black px-3 py-2 text-sm font-bold text-[var(--fl-text)] sm:w-auto"
+                          className="w-full shrink-0 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-sm font-bold text-[var(--fl-text)] sm:w-auto"
                         >
                           <option value="finding">Finding</option>
                           <option value="reference">Reference</option>
@@ -5278,7 +5278,7 @@ function FieldPageContent() {
                                 section: event.target.value,
                               })
                             }
-                            className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-2 text-[var(--fl-text)]"
+                            className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 text-[var(--fl-text)]"
                           >
                             {activeSections.map((item) => (
                               <option key={item}>{item}</option>
@@ -5295,7 +5295,7 @@ function FieldPageContent() {
                                 severity: event.target.value,
                               })
                             }
-                            className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-2 text-[var(--fl-text)]"
+                            className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 text-[var(--fl-text)]"
                           >
                             {SEVERITIES.map((item) => (
                               <option key={item}>{item}</option>
@@ -5335,7 +5335,7 @@ function FieldPageContent() {
                                       value === "__remove__" ? null : value,
                                     );
                                   }}
-                                  className="mt-1 w-16 rounded border border-[var(--fl-line)] bg-black px-1 py-1 text-[10px] font-bold text-[var(--fl-text)]"
+                                  className="mt-1 w-16 rounded border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-1 py-1 text-[10px] font-bold text-[var(--fl-text)]"
                                 >
                                   <option value="">Move…</option>
                                   {mediaGroups
@@ -5371,7 +5371,7 @@ function FieldPageContent() {
                           })
                         }
                         placeholder="Title"
-                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 font-semibold text-[var(--fl-text)]"
+                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 font-semibold text-[var(--fl-text)]"
                       />
 
                       <textarea
@@ -5382,7 +5382,7 @@ function FieldPageContent() {
                           })
                         }
                         rows={3}
-                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)]"
+                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
                         placeholder="Observation"
                       />
 
@@ -5394,7 +5394,7 @@ function FieldPageContent() {
                           })
                         }
                         rows={2}
-                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)]"
+                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
                         placeholder="Implication"
                       />
 
@@ -5406,7 +5406,7 @@ function FieldPageContent() {
                           })
                         }
                         rows={2}
-                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)]"
+                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
                         placeholder="Recommendation"
                       />
 
@@ -5439,7 +5439,7 @@ function FieldPageContent() {
                           }
                           rows={2}
                           placeholder="Direct the AI for this defect only — e.g. 'call out the cracked heat exchanger'"
-                          className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)]"
+                          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
                         />
                         <button
                           type="button"
@@ -5487,7 +5487,7 @@ function FieldPageContent() {
               )}
 
             {photoType === "reference_photo" && (
-              <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm leading-6 text-cyan-100">
+              <div className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-sm leading-6 text-cyan-100">
                 <p className="font-semibold text-cyan-300">Reference Photo Mode</p>
                 <p className="mt-1">
                   Photos saved here will appear under Section Reference Photos
@@ -5498,7 +5498,7 @@ function FieldPageContent() {
             )}
 
             {photoType === "limitation" && (
-              <div className="rounded-xl border border-orange-500/40 bg-orange-950/20 p-4 text-sm leading-6 text-orange-100">
+              <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 p-4 text-sm leading-6 text-orange-100">
                 <p className="font-semibold text-orange-300">
                   Section Limitation + Photo
                 </p>
@@ -5529,7 +5529,7 @@ function FieldPageContent() {
             )}
 
             {photoType !== "existing_finding" && (
-              <div className="rounded-2xl border border-[var(--fl-line)] bg-black/20 p-4">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
                   Step 3
               </p>
@@ -5539,7 +5539,7 @@ function FieldPageContent() {
                 <select
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-4 text-[var(--fl-text)]"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"
                 >
                   {activeSections.map((item) => (
                     <option key={item} value={item}>
@@ -5568,7 +5568,7 @@ function FieldPageContent() {
                         ? "Example: The rear roof slope was not fully visible due to dense tree coverage and could not be completely inspected."
                         : "Example: double tapped neutral in main panel, recommend electrician"
                   }
-                  className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-4 leading-7 text-[var(--fl-text)]"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 leading-7 text-[var(--fl-text)]"
                 />
                 {photoType === "finding" && (
                   <p className="mt-2 text-xs font-bold text-cyan-300">
@@ -5588,7 +5588,7 @@ function FieldPageContent() {
                       onChange={(event) => setLimitationHint(event.target.value)}
                       rows={2}
                       placeholder="Direct the AI — e.g. 'note the stored boxes blocking the crawlspace hatch' or 'snow covering the roof'"
-                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-4 leading-7 text-[var(--fl-text)]"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 leading-7 text-[var(--fl-text)]"
                     />
                     <button
                       type="button"
@@ -5625,7 +5625,7 @@ function FieldPageContent() {
                       value={title}
                       onChange={(event) => setTitle(event.target.value)}
                       placeholder="Example: Rear roof slope not fully visible"
-                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-4 text-[var(--fl-text)]"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"
                     />
                   </div>
 
@@ -5640,7 +5640,7 @@ function FieldPageContent() {
                       }
                       rows={3}
                       placeholder="Example: Reinspect when vegetation is trimmed or access improves."
-                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-4 leading-7 text-[var(--fl-text)]"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 leading-7 text-[var(--fl-text)]"
                     />
                   </div>
                 </div>
@@ -5649,7 +5649,7 @@ function FieldPageContent() {
             )}
 
             {photoType === "finding" && (
-              <div className="rounded-2xl border border-[var(--fl-line)] bg-black/20 p-4">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
                   Step 4
                 </p>
@@ -5660,7 +5660,7 @@ function FieldPageContent() {
                     <input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-4 text-[var(--fl-text)]"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"
                     />
                   </div>
 
@@ -5669,7 +5669,7 @@ function FieldPageContent() {
                     <select
                       value={severity}
                       onChange={(e) => setSeverity(e.target.value)}
-                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-4 text-[var(--fl-text)]"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"
                     >
                       {SEVERITIES.map((item) => (
                         <option key={item} value={item}>
@@ -5850,7 +5850,7 @@ function UploadProgressPanel({ items }: { items: UploadProgressItem[] }) {
         {items.map((item) => (
           <div
             key={item.id}
-            className="rounded-xl border border-[var(--fl-line)] bg-black/35 p-3"
+            className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3"
           >
             <div className="mb-2 flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -5922,7 +5922,7 @@ function ExistingFindingMediaPreview({
       href={mediaUrl || previewUrl || undefined}
       target="_blank"
       rel="noreferrer"
-      className="group relative aspect-square overflow-hidden rounded-lg border border-[var(--fl-line)] bg-black"
+      className="group relative aspect-square overflow-hidden rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
       title={isVideo ? "Open attached video" : "Open attached photo"}
     >
       {previewUrl ? (
@@ -5939,7 +5939,7 @@ function ExistingFindingMediaPreview({
       )}
 
       {isVideo && (
-        <span className="absolute bottom-1 left-1 rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--fl-text)]">
+        <span className="absolute bottom-1 left-1 rounded-md bg-[var(--fl-surface-2)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--fl-text)]">
           VIDEO
         </span>
       )}
@@ -6133,7 +6133,7 @@ function MediaPreview({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black">
+    <div className="overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
       {isVideo ? (
         playingVideo && url ? (
           <video
@@ -6142,7 +6142,7 @@ function MediaPreview({
             autoPlay
             playsInline
             preload="metadata"
-            className="h-40 w-full bg-black object-contain"
+            className="h-40 w-full bg-[var(--fl-surface-2)] object-contain"
             onEnded={() => setPlayingVideo(false)}
           />
         ) : (
@@ -6161,7 +6161,7 @@ function MediaPreview({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-black">
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--fl-surface)] via-slate-950 to-black">
                 <span
                   className={`text-4xl transition ${
                     thumbnailReady ? "opacity-70" : "animate-pulse opacity-35"
@@ -6174,16 +6174,16 @@ function MediaPreview({
 
             <span className="absolute inset-0 bg-black/20 transition group-hover:bg-black/10" />
 
-            <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/90 bg-black/65 text-2xl text-[var(--fl-text)] shadow-xl backdrop-blur transition group-active:scale-95">
+            <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/90 bg-[var(--fl-surface-2)] text-2xl text-[var(--fl-text)] shadow-xl backdrop-blur transition group-active:scale-95">
               ▶
             </span>
 
-            <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fl-text)] backdrop-blur">
+            <span className="absolute left-2 top-2 rounded-full bg-[var(--fl-surface-2)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fl-text)] backdrop-blur">
               Video
             </span>
 
             {videoDuration > 0 && (
-              <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-1 text-xs font-semibold tabular-nums text-[var(--fl-text)] backdrop-blur">
+              <span className="absolute bottom-2 right-2 rounded-md bg-[var(--fl-surface-2)] px-2 py-1 text-xs font-semibold tabular-nums text-[var(--fl-text)] backdrop-blur">
                 {formatVideoDuration(videoDuration)}
               </span>
             )}
@@ -6192,7 +6192,7 @@ function MediaPreview({
       ) : url ? (
         <img src={url} alt="Preview" className="h-40 w-full object-cover" />
       ) : (
-        <div className="h-40 w-full bg-black" />
+        <div className="h-40 w-full bg-[var(--fl-surface-2)]" />
       )}
 
       <div className="grid grid-cols-2 border-t border-[var(--fl-line)]">
@@ -6236,7 +6236,7 @@ function TextArea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={5}
-        className="w-full rounded-xl border border-[var(--fl-line)] bg-black p-4 leading-7 text-[var(--fl-text)]"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 leading-7 text-[var(--fl-text)]"
       />
     </div>
   );

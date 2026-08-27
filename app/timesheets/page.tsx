@@ -217,18 +217,18 @@ export default async function TimesheetsPage({
         </section>
 
         <section className="grid gap-5 sm:grid-cols-3">
-          <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6">
+          <div className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Total Hours</p>
             <p className="mt-2 text-4xl font-semibold text-[var(--fl-accent-text)]">{fmtHours(grandHours)}</p>
           </div>
-          <div className="rounded-2xl border border-blue-500/40 bg-blue-950/20 p-6">
+          <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 p-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Jobs on Site</p>
             <p className="mt-2 text-4xl font-semibold text-blue-300">{complete.length}</p>
           </div>
           <div
             className={`rounded-2xl border p-6 ${
               needsReview > 0
-                ? "border-amber-500/40 bg-amber-950/20"
+                ? "border-amber-500/40 bg-amber-500/10"
                 : "border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
             }`}
           >

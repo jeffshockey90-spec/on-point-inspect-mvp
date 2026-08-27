@@ -28,7 +28,7 @@ function StepCard({ step, index }: { step: Step; index: number }) {
       className={`group block rounded-2xl border p-5 shadow-xl transition active:scale-[0.99] ${
         step.complete
           ? "border-emerald-500/40 bg-emerald-500/10 hover:border-emerald-400"
-          : "border-[var(--fl-raised)] bg-[var(--fl-surface)] hover:border-teal-400 hover:bg-[#13213a]"
+          : "border-[var(--fl-raised)] bg-[var(--fl-surface)] hover:border-teal-400 hover:bg-[var(--fl-surface-2)]"
       }`}
     >
       <div className="flex items-start gap-4">

@@ -115,7 +115,7 @@ export default function EmailWorkflowPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-[var(--fl-text)] p-6">
+    <main className="min-h-screen bg-[var(--fl-surface-2)] text-[var(--fl-text)] p-6">
       <div className="max-w-5xl mx-auto space-y-6">
 
         <div>
@@ -128,7 +128,7 @@ export default function EmailWorkflowPage() {
           </p>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+        <div className="bg-[var(--fl-surface)] border border-zinc-800 rounded-2xl p-6 space-y-4">
 
           <div>
             <label className="block mb-2 text-sm text-zinc-400">
@@ -138,7 +138,7 @@ export default function EmailWorkflowPage() {
             <select
               value={selectedInspection}
               onChange={(e) => handleInspectionSelect(e.target.value)}
-              className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+              className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
             >
               <option value="">Choose Inspection</option>
 
@@ -163,7 +163,7 @@ export default function EmailWorkflowPage() {
               onChange={(e) =>
                 setEmailType(e.target.value as EmailType)
               }
-              className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+              className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
             >
               <option value="inspection_confirmation">
                 Inspection Confirmation
@@ -199,7 +199,7 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setClientName(e.target.value)
                 }
-                className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
               />
             </div>
 
@@ -213,7 +213,7 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setClientEmail(e.target.value)
                 }
-                className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
               />
             </div>
 
@@ -229,7 +229,7 @@ export default function EmailWorkflowPage() {
               onChange={(e) =>
                 setPropertyAddress(e.target.value)
               }
-              className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+              className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
             />
           </div>
 
@@ -245,7 +245,7 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setInspectionDate(e.target.value)
                 }
-                className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
               />
             </div>
 
@@ -259,7 +259,7 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setInspectionTime(e.target.value)
                 }
-                className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
               />
             </div>
 
@@ -275,7 +275,7 @@ export default function EmailWorkflowPage() {
               onChange={(e) =>
                 setReportLink(e.target.value)
               }
-              className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+              className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
             />
           </div>
 
@@ -290,7 +290,7 @@ export default function EmailWorkflowPage() {
         </div>
 
         {subject && message && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+          <div className="bg-[var(--fl-surface)] border border-zinc-800 rounded-2xl p-6 space-y-4">
 
             <div>
               <label className="block mb-2 text-sm text-zinc-400">
@@ -302,7 +302,7 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setSubject(e.target.value)
                 }
-                className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
               />
             </div>
 
@@ -317,7 +317,7 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setMessage(e.target.value)
                 }
-                className="w-full bg-black border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
               />
             </div>
 

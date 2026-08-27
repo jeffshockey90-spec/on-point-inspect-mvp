@@ -380,7 +380,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
         </section>
 
         {saved && (
-          <div className="rounded-2xl border border-emerald-500/50 bg-emerald-950/20 p-5">
+          <div className="rounded-2xl border border-emerald-500/50 bg-emerald-500/10 p-5">
             <h3 className="font-semibold text-emerald-300">
               Public profile saved successfully.
             </h3>
@@ -388,7 +388,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
         )}
 
         {pageError && (
-          <div className="rounded-2xl border border-red-500/50 bg-red-950/20 p-5">
+          <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-5">
             <h3 className="font-semibold text-red-300">Profile Error</h3>
             <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
               {pageError}
@@ -656,7 +656,7 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
                 initialUrl={company.logo_url || ""}
                 folder="company-logo"
                 buttonText="Upload Company Logo"
-                previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-[var(--fl-line)] bg-black/30 object-contain p-3"
+                previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] object-contain p-3"
               />
 
               <CompanyImageUploader
@@ -870,7 +870,7 @@ function PublicProfileAnalyticsOverview({
       </div>
 
       {!analytics.analyticsAvailable && (
-        <div className="mt-6 rounded-2xl border border-yellow-500/40 bg-yellow-950/20 p-4">
+        <div className="mt-6 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4">
           <p className="text-sm font-bold leading-6 text-yellow-100">
             Analytics table is not available yet. Run the public_profile_analytics SQL, then visit your public profile to start collecting events.
           </p>

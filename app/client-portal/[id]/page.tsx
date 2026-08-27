@@ -680,8 +680,8 @@ export default function ClientPortalPage() {
           <div
             className={`rounded-2xl border p-4 text-sm font-bold shadow-xl ${
               messageType === "success"
-                ? "border-green-500/40 bg-green-950/30 text-green-300"
-                : "border-red-500/40 bg-red-950/30 text-red-300"
+                ? "border-green-500/40 bg-green-500/10 text-green-300"
+                : "border-red-500/40 bg-red-500/10 text-red-300"
             }`}
           >
             {message}
@@ -690,7 +690,7 @@ export default function ClientPortalPage() {
 
         <section className="overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] shadow-2xl">
           {propertyPhoto && !propertyPhotoFailed && (
-            <div className="relative border-b border-[var(--fl-raised)] bg-black">
+            <div className="relative border-b border-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
               <img
                 src={propertyPhoto}
                 alt="Property"
@@ -776,7 +776,7 @@ export default function ClientPortalPage() {
         </section>
 
         {!reportUnlocked && (
-          <section className="rounded-2xl border border-yellow-500/40 bg-yellow-950/20 p-6 shadow-xl">
+          <section className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-6 shadow-xl">
             <h2 className="text-2xl font-semibold text-yellow-300">
               Report Access Requirements
             </h2>
@@ -807,7 +807,7 @@ export default function ClientPortalPage() {
         )}
 
         {reportUnlocked && (
-          <section className="rounded-2xl border border-green-500/40 bg-green-950/20 p-6 shadow-xl">
+          <section className="rounded-2xl border border-green-500/40 bg-green-500/10 p-6 shadow-xl">
             <h2 className="text-2xl font-semibold text-green-300">
               Your Report Is Ready
             </h2>
@@ -846,7 +846,7 @@ export default function ClientPortalPage() {
         )}
 
         {reportUnlocked && inspection.executive_summary && (
-          <section className="rounded-2xl border border-purple-500/40 bg-purple-950/20 p-6 shadow-xl">
+          <section className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-6 shadow-xl">
             <h2 className="text-2xl font-semibold text-purple-300">
               Executive Summary
             </h2>
@@ -862,7 +862,7 @@ export default function ClientPortalPage() {
         )}
 
         {reportUnlocked && showEnvironmentalResults && (
-          <section className="rounded-2xl border border-purple-500/40 bg-purple-950/20 p-6 shadow-xl">
+          <section className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-6 shadow-xl">
             <h2 className="text-2xl font-semibold text-purple-300">
               Environmental Test Results
             </h2>
@@ -1067,7 +1067,7 @@ export default function ClientPortalPage() {
                 <a
                   href={reportHref}
                   target="_blank"
-                  className="rounded-xl border border-teal-500 bg-[#071224] px-6 py-4 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
+                  className="rounded-xl border border-teal-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
                 >
                   <span className="block text-lg">View Report</span>
                   <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
@@ -1078,7 +1078,7 @@ export default function ClientPortalPage() {
                 <a
                   href={pdfHref}
                   target="_blank"
-                  className="rounded-xl border border-cyan-500 bg-[#071224] px-6 py-4 font-bold text-cyan-300 hover:bg-cyan-500/10"
+                  className="rounded-xl border border-cyan-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-cyan-300 hover:bg-cyan-500/10"
                 >
                   <span className="block text-lg">Download PDF</span>
                   <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
@@ -1089,7 +1089,7 @@ export default function ClientPortalPage() {
                 <a
                   href={`/repair-request?inspection_id=${inspectionId}&token=${shareLookup}`}
                   target="_blank"
-                  className="rounded-xl border border-orange-500 bg-[#071224] px-6 py-4 font-bold text-orange-300 hover:bg-orange-500/10"
+                  className="rounded-xl border border-orange-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-orange-300 hover:bg-orange-500/10"
                 >
                   <span className="block text-lg">Repair Request</span>
                   <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
@@ -1100,7 +1100,7 @@ export default function ClientPortalPage() {
                 <a
                   href={homeHubHref}
                   target="_blank"
-                  className="rounded-xl border border-emerald-500 bg-[#071224] px-6 py-4 font-bold text-emerald-300 hover:bg-emerald-500/10"
+                  className="rounded-xl border border-emerald-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-emerald-300 hover:bg-emerald-500/10"
                 >
                   <span className="block text-lg">🏠 Home Maintenance Hub</span>
                   <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
@@ -1124,7 +1124,7 @@ export default function ClientPortalPage() {
               onClick={() => updateStatus("review_status", "Submitted")}
               disabled={updatingReview}
               aria-busy={updatingReview}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-500 bg-[#071224] px-6 py-4 text-left font-bold text-yellow-300 transition active:scale-[0.98] hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-500 bg-[var(--fl-surface-2)] px-6 py-4 text-left font-bold text-yellow-300 transition active:scale-[0.98] hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
             >
               {updatingReview && (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -1166,7 +1166,7 @@ export default function ClientPortalPage() {
                       ([groupTitle, values]) => (
                         <div
                           key={groupTitle}
-                          className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-4"
+                          className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
                         >
                           <p className="font-semibold text-[var(--fl-accent-text)]">
                             {groupTitle}
@@ -1221,7 +1221,7 @@ function StatusCard({
     <div
       className={`rounded-2xl border p-6 shadow-xl ${
         complete
-          ? "border-green-500/40 bg-green-950/20"
+          ? "border-green-500/40 bg-green-500/10"
           : "border-[var(--fl-raised)] bg-[var(--fl-surface)]"
       }`}
     >
@@ -1308,7 +1308,7 @@ function ActionLink({
         href={href}
         target="_blank"
         rel="noreferrer"
-        className={`rounded-xl border bg-[#071224] p-5 font-bold transition active:scale-[0.98] [touch-action:manipulation] ${classes}`}
+        className={`rounded-xl border bg-[var(--fl-surface-2)] p-5 font-bold transition active:scale-[0.98] [touch-action:manipulation] ${classes}`}
       >
         {content}
       </a>
@@ -1319,7 +1319,7 @@ function ActionLink({
     <FastLinkButton
       href={href}
       loadingText="Opening..."
-      className={`rounded-xl border bg-[#071224] p-5 font-bold ${classes}`}
+      className={`rounded-xl border bg-[var(--fl-surface-2)] p-5 font-bold ${classes}`}
     >
       {content}
     </FastLinkButton>

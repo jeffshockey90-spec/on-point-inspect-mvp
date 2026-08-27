@@ -49,7 +49,7 @@ export default function EmailDeliveryAlert({
   if (!bounces.length) return null;
 
   return (
-    <div className="mb-6 rounded-2xl border border-red-500/50 bg-red-950/30 p-4">
+    <div className="mb-6 rounded-2xl border border-red-500/50 bg-red-500/10 p-4">
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" />
         <div className="min-w-0 text-sm">

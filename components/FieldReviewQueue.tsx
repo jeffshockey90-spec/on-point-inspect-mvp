@@ -146,7 +146,7 @@ export default function FieldReviewQueue({
   return (
     <section
       id="field-review-queue"
-      className="mb-4 w-full max-w-full overflow-hidden rounded-2xl border border-amber-500/50 bg-[#1a1206] shadow-lg"
+      className="mb-4 w-full max-w-full overflow-hidden rounded-2xl border border-amber-500/50 bg-[var(--fl-surface-2)] shadow-lg"
     >
       <div
         role="button"
@@ -186,7 +186,7 @@ export default function FieldReviewQueue({
       {open && (
         <div className="space-y-4 border-t border-amber-500/30 p-3 sm:p-4">
           {error && (
-            <div className="rounded-xl border border-red-500/60 bg-red-950/40 p-3 text-sm font-bold text-red-200">
+            <div className="rounded-xl border border-red-500/60 bg-red-500/10 p-3 text-sm font-bold text-red-200">
               {error}
             </div>
           )}
@@ -360,7 +360,7 @@ function ReviewCard({
                   href={photoFullUrl(photo)}
                   target="_blank"
                   rel="noreferrer"
-                  className="relative flex h-20 w-20 items-center justify-center rounded-lg border border-[var(--fl-line)] bg-black text-xs font-semibold text-[var(--fl-text)]"
+                  className="relative flex h-20 w-20 items-center justify-center rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-xs font-semibold text-[var(--fl-text)]"
                 >
                   ▶ Video
                 </a>
@@ -373,7 +373,7 @@ function ReviewCard({
                 href={photoFullUrl(photo)}
                 target="_blank"
                 rel="noreferrer"
-                className="block h-20 w-20 overflow-hidden rounded-lg border border-[var(--fl-line)] bg-black"
+                className="block h-20 w-20 overflow-hidden rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -436,13 +436,13 @@ function ReviewCard({
       </div>
 
       {error && (
-        <div className="mb-3 rounded-xl border border-red-500/60 bg-red-950/40 p-3 text-sm font-bold text-red-200">
+        <div className="mb-3 rounded-xl border border-red-500/60 bg-red-500/10 p-3 text-sm font-bold text-red-200">
           {error}
         </div>
       )}
 
       {noteOpen && (
-        <div className="mb-3 rounded-xl border border-purple-500/50 bg-purple-950/20 p-3">
+        <div className="mb-3 rounded-xl border border-purple-500/50 bg-purple-500/10 p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-purple-300">
             Field note to re-polish
           </p>

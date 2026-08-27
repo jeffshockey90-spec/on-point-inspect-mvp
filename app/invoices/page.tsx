@@ -231,7 +231,7 @@ export default async function InvoicesPage() {
         </section>
 
         {customInvoices.length > 0 && (
-          <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6">
+          <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Custom Invoices</h2>
@@ -412,13 +412,13 @@ function MetricCard({
   tone: "green" | "teal" | "blue" | "purple" | "orange" | "yellow" | "red";
 }) {
   const colors: Record<string, string> = {
-    green: "border-green-500/40 bg-green-950/20 text-green-300",
-    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
-    blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
-    orange: "border-orange-500/40 bg-orange-950/20 text-orange-300",
-    yellow: "border-yellow-500/40 bg-yellow-950/20 text-yellow-300",
-    red: "border-red-500/40 bg-red-950/20 text-red-300",
+    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
+    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
+    orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
+    red: "border-red-500/40 bg-red-500/10 text-red-300",
   };
 
   return (

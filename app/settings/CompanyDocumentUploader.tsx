@@ -186,10 +186,10 @@ export default function CompanyDocumentUploader({
         <p
           className={`mt-3 rounded-xl border px-4 py-3 text-xs font-bold ${
             messageType === "success"
-              ? "border-emerald-500/50 bg-emerald-950/30 text-emerald-200"
+              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200"
               : messageType === "info"
-                ? "border-sky-500/50 bg-sky-950/30 text-sky-200"
-                : "border-red-500/50 bg-red-950/30 text-red-200"
+                ? "border-sky-500/50 bg-sky-500/10 text-sky-200"
+                : "border-red-500/50 bg-red-500/10 text-red-200"
           }`}
         >
           {message}

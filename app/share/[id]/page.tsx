@@ -2056,7 +2056,7 @@ export default async function PublicSharePage({
 
         <div className="p-5 md:p-10">
           {isDemo && (
-            <div className="mb-8 rounded-2xl border border-fuchsia-500/40 bg-fuchsia-950/30 p-5 text-fuchsia-100 print:hidden">
+            <div className="mb-8 rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-5 text-fuchsia-100 print:hidden">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-fuchsia-300">
                 Demo Report
               </p>
@@ -2136,7 +2136,7 @@ export default async function PublicSharePage({
             )}
           </div>
 
-          <section className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6 shadow-xl">
+          <section className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
@@ -2260,7 +2260,7 @@ export default async function PublicSharePage({
           />
 
           {reportDisclaimers && reportDisclaimers.length > 0 && (
-            <section id="report-disclaimers" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
+            <section id="report-disclaimers" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-bold uppercase tracking-[0.3em] text-purple-300">
@@ -2299,7 +2299,7 @@ export default async function PublicSharePage({
           )}
 
           {showStandardsInShare && (
-          <section id="standards-of-practice" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-cyan-500/40 bg-[#071224] p-6 shadow-xl">
+          <section id="standards-of-practice" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-cyan-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.3em] text-cyan-300">
@@ -2350,7 +2350,7 @@ export default async function PublicSharePage({
           {clientSummaryGroups.length > 0 && (
             <section
               id="client-summary"
-              className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl"
+              className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-teal-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -2377,7 +2377,7 @@ export default async function PublicSharePage({
                 <div className="flex w-max min-w-full gap-2">
                   <a
                     href="#client-summary"
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-slate-700 px-4 py-3 text-sm font-semibold leading-none text-[var(--fl-text)] transition hover:bg-slate-600"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-[var(--fl-raised)] px-4 py-3 text-sm font-semibold leading-none text-[var(--fl-text)] transition hover:bg-slate-600"
                   >
                     <span className="text-base leading-none">☰</span><span>Summary</span>
                   </a>
@@ -2437,7 +2437,7 @@ export default async function PublicSharePage({
           )}
 
           {inspection.executive_summary && (
-            <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6 shadow-xl">
+            <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl">
               <h2 className="text-2xl font-extrabold text-purple-300">
                 Executive Summary
               </h2>
@@ -2453,7 +2453,7 @@ export default async function PublicSharePage({
           )}
 
           {!isDemo && realtorBranding && (
-            <section className="mt-8 flex items-center gap-4 rounded-2xl border border-teal-500/30 bg-[#071224] p-5 shadow-xl">
+            <section className="mt-8 flex items-center gap-4 rounded-2xl border border-teal-500/30 bg-[var(--fl-surface-2)] p-5 shadow-xl">
               {realtorBranding.photo_url && (
                 <img
                   src={realtorBranding.photo_url}
@@ -2475,7 +2475,7 @@ export default async function PublicSharePage({
             </section>
           )}
 
-          <details className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6">
+          <details className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6">
             <summary className="cursor-pointer list-none">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -2525,7 +2525,7 @@ export default async function PublicSharePage({
             <details
               id="equipment-inventory"
               open
-              className="mt-8 rounded-2xl border border-cyan-500/40 bg-[#071224] p-6"
+              className="mt-8 rounded-2xl border border-cyan-500/40 bg-[var(--fl-surface-2)] p-6"
             >
               <summary className="cursor-pointer list-none">
                 <div className="flex flex-wrap items-center justify-between gap-4">
@@ -2623,7 +2623,7 @@ export default async function PublicSharePage({
           )}
 
           {showEnvironmentalLinks && (
-            <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-6">
+            <section className="mt-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface-2)] p-6">
               <h2 className="text-2xl font-bold text-purple-300">
                 Environmental Testing Reports
               </h2>
@@ -2701,7 +2701,7 @@ export default async function PublicSharePage({
           )}
 
           {(sectionStats.length > 0 || equipmentInventory.length > 0) && (
-            <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6">
+            <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6">
               <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
                 Section Snapshot
               </h2>
@@ -2717,7 +2717,7 @@ export default async function PublicSharePage({
                     href={`#section-${stat.section
                       .toLowerCase()
                       .replace(/[^a-z0-9]+/g, "-")}`}
-                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4 transition hover:border-teal-500/60 hover:bg-[#102033]"
+                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4 transition hover:border-teal-500/60 hover:bg-[var(--fl-surface-2)]"
                   >
                     <p className="font-semibold text-[var(--fl-text)]">{stat.section}</p>
                     <p className="mt-2 text-sm text-[var(--fl-muted)]">
@@ -2747,7 +2747,7 @@ export default async function PublicSharePage({
           )}
 
           {inspection.report_summary && (
-            <details className="mt-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
+            <details className="mt-8 rounded-2xl border border-teal-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl">
               <summary className="cursor-pointer list-none">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
@@ -2771,7 +2771,7 @@ export default async function PublicSharePage({
           )}
 
           {Object.keys(checklistBySection).length > 0 && (
-            <details className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6">
+            <details className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6">
               <summary className="cursor-pointer list-none">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
@@ -2827,7 +2827,7 @@ export default async function PublicSharePage({
           {Object.keys(limitationsBySection).length > 0 && (
             <details
               id="report-limitations"
-              className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-yellow-500/40 bg-[#071224] p-6"
+              className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-yellow-500/40 bg-[var(--fl-surface-2)] p-6"
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
                 <div>
@@ -2910,7 +2910,7 @@ export default async function PublicSharePage({
                                         fullSrc={fullUrl}
                                         alt="Limitation photo"
                                         className="max-h-[260px] w-full object-cover"
-                                        buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                        buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                       />
                                     );
                                   })}
@@ -2948,13 +2948,13 @@ export default async function PublicSharePage({
                 initial={activeDefectFilter}
                 counts={severityFilterCounts}
               />
-              <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] px-5 py-3 text-sm text-[var(--fl-muted)]">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-5 py-3 text-sm text-[var(--fl-muted)]">
                 {defectTotals.total} total defect{defectTotals.total === 1 ? "" : "s"} documented
               </div>
             </div>
 
             {groupedFindings.length === 0 ? (
-              <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-8 text-center text-[var(--fl-muted)]">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center text-[var(--fl-muted)]">
                 No findings saved yet.
               </div>
             ) : (
@@ -2969,7 +2969,7 @@ export default async function PublicSharePage({
                       id={`section-${group.section
                         .toLowerCase()
                         .replace(/[^a-z0-9]+/g, "-")}`}
-                      className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6"
+                      className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6"
                     >
                       <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--fl-line)] pb-4">
                         <h3 className="text-2xl font-semibold text-[var(--fl-text)]">
@@ -2988,7 +2988,7 @@ export default async function PublicSharePage({
                       )}
 
                       {referencePhotosBySection[group.section]?.length > 0 && (
-                        <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4">
+                        <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
                           <h4 className="mb-3 text-lg font-bold text-cyan-300">
                             Section Reference Photos
                           </h4>
@@ -3014,7 +3014,7 @@ export default async function PublicSharePage({
                                     alt={photo.caption || `Section reference photo ${index + 1}`}
                                     badgeText="Tap to enlarge"
                                     className="max-h-[280px] w-full object-cover"
-                                    buttonClassName="block w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                    buttonClassName="block w-full overflow-hidden bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                   />
 
                                   {photo.caption && (
@@ -3060,7 +3060,7 @@ export default async function PublicSharePage({
                                     {image && (
                                       <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)]">
                                         {isVideo ? (
-                                          <div className="relative h-full w-full bg-black">
+                                          <div className="relative h-full w-full bg-[var(--fl-surface-2)]">
                                             {previewImage ? (
                                               <img
                                                 src={previewImage}
@@ -3079,7 +3079,7 @@ export default async function PublicSharePage({
                                                 className="h-full w-full object-cover opacity-80"
                                               />
                                             )}
-                                            <span className="absolute inset-x-2 bottom-2 rounded-full border border-cyan-400 bg-black/75 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-cyan-300">
+                                            <span className="absolute inset-x-2 bottom-2 rounded-full border border-cyan-400 bg-[var(--fl-surface-2)] px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-cyan-300">
                                               Video
                                             </span>
                                           </div>
@@ -3168,7 +3168,7 @@ export default async function PublicSharePage({
                                                 muted
                                                 playsInline
                                                 preload="metadata"
-                                                className="max-h-[520px] w-full rounded-xl border border-[var(--fl-line)] bg-black object-contain"
+                                                className="max-h-[520px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] object-contain"
                                               >
                                                 Your browser does not support video playback.
                                               </video>
@@ -3179,7 +3179,7 @@ export default async function PublicSharePage({
                                                 alt={media.caption || `Inspection finding photo ${mediaIndex + 1}`}
                                                 badgeText="Tap to enlarge"
                                                 className="max-h-[520px] w-full object-contain"
-                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                                 images={galleryImages}
                                                 index={photoIndex >= 0 ? photoIndex : 0}
                                               />
@@ -3301,7 +3301,7 @@ export default async function PublicSharePage({
                                                 muted
                                                 playsInline
                                                 preload="metadata"
-                                                className={`w-full rounded-xl border border-[var(--fl-line)] bg-black object-contain ${
+                                                className={`w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] object-contain ${
                                                   mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
                                                 }`}
                                               >
@@ -3316,7 +3316,7 @@ export default async function PublicSharePage({
                                                 className={`w-full object-contain ${
                                                   mediaList.length > 1 ? "max-h-[520px]" : "max-h-[640px]"
                                                 }`}
-                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                                buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                                 images={galleryImages}
                                                 index={photoIndex >= 0 ? photoIndex : 0}
                                               />
@@ -3430,7 +3430,7 @@ function ClientSummaryFindingCard({
     >
       <summary className="cursor-pointer list-none">
         {mediaUrl && (
-          <div className="h-52 overflow-hidden border-b border-[var(--fl-raised)] bg-black">
+          <div className="h-52 overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
             {video ? (
               <div className="relative h-full w-full">
                 {previewUrl ? (
@@ -3443,13 +3443,13 @@ function ClientSummaryFindingCard({
                     className="h-full w-full object-cover opacity-80 transition duration-300 group-hover:scale-105"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-black">
-                    <div className="rounded-full border border-cyan-400 bg-black/75 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-cyan-300">
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--fl-ground)] via-[var(--fl-surface)] to-black">
+                    <div className="rounded-full border border-cyan-400 bg-[var(--fl-surface-2)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-cyan-300">
                       ▶ Video
                     </div>
                   </div>
                 )}
-                <span className="absolute inset-x-4 bottom-4 rounded-full border border-cyan-400 bg-black/75 px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-cyan-300">
+                <span className="absolute inset-x-4 bottom-4 rounded-full border border-cyan-400 bg-[var(--fl-surface-2)] px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-cyan-300">
                   Tap to Expand Video
                 </span>
               </div>
@@ -3536,7 +3536,7 @@ function ClientSummaryFindingCard({
                       muted
                       playsInline
                       preload="metadata"
-                      className="max-h-[360px] w-full rounded-xl border border-[var(--fl-line)] bg-black object-contain"
+                      className="max-h-[360px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] object-contain"
                     >
                       Your browser does not support video playback.
                     </video>
@@ -3553,7 +3553,7 @@ function ClientSummaryFindingCard({
                     alt={`Summary finding media ${mediaIndex + 1}`}
                     badgeText="Tap to enlarge"
                     className="max-h-[360px] w-full rounded-xl border border-[var(--fl-line)] object-contain"
-                    buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                    buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                     images={galleryImages}
                     index={photoIndex >= 0 ? photoIndex : 0}
                   />

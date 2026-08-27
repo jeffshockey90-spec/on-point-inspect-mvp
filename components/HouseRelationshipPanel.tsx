@@ -78,7 +78,7 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
           </h3>
         </div>
 
-        <span className={`rounded-full border border-current/30 bg-black/20 px-3 py-1 text-xs font-semibold ${confidenceTone(relationship.confidence)}`}>
+        <span className={`rounded-full border border-current/30 bg-[var(--fl-surface-2)] px-3 py-1 text-xs font-semibold ${confidenceTone(relationship.confidence)}`}>
           {relationship.confidence}% confidence
         </span>
       </div>
@@ -87,7 +87,7 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
         {relationship.explanation}
       </p>
 
-      <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3">
+      <div className="mt-4 rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
         <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
           Related Findings
         </p>
@@ -96,7 +96,7 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
           {relationship.findings.map((finding, index) => (
             <div
               key={`${relationship.id}-${finding.id || index}`}
-              className="rounded-xl border border-white/10 bg-black/25 p-3"
+              className="rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <p className="text-sm font-semibold text-[var(--fl-text)]">
@@ -121,14 +121,14 @@ function RelationshipCard({ relationship }: { relationship: HouseRelationship })
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+        <div className="rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
           <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
             Recommendation
           </p>
           <p className="mt-2 text-sm leading-6">{relationship.recommendation}</p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+        <div className="rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
           <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
             Inspector Note
           </p>
@@ -239,7 +239,7 @@ export default function HouseRelationshipPanel({
   }, [result, compact]);
 
   return (
-    <section ref={rootRef} className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-950/20 p-4 shadow-xl">
+    <section ref={rootRef} className="rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-fuchsia-300">

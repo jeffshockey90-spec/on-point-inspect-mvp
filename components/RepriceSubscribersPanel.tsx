@@ -105,12 +105,12 @@ export default function RepriceSubscribersPanel() {
           No active subscribers yet — nothing to re-price.
         </div>
       ) : wouldChange.length === 0 ? (
-        <div className="mt-5 rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4 text-sm text-emerald-200">
+        <div className="mt-5 rounded-xl border border-emerald-700/40 bg-emerald-500/10 p-4 text-sm text-emerald-200">
           All {preview.totalActive} active subscribers are already on their current plan price. ✅
         </div>
       ) : (
         <>
-          <div className="mt-5 rounded-xl border border-amber-500/40 bg-amber-950/20 p-4">
+          <div className="mt-5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
             <p className="text-sm font-semibold text-amber-200">
               {wouldChange.length} subscriber(s) are on an old price:
             </p>

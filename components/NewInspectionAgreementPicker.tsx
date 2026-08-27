@@ -174,7 +174,7 @@ export default function NewInspectionAgreementPicker({
           <div className="mt-3 space-y-2">
             {selectedTemplates.length > 0 ? (
               selectedTemplates.map((template) => (
-                <div key={template.id} className="rounded-xl border border-[var(--fl-line)] bg-[#071224] px-4 py-3">
+                <div key={template.id} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3">
                   <p className="min-w-0 break-words text-sm font-semibold text-[var(--fl-text)]">{template.title}</p>
                   {template.version && <p className="mt-1 text-xs text-[var(--fl-muted)]">{template.version}</p>}
                 </div>
@@ -228,7 +228,7 @@ export default function NewInspectionAgreementPicker({
                       className={`block w-full min-w-0 cursor-pointer rounded-xl border p-4 transition ${
                         checked
                           ? "border-teal-400 bg-teal-500/10"
-                          : "border-[var(--fl-line)] bg-[#071224] hover:border-teal-500"
+                          : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-teal-500"
                       }`}
                     >
                       <div className="flex min-w-0 items-start gap-3">

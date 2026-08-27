@@ -613,13 +613,13 @@ function PhotoMarkupEditor({
   const toolButtonClass = (toolName: Tool) =>
     `flex min-w-[72px] flex-col items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold transition active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation] ${
       tool === toolName
-        ? "border border-[#65c832] bg-black/60 text-[#65c832]"
+        ? "border border-[#65c832] bg-[var(--fl-surface-2)] text-[#65c832]"
         : "text-[var(--fl-text)] hover:bg-white/10"
     }`;
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-black text-[var(--fl-text)]">
-      <div className="flex items-center justify-between border-b border-white/10 bg-black px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)]">
+      <div className="flex items-center justify-between border-b border-white/10 bg-[var(--fl-surface-2)] px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)]">
         <button
           type="button"
           onClick={() => {
@@ -655,8 +655,8 @@ function PhotoMarkupEditor({
         <div
           className={`mx-4 mt-3 rounded-xl border px-4 py-3 text-sm font-bold ${
             messageType === "success"
-              ? "border-emerald-500 bg-emerald-950/40 text-emerald-300"
-              : "border-red-500 bg-red-950/40 text-red-300"
+              ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
+              : "border-red-500 bg-red-500/10 text-red-300"
           }`}
         >
           {message}
@@ -664,7 +664,7 @@ function PhotoMarkupEditor({
       )}
 
       <div
-        className="relative flex min-h-0 flex-1 select-none items-center justify-center overflow-hidden bg-black touch-none"
+        className="relative flex min-h-0 flex-1 select-none items-center justify-center overflow-hidden bg-[var(--fl-surface-2)] touch-none"
         style={{ touchAction: "none", overscrollBehavior: "contain" }}
         onTouchMove={(event) => event.preventDefault()}
       >
@@ -886,7 +886,7 @@ function PhotoMarkupEditor({
           </Layer>
         </Stage>
 
-        <div className="absolute right-4 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-3 rounded-2xl bg-black/30 p-2 backdrop-blur">
+        <div className="absolute right-4 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-3 rounded-2xl bg-[var(--fl-surface-2)] p-2 backdrop-blur">
           {COLOR_OPTIONS.map((option) => (
             <button
               key={option}
@@ -905,7 +905,7 @@ function PhotoMarkupEditor({
         </div>
       </div>
 
-      <div className="border-t border-white/10 bg-black px-3 py-4">
+      <div className="border-t border-white/10 bg-[var(--fl-surface-2)] px-3 py-4">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2">
           <button
             type="button"

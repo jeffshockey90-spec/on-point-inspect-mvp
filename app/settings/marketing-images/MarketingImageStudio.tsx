@@ -709,7 +709,7 @@ export default function MarketingImageStudio({
                     onClick={() => chooseReportPhoto(reportPhotos[0])}
                     className="w-full overflow-hidden rounded-xl border-2 border-teal-300 bg-[var(--fl-ground)] text-left"
                   >
-                    <div className="aspect-[16/9] bg-black">
+                    <div className="aspect-[16/9] bg-[var(--fl-surface-2)]">
                       <img
                         src={proxiedImageSrc(reportPhotos[0].url)}
                         alt={reportPhotos[0].label || "Property photo"}

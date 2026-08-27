@@ -201,7 +201,7 @@ export default function InsertFavoriteFindingButton({
                   type="button"
                   onClick={() => setOpen(false)}
                   disabled={busy}
-                  className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                  className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
                 >
                   Close
                 </button>
@@ -245,7 +245,7 @@ export default function InsertFavoriteFindingButton({
 
             <div className="max-h-[65vh] overflow-y-auto p-5">
               {loadingTemplates ? (
-                <div className="flex items-center justify-center gap-3 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6 text-[var(--fl-muted)]">
+                <div className="flex items-center justify-center gap-3 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-[var(--fl-muted)]">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   Loading favorite findings...
                 </div>
@@ -262,7 +262,7 @@ export default function InsertFavoriteFindingButton({
                         className={`rounded-2xl border p-5 ${
                           template.is_favorite
                             ? "border-yellow-500/60 bg-yellow-500/10"
-                            : "border-[var(--fl-line)] bg-[#071224]"
+                            : "border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
                         }`}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -316,7 +316,7 @@ export default function InsertFavoriteFindingButton({
                   })}
 
                   {filtered.length === 0 && (
-                    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-6 text-center text-[var(--fl-muted)]">
+                    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">
                       No matching templates found.
                     </div>
                   )}

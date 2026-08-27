@@ -64,7 +64,7 @@ export default function SendDemoReportButton({
   }
 
   return (
-    <div className="w-full max-w-md rounded-2xl border border-fuchsia-500/40 bg-fuchsia-950/20 p-4">
+    <div className="w-full max-w-md rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-semibold uppercase tracking-wide text-fuchsia-300">Send Demo Report</p>
         <button type="button" onClick={() => setOpen(false)} className="text-lg text-[var(--fl-muted)] hover:text-[var(--fl-text)]" aria-label="Close">
@@ -73,10 +73,10 @@ export default function SendDemoReportButton({
       </div>
 
       {error && (
-        <div className="mb-3 rounded-lg border border-red-700 bg-red-950/40 px-3 py-2 text-xs font-bold text-red-200">{error}</div>
+        <div className="mb-3 rounded-lg border border-red-700 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-200">{error}</div>
       )}
       {notice && (
-        <div className="mb-3 rounded-lg border border-emerald-700 bg-emerald-950/40 px-3 py-2 text-xs font-bold text-emerald-200">{notice}</div>
+        <div className="mb-3 rounded-lg border border-emerald-700 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-200">{notice}</div>
       )}
 
       <div className="space-y-2">

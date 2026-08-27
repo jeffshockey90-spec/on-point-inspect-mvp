@@ -133,7 +133,7 @@ export default function CompanyEmailForm() {
           <input className={inputCls} value={fromName} onChange={(e) => setFromName(e.target.value)} placeholder="On Point Home Inspections" />
         </div>
 
-        <p className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3 text-xs leading-5 text-[var(--fl-muted)]">
+        <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-xs leading-5 text-[var(--fl-muted)]">
           Northwest Registered Agent / businessidentity.llc email? Your server is{" "}
           <span className="font-bold text-[var(--fl-text)]">mailserver.businessidentity.llc</span>, port{" "}
           <span className="font-bold text-[var(--fl-text)]">465</span>. Username is your full email address, and

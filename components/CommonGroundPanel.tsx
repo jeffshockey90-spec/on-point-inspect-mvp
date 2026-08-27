@@ -55,7 +55,7 @@ export default function CommonGroundPanel({
   const locPct = data.local ? Math.round(data.local.pct * 100) : null;
 
   return (
-    <div className="mt-3 rounded-xl border border-[var(--fl-raised)] bg-[#0a1424] p-4">
+    <div className="mt-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--fl-accent-text)]">
           <span className="inline-block h-4 w-4 rounded-[5px] bg-gradient-to-br from-teal-400 to-teal-600" />
@@ -75,7 +75,7 @@ export default function CommonGroundPanel({
 
           <div className="mb-2 flex items-center gap-2.5">
             <span className="w-[74px] text-xs font-semibold text-[var(--fl-muted)]">Nationwide</span>
-            <span className="h-[7px] flex-1 overflow-hidden rounded-full bg-[#141f33]">
+            <span className="h-[7px] flex-1 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
               <span className={`block h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(3, natPct)}%` }} />
             </span>
             <span className={`w-[46px] text-right text-[13px] font-semibold tabular-nums ${t.text}`}>{natPct}%</span>
@@ -84,7 +84,7 @@ export default function CommonGroundPanel({
           {locPct != null && data.local && (
             <div className="mb-2 flex items-center gap-2.5">
               <span className="w-[74px] text-xs font-semibold text-[var(--fl-muted)]">In {stateName(data.local.state)}</span>
-              <span className="h-[7px] flex-1 overflow-hidden rounded-full bg-[#141f33]">
+              <span className="h-[7px] flex-1 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
                 <span className={`block h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(3, locPct)}%` }} />
               </span>
               <span className={`w-[46px] text-right text-[13px] font-semibold tabular-nums ${t.text}`}>{locPct}%</span>

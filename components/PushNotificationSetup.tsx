@@ -257,8 +257,8 @@ export default function PushNotificationSetup() {
             <div
               className={`rounded-2xl border p-4 text-sm font-bold leading-6 ${
                 messageType === "success"
-                  ? "border-green-500/40 bg-green-950/30 text-green-300"
-                  : "border-red-500/40 bg-red-950/30 text-red-300"
+                  ? "border-green-500/40 bg-green-500/10 text-green-300"
+                  : "border-red-500/40 bg-red-500/10 text-red-300"
               }`}
             >
               {message}

@@ -293,7 +293,7 @@ export default async function RealtorLeaderboardPage() {
         </section>
 
         {topRealtor && (
-          <section className="mt-8 rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl">
+          <section className="mt-8 rounded-2xl border border-teal-500/40 bg-teal-500/10 p-6 shadow-xl">
             <div className="flex flex-wrap items-center justify-between gap-5">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
@@ -433,7 +433,7 @@ function LeaderboardRow({ item, rank }: { item: any; rank: number }) {
   return (
     <Link
       href={`/realtors/${item.realtor.id}`}
-      className="block bg-[var(--fl-surface-2)] px-5 py-5 transition hover:bg-[#071224] lg:grid lg:grid-cols-[70px_1.6fr_0.7fr_0.9fr_0.9fr_0.9fr_1fr] lg:items-center lg:gap-4"
+      className="block bg-[var(--fl-surface-2)] px-5 py-5 transition hover:bg-[var(--fl-surface-2)] lg:grid lg:grid-cols-[70px_1.6fr_0.7fr_0.9fr_0.9fr_0.9fr_1fr] lg:items-center lg:gap-4"
     >
       <div className="text-2xl font-semibold text-[var(--fl-text)]">{medal}</div>
 

@@ -109,7 +109,7 @@ const STATUS_STYLE: Record<string, { bar: string; chip: string; text: string }> 
   healthy: { bar: "bg-emerald-400", chip: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200", text: "text-emerald-300" },
   aging: { bar: "bg-amber-400", chip: "border-amber-500/40 bg-amber-500/10 text-amber-200", text: "text-amber-300" },
   "near-end": { bar: "bg-rose-400", chip: "border-rose-500/40 bg-rose-500/10 text-rose-200", text: "text-rose-300" },
-  unknown: { bar: "bg-slate-500", chip: "border-[var(--fl-line)] bg-slate-700/30 text-[var(--fl-muted)]", text: "text-[var(--fl-muted)]" },
+  unknown: { bar: "bg-slate-500", chip: "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]", text: "text-[var(--fl-muted)]" },
 };
 
 export default async function HomeownerPortal({
@@ -265,12 +265,12 @@ export default async function HomeownerPortal({
           {cityLine && <p className="mt-2 text-lg text-[var(--fl-muted)]">{cityLine}</p>}
           <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold">
             {yearBuilt && (
-              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-3 py-1 text-[var(--fl-muted)]">
+              <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-1 text-[var(--fl-muted)]">
                 {tc("Built")} {yearBuilt}
               </span>
             )}
             {inspectedOn && (
-              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-3 py-1 text-[var(--fl-muted)]">
+              <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-1 text-[var(--fl-muted)]">
                 {tc("Inspected")} {inspectedOn}
               </span>
             )}
@@ -382,7 +382,7 @@ export default async function HomeownerPortal({
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-semibold text-[var(--fl-text)]">{task.title}</p>
                   {task.season && (
-                    <span className="shrink-0 rounded-full border border-[var(--fl-line)] bg-black/30 px-2.5 py-1 text-[11px] font-semibold text-[var(--fl-muted)]">
+                    <span className="shrink-0 rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--fl-muted)]">
                       {tc(task.season)}
                     </span>
                   )}
@@ -398,7 +398,7 @@ export default async function HomeownerPortal({
 
         {/* Safety highlights */}
         {safetyItems.length > 0 && (
-          <section className="rounded-2xl border border-rose-500/40 bg-rose-950/20 p-6">
+          <section className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6">
             <h2 className="text-xl font-semibold text-rose-200">{tc("Safety items to prioritize")}</h2>
             <p className="mt-1 text-sm text-[var(--fl-muted)]">
               {tc(

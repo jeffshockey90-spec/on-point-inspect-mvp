@@ -121,8 +121,8 @@ function StripeStatusCard({ company }: { company: any }) {
     <div
       className={`rounded-2xl border p-4 sm:p-5 ${
         ready
-          ? "border-emerald-500/50 bg-emerald-950/20"
-          : "border-yellow-500/50 bg-yellow-950/20"
+          ? "border-emerald-500/50 bg-emerald-500/10"
+          : "border-yellow-500/50 bg-yellow-500/10"
       }`}
     >
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-muted)] sm:tracking-[0.25em]">
@@ -320,7 +320,7 @@ export default async function SettingsPage({
             </p>
 
             {pageError && (
-              <p className="mt-5 break-words rounded-xl border border-red-500/40 bg-red-950/30 p-4 text-sm text-red-200">
+              <p className="mt-5 break-words rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
                 {pageError}
               </p>
             )}
@@ -593,7 +593,7 @@ export default async function SettingsPage({
         </section>
 
         {saved && (
-          <div className="rounded-2xl border border-emerald-500/50 bg-emerald-950/20 p-5">
+          <div className="rounded-2xl border border-emerald-500/50 bg-emerald-500/10 p-5">
             <h3 className="font-semibold text-emerald-300">
               Settings saved successfully.
             </h3>
@@ -601,7 +601,7 @@ export default async function SettingsPage({
         )}
 
         {stripeError && (
-          <div className="rounded-2xl border border-red-500/50 bg-red-950/20 p-5">
+          <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-5">
             <h3 className="font-semibold text-red-300">Stripe Connect Error</h3>
 
             <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
@@ -617,7 +617,7 @@ export default async function SettingsPage({
         )}
 
         {stripeStatus && !stripeError && (
-          <div className="rounded-2xl border border-sky-500/50 bg-sky-950/20 p-5">
+          <div className="rounded-2xl border border-sky-500/50 bg-sky-500/10 p-5">
             <h3 className="font-semibold text-sky-300">Stripe Status</h3>
 
             <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
@@ -627,7 +627,7 @@ export default async function SettingsPage({
         )}
 
         {pageError && !stripeError && (
-          <div className="rounded-2xl border border-red-500/50 bg-red-950/20 p-5">
+          <div className="rounded-2xl border border-red-500/50 bg-red-500/10 p-5">
             <h3 className="font-semibold text-red-300">Settings Error</h3>
 
             <p className="mt-2 break-words text-sm leading-6 text-[var(--fl-text)]">
@@ -1067,7 +1067,7 @@ export default async function SettingsPage({
                 initialUrl={company.logo_url || ""}
                 folder="company-logo"
                 buttonText="Upload Company Logo"
-                previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-[var(--fl-line)] bg-black/30 object-contain p-3"
+                previewClassName="max-h-28 max-w-[220px] rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] object-contain p-3"
               />
 
               <W9Section

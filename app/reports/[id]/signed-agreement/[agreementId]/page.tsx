@@ -164,7 +164,7 @@ export default async function SignedAgreementPage({ params }: PageProps) {
           <FastLinkButton
             href={`/reports/${id}`}
             loadingText="Back to Report..."
-            className="rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-300 hover:bg-slate-800"
+            className="rounded-xl border border-slate-600 px-4 py-3 text-sm font-black text-slate-300 hover:bg-[var(--fl-surface-2)]"
           >
             Back to Report
           </FastLinkButton>

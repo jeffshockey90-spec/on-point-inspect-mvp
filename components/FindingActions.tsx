@@ -266,7 +266,7 @@ export default function FindingActions({ finding }: { finding: any }) {
 
         <button
           onClick={() => setEditing(false)}
-          className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-bold text-[var(--fl-text)]"
+          className="rounded-lg bg-[var(--fl-raised)] px-4 py-2 text-sm font-bold text-[var(--fl-text)]"
         >
           Cancel
         </button>

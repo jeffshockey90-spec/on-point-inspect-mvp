@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
 
         {sent ? (
           <div className="mt-6 space-y-4">
-            <div className="rounded-lg border border-teal-800 bg-teal-950 p-3 text-sm text-[var(--fl-accent-text)]">
+            <div className="rounded-lg border border-teal-800 bg-teal-500/10 p-3 text-sm text-[var(--fl-accent-text)]">
               If an account exists for {cleanedEmailDisplay(email)}, we&apos;ve sent a
               password reset link. Check your inbox (and spam folder).
             </div>
@@ -95,7 +95,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             {message && (
-              <div className="rounded-xl border border-red-800 bg-red-950/60 p-3 text-sm text-red-300">
+              <div className="rounded-xl border border-red-800 bg-red-500/10 p-3 text-sm text-red-300">
                 {message}
               </div>
             )}

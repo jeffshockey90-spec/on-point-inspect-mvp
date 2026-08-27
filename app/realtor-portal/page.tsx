@@ -524,7 +524,7 @@ export default async function RealtorPortalPage({
                 return (
                   <article
                     key={id}
-                    className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 transition duration-150 hover:border-teal-500/60 hover:bg-[#071224] hover:shadow-[0_0_24px_rgba(20,184,166,0.12)] active:scale-[0.995]"
+                    className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 transition duration-150 hover:border-teal-500/60 hover:bg-[var(--fl-surface-2)] hover:shadow-[0_0_24px_rgba(20,184,166,0.12)] active:scale-[0.995]"
                   >
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0 flex-1">
@@ -648,7 +648,7 @@ export default async function RealtorPortalPage({
                                 key={share.id || share.token}
                                 className="group overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] transition hover:border-orange-400/60"
                               >
-                                <summary className="flex cursor-pointer list-none flex-col gap-4 p-4 transition hover:bg-[#071224] sm:flex-row sm:items-center sm:justify-between">
+                                <summary className="flex cursor-pointer list-none flex-col gap-4 p-4 transition hover:bg-[var(--fl-surface-2)] sm:flex-row sm:items-center sm:justify-between">
                                   <div className="min-w-0">
                                     <div className="flex flex-wrap gap-2">
                                       <span className="rounded-full border border-orange-400/60 bg-orange-500/10 px-3 py-1 text-xs font-semibold uppercase text-orange-200">
@@ -684,7 +684,7 @@ export default async function RealtorPortalPage({
 
                                 <div className="border-t border-[var(--fl-raised)] p-4">
                                   <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
-                                    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
+                                    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-orange-200">
                                         Linked Addendum + Seller Response
                                       </p>
@@ -795,7 +795,7 @@ function RepairTimeline({
   ];
 
   return (
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">Timeline</p>
       <div className="mt-4 space-y-3">
         {steps.map((step) => (
@@ -822,7 +822,7 @@ function RepairTimeline({
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl transition duration-150 hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.985]">
+    <div className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-6 shadow-xl transition duration-150 hover:border-teal-400 hover:bg-teal-500/10 active:scale-[0.985]">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p>
       <p className="mt-3 break-words text-3xl font-semibold text-[var(--fl-text)]">{value}</p>
     </div>

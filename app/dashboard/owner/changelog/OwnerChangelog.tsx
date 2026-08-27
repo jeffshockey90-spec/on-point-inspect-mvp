@@ -154,7 +154,7 @@ export default function OwnerChangelog() {
           <h2 className="text-xl font-semibold text-[var(--fl-text)]">Post an Update</h2>
 
           {postError && (
-            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/20 p-2 text-xs font-bold text-red-300">
+            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-red-300">
               {postError}
             </p>
           )}
@@ -164,20 +164,20 @@ export default function OwnerChangelog() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Title, e.g. Custom section fields (leave blank to auto-number, e.g. update 1.9.10)"
-              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={4}
               placeholder="What changed and why it matters..."
-              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <input
               value={creditedUserName}
               onChange={(e) => setCreditedUserName(e.target.value)}
               placeholder="Credit someone (optional)"
-              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <button
               onClick={submitEntry}
@@ -189,7 +189,7 @@ export default function OwnerChangelog() {
           </div>
         </section>
 
-        {error && <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm font-bold text-red-300">{error}</div>}
+        {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">{error}</div>}
 
         <div className="space-y-4">
           {loading ? (
@@ -207,19 +207,19 @@ export default function OwnerChangelog() {
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       placeholder="Title"
-                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
                     />
                     <textarea
                       value={editBody}
                       onChange={(e) => setEditBody(e.target.value)}
                       rows={6}
-                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
                     />
                     <input
                       value={editCredited}
                       onChange={(e) => setEditCredited(e.target.value)}
                       placeholder="Credit someone (optional)"
-                      className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
                     />
                     <div className="flex flex-wrap gap-2">
                       <button

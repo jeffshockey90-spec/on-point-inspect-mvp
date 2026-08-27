@@ -89,10 +89,10 @@ export default function OwnerPushNotificationCenter({ users, nativeCount, webCou
   return (
     <div className="space-y-5">
       <div className="grid gap-4 md:grid-cols-4">
-        <Stat label="Native iOS Devices" value={nativeCount} className="border-purple-500/30 bg-purple-950/20" />
-        <Stat label="Web Push Devices" value={webCount} className="border-teal-500/30 bg-teal-950/20" />
-        <Stat label="Total Targets" value={nativeCount + webCount} className="border-blue-500/30 bg-blue-950/20" />
-        <Stat label="Inspectors" value={inspectorUsers.length} className="border-orange-500/30 bg-orange-950/20" />
+        <Stat label="Native iOS Devices" value={nativeCount} className="border-purple-500/30 bg-purple-500/10" />
+        <Stat label="Web Push Devices" value={webCount} className="border-teal-500/30 bg-teal-500/10" />
+        <Stat label="Total Targets" value={nativeCount + webCount} className="border-blue-500/30 bg-blue-500/10" />
+        <Stat label="Inspectors" value={inspectorUsers.length} className="border-orange-500/30 bg-orange-500/10" />
       </div>
 
       <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
@@ -137,7 +137,7 @@ export default function OwnerPushNotificationCenter({ users, nativeCount, webCou
       <label className="block"><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Message</p><textarea value={body} onChange={(event) => setBody(event.target.value)} rows={5} className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400" /></label>
       <TextInput label="Event Type" value={eventType} onChange={setEventType} />
 
-      {message && <div className={`rounded-xl border p-4 text-sm font-bold ${messageType === "success" ? "border-green-500/30 bg-green-950/20 text-green-200" : "border-red-500/30 bg-red-950/20 text-red-200"}`}>{message}</div>}
+      {message && <div className={`rounded-xl border p-4 text-sm font-bold ${messageType === "success" ? "border-green-500/30 bg-green-500/10 text-green-200" : "border-red-500/30 bg-red-500/10 text-red-200"}`}>{message}</div>}
 
       <button type="button" onClick={sendPush} disabled={busy || (target === "user" && !selectedUser)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-60">
         {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}

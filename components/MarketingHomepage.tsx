@@ -112,10 +112,10 @@ function SectionEyebrow({ children }: { children: React.ReactNode }) {
 // field labels, and layout order the app actually uses after a capture.
 function FieldCaptureMockup() {
   const fieldLabel = "text-[9px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]";
-  const fieldBox = "mt-1 rounded-lg border border-white/15 bg-black/40 p-2 text-[10px] leading-snug text-[var(--fl-text)]";
+  const fieldBox = "mt-1 rounded-lg border border-white/15 bg-[var(--fl-surface-2)] p-2 text-[10px] leading-snug text-[var(--fl-text)]";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-black shadow-2xl shadow-black/40">
+    <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] shadow-2xl shadow-black/40">
       <div className="flex items-center justify-between px-5 pt-5">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
           Confirm Finding
@@ -172,7 +172,7 @@ function FieldCaptureMockup() {
             sizes="(max-width: 768px) 90vw, 420px"
             className="object-cover"
           />
-          <span className="absolute bottom-2 left-2 rounded-full border border-red-400/60 bg-red-950/80 px-2 py-0.5 text-[9px] font-semibold uppercase text-red-200">
+          <span className="absolute bottom-2 left-2 rounded-full border border-red-400/60 bg-red-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase text-red-200">
             Water Leak at Pressure Tank
           </span>
         </div>
@@ -213,7 +213,7 @@ function EquipmentAnalyzerMockup() {
         />
       </div>
 
-      <section className="mt-4 rounded-2xl border border-teal-500/40 bg-teal-950/20 p-4">
+      <section className="mt-4 rounded-2xl border border-teal-500/40 bg-teal-500/10 p-4">
         <h3 className="text-sm font-bold text-[var(--fl-accent-text)]">Enhanced Equipment Intelligence</h3>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -367,8 +367,8 @@ function PhoneFrame({
 }) {
   return (
     <div className="w-full max-w-[220px]">
-      <div className="relative aspect-[9/19] w-full rounded-[2.25rem] border-[6px] border-[var(--fl-line)] bg-black p-1.5 shadow-2xl shadow-black/50">
-        <div className="absolute left-1/2 top-1.5 z-10 h-4 w-20 -translate-x-1/2 rounded-full bg-black" />
+      <div className="relative aspect-[9/19] w-full rounded-[2.25rem] border-[6px] border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-1.5 shadow-2xl shadow-black/50">
+        <div className="absolute left-1/2 top-1.5 z-10 h-4 w-20 -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)]" />
         <div className="relative h-full w-full overflow-hidden rounded-[1.65rem] bg-[var(--fl-ground)]">
           {children}
         </div>
@@ -389,7 +389,7 @@ function MobileAppMockup() {
             <span>9:41</span>
             <span>●●●</span>
           </div>
-          <div className="mt-3 flex-1 bg-gradient-to-br from-slate-800 to-slate-900" />
+          <div className="mt-3 flex-1 bg-gradient-to-br from-[var(--fl-surface-2)] to-[var(--fl-surface)]" />
           <div className="space-y-2 p-2.5">
             <div className="rounded-lg border border-teal-500/30 bg-teal-500/10 p-2">
               <p className="text-[7px] font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">AI Draft Ready</p>
@@ -660,7 +660,7 @@ export default function MarketingHomepage({
       {SPOTLIGHTS.map((spotlight, index) => (
         <section
           key={spotlight.title}
-          className={`border-t border-[var(--fl-raised)] ${index % 2 === 1 ? "bg-[#03060f]" : ""}`}
+          className={`border-t border-[var(--fl-raised)] ${index % 2 === 1 ? "bg-[var(--fl-ground)]" : ""}`}
         >
           <div className="mx-auto max-w-7xl px-5 py-20 md:px-8">
             <div
@@ -691,7 +691,7 @@ export default function MarketingHomepage({
         </section>
       ))}
 
-      <section className="border-t border-[var(--fl-raised)] bg-[#03060f]">
+      <section className="border-t border-[var(--fl-raised)] bg-[var(--fl-ground)]">
         <div className="mx-auto max-w-7xl px-5 py-20 md:px-8">
           <div className="max-w-2xl">
             <SectionEyebrow>Everything In One Place</SectionEyebrow>
@@ -744,7 +744,7 @@ export default function MarketingHomepage({
         </div>
       </section>
 
-      <section className="border-t border-[var(--fl-raised)] bg-[#03060f]">
+      <section className="border-t border-[var(--fl-raised)] bg-[var(--fl-ground)]">
         <div className="mx-auto max-w-7xl px-5 py-20 md:px-8">
           <SectionEyebrow>How It Works</SectionEyebrow>
           <h2 className="mt-4 max-w-2xl text-3xl font-semibold text-[var(--fl-text)] md:text-5xl">

@@ -317,7 +317,7 @@ export default function InspectionCopilotPanel({
   const score = result?.score ?? 0;
 
   return (
-    <section ref={rootRef} className="rounded-2xl border border-indigo-500/40 bg-indigo-950/20 p-4 shadow-xl">
+    <section ref={rootRef} className="rounded-2xl border border-indigo-500/40 bg-indigo-500/10 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-indigo-300">
@@ -422,7 +422,7 @@ export default function InspectionCopilotPanel({
               }
             }}
             placeholder="Ask (or tap the mic): what still needs inspected, any contradictions, is it ready to publish..."
-            className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-black px-3 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-indigo-400"
+            className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-indigo-400"
           />
           {voiceSupported && (
             <button
@@ -462,7 +462,7 @@ export default function InspectionCopilotPanel({
               <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Things To Review
               </h3>
-              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">
+              <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">
                 {topIssues.length}
               </span>
             </div>
@@ -485,7 +485,7 @@ export default function InspectionCopilotPanel({
               <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Missing Systems
               </h3>
-              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">
+              <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">
                 {result.missingSystems.length}
               </span>
             </div>
@@ -520,7 +520,7 @@ export default function InspectionCopilotPanel({
       )}
 
       {result?.relatedFindings?.length ? (
-        <div className="mt-5 rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4">
+        <div className="mt-5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
             Possible Related Findings
           </h3>
@@ -537,7 +537,7 @@ export default function InspectionCopilotPanel({
                 <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">{cluster.explanation}</p>
                 <div className="mt-3 grid gap-2">
                   {cluster.findings.map((finding, index) => (
-                    <div key={`${cluster.id}-${finding.id || index}`} className="rounded-lg border border-[var(--fl-line)] bg-black/30 px-3 py-2 text-xs text-[var(--fl-muted)]">
+                    <div key={`${cluster.id}-${finding.id || index}`} className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-xs text-[var(--fl-muted)]">
                       <span className="font-semibold text-cyan-200">{finding.section || "General"}</span>
                       {" — "}
                       {finding.title}

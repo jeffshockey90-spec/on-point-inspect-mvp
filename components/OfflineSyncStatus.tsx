@@ -218,7 +218,7 @@ export default function OfflineSyncStatus() {
   }, []);
 
   return (
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4 text-[var(--fl-text)]">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">

@@ -779,7 +779,7 @@ function SectionLimitations({
 
   return (
     <>
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224]">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -860,7 +860,7 @@ function SectionLimitations({
                             key={photo.id}
                             type="button"
                             onClick={() => setExpandedPhotoUrl(photoUrl)}
-                            className="group relative block h-36 w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                            className="group relative block h-36 w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                             title="Tap to enlarge limitation photo"
                           >
                             <img
@@ -869,7 +869,7 @@ function SectionLimitations({
                               loading="lazy"
                               className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                             />
-                            <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-text)]">
+                            <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-[var(--fl-surface-2)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-text)]">
                               Tap to enlarge
                             </span>
                           </button>
@@ -889,8 +889,8 @@ function SectionLimitations({
           <div
             className={`rounded-xl border px-4 py-3 text-sm font-bold ${
               messageType === "success"
-                ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
-                : "border-red-500 bg-red-950/30 text-red-300"
+                ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
+                : "border-red-500 bg-red-500/10 text-red-300"
             }`}
           >
             {message}
@@ -1037,12 +1037,12 @@ function SectionLimitations({
                             return (
                               <div
                                 key={photo.id}
-                                className="overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black"
+                                className="overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
                               >
                                 <button
                                   type="button"
                                   onClick={() => setExpandedPhotoUrl(photoUrl)}
-                                  className="group relative block h-40 w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                                  className="group relative block h-40 w-full overflow-hidden bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                                   title="Tap to enlarge limitation photo"
                                 >
                                   <img
@@ -1051,7 +1051,7 @@ function SectionLimitations({
                                     loading="lazy"
                                     className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                                   />
-                                  <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-text)]">
+                                  <span className="absolute bottom-2 right-2 rounded-full border border-white/30 bg-[var(--fl-surface-2)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-text)]">
                                     Tap to enlarge
                                   </span>
                                 </button>
@@ -1167,7 +1167,7 @@ function SectionLimitations({
         <button
           type="button"
           aria-label="Close expanded limitation photo"
-          className="absolute right-4 top-4 rounded-full border border-white/30 bg-black/80 px-4 py-2 text-sm font-semibold text-[var(--fl-text)] shadow-xl"
+          className="absolute right-4 top-4 rounded-full border border-white/30 bg-[var(--fl-surface-2)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] shadow-xl"
           onClick={(event) => {
             event.stopPropagation();
             setExpandedPhotoUrl("");
@@ -1179,7 +1179,7 @@ function SectionLimitations({
         <img
           src={expandedPhotoUrl}
           alt="Expanded limitation"
-          className="max-h-[88vh] max-w-[94vw] rounded-2xl border border-[var(--fl-line)] bg-black object-contain shadow-2xl"
+          className="max-h-[88vh] max-w-[94vw] rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] object-contain shadow-2xl"
           onClick={(event) => event.stopPropagation()}
         />
       </div>

@@ -159,12 +159,12 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
         </p>
 
         {createdKey && (
-          <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4">
+          <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
               New key — copy it now, it won't be shown again
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <code className="break-all rounded-lg bg-black/50 px-3 py-2 font-mono text-xs text-emerald-200">
+              <code className="break-all rounded-lg bg-[var(--fl-surface-2)] px-3 py-2 font-mono text-xs text-emerald-200">
                 {createdKey}
               </code>
               <button
@@ -191,7 +191,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
             value={newKeyName}
             onChange={(e) => setNewKeyName(e.target.value)}
             placeholder="Key name (e.g. Zapier)"
-            className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-black px-3 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
+            className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
           />
           <button
             type="button"
@@ -211,7 +211,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
           {activeKeys.map((k) => (
             <div
               key={k.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-raised)] bg-black/30 px-3 py-2"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] px-3 py-2"
             >
               <div className="min-w-0">
                 <p className="font-bold text-[var(--fl-text)]">{k.name}</p>
@@ -256,7 +256,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
             value={newUrl}
             onChange={(e) => setNewUrl(e.target.value)}
             placeholder="https://your-app.com/webhooks/flow"
-            className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-black px-3 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-indigo-400"
+            className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-indigo-400"
           />
           <button
             type="button"
@@ -296,7 +296,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
         <div className="mt-4 space-y-2">
           {endpoints.length === 0 && <p className="text-sm text-[var(--fl-faint)]">No endpoints yet.</p>}
           {endpoints.map((e) => (
-            <div key={e.id} className="rounded-xl border border-[var(--fl-raised)] bg-black/30 p-3">
+            <div key={e.id} className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="min-w-0 break-all font-mono text-sm text-[var(--fl-text)]">{e.url}</p>
                 <button
@@ -313,7 +313,7 @@ export default function DeveloperSettings({ siteUrl }: { siteUrl: string }) {
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-semibold uppercase text-[var(--fl-faint)]">Secret</span>
-                <code className="break-all rounded bg-black/50 px-2 py-1 font-mono text-[11px] text-[var(--fl-muted)]">
+                <code className="break-all rounded bg-[var(--fl-surface-2)] px-2 py-1 font-mono text-[11px] text-[var(--fl-muted)]">
                   {e.secret}
                 </code>
                 <button

@@ -110,7 +110,7 @@ export default function FieldFindingLinker({
           onClick={openLinker}
           aria-label="Link findings"
           title="Link related findings"
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/50 bg-black/70 text-lg text-indigo-200 shadow-2xl backdrop-blur transition active:scale-95 [touch-action:manipulation]"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-indigo-400/50 bg-[var(--fl-surface-2)] text-lg text-indigo-200 shadow-2xl backdrop-blur transition active:scale-95 [touch-action:manipulation]"
         >
           🔗
         </button>

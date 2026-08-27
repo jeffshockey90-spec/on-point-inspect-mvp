@@ -321,7 +321,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
       </h2>
 
       {(imageUrl || videoUrl) && (
-        <div className="mb-4 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black">
+        <div className="mb-4 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
           {isVideo && videoUrl ? (
             <video
               src={videoUrl}
@@ -329,7 +329,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
               controls
               playsInline
               preload="metadata"
-              className="max-h-72 w-full bg-black object-contain"
+              className="max-h-72 w-full bg-[var(--fl-surface-2)] object-contain"
             />
           ) : (
             <a href={imageUrl} target="_blank" rel="noreferrer" data-fast-click="true" className="block transition duration-150 active:scale-[0.99]">
@@ -338,7 +338,7 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
                 alt={firstKnown(equipment.equipmentType, equipment.equipment_type) || "Equipment"}
                 loading="lazy"
                 decoding="async"
-                className="max-h-72 w-full bg-black object-contain"
+                className="max-h-72 w-full bg-[var(--fl-surface-2)] object-contain"
               />
             </a>
           )}

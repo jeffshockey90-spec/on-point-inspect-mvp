@@ -182,7 +182,7 @@ export default function OwnerSuggestions() {
           </div>
         </section>
 
-        {error && <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm font-bold text-red-300">{error}</div>}
+        {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">{error}</div>}
 
         <div className="flex flex-wrap gap-2">
           {["all", ...STATUS_OPTIONS].map((status) => (
@@ -233,7 +233,7 @@ export default function OwnerSuggestions() {
                     }
                     rows={2}
                     placeholder="Optional note the inspector will see on their suggestion..."
-                    className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                    className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
                   />
                   {getNoteDraft(request) !== (request.owner_note ?? "") && (
                     <button
@@ -294,7 +294,7 @@ export default function OwnerSuggestions() {
             </div>
 
             {publishError && (
-              <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/20 p-2 text-xs font-bold text-red-300">
+              <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-red-300">
                 {publishError}
               </p>
             )}
@@ -303,14 +303,14 @@ export default function OwnerSuggestions() {
               value={publishTitle}
               onChange={(e) => setPublishTitle(e.target.value)}
               placeholder="Feature title, e.g. Custom section fields"
-              className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+              className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
 
             <textarea
               value={publishBody}
               onChange={(e) => setPublishBody(e.target.value)}
               rows={4}
-              className="mt-3 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+              className="mt-3 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
 
             <label className="mt-3 flex items-center gap-2 text-sm font-bold text-[var(--fl-muted)]">
@@ -318,7 +318,7 @@ export default function OwnerSuggestions() {
                 type="checkbox"
                 checked={publishCredit}
                 onChange={(e) => setPublishCredit(e.target.checked)}
-                className="h-4 w-4 rounded border-[var(--fl-line)] bg-black"
+                className="h-4 w-4 rounded border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
               />
               Credit {publishTarget.user_name || "this inspector"}
             </label>

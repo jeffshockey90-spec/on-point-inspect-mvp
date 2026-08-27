@@ -672,7 +672,7 @@ export default function RepairResponseForm({
                             className={`relative flex min-h-[76px] w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition active:scale-[0.99] ${
                               checked
                                 ? "border-cyan-300 bg-cyan-500/15 text-cyan-100 shadow-[0_0_22px_rgba(6,182,212,0.16)]"
-                                : "border-[var(--fl-line)] bg-[#071224] text-[var(--fl-muted)] hover:border-cyan-500"
+                                : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)] hover:border-cyan-500"
                             }`}
                           >
                             <span className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-semibold ${
@@ -715,7 +715,7 @@ export default function RepairResponseForm({
                         onChange={(event) => setCustomAddendumEmail(event.target.value)}
                         placeholder="Email address..."
                         type="email"
-                        className="h-[48px] w-full rounded-xl border border-[var(--fl-line)] bg-[#071224] px-3 text-sm font-bold text-[var(--fl-text)] outline-none transition focus:border-cyan-400"
+                        className="h-[48px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 text-sm font-bold text-[var(--fl-text)] outline-none transition focus:border-cyan-400"
                       />
                       <button
                         type="button"
@@ -742,7 +742,7 @@ export default function RepairResponseForm({
                           setCustomAddendumEmail("");
                           setShowCustomAddendumEmail(false);
                         }}
-                        className="min-h-[48px] rounded-xl border border-[var(--fl-line)] bg-[#071224] px-5 py-3 text-sm font-semibold text-[var(--fl-muted)] transition hover:bg-[var(--fl-raised)] active:scale-[0.98]"
+                        className="min-h-[48px] rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-5 py-3 text-sm font-semibold text-[var(--fl-muted)] transition hover:bg-[var(--fl-raised)] active:scale-[0.98]"
                       >
                         Cancel
                       </button>
@@ -928,7 +928,7 @@ export default function RepairResponseForm({
                 }}
                 disabled={locked}
                 placeholder="Buyer name"
-                className="h-[52px] w-full rounded-xl border border-[var(--fl-line)] bg-[#071224] px-3 font-bold text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[52px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 font-bold text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
             <label className="mt-4 block">
@@ -940,7 +940,7 @@ export default function RepairResponseForm({
                 onChange={(event) => setBuyerSignature(event.target.value)}
                 disabled={locked}
                 placeholder="Type full legal signature"
-                className="h-[64px] w-full rounded-xl border border-[var(--fl-line)] bg-[#071224] px-4 text-2xl font-semibold italic text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[64px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 text-2xl font-semibold italic text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
             {buyerSignature.trim() ? (
@@ -968,7 +968,7 @@ export default function RepairResponseForm({
                 }}
                 disabled={locked}
                 placeholder="Seller name"
-                className="h-[52px] w-full rounded-xl border border-[var(--fl-line)] bg-[#071224] px-3 font-bold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[52px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 font-bold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
             <label className="mt-4 block">
@@ -980,13 +980,13 @@ export default function RepairResponseForm({
                 onChange={(event) => setSellerSignature(event.target.value)}
                 disabled={locked}
                 placeholder="Type full legal signature"
-                className="h-[64px] w-full rounded-xl border border-teal-500/60 bg-[#071224] px-4 text-2xl font-semibold italic text-[var(--fl-text)] outline-none focus:border-teal-300 disabled:cursor-not-allowed disabled:opacity-70"
+                className="h-[64px] w-full rounded-xl border border-teal-500/60 bg-[var(--fl-surface-2)] px-4 text-2xl font-semibold italic text-[var(--fl-text)] outline-none focus:border-teal-300 disabled:cursor-not-allowed disabled:opacity-70"
               />
             </label>
             <p className={`mt-3 rounded-xl border px-3 py-2 text-xs leading-5 ${
               sellerSignedAt
                 ? "border-emerald-500/40 bg-emerald-500/10 font-bold text-emerald-100"
-                : "border-[var(--fl-line)] bg-[#071224] text-[var(--fl-muted)]"
+                : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
             }`}>
               {sellerSignedAt
                 ? `Seller signed electronically on ${formatSignedDate(sellerSignedAt)}.`

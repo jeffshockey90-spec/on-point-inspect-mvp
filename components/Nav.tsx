@@ -644,7 +644,7 @@ export default function Navbar() {
             onClick={handleLogout}
             disabled={loggingOut}
             aria-busy={loggingOut}
-            className="flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center text-red-300 transition active:scale-[0.98] hover:bg-red-950/30 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+            className="flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center text-red-300 transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
           >
             <span className="flex w-full items-center justify-center text-xl leading-none">
               {loggingOut ? (

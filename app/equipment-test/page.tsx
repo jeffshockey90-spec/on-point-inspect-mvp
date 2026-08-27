@@ -306,7 +306,7 @@ function EquipmentTestContent() {
         )}
 
         {result?.error && (
-          <pre className="overflow-auto rounded-2xl bg-red-950 p-4 text-sm text-red-100">
+          <pre className="overflow-auto rounded-2xl bg-red-500/10 p-4 text-sm text-red-100">
             {JSON.stringify(result, null, 2)}
           </pre>
         )}

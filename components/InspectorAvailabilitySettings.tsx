@@ -314,7 +314,7 @@ export default function InspectorAvailabilitySettings() {
   }
 
   return (
-    <section className="mb-6 rounded-2xl border border-teal-500/30 bg-teal-950/10 p-5 sm:p-6">
+    <section className="mb-6 rounded-2xl border border-teal-500/30 bg-teal-500/10 p-5 sm:p-6">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
           Public Scheduling
@@ -332,7 +332,7 @@ export default function InspectorAvailabilitySettings() {
       </div>
 
       {loading ? (
-        <div className="mt-5 rounded-2xl border border-zinc-800 bg-black/30 p-5">
+        <div className="mt-5 rounded-2xl border border-zinc-800 bg-[var(--fl-surface-2)] p-5">
           <p className="text-sm font-bold text-zinc-400">
             Loading availability…
           </p>
@@ -340,7 +340,7 @@ export default function InspectorAvailabilitySettings() {
       ) : (
         <>
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5">
+            <div className="rounded-2xl border border-zinc-800 bg-[var(--fl-surface-2)] p-4 sm:p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -363,7 +363,7 @@ export default function InspectorAvailabilitySettings() {
                   className={`relative h-8 w-14 shrink-0 rounded-full border transition ${
                     bookingEnabled
                       ? "border-teal-300 bg-teal-400"
-                      : "border-zinc-700 bg-zinc-900"
+                      : "border-zinc-700 bg-[var(--fl-surface)]"
                   }`}
                 >
                   <span
@@ -388,7 +388,7 @@ export default function InspectorAvailabilitySettings() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5">
+            <div className="rounded-2xl border border-zinc-800 bg-[var(--fl-surface-2)] p-4 sm:p-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Available Days
               </p>
@@ -410,7 +410,7 @@ export default function InspectorAvailabilitySettings() {
                       className={`min-w-12 rounded-full border px-3 py-2 text-xs font-semibold transition ${
                         selected
                           ? "border-teal-300 bg-teal-400 text-black"
-                          : "border-zinc-700 bg-zinc-950 text-zinc-300 hover:border-teal-500/60"
+                          : "border-zinc-700 bg-[var(--fl-ground)] text-zinc-300 hover:border-teal-500/60"
                       }`}
                     >
                       {day.label}
@@ -420,7 +420,7 @@ export default function InspectorAvailabilitySettings() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5 lg:col-span-2">
+            <div className="rounded-2xl border border-zinc-800 bg-[var(--fl-surface-2)] p-4 sm:p-5 lg:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Default Times
               </p>
@@ -443,7 +443,7 @@ export default function InspectorAvailabilitySettings() {
                       addTime();
                     }
                   }}
-                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-[var(--fl-text)] outline-none transition focus:border-teal-400 sm:max-w-xs"
+                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none transition focus:border-teal-400 sm:max-w-xs"
                 />
 
                 <button
@@ -481,7 +481,7 @@ export default function InspectorAvailabilitySettings() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-800 bg-black/30 p-4 sm:p-5 lg:col-span-2">
+            <div className="rounded-2xl border border-zinc-800 bg-[var(--fl-surface-2)] p-4 sm:p-5 lg:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Blocked Dates
               </p>
@@ -505,7 +505,7 @@ export default function InspectorAvailabilitySettings() {
                       addBlockedDate();
                     }
                   }}
-                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-black px-3 py-2 text-sm text-[var(--fl-text)] outline-none transition focus:border-teal-400 sm:max-w-xs"
+                  className="min-h-12 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none transition focus:border-teal-400 sm:max-w-xs"
                 />
 
                 <button
@@ -522,7 +522,7 @@ export default function InspectorAvailabilitySettings() {
                   blockedDates.map((date) => (
                     <div
                       key={date}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/80 px-4 py-3"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-[var(--fl-ground)] px-4 py-3"
                     >
                       <div className="min-w-0">
                         <p className="font-semibold text-[var(--fl-text)]">

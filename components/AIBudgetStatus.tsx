@@ -81,10 +81,10 @@ export default function AIBudgetStatus() {
   const tone = !status
     ? "border-[var(--fl-line)] bg-[var(--fl-surface)]"
     : status.low
-      ? "border-red-500/50 bg-red-950/20"
+      ? "border-red-500/50 bg-red-500/10"
       : status.remainingUsd < status.thresholdUsd * 2
-        ? "border-yellow-500/50 bg-yellow-950/20"
-        : "border-teal-500/40 bg-teal-950/20";
+        ? "border-yellow-500/50 bg-yellow-500/10"
+        : "border-teal-500/40 bg-teal-500/10";
 
   return (
     <section className={`rounded-2xl border p-6 shadow-xl ${tone}`}>
@@ -122,7 +122,7 @@ export default function AIBudgetStatus() {
             setEditing((current) => !current);
             setError("");
           }}
-          className="rounded-xl border border-[var(--fl-faint)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-slate-700/30"
+          className="rounded-xl border border-[var(--fl-faint)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)]"
         >
           {editing ? "Cancel" : "Update Balance"}
         </button>
@@ -141,7 +141,7 @@ export default function AIBudgetStatus() {
               value={balanceInput}
               onChange={(event) => setBalanceInput(event.target.value)}
               placeholder="e.g. 25.00"
-              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
+              className="mt-1 w-full rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
             />
           </label>
 
@@ -155,7 +155,7 @@ export default function AIBudgetStatus() {
               step="0.01"
               value={thresholdInput}
               onChange={(event) => setThresholdInput(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
+              className="mt-1 w-full rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
             />
           </label>
 
@@ -171,7 +171,7 @@ export default function AIBudgetStatus() {
       )}
 
       {error && !loading && (
-        <p className="mt-4 rounded-lg border border-red-500/50 bg-red-950/60 px-3 py-2 text-sm text-red-200">
+        <p className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           {error}
         </p>
       )}

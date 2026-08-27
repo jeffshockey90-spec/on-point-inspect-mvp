@@ -646,7 +646,7 @@ function EditableFinding({
         </div>
 
         {movePanelOpen && (
-          <div className="w-full max-w-full rounded-2xl border border-purple-500/60 bg-purple-950/20 p-3 shadow-xl sm:p-4">
+          <div className="w-full max-w-full rounded-2xl border border-purple-500/60 bg-purple-500/10 p-3 shadow-xl sm:p-4">
             <div className="mb-3">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-300">
                 Move Finding
@@ -704,7 +704,7 @@ function EditableFinding({
   }
 
   return (
-    <div className="mt-3 w-full max-w-full space-y-3 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#111827] p-3 print:hidden sm:p-5">
+    <div className="mt-3 w-full max-w-full space-y-3 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 print:hidden sm:p-5">
       <InlineStatusMessage type={messageType} message={message} />
       <Input label="Title" value={title} onChange={setTitle} disabled={saving} />
 
@@ -755,7 +755,7 @@ function EditableFinding({
         disabled={saving}
       />
 
-      <div className="sticky bottom-2 z-30 grid w-full grid-cols-2 gap-2 rounded-2xl border border-[var(--fl-line)] bg-[#111827]/95 p-2 shadow-2xl backdrop-blur sm:static sm:flex sm:flex-row sm:flex-wrap sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+      <div className="sticky bottom-2 z-30 grid w-full grid-cols-2 gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-2 shadow-2xl backdrop-blur sm:static sm:flex sm:flex-row sm:flex-wrap sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
         <button
           type="button"
           onClick={saveFinding}
@@ -795,8 +795,8 @@ function InlineStatusMessage({
     <div
       className={`rounded-xl border p-3 text-sm font-bold ${
         isSuccess
-          ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
-          : "border-red-500 bg-red-950/30 text-red-300"
+          ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
+          : "border-red-500 bg-red-500/10 text-red-300"
       }`}
     >
       {message}
@@ -825,7 +825,7 @@ function Input({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         placeholder={placeholder}
-        className="min-h-[46px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-black p-3 text-base font-bold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-[46px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-base font-bold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
@@ -851,7 +851,7 @@ function Select({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="min-h-[46px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-black p-3 text-base font-bold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="min-h-[46px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-base font-bold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {options.map((item) => (
           <option key={item} value={item}>
@@ -882,7 +882,7 @@ function Textarea({
         onChange={(e) => onChange(e.target.value)}
         rows={4}
         disabled={disabled}
-        className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-black p-3 text-base font-bold leading-7 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-base font-bold leading-7 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );

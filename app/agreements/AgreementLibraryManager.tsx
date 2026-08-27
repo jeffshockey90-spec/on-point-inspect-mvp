@@ -712,7 +712,7 @@ export default function AgreementLibraryManager() {
                   <button
                     type="button"
                     onClick={() => exportTemplate(template)}
-                    className="rounded-lg border border-[var(--fl-faint)] px-3 py-2 text-xs font-bold text-[var(--fl-muted)] hover:bg-slate-700"
+                    className="rounded-lg border border-[var(--fl-faint)] px-3 py-2 text-xs font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
                   >
                     Export
                   </button>
@@ -749,7 +749,7 @@ export default function AgreementLibraryManager() {
               type="button"
               onClick={() => deleteTemplate(selected)}
               disabled={deleting}
-              className="rounded-xl border border-red-500 bg-red-950/30 px-4 py-2 text-sm font-bold text-red-300 hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-red-500 bg-red-500/10 px-4 py-2 text-sm font-bold text-red-300 hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               {deleting ? "Deleting..." : "🗑 Delete Agreement"}
             </button>
@@ -840,7 +840,7 @@ export default function AgreementLibraryManager() {
           </label>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-teal-700 bg-teal-950/20 p-4">
+        <div className="mt-5 rounded-2xl border border-teal-700 bg-teal-500/10 p-4">
           <h3 className="text-lg font-extrabold text-[var(--fl-accent-text)]">Auto-Fill Placeholders</h3>
           <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
             Click Select, then click inside the agreement body where you want
@@ -848,7 +848,7 @@ export default function AgreementLibraryManager() {
           </p>
 
           {selectedPlaceholder && (
-            <div className="mt-3 rounded-xl border border-yellow-500 bg-yellow-950/20 p-3 text-sm text-yellow-200">
+            <div className="mt-3 rounded-xl border border-yellow-500 bg-yellow-500/10 p-3 text-sm text-yellow-200">
               Selected: <span className="break-all font-mono font-bold">{selectedPlaceholder}</span>. Now click inside the agreement body.
             </div>
           )}
@@ -859,7 +859,7 @@ export default function AgreementLibraryManager() {
                 key={item}
                 className={`min-w-0 rounded-xl border p-2 ${
                   selectedPlaceholder === item
-                    ? "border-yellow-400 bg-yellow-950/20"
+                    ? "border-yellow-400 bg-yellow-500/10"
                     : "border-[var(--fl-line)] bg-[var(--fl-ground)]"
                 }`}
               >

@@ -202,7 +202,7 @@ export default function SupportPage() {
                     const isOwner = item.sender_role === "owner";
                     return (
                       <div key={item.id} className={`flex ${isOwner ? "justify-start" : "justify-end"}`}>
-                        <div className={`max-w-[85%] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-950/20" : "border-blue-500/30 bg-blue-950/20"}`}>
+                        <div className={`max-w-[85%] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-500/10" : "border-blue-500/30 bg-blue-500/10"}`}>
                           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                             {isOwner ? "Owner Reply" : "You"} · {formatDate(item.created_at)}
                           </p>
@@ -214,7 +214,7 @@ export default function SupportPage() {
                 )}
               </div>
 
-              {error && <p className="mt-4 rounded-xl border border-red-500/30 bg-red-950/20 p-3 text-sm font-bold text-red-300">{error}</p>}
+              {error && <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-red-300">{error}</p>}
 
               <div className="mt-4 space-y-3">
                 <textarea
@@ -222,7 +222,7 @@ export default function SupportPage() {
                   onChange={(e) => setMessage(e.target.value)}
                   rows={4}
                   placeholder="Type your message to Jeff..."
-                  className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
                 <button
                   onClick={sendMessage}
@@ -244,13 +244,13 @@ export default function SupportPage() {
           </p>
 
           {suggestionSent && (
-            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3 text-sm font-bold text-emerald-300">
+            <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300">
               Sent! Jeff was notified right away.
             </p>
           )}
 
           {suggestionError && (
-            <p className="mt-4 rounded-xl border border-red-500/30 bg-red-950/20 p-3 text-sm font-bold text-red-300">
+            <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-red-300">
               {suggestionError}
             </p>
           )}
@@ -261,7 +261,7 @@ export default function SupportPage() {
               onChange={(e) => setSuggestion(e.target.value)}
               rows={4}
               placeholder="What feature would make FLOW better for you? Or what's broken?"
-              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <button
               onClick={sendSuggestion}
@@ -284,7 +284,7 @@ export default function SupportPage() {
                     </span>
                   </div>
                   {request.owner_note && (
-                    <div className="mt-3 rounded-lg border border-teal-500/30 bg-teal-950/20 p-3">
+                    <div className="mt-3 rounded-lg border border-teal-500/30 bg-teal-500/10 p-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">Reply from Jeff</p>
                       <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]">{request.owner_note}</p>
                     </div>

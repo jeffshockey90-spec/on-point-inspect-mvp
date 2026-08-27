@@ -269,7 +269,7 @@ export default function EmailsList({ logs }: { logs: EmailLog[] }) {
                           Emails are saved in full going forward. Older sends only kept a summary:
                         </p>
                         {log.message && (
-                          <p className="mt-2 whitespace-pre-wrap rounded bg-black/30 p-3 text-[var(--fl-muted)]">
+                          <p className="mt-2 whitespace-pre-wrap rounded bg-[var(--fl-surface-2)] p-3 text-[var(--fl-muted)]">
                             {log.message}
                           </p>
                         )}

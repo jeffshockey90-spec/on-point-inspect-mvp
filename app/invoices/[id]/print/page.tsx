@@ -192,7 +192,7 @@ export default async function InvoicePrintPage({
 
         <section className="flex flex-wrap items-start justify-between gap-8 border-b-4 border-teal-500 pb-8">
           <div className="flex items-center gap-5">
-            <div className="relative h-20 w-20 overflow-hidden rounded-full border border-teal-500 bg-slate-950">
+            <div className="relative h-20 w-20 overflow-hidden rounded-full border border-teal-500 bg-[var(--fl-ground)]">
               {branding.logoUrl ? (
                 <img
                   src={branding.logoUrl}
@@ -271,7 +271,7 @@ export default async function InvoicePrintPage({
 
         <section className="mt-8 overflow-hidden rounded-2xl border border-slate-200">
           <table className="w-full border-collapse text-left">
-            <thead className="bg-slate-950 text-[var(--fl-text)]">
+            <thead className="bg-[var(--fl-ground)] text-[var(--fl-text)]">
               <tr>
                 <th className="px-5 py-4 text-xs font-black uppercase tracking-wide">
                   Description

@@ -408,9 +408,9 @@ export default function ScheduleCalendar({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 p-3 sm:p-4">
+    <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-[var(--fl-surface)] p-3 sm:p-4">
       <div className="mb-4 grid gap-4 lg:grid-cols-[1.1fr_2fr]">
-        <div className="rounded-2xl border border-teal-400/20 bg-black/30 p-4">
+        <div className="rounded-2xl border border-teal-400/20 bg-[var(--fl-surface-2)] p-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-[var(--fl-text)]">Today</h2>
             <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-3 py-1 text-xs font-bold text-teal-100">
@@ -442,7 +442,7 @@ export default function ScheduleCalendar({
                       time: props.time,
                     });
                   }}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-4 text-left transition hover:border-teal-400/40 hover:bg-zinc-800 active:scale-[0.99]"
+                  className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-ground)] p-4 text-left transition hover:border-teal-400/40 hover:bg-[var(--fl-raised)] active:scale-[0.99]"
                 >
                   <p className="text-sm font-semibold text-[var(--fl-accent-text)]">
                     {event.extendedProps.displayTime}
@@ -614,7 +614,7 @@ export default function ScheduleCalendar({
 
       {selected ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center">
-          <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-zinc-950 p-5 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-[var(--fl-ground)] p-5 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-[var(--fl-text)]">
@@ -631,7 +631,7 @@ export default function ScheduleCalendar({
                   setSelected(null);
                   setMessage("");
                 }}
-                className="rounded-xl border border-zinc-700 px-3 py-2 text-sm font-bold text-zinc-300 hover:bg-zinc-800"
+                className="rounded-xl border border-zinc-700 px-3 py-2 text-sm font-bold text-zinc-300 hover:bg-[var(--fl-raised)]"
               >
                 Close
               </button>
@@ -651,7 +651,7 @@ export default function ScheduleCalendar({
                       date: event.target.value,
                     })
                   }
-                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
@@ -668,7 +668,7 @@ export default function ScheduleCalendar({
                       time: event.target.value,
                     })
                   }
-                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
             </div>
@@ -685,7 +685,7 @@ export default function ScheduleCalendar({
                     status: event.target.value,
                   })
                 }
-                className="mt-2 w-full rounded-xl border border-zinc-700 bg-black px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                className="mt-2 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
               >
                 <option>Scheduled</option>
                 <option>Pending</option>
@@ -695,7 +695,7 @@ export default function ScheduleCalendar({
               </select>
             </label>
 
-            <div className="mt-4 rounded-xl border border-zinc-800 bg-black/40 p-4">
+            <div className="mt-4 rounded-xl border border-zinc-800 bg-[var(--fl-surface-2)] p-4">
               <p className="text-sm font-bold text-[var(--fl-text)]">
                 {selected.client || "Client not entered"}
               </p>
@@ -708,7 +708,7 @@ export default function ScheduleCalendar({
             </div>
 
             {message ? (
-              <p className="mt-4 rounded-xl border border-zinc-700 bg-black/40 px-3 py-2 text-sm text-zinc-200">
+              <p className="mt-4 rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-zinc-200">
                 {message}
               </p>
             ) : null}

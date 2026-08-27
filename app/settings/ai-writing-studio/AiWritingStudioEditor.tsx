@@ -224,7 +224,7 @@ export default function AiWritingStudioEditor() {
               return (
                 <div
                   key={sev}
-                  className="rounded-xl border border-[var(--fl-raised)] bg-[#070f1e] p-4"
+                  className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <span className="text-sm font-semibold text-[var(--fl-text)]">{sev}</span>
@@ -310,7 +310,7 @@ export default function AiWritingStudioEditor() {
 
       {/* Right: live preview */}
       <div className="lg:sticky lg:top-6 lg:self-start">
-        <section className="rounded-2xl border border-teal-500/30 bg-[#071224] p-5">
+        <section className="rounded-2xl border border-teal-500/30 bg-[var(--fl-surface-2)] p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-[var(--fl-accent-text)]">Preview</h2>
             <select

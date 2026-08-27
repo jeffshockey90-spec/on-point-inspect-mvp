@@ -218,7 +218,7 @@ export default function CompanyImageUploader({
         )}
 
         {url && imageFailed && (
-          <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-red-500/40 bg-red-950/20 p-3 text-center text-xs font-bold text-red-200">
+          <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-red-500/40 bg-red-500/10 p-3 text-center text-xs font-bold text-red-200">
             Saved, preview unavailable
           </div>
         )}
@@ -261,10 +261,10 @@ export default function CompanyImageUploader({
         <p
           className={`mt-3 rounded-xl border px-4 py-3 text-xs font-bold ${
             messageType === "success"
-              ? "border-emerald-500/50 bg-emerald-950/30 text-emerald-200"
+              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200"
               : messageType === "info"
-                ? "border-sky-500/50 bg-sky-950/30 text-sky-200"
-                : "border-red-500/50 bg-red-950/30 text-red-200"
+                ? "border-sky-500/50 bg-sky-500/10 text-sky-200"
+                : "border-red-500/50 bg-red-500/10 text-red-200"
           }`}
         >
           {message}

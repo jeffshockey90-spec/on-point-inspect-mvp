@@ -126,14 +126,14 @@ export default function SendRealtorReportDropdown({
 
   if (!inspections.length) {
     return (
-      <div className="rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-5 text-[var(--fl-muted)]">
+      <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 text-[var(--fl-muted)]">
         No inspections are linked to this realtor yet.
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-5">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5">
       <label className="block">
         <span className="mb-2 block text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
           Select Realtor Inspection
@@ -186,10 +186,10 @@ export default function SendRealtorReportDropdown({
         <div
           className={`mt-4 rounded-xl border px-4 py-3 text-sm font-bold whitespace-pre-line ${
             messageType === "success"
-              ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
+              ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
               : messageType === "warning"
-                ? "border-yellow-500 bg-yellow-950/30 text-yellow-300"
-                : "border-red-500 bg-red-950/30 text-red-300"
+                ? "border-yellow-500 bg-yellow-500/10 text-yellow-300"
+                : "border-red-500 bg-red-500/10 text-red-300"
           }`}
         >
           {message}

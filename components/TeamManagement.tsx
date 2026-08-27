@@ -107,7 +107,7 @@ export default function TeamManagement() {
       </p>
 
       {error && (
-        <p className="mt-4 rounded-xl border border-red-500/30 bg-red-950/20 p-3 text-sm font-bold text-red-300">
+        <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-red-300">
           {error}
         </p>
       )}
@@ -117,12 +117,12 @@ export default function TeamManagement() {
           <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Invite an Inspector</h3>
 
           {inviteError && (
-            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/20 p-2 text-xs font-bold text-red-300">
+            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-red-300">
               {inviteError}
             </p>
           )}
           {inviteSuccess && (
-            <p className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-950/20 p-2 text-xs font-bold text-emerald-300">
+            <p className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-xs font-bold text-emerald-300">
               {inviteSuccess}
             </p>
           )}
@@ -132,14 +132,14 @@ export default function TeamManagement() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Full name"
-              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email address"
               type="email"
-              className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+              className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
             />
           </div>
 

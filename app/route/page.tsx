@@ -168,11 +168,11 @@ export default async function RoutePage({
         </section>
 
         <section className="grid gap-5 sm:grid-cols-2">
-          <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6">
+          <div className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Stops</p>
             <p className="mt-2 text-4xl font-semibold text-[var(--fl-accent-text)]">{ordered.length}</p>
           </div>
-          <div className="rounded-2xl border border-blue-500/40 bg-blue-950/20 p-6">
+          <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 p-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Est. Drive</p>
             <p className="mt-2 text-4xl font-semibold text-blue-300">{totalMiles.toFixed(0)} mi</p>
             <p className="mt-1 text-xs text-[var(--fl-faint)]">Straight-line estimate.</p>
@@ -204,7 +204,7 @@ export default async function RoutePage({
           ) : (
             <ol className="mt-5 space-y-3">
               {ordered.map((s, i) => (
-                <li key={s.id} className="flex items-start gap-4 rounded-xl border border-[var(--fl-line)] bg-black/30 p-4">
+                <li key={s.id} className="flex items-start gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500 text-sm font-semibold text-slate-950">
                     {i + 1}
                   </span>

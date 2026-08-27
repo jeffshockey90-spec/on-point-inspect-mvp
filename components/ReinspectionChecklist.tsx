@@ -55,7 +55,7 @@ export default function ReinspectionChecklist({ inspectionId }: { inspectionId: 
   };
 
   return (
-    <section className="rounded-2xl border border-amber-500/40 bg-amber-950/15 p-5 shadow-xl">
+    <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5 shadow-xl">
       <div className="flex items-center gap-3">
         <RotateCcw className="h-6 w-6 text-amber-300" />
         <div>
@@ -77,7 +77,7 @@ export default function ReinspectionChecklist({ inspectionId }: { inspectionId: 
           {findings.map((f) => (
             <div
               key={f.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-black/30 p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3"
             >
               <div className="min-w-0">
                 <p className="font-bold text-[var(--fl-text)]">{f.title || "Finding"}</p>

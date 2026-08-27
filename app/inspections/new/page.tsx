@@ -1350,7 +1350,7 @@ function NewInspectionPageContent() {
 
         <section className="grid gap-5 lg:grid-cols-2">
           <Card title="Client Info">
-            <div className="rounded-xl border border-zinc-800 bg-black/20 p-4">
+            <div className="rounded-xl border border-zinc-800 bg-[var(--fl-surface-2)] p-4">
               <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
                 Primary Client
               </p>
@@ -1447,7 +1447,7 @@ function NewInspectionPageContent() {
                 }}
                 onFocus={() => setShowRealtorMatches(true)}
                 placeholder="Start typing realtor name..."
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
+                className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
               />
 
               {showRealtorMatches && filteredRealtors.length > 0 && (
@@ -1499,7 +1499,7 @@ function NewInspectionPageContent() {
                 value={propertyAddress}
                 onChange={(e) => handleAddressInputChange(e.target.value)}
                 placeholder="Start typing property address..."
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
+                className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
               />
             </div>
 
@@ -1549,7 +1549,7 @@ function NewInspectionPageContent() {
             </button>
 
             {propertyLookupStatus && (
-              <p className="rounded-xl border border-zinc-800 bg-black/40 px-4 py-3 text-sm text-zinc-300">
+              <p className="rounded-xl border border-zinc-800 bg-[var(--fl-surface-2)] px-4 py-3 text-sm text-zinc-300">
                 {propertyLookupStatus}
               </p>
             )}
@@ -1561,7 +1561,7 @@ function NewInspectionPageContent() {
               className={`rounded-xl border p-4 transition ${
                 propertyPhotoDragging
                   ? "border-teal-400 bg-teal-500/10"
-                  : "border-zinc-800 bg-black/30"
+                  : "border-zinc-800 bg-[var(--fl-surface-2)]"
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1593,7 +1593,7 @@ function NewInspectionPageContent() {
               </div>
 
               {(propertyImagePreview || propertyImage) && !propertyImageLoadError ? (
-                <div className="mt-4 overflow-hidden rounded-xl border border-zinc-700 bg-black">
+                <div className="mt-4 overflow-hidden rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)]">
                   <img
                     src={propertyImagePreview || propertyImage}
                     alt="Property preview"
@@ -1607,7 +1607,7 @@ function NewInspectionPageContent() {
                   className={`mt-4 flex min-h-[190px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-5 text-center text-sm leading-6 transition ${
                     propertyPhotoDragging
                       ? "border-teal-400 bg-teal-500/10 text-teal-100"
-                      : "border-zinc-700 bg-black/40 text-zinc-400 hover:border-teal-500/50 hover:bg-teal-500/5"
+                      : "border-zinc-700 bg-[var(--fl-surface-2)] text-zinc-400 hover:border-teal-500/50 hover:bg-teal-500/5"
                   }`}
                 >
                   <span className="text-3xl">📷</span>
@@ -1671,7 +1671,7 @@ function NewInspectionPageContent() {
               {addonServices.map((addon) => (
                 <div
                   key={addon.id}
-                  className="rounded-xl border border-zinc-800 bg-[#020817]/60 p-3"
+                  className="rounded-xl border border-zinc-800 bg-[var(--fl-ground)] p-3"
                 >
                   <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
                     <div>
@@ -1793,7 +1793,7 @@ function NewInspectionPageContent() {
               <select
                 value={inspectionDate}
                 onChange={(e) => setInspectionDate(e.target.value)}
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
+                className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
               >
                 <option value="">Select Date</option>
 
@@ -1827,7 +1827,7 @@ function NewInspectionPageContent() {
               <select
                 value={inspectionTime}
                 onChange={(e) => setInspectionTime(e.target.value)}
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
+                className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
               >
                 <option value="">Select Time</option>
 
@@ -1846,7 +1846,7 @@ function NewInspectionPageContent() {
               <select
                 value={serviceMode}
                 onChange={(e) => setServiceMode(e.target.value as ServiceMode)}
-                className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
+                className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
               >
                 {serviceTypeOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -1966,7 +1966,7 @@ function NewInspectionPageContent() {
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
             placeholder="Notes"
-            className="mt-4 w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)]"
+            className="mt-4 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
           />
         </section>
 
@@ -2013,7 +2013,7 @@ function NewInspectionPageContent() {
               <button
                 type="button"
                 onClick={() => setShowBillingPopup(false)}
-                className="rounded-xl border border-zinc-700 px-4 py-3 font-semibold text-[var(--fl-text)] hover:bg-zinc-800"
+                className="rounded-xl border border-zinc-700 px-4 py-3 font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
               >
                 Close
               </button>
@@ -2094,7 +2094,7 @@ function Input({
           : "number"
       }
       min="0"
-      className={`w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-[var(--fl-text)] ${className}`}
+      className={`w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] ${className}`}
     />
   );
 }

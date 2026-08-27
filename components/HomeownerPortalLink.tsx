@@ -31,7 +31,7 @@ export default function HomeownerPortalLink({ token }: { token: string }) {
   }
 
   return (
-    <section className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-5">
+    <section className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-5">
       <div className="flex items-start gap-3">
         <Home className="mt-0.5 h-6 w-6 shrink-0 text-[var(--fl-accent-text)]" />
         <div className="min-w-0 flex-1">
@@ -46,7 +46,7 @@ export default function HomeownerPortalLink({ token }: { token: string }) {
               href={`/my-home/${token}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate rounded-lg border border-[var(--fl-line)] bg-black/40 px-3 py-2 text-xs text-[var(--fl-accent-text)] hover:border-teal-400"
+              className="truncate rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-xs text-[var(--fl-accent-text)] hover:border-teal-400"
             >
               {url}
             </a>

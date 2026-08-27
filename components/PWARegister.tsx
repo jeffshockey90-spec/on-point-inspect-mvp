@@ -103,7 +103,7 @@ export default function PWARegister() {
   if (!showInstallHelp) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-[9999] rounded-2xl border border-teal-500 bg-[#071224] p-4 text-[var(--fl-text)] shadow-2xl md:left-auto md:max-w-md">
+    <div className="fixed bottom-4 left-4 right-4 z-[9999] rounded-2xl border border-teal-500 bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)] shadow-2xl md:left-auto md:max-w-md">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">

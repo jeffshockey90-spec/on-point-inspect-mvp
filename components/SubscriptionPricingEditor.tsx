@@ -109,7 +109,7 @@ export default function SubscriptionPricingEditor() {
             setEditing((current) => !current);
             setError("");
           }}
-          className="rounded-xl border border-[var(--fl-faint)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-slate-700/30"
+          className="rounded-xl border border-[var(--fl-faint)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)]"
         >
           {editing ? "Cancel" : "Edit Pricing"}
         </button>
@@ -127,7 +127,7 @@ export default function SubscriptionPricingEditor() {
               step="0.01"
               value={standardInput}
               onChange={(event) => setStandardInput(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
+              className="mt-1 w-full rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
             />
           </label>
 
@@ -141,7 +141,7 @@ export default function SubscriptionPricingEditor() {
               step="0.01"
               value={foundingInput}
               onChange={(event) => setFoundingInput(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
+              className="mt-1 w-full rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-[var(--fl-text)] outline-none focus:border-cyan-400"
             />
           </label>
 
@@ -157,7 +157,7 @@ export default function SubscriptionPricingEditor() {
       )}
 
       {error && !loading && (
-        <p className="mt-4 rounded-lg border border-red-500/50 bg-red-950/60 px-3 py-2 text-sm text-red-200">
+        <p className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           {error}
         </p>
       )}

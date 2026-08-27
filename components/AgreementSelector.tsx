@@ -146,7 +146,7 @@ export default function AgreementSelector({
   }, [templates]);
 
   return (
-    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#071224] shadow-2xl shadow-black/20">
+    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] shadow-2xl shadow-black/20">
       <div className="border-b border-[var(--fl-raised)] bg-gradient-to-r from-[var(--fl-surface)] via-[#0b1628] to-[var(--fl-surface)] p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
@@ -180,7 +180,7 @@ export default function AgreementSelector({
               <div className="mt-3 space-y-2">
                 {selectedTemplates.length > 0 ? (
                   selectedTemplates.map((template) => (
-                    <div key={template.id} className="rounded-xl border border-[var(--fl-line)] bg-[#071224] px-4 py-3">
+                    <div key={template.id} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3">
                       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <p className="min-w-0 break-words text-sm font-semibold text-[var(--fl-text)]">{template.title}</p>
                         <div className="flex flex-wrap gap-2">
@@ -241,7 +241,7 @@ export default function AgreementSelector({
                         className={`block w-full min-w-0 cursor-pointer rounded-xl border p-4 transition ${
                           checked
                             ? "border-teal-400 bg-teal-500/10"
-                            : "border-[var(--fl-line)] bg-[#071224] hover:border-teal-500"
+                            : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-teal-500"
                         }`}
                       >
                         <div className="flex min-w-0 items-start gap-3">

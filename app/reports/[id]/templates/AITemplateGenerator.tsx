@@ -51,7 +51,7 @@ export default function AITemplateGenerator() {
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-teal-700 bg-[#071224] p-5">
+    <div className="mb-6 rounded-2xl border border-teal-700 bg-[var(--fl-surface-2)] p-5">
       <h3 className="mb-2 text-xl font-semibold text-[var(--fl-accent-text)]">
         AI Template Note
       </h3>

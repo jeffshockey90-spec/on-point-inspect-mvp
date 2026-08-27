@@ -1475,7 +1475,7 @@ function SectionInformationChecklist({
   const selectedCount = selections.filter((item) => item.value !== "__TEXT_VALUE__").length;
 
   return (
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224]">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -1520,8 +1520,8 @@ function SectionInformationChecklist({
         <div
           className={`border-t border-[var(--fl-line)] px-5 py-3 text-sm font-bold ${
             messageType === "success"
-              ? "bg-emerald-950/30 text-emerald-300"
-              : "bg-red-950/30 text-red-300"
+              ? "bg-emerald-500/10 text-emerald-300"
+              : "bg-red-500/10 text-red-300"
           }`}
         >
           {message}

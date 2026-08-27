@@ -74,7 +74,7 @@ const urgencyStyles: Record<
 > = {
   critical: {
     shell:
-      "border-red-400/70 bg-gradient-to-br from-red-500/22 via-slate-950 to-slate-950 text-red-50",
+      "border-red-400/70 bg-gradient-to-br from-red-500/22 via-slate-950 to-[var(--fl-ground)] text-red-50",
     icon: "border-red-300/70 bg-red-500/25 text-red-100",
     badge: "border-red-300/70 bg-red-500/25 text-red-100",
     label: "Action needed",
@@ -83,7 +83,7 @@ const urgencyStyles: Record<
   },
   warning: {
     shell:
-      "border-yellow-400/70 bg-gradient-to-br from-yellow-500/18 via-slate-950 to-slate-950 text-yellow-50",
+      "border-yellow-400/70 bg-gradient-to-br from-yellow-500/18 via-slate-950 to-[var(--fl-ground)] text-yellow-50",
     icon: "border-yellow-300/70 bg-yellow-500/25 text-yellow-100",
     badge: "border-yellow-300/70 bg-yellow-500/25 text-yellow-100",
     label: "Review",
@@ -92,7 +92,7 @@ const urgencyStyles: Record<
   },
   info: {
     shell:
-      "border-cyan-400/70 bg-gradient-to-br from-cyan-500/18 via-slate-950 to-slate-950 text-cyan-50",
+      "border-cyan-400/70 bg-gradient-to-br from-cyan-500/18 via-slate-950 to-[var(--fl-ground)] text-cyan-50",
     icon: "border-cyan-300/70 bg-cyan-500/25 text-cyan-100",
     badge: "border-cyan-300/70 bg-cyan-500/25 text-cyan-100",
     label: "Update",
@@ -101,7 +101,7 @@ const urgencyStyles: Record<
   },
   success: {
     shell:
-      "border-emerald-400/70 bg-gradient-to-br from-emerald-500/18 via-slate-950 to-slate-950 text-emerald-50",
+      "border-emerald-400/70 bg-gradient-to-br from-emerald-500/18 via-slate-950 to-[var(--fl-ground)] text-emerald-50",
     icon: "border-emerald-300/70 bg-emerald-500/25 text-emerald-100",
     badge: "border-emerald-300/70 bg-emerald-500/25 text-emerald-100",
     label: "Ready",
@@ -786,7 +786,7 @@ export default function InspectorToolsDrawer({
         const { toCanvas } = await import("html-to-image");
         const snap = await toCanvas(el, {
           pixelRatio: Math.min(2, window.devicePixelRatio || 1),
-          backgroundColor: "#0a0f1a",
+          backgroundColor: "var(--fl-surface-2)",
         });
         if (!cancelled) captureRef.current = snap;
       } catch {
@@ -832,7 +832,7 @@ export default function InspectorToolsDrawer({
           const { toCanvas } = await import("html-to-image");
           const snap = await toCanvas(el, {
             pixelRatio: Math.min(2, window.devicePixelRatio || 1),
-            backgroundColor: "#0a0f1a",
+            backgroundColor: "var(--fl-surface-2)",
           });
           if (!cancelled && !captureRef.current) captureRef.current = snap;
         }
@@ -1412,7 +1412,7 @@ export default function InspectorToolsDrawer({
           </div>
         </button>
 
-        <div className="flex gap-2 overflow-x-auto border-t border-[var(--fl-raised)] bg-black/10 p-3 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-6">
+        <div className="flex gap-2 overflow-x-auto border-t border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-6">
           {statusTiles.map((tile) => {
             const style = urgencyStyles[tile.urgency] || urgencyStyles.success;
             return (
@@ -1773,7 +1773,7 @@ export default function InspectorToolsDrawer({
                 {children}
               </div>
 
-              <aside className="hidden min-h-0 overflow-y-auto border-l border-[var(--fl-raised)] bg-[#08111f] p-4 xl:block">
+              <aside className="hidden min-h-0 overflow-y-auto border-l border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4 xl:block">
                 <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--fl-faint)]">
                     Activity Feed

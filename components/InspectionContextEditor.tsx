@@ -47,7 +47,7 @@ export default function InspectionContextEditor({
   }
 
   return (
-    <section className="rounded-2xl border border-indigo-500/40 bg-indigo-950/20 p-5">
+    <section className="rounded-2xl border border-indigo-500/40 bg-indigo-500/10 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-300">
@@ -81,7 +81,7 @@ export default function InspectionContextEditor({
             rows={4}
             maxLength={2000}
             placeholder="e.g. Home was vacant ~2 years; seller disclosed a prior roof leak in the northeast bedroom; utilities were on but water heater breaker was off at arrival."
-            className="w-full rounded-xl border border-[var(--fl-line)] bg-black/40 p-3 text-sm text-[var(--fl-text)] placeholder:text-[var(--fl-faint)] focus:border-indigo-400 focus:outline-none"
+            className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm text-[var(--fl-text)] placeholder:text-[var(--fl-faint)] focus:border-indigo-400 focus:outline-none"
           />
           <div className="flex items-center gap-3">
             <button
@@ -110,7 +110,7 @@ export default function InspectionContextEditor({
           {error && <p className="text-xs font-bold text-rose-400">{error}</p>}
         </div>
       ) : value.trim() ? (
-        <p className="mt-3 whitespace-pre-wrap rounded-xl border border-[var(--fl-raised)] bg-black/30 p-3 text-sm text-[var(--fl-text)]">
+        <p className="mt-3 whitespace-pre-wrap rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3 text-sm text-[var(--fl-text)]">
           {value}
         </p>
       ) : (

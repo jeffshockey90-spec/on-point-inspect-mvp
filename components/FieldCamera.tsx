@@ -778,7 +778,7 @@ export default function FieldCamera({
           className={`mt-3 flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition [touch-action:manipulation] ${
             muteAudio
               ? "border-red-400/60 bg-red-500/10 text-red-200"
-              : "border-[var(--fl-line)] bg-black/30 text-[var(--fl-text)]"
+              : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
           }`}
         >
           <span>{muteAudio ? "🔇 Video sound: Off" : "🎤 Video sound: On"}</span>
@@ -890,7 +890,7 @@ export default function FieldCamera({
       )}
 
       {focusMessage && (
-        <div className="pointer-events-none absolute left-1/2 top-[38%] z-20 -translate-x-1/2 rounded-full bg-black/75 px-4 py-2 text-xs font-semibold text-yellow-200 backdrop-blur">
+        <div className="pointer-events-none absolute left-1/2 top-[38%] z-20 -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)] px-4 py-2 text-xs font-semibold text-yellow-200 backdrop-blur">
           {focusMessage}
         </div>
       )}
@@ -902,12 +902,12 @@ export default function FieldCamera({
             if (!recording) setOpen(false);
           }}
           disabled={recording}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-black/65 text-2xl text-[var(--fl-text)] backdrop-blur disabled:opacity-40"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--fl-surface-2)] text-2xl text-[var(--fl-text)] backdrop-blur disabled:opacity-40"
         >
           ✕
         </button>
 
-        <div className="min-w-0 flex-1 rounded-2xl border border-white/15 bg-black/65 px-3 py-2 text-center backdrop-blur">
+        <div className="min-w-0 flex-1 rounded-2xl border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-center backdrop-blur">
           <p className="truncate text-sm font-semibold text-[var(--fl-text)]">
             {destinationLabel}
           </p>
@@ -926,7 +926,7 @@ export default function FieldCamera({
             type="button"
             onClick={toggleTorch}
             className={`flex h-12 w-12 items-center justify-center rounded-full text-xl backdrop-blur ${
-              torchOn ? "bg-yellow-300 text-black" : "bg-black/65 text-[var(--fl-text)]"
+              torchOn ? "bg-yellow-300 text-black" : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
             }`}
           >
             ⚡
@@ -941,7 +941,7 @@ export default function FieldCamera({
           className={`rounded-full px-3 py-2 text-xs font-semibold backdrop-blur ${
             focusLocked
               ? "bg-yellow-300 text-black"
-              : "bg-black/65 text-[var(--fl-text)]"
+              : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
           }`}
         >
           {focusLocked ? "🔒 FOCUS" : "🎯 FOCUS"}
@@ -951,7 +951,7 @@ export default function FieldCamera({
           type="button"
           onClick={toggleMacroMode}
           className={`rounded-full px-3 py-2 text-xs font-semibold backdrop-blur ${
-            macroMode ? "bg-cyan-300 text-black" : "bg-black/65 text-[var(--fl-text)]"
+            macroMode ? "bg-cyan-300 text-black" : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
           }`}
         >
           🔍 CLOSE-UP
@@ -963,7 +963,7 @@ export default function FieldCamera({
           className={`rounded-full px-3 py-2 text-xs font-semibold backdrop-blur ${
             autoSaveGallery
               ? "bg-emerald-300 text-black"
-              : "bg-black/65 text-[var(--fl-text)]"
+              : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
           }`}
         >
           {autoSaveGallery ? "✓ GALLERY" : "GALLERY OFF"}
@@ -984,7 +984,7 @@ export default function FieldCamera({
           />
         </div>
 
-        <div className="mx-auto mb-3 grid max-w-[260px] grid-cols-2 rounded-full border border-white/15 bg-black/70 p-1 backdrop-blur">
+        <div className="mx-auto mb-3 grid max-w-[260px] grid-cols-2 rounded-full border border-white/15 bg-[var(--fl-surface-2)] p-1 backdrop-blur">
           <button
             type="button"
             onClick={() => {
@@ -1013,13 +1013,13 @@ export default function FieldCamera({
         </div>
 
         {message && (
-          <div className="mx-auto mb-3 max-w-[680px] rounded-xl bg-black/70 px-4 py-2 text-center text-xs font-bold text-[var(--fl-text)] backdrop-blur">
+          <div className="mx-auto mb-3 max-w-[680px] rounded-xl bg-[var(--fl-surface-2)] px-4 py-2 text-center text-xs font-bold text-[var(--fl-text)] backdrop-blur">
             {message}
           </div>
         )}
 
         {cameraError && (
-          <div className="mx-auto mb-3 max-w-[680px] rounded-xl border border-red-400/60 bg-red-950/85 px-4 py-3 text-center text-sm font-bold text-red-100">
+          <div className="mx-auto mb-3 max-w-[680px] rounded-xl border border-red-400/60 bg-red-500/10 px-4 py-3 text-center text-sm font-bold text-red-100">
             {cameraError}
           </div>
         )}
@@ -1029,7 +1029,7 @@ export default function FieldCamera({
             type="button"
             onClick={toggleFacingCamera}
             disabled={recording}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-black/65 text-2xl text-[var(--fl-text)] backdrop-blur disabled:opacity-40"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--fl-surface-2)] text-2xl text-[var(--fl-text)] backdrop-blur disabled:opacity-40"
           >
             🔄
           </button>
@@ -1066,7 +1066,7 @@ export default function FieldCamera({
               aria-label={muteAudio ? "Unmute microphone" : "Mute microphone"}
               title={muteAudio ? "Sound off — recording video only" : "Sound on"}
               className={`flex h-14 w-14 items-center justify-center rounded-full text-2xl backdrop-blur disabled:opacity-40 ${
-                muteAudio ? "bg-red-600/80 text-white" : "bg-black/65 text-white"
+                muteAudio ? "bg-red-600/80 text-white" : "bg-[var(--fl-surface-2)] text-white"
               }`}
             >
               {muteAudio ? "🔇" : "🎤"}

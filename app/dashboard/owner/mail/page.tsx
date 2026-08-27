@@ -105,7 +105,7 @@ export default async function OwnerMailPage() {
   if (!owner) {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-8">
           <h1 className="text-4xl font-semibold">Owner Only</h1>
           <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-red-400 px-5 py-3 font-semibold text-red-300">Back</Link>
         </div>

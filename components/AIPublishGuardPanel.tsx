@@ -173,17 +173,17 @@ function IssueCard({
               <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">AI Confidence</p>
               <p className="mt-1 text-xl font-semibold">{confidence}%</p>
             </div>
-            <div className="rounded-lg border border-current/20 bg-black/20 p-3">
+            <div className="rounded-lg border border-current/20 bg-[var(--fl-surface-2)] p-3">
               <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">Liability Risk</p>
               <p className="mt-1 text-base font-semibold uppercase">{issue.liabilityRisk || (issue.severity === "critical" ? "high" : issue.severity === "warning" ? "medium" : "low")}</p>
             </div>
-            <div className="rounded-lg border border-current/20 bg-black/20 p-3">
+            <div className="rounded-lg border border-current/20 bg-[var(--fl-surface-2)] p-3">
               <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">Status</p>
               <p className="mt-1 text-base font-semibold">{resolved ? "Reviewed" : issue.blocking ? "Blocking" : "Needs Review"}</p>
             </div>
           </div>
 
-          <div className="mt-3 rounded-lg border border-current/20 bg-black/20 p-3">
+          <div className="mt-3 rounded-lg border border-current/20 bg-[var(--fl-surface-2)] p-3">
             <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Expected evidence</p>
             <ul className="mt-2 space-y-1 text-xs leading-5">
               {evidence.map((item, index) => <li key={`${issue.id}-evidence-${index}`}>☐ {item}</li>)}
@@ -254,7 +254,7 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
   }, [activeIssues]);
 
   return (
-    <section className="rounded-2xl border border-rose-500/40 bg-rose-950/20 p-4 shadow-xl">
+    <section className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-4 shadow-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-300">AI Publish Guard</p>
@@ -270,7 +270,7 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
         <div className={`rounded-xl border p-4 ${effectiveScore === null ? "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]" : scoreTone(effectiveScore)}`}>
           <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Inspection Completeness</p>
           <p className="mt-1 text-3xl font-semibold">{effectiveScore === null ? "—" : effectiveScore}{effectiveScore !== null && <span className="text-base opacity-80"> / 100</span>}</p>
-          {result && <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/30"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${effectiveScore}%` }} /></div>}
+          {result && <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--fl-surface-2)]"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${effectiveScore}%` }} /></div>}
         </div>
         <div className={`rounded-xl border p-4 ${recommendationTone(result?.recommendation)}`}>
           <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Recommendation</p>
@@ -291,7 +291,7 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
             <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">System Status</h3>
             <div className="mt-3 space-y-2">
               {groupedSections.length === 0 ? <p className="text-sm font-bold text-emerald-300">✓ All reviewed systems are clear.</p> : groupedSections.map(([section, meta]) => (
-                <button key={section} type="button" onClick={() => findAndScrollToSection(section)} className="flex w-full items-center justify-between rounded-lg border border-[var(--fl-line)] bg-black/20 px-3 py-2 text-left hover:bg-white/5">
+                <button key={section} type="button" onClick={() => findAndScrollToSection(section)} className="flex w-full items-center justify-between rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-left hover:bg-white/5">
                   <span className="text-sm font-semibold text-[var(--fl-text)]">{section}</span>
                   <span className={meta.critical ? "text-xs font-semibold text-red-300" : "text-xs font-semibold text-amber-300"}>{meta.critical ? "●" : "⚠"} {meta.issueCount}</span>
                 </button>
@@ -304,7 +304,7 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
           <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Actionable Publish Guard Issues</h3>
-              <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">{activeIssues.length}</span>
+              <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">{activeIssues.length}</span>
             </div>
             {displayedIssues.length === 0 ? <p className="mt-3 text-sm font-bold text-emerald-300">No unresolved publish guard issues detected.</p> : <div className="mt-3 space-y-3">{displayedIssues.map((issue) => <IssueCard key={issue.id} issue={issue} inspectionId={inspectionId} resolved={resolvedIds.includes(issue.id)} onResolved={(id) => setResolvedIds((current) => current.includes(id) ? current : [...current, id])} />)}</div>}
             {activeIssues.length > displayedIssues.length && <p className="mt-3 text-xs font-bold text-[var(--fl-muted)]">Showing the first {displayedIssues.length} of {activeIssues.length} unresolved issues.</p>}

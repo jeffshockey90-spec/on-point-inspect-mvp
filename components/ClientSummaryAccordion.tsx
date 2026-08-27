@@ -240,7 +240,7 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
             muted
             playsInline
             preload="metadata"
-            className="max-h-[420px] w-full rounded-xl border border-[var(--fl-line)] bg-black object-contain"
+            className="max-h-[420px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] object-contain"
           >
             Your browser does not support video playback.
           </video>
@@ -252,7 +252,7 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
             alt={`${title} media ${current + 1}`}
             badgeText="Tap to enlarge"
             className="max-h-[420px] w-full rounded-xl border border-[var(--fl-line)] object-contain"
-            buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            buttonClassName="block w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
             images={galleryImages}
             index={photoIndex >= 0 ? photoIndex : 0}
           />
@@ -264,7 +264,7 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
               type="button"
               aria-label="Previous"
               onClick={(e) => { e.stopPropagation(); go(-1); }}
-              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-semibold text-[var(--fl-text)] active:scale-95"
+              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[var(--fl-surface-2)] text-xl font-semibold text-[var(--fl-text)] active:scale-95"
             >
               ‹
             </button>
@@ -272,11 +272,11 @@ function MediaCarousel({ media, title }: { media: any[]; title: string }) {
               type="button"
               aria-label="Next"
               onClick={(e) => { e.stopPropagation(); go(1); }}
-              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/70 text-xl font-semibold text-[var(--fl-text)] active:scale-95"
+              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-[var(--fl-surface-2)] text-xl font-semibold text-[var(--fl-text)] active:scale-95"
             >
               ›
             </button>
-            <span className="absolute right-2 top-2 z-10 rounded-full bg-black/75 px-2 py-1 text-[10px] font-semibold text-[var(--fl-text)]">
+            <span className="absolute right-2 top-2 z-10 rounded-full bg-[var(--fl-surface-2)] px-2 py-1 text-[10px] font-semibold text-[var(--fl-text)]">
               {current + 1} / {media.length}
             </span>
           </>
@@ -372,7 +372,7 @@ function CompactSummaryCard({
   return (
     <article
       data-summary-card-id={cardId}
-      className={`overflow-hidden rounded-2xl border border-l-4 bg-[#0b1426] transition hover:bg-[#0e1830] ${toneStyle.border} ${toneStyle.stripe}`}
+      className={`overflow-hidden rounded-2xl border border-l-4 bg-[var(--fl-surface-2)] transition hover:bg-[var(--fl-surface-2)] ${toneStyle.border} ${toneStyle.stripe}`}
     >
       <div className="grid w-full grid-cols-[116px_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)]">
         <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] sm:h-[132px] sm:w-[132px]">
@@ -416,11 +416,11 @@ function CompactSummaryCard({
                 />
               )}
               <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/10">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/80 text-xl text-[var(--fl-text)] shadow-lg">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--fl-surface-2)] text-xl text-[var(--fl-text)] shadow-lg">
                   ▶
                 </span>
               </span>
-              <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-black/80 px-2 py-1 text-[10px] font-semibold text-cyan-200">
+              <span className="pointer-events-none absolute bottom-2 left-2 rounded-full bg-[var(--fl-surface-2)] px-2 py-1 text-[10px] font-semibold text-cyan-200">
                 VIDEO
               </span>
             </button>
@@ -487,7 +487,7 @@ function CompactSummaryCard({
                 setVideoOpen(false);
               }}
               aria-label="Close video"
-              className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/80 text-2xl font-semibold text-[var(--fl-text)] active:scale-95"
+              className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-[var(--fl-surface-2)] text-2xl font-semibold text-[var(--fl-text)] active:scale-95"
             >
               ×
             </button>
@@ -503,7 +503,7 @@ function CompactSummaryCard({
                 autoPlay
                 playsInline
                 preload="auto"
-                className="h-auto max-h-[92dvh] w-auto max-w-[94vw] rounded-xl bg-black object-contain shadow-2xl"
+                className="h-auto max-h-[92dvh] w-auto max-w-[94vw] rounded-xl bg-[var(--fl-surface-2)] object-contain shadow-2xl"
               >
                 Your browser does not support video playback.
               </video>

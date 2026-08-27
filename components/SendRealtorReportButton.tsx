@@ -126,8 +126,8 @@ export default function SendRealtorReportButton({
         <p
           className={`mt-2 max-w-sm rounded-xl border px-3 py-2 text-xs font-bold leading-5 ${
             messageType === "success"
-              ? "border-emerald-500/60 bg-emerald-950/30 text-emerald-300"
-              : "border-red-500/60 bg-red-950/30 text-red-300"
+              ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
+              : "border-red-500/60 bg-red-500/10 text-red-300"
           }`}
         >
           {message}

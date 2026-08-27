@@ -88,7 +88,7 @@ const PhotoMarkupEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="rounded-xl border border-purple-700 bg-purple-950/20 p-4 text-sm font-bold text-purple-200">
+      <div className="rounded-xl border border-purple-700 bg-purple-500/10 p-4 text-sm font-bold text-purple-200">
         Loading photo markup...
       </div>
     ),
@@ -762,7 +762,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       )}
 
       {sectionMessage && (
-        <div className="w-full rounded-xl border border-red-500/40 bg-red-950/30 p-3 text-sm font-bold text-red-300">
+        <div className="w-full rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">
           {sectionMessage}
         </div>
       )}
@@ -1041,7 +1041,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                 }}
                 disabled={deletingSection === group.section}
                 title="Delete section"
-                className="flex shrink-0 items-center justify-center border-l border-[var(--fl-line)] px-3 text-sm font-semibold text-red-400 hover:bg-red-950/40 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex shrink-0 items-center justify-center border-l border-[var(--fl-line)] px-3 text-sm font-semibold text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {deletingSection === group.section ? "…" : "🗑"}
               </button>
@@ -1092,7 +1092,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                 </div>
 
                 {findings.length === 0 && (
-                  <div className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-5 text-[var(--fl-muted)]">
+                  <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-[var(--fl-muted)]">
                     No findings in this section.
                   </div>
                 )}
@@ -1304,7 +1304,7 @@ function AddSectionFindingForm({
   }
 
   return (
-    <div className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-4">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
       {!open ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <button
@@ -1798,7 +1798,7 @@ function ReportVideo({
       aria-label={muted ? "Unmute video" : "Mute video"}
       title={muted ? "Sound off — tap to unmute" : "Sound on — tap to mute"}
       className={`absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full text-lg backdrop-blur ${
-        muted ? "bg-red-600/80 text-white" : "bg-black/60 text-white"
+        muted ? "bg-red-600/80 text-white" : "bg-[var(--fl-surface-2)] text-white"
       }`}
     >
       {muted ? "🔇" : "🔊"}
@@ -1813,8 +1813,8 @@ function ReportVideo({
       preload={videoPoster ? "metadata" : "auto"}
       className={
         compact
-          ? "h-36 w-full bg-black object-contain"
-          : "mx-auto max-h-[420px] w-full max-w-full rounded-xl bg-black object-contain"
+          ? "h-36 w-full bg-[var(--fl-surface-2)] object-contain"
+          : "mx-auto max-h-[420px] w-full max-w-full rounded-xl bg-[var(--fl-surface-2)] object-contain"
       }
       onError={() => {
         if (!repairAttemptedRef.current && photo?.id) {
@@ -2811,7 +2811,7 @@ function FindingCardBase({
           setDraggingOver(false);
         }}
         onDrop={handleFindingDrop}
-        className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[#071224] shadow-lg transition ${
+        className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[var(--fl-surface-2)] shadow-lg transition ${
           draggingOver
             ? "border-teal-400 ring-2 ring-teal-400/40"
             : "border-[var(--fl-line)]"
@@ -2822,11 +2822,11 @@ function FindingCardBase({
           onClick={() => setExpanded(true)}
           className="flex w-full min-w-0 gap-2 p-2 text-left transition hover:bg-[var(--fl-raised)] sm:gap-4 sm:p-4 [touch-action:manipulation]"
         >
-          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black sm:h-28 sm:w-32">
+          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] sm:h-28 sm:w-32">
             {primaryPhotoUrl ? (
               isVideoMedia(primaryPhoto) ? (
                 getVideoPosterUrl(primaryPhoto) ? (
-                  <div className="relative h-full w-full bg-black">
+                  <div className="relative h-full w-full bg-[var(--fl-surface-2)]">
                     <img
                       src={getVideoPosterUrl(primaryPhoto)}
                       alt={findingTitle}
@@ -2848,7 +2848,7 @@ function FindingCardBase({
                 ) : (
                   // No generated poster: show the video's first frame via the
                   // #t=0.1 media fragment (iOS renders it) instead of a black box.
-                  <div className="relative h-full w-full bg-black">
+                  <div className="relative h-full w-full bg-[var(--fl-surface-2)]">
                     <video
                       src={`${primaryPhotoUrl}${primaryPhotoUrl.includes("#") ? "" : "#t=0.1"}`}
                       muted
@@ -2894,7 +2894,7 @@ function FindingCardBase({
               </span>
 
               {photos.length > 0 && (
-                <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-cyan-300">
+                <span className="rounded-full border border-cyan-600 bg-cyan-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-cyan-300">
                   {photos.length} media
                 </span>
               )}
@@ -2947,7 +2947,7 @@ function FindingCardBase({
         setDraggingOver(false);
       }}
       onDrop={handleFindingDrop}
-      className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[#071224] shadow-xl transition ${
+      className={`w-full max-w-full overflow-x-hidden rounded-2xl border bg-[var(--fl-surface-2)] shadow-xl transition ${
         draggingOver
           ? "border-teal-400 ring-2 ring-teal-400/40"
           : "border-[var(--fl-line)]"
@@ -2955,7 +2955,7 @@ function FindingCardBase({
     >
       <div className="p-2 pb-0 sm:p-4 sm:pb-0">
         <InlineStatusMessage type={messageType} message={message} />
-        <div className="sticky top-2 z-20 mb-3 flex flex-wrap justify-end gap-2 rounded-2xl border border-[var(--fl-line)] bg-[#071224]/95 p-2 shadow-xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        <div className="sticky top-2 z-20 mb-3 flex flex-wrap justify-end gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           {isSafetyOrMajor && (
             <button
               type="button"
@@ -2987,7 +2987,7 @@ function FindingCardBase({
         )}
       </div>
       {photos.length > 0 && (
-        <div className="border-b border-[var(--fl-line)] bg-black p-2 sm:p-3">
+        <div className="border-b border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 sm:p-3">
           <div className="grid gap-3">
             {visiblePhotos.map((photo: any, index: number) => {
               const url = getPhotoUrl(photo);
@@ -3021,7 +3021,7 @@ function FindingCardBase({
                   } ${isPhotoDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
                 >
                   {isVideoMedia(photo) ? (
-                    <div className="flex justify-center rounded-xl bg-black p-2">
+                    <div className="flex justify-center rounded-xl bg-[var(--fl-surface-2)] p-2">
                       <ReportVideo photo={photo} url={url} />
                     </div>
                   ) : (
@@ -3146,7 +3146,7 @@ function FindingCardBase({
           )}
 
           {photos.length > 0 && (
-            <span className="rounded-full border border-cyan-600 bg-cyan-950/40 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-300">
+            <span className="rounded-full border border-cyan-600 bg-cyan-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-cyan-300">
               {photos.length} media
             </span>
           )}
@@ -3259,7 +3259,7 @@ function FindingCardBase({
         </div>
 
         {showUploadPanel && (
-          <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-teal-700 bg-teal-950/20 p-3 sm:p-4">
+          <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-teal-700 bg-teal-500/10 p-3 sm:p-4">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-lg font-semibold text-[var(--fl-accent-text)]">
@@ -3318,7 +3318,7 @@ function FindingCardBase({
         )}
 
         {showPhotoPicker && (
-          <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-cyan-700 bg-cyan-950/20 p-3 sm:p-4">
+          <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-cyan-700 bg-cyan-500/10 p-3 sm:p-4">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-lg font-semibold text-cyan-300">
@@ -3720,8 +3720,8 @@ function InlineStatusMessage({
     <div
       className={`rounded-xl border p-3 text-sm font-bold ${
         isSuccess
-          ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
-          : "border-red-500 bg-red-950/30 text-red-300"
+          ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
+          : "border-red-500 bg-red-500/10 text-red-300"
       }`}
     >
       {message}

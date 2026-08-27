@@ -1007,7 +1007,7 @@ function EquipmentTestContent() {
         )}
 
         {result?.error && (
-          <pre className="overflow-auto rounded-2xl bg-red-950 p-4 text-sm text-red-100">
+          <pre className="overflow-auto rounded-2xl bg-red-500/10 p-4 text-sm text-red-100">
             {JSON.stringify(result, null, 2)}
           </pre>
         )}
@@ -1018,7 +1018,7 @@ function EquipmentTestContent() {
 
 function EnhancedEquipmentIntelligence({ result }: { result: EquipmentResult }) {
   return (
-    <section className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-5 shadow-xl">
+    <section className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-5 shadow-xl">
       <h2 className="text-xl font-bold text-[var(--fl-accent-text)]">
         Enhanced Equipment Intelligence
       </h2>

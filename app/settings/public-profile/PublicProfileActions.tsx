@@ -328,13 +328,13 @@ export default function PublicProfileActions({
           </div>
 
           {error && (
-            <p className="mt-4 rounded-xl border border-red-500/40 bg-red-950/30 p-3 text-sm font-bold text-red-300">
+            <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">
               {error}
             </p>
           )}
 
           {!hasCompanyLogo && (
-            <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-950/20 p-3">
+            <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
               <p className="text-sm font-bold text-amber-300">
                 Upload your company logo to create a branded QR code.
               </p>
@@ -434,7 +434,7 @@ export default function PublicProfileActions({
             </p>
 
             {!hasCompanyLogo && (
-              <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-950/20 p-3">
+              <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
                 <p className="text-xs font-bold text-amber-300">
                   Upload company logo to brand this QR.
                 </p>

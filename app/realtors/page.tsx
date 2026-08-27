@@ -167,7 +167,7 @@ export default async function RealtorsPage() {
 }
 
 function StatCard({ label, value, helper }: { label: string; value: string; helper?: string }) {
-  return <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl"><p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p><p className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">{value}</p>{helper && <p className="mt-2 text-sm text-[var(--fl-muted)]">{helper}</p>}</div>;
+  return <div className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-6 shadow-xl"><p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p><p className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">{value}</p>{helper && <p className="mt-2 text-sm text-[var(--fl-muted)]">{helper}</p>}</div>;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

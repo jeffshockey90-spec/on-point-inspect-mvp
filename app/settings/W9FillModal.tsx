@@ -15,7 +15,7 @@ const CLASSIFICATION_OPTIONS: { value: Classification; label: string }[] = [
 ];
 
 function inputClass() {
-  return "w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400";
+  return "w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400";
 }
 
 export default function W9FillModal({ onSaved }: { onSaved: (result: { path: string; uploadedAt: string }) => void }) {
@@ -126,7 +126,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
             </p>
 
             {viewUrl ? (
-              <div className="mt-5 rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4">
+              <div className="mt-5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
                 <p className="text-sm font-bold text-emerald-200">W9 generated and saved.</p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   <a
@@ -149,7 +149,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
             ) : (
               <div className="mt-5 space-y-4">
                 {error && (
-                  <p className="rounded-lg border border-red-500/30 bg-red-950/20 p-3 text-xs font-bold text-red-300">
+                  <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs font-bold text-red-300">
                     {error}
                   </p>
                 )}
@@ -313,7 +313,7 @@ export default function W9FillModal({ onSaved }: { onSaved: (result: { path: str
                   />
                 </label>
 
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--fl-line)] bg-black p-3">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                   <input
                     type="checkbox"
                     checked={certifyAccuracy}

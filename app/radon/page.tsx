@@ -453,7 +453,7 @@ export default function RadonPage() {
                               event.target.value
                             )
                           }
-                          className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+                          className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Completed">Completed</option>
@@ -474,7 +474,7 @@ export default function RadonPage() {
                           updateForm(inspection.id, "notes", event.target.value)
                         }
                         rows={3}
-                        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+                        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
                         placeholder="Closed-house conditions, device placement, limitations, or other radon notes..."
                       />
                     </label>
@@ -546,10 +546,10 @@ function MetricCard({
   tone: "green" | "teal" | "blue" | "red";
 }) {
   const colors: Record<string, string> = {
-    green: "border-green-500/40 bg-green-950/20 text-green-300",
-    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
-    blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
-    red: "border-red-500/40 bg-red-950/20 text-red-300",
+    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
+    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+    red: "border-red-500/40 bg-red-500/10 text-red-300",
   };
 
   return (
@@ -637,7 +637,7 @@ function LabReportField({
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Upload the PDF, or paste a link"
-        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
       />
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <label
@@ -694,7 +694,7 @@ function Field({
         type={type}
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
       />
     </label>
   );
@@ -716,7 +716,7 @@ function DateTimeField({
         type="datetime-local"
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
       />
     </label>
   );

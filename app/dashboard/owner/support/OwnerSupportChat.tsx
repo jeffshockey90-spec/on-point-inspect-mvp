@@ -212,7 +212,7 @@ export default function OwnerSupportChat() {
               </div>
 
               {newMessageError && (
-                <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/20 p-2 text-xs font-bold text-red-300">
+                <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs font-bold text-red-300">
                   {newMessageError}
                 </p>
               )}
@@ -221,7 +221,7 @@ export default function OwnerSupportChat() {
                 value={inspectorQuery}
                 onChange={(e) => setInspectorQuery(e.target.value)}
                 placeholder="Search inspectors by name, email, or company..."
-                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
 
               <div className="mt-3 max-h-56 space-y-2 overflow-y-auto">
@@ -256,7 +256,7 @@ export default function OwnerSupportChat() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 rows={4}
                 placeholder="Write your message..."
-                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
               />
 
               <button
@@ -271,7 +271,7 @@ export default function OwnerSupportChat() {
           </div>
         )}
 
-        {error && <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm font-bold text-red-300">{error}</div>}
+        {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-red-300">{error}</div>}
 
         <section className="grid gap-5 lg:grid-cols-[380px_1fr]">
           <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4">
@@ -311,7 +311,7 @@ export default function OwnerSupportChat() {
                     const isOwner = item.sender_role === "owner";
                     return (
                       <div key={item.id} className={`flex ${isOwner ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[85%] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-950/20" : "border-blue-500/30 bg-blue-950/20"}`}>
+                        <div className={`max-w-[85%] rounded-2xl border p-4 ${isOwner ? "border-teal-500/30 bg-teal-500/10" : "border-blue-500/30 bg-blue-500/10"}`}>
                           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                             {isOwner ? "You" : selected.inspector_name || "Inspector"} · {formatDate(item.created_at)}
                           </p>
@@ -337,7 +337,7 @@ export default function OwnerSupportChat() {
                     onChange={(e) => setReply(e.target.value)}
                     rows={4}
                     placeholder="Reply to inspector..."
-                    className="w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                    className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                   />
                   <button
                     onClick={sendReply}

@@ -159,7 +159,7 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
           }}
           placeholder="e.g. What's the required handrail height?"
           rows={compact ? 2 : 3}
-          className="w-full resize-none rounded-xl border border-[var(--fl-line)] bg-black/40 px-4 py-3 text-sm font-medium text-[var(--fl-text)] placeholder:text-[var(--fl-faint)] focus:border-teal-400 focus:outline-none"
+          className="w-full resize-none rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-sm font-medium text-[var(--fl-text)] placeholder:text-[var(--fl-faint)] focus:border-teal-400 focus:outline-none"
         />
 
         <div className="flex items-center justify-between gap-3">
@@ -209,7 +209,7 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
           {history.map((item) => (
             <article
               key={item.id}
-              className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-4"
+              className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
             >
               <p className="flex gap-2 text-sm font-semibold text-[var(--fl-accent-text)]">
                 <span className="shrink-0 text-[var(--fl-accent-text)]">Q</span>
@@ -224,7 +224,7 @@ export default function CodeAssistantPanel({ compact = false, context }: Props) 
       )}
 
       {history.length === 0 && !error && (
-        <p className="mt-5 rounded-xl border border-dashed border-[var(--fl-line)] bg-black/20 p-4 text-center text-xs font-bold text-[var(--fl-faint)]">
+        <p className="mt-5 rounded-xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-center text-xs font-bold text-[var(--fl-faint)]">
           Answers are general model-code guidance for inspectors, not legal advice.
           Adopted editions and local amendments vary — confirm with the AHJ.
         </p>

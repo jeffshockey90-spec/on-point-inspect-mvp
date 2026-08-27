@@ -148,7 +148,7 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
   const events = useMemo(() => result?.events || [], [result]);
 
   return (
-    <section ref={rootRef} className="rounded-2xl border border-sky-500/40 bg-sky-950/20 p-4 shadow-xl" style={{ contentVisibility: "auto", containIntrinsicSize: "700px" }}>
+    <section ref={rootRef} className="rounded-2xl border border-sky-500/40 bg-sky-500/10 p-4 shadow-xl" style={{ contentVisibility: "auto", containIntrinsicSize: "700px" }}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">Live Inspection Timeline</p>
@@ -181,7 +181,7 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
         <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Recent Timeline</h3>
-            <span className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">{events.length}</span>
+            <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">{events.length}</span>
           </div>
           {events.length === 0 ? (
             <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">Timeline will populate as findings, photos, equipment, and report activity are saved.</p>

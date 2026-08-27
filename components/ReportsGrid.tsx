@@ -184,7 +184,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
           {visibleReports.map((report, index) => (
             <div
               key={report.id}
-              className="group relative overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[#13213a] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
+              className="group relative overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] shadow-xl transition duration-150 hover:-translate-y-0.5 hover:border-teal-500/70 hover:bg-[var(--fl-surface-2)] hover:shadow-[0_0_28px_rgba(20,184,166,0.14)] active:scale-[0.99]"
             >
               {/* Stretched link: makes the whole card clickable (opens the report).
                   The action buttons below sit above this overlay (relative z-20)

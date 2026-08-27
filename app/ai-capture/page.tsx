@@ -490,8 +490,8 @@ function AICaptureContent() {
             role="status"
             className={`rounded-xl border p-4 text-sm font-bold ${
               messageType === "success"
-                ? "border-emerald-500 bg-emerald-950/30 text-emerald-300"
-                : "border-red-500 bg-red-950/30 text-red-300"
+                ? "border-emerald-500 bg-emerald-500/10 text-emerald-300"
+                : "border-red-500 bg-red-500/10 text-red-300"
             }`}
           >
             {message}
@@ -524,7 +524,7 @@ function AICaptureContent() {
               controls
               playsInline
               preload="metadata"
-              className="mt-5 max-h-[450px] w-full rounded-xl border border-[var(--fl-line)] bg-black"
+              className="mt-5 max-h-[450px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
             />
           )}
 
@@ -643,7 +643,7 @@ function AICaptureContent() {
               />
             </>
           ) : (
-            <div className="mt-5 rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-sm font-bold text-cyan-200">
+            <div className="mt-5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-sm font-bold text-cyan-200">
               This will save the selected image as a section reference photo only.
               It will not create a finding, defect, repair request item, or severity-counted issue.
               Use the optional field note above as the caption.

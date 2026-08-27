@@ -323,12 +323,12 @@ export default async function PublicInspectorProfilePage({
         <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-teal-500/10 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-          <div className="rounded-2xl border border-teal-500/25 bg-[#07111f]/95 p-4 shadow-2xl shadow-black/40 sm:p-7 lg:p-9">
+          <div className="rounded-2xl border border-teal-500/25 bg-[var(--fl-ground)] p-4 shadow-2xl shadow-black/40 sm:p-7 lg:p-9">
             <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
               <div>
                 <div className="flex flex-wrap items-center gap-5">
                   {logoUrl ? (
-                    <div className="flex min-h-28 min-w-28 max-w-[260px] items-center justify-center rounded-2xl border border-[var(--fl-line)] bg-black/35 p-4 shadow-xl">
+                    <div className="flex min-h-28 min-w-28 max-w-[260px] items-center justify-center rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 shadow-xl">
                       <img
                         src={logoUrl}
                         alt={`${companyName} logo`}
@@ -345,7 +345,7 @@ export default async function PublicInspectorProfilePage({
                   )}
 
                   {headshotUrl && (
-                    <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-teal-500/30 bg-black/30 shadow-xl sm:h-32 sm:w-32">
+                    <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-teal-500/30 bg-[var(--fl-surface-2)] shadow-xl sm:h-32 sm:w-32">
                       <img
                         src={headshotUrl}
                         alt={companyName}
@@ -792,7 +792,7 @@ function FeaturedSampleReport({
     `A featured sample report from ${companyName} showing photos, findings, summaries, and client-friendly report details.`;
 
   return (
-    <div className="group overflow-hidden rounded-2xl border border-teal-500/45 bg-[#07111f] shadow-2xl shadow-black/40">
+    <div className="group overflow-hidden rounded-2xl border border-teal-500/45 bg-[var(--fl-ground)] shadow-2xl shadow-black/40">
       <div className="grid lg:grid-cols-[1.35fr_0.85fr]">
         <div className="relative min-h-[320px] overflow-hidden bg-[var(--fl-ground)] sm:min-h-[440px]">
           {coverUrl ? (

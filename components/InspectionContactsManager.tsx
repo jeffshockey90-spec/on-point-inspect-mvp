@@ -226,7 +226,7 @@ export default function InspectionContactsManager({
   const fieldClass = "box-border h-[52px] min-w-0 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none transition placeholder:text-[var(--fl-faint)] focus:border-teal-400 focus:ring-1 focus:ring-teal-400/40";
 
   return (
-    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#071224] shadow-2xl shadow-black/20">
+    <section className="mb-6 w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] shadow-2xl shadow-black/20">
       <div className="border-b border-[var(--fl-raised)] bg-gradient-to-r from-[var(--fl-surface)] via-[#0b1628] to-[var(--fl-surface)] p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
@@ -304,7 +304,7 @@ export default function InspectionContactsManager({
         {loading && <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">Loading contacts...</div>}
 
         {!loading && loadError && (
-          <div className="rounded-2xl border border-red-500/40 bg-red-950/20 p-6 text-center">
+          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-center">
             <p className="text-lg font-bold text-red-200">Could not load contacts.</p>
             <p className="mt-2 text-sm text-red-300/80">{loadError}</p>
             <button

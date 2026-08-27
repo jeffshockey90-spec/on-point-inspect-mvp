@@ -513,7 +513,7 @@ export default function MoldPage() {
                               event.target.value
                             )
                           }
-                          className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+                          className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
                         >
                           <option value="Pending Collection">
                             Pending Collection
@@ -536,7 +536,7 @@ export default function MoldPage() {
                           onChange={(event) =>
                             updateForm(inspection.id, "result", event.target.value)
                           }
-                          className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+                          className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
                         >
                           <option value="Pending">Pending</option>
                           <option value="Normal">Normal / Not Elevated</option>
@@ -569,7 +569,7 @@ export default function MoldPage() {
                           )
                         }
                         rows={3}
-                        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+                        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
                         placeholder="Brief summary of lab findings, sample locations, or elevated mold types..."
                       />
                     </label>
@@ -584,7 +584,7 @@ export default function MoldPage() {
                           updateForm(inspection.id, "notes", event.target.value)
                         }
                         rows={3}
-                        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+                        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
                         placeholder="Sampling limitations, rooms sampled, humidity/moisture observations, or client notes..."
                       />
                     </label>
@@ -664,12 +664,12 @@ function MetricCard({
   tone: "green" | "teal" | "blue" | "red" | "purple" | "yellow";
 }) {
   const colors: Record<string, string> = {
-    green: "border-green-500/40 bg-green-950/20 text-green-300",
-    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
-    blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
-    red: "border-red-500/40 bg-red-950/20 text-red-300",
-    purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
-    yellow: "border-yellow-500/40 bg-yellow-950/20 text-yellow-300",
+    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
+    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+    red: "border-red-500/40 bg-red-500/10 text-red-300",
+    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
   };
 
   return (
@@ -768,7 +768,7 @@ function LabReportField({
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Upload the PDF, or paste a link"
-        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
       />
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <label
@@ -825,7 +825,7 @@ function Field({
         type={type}
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-black px-4 py-3 text-[var(--fl-text)]"
+        className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 text-[var(--fl-text)]"
       />
     </label>
   );

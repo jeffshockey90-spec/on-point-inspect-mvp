@@ -96,7 +96,7 @@ export default function DispatchBoard({
       </div>
 
       {error && (
-        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-950/20 p-3 text-sm font-bold text-red-300">
+        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">
           {error}
         </div>
       )}

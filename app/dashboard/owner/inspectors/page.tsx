@@ -194,7 +194,7 @@ function getInspectionRevenue(inspection: any) {
 function RestrictedOwner() {
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
-      <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-8 shadow-2xl">
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">Owner Only</p>
         <h1 className="mt-4 text-4xl font-semibold">Access Restricted</h1>
         <p className="mt-4 text-[var(--fl-muted)]">This owner tool is only available to the FLOW owner account.</p>
@@ -233,7 +233,7 @@ function OwnerNav() {
       <Link href="/dashboard/owner/live" className="rounded-xl border border-blue-500 px-3 py-2 text-sm font-semibold text-blue-300 transition hover:bg-blue-500/10 sm:px-4 sm:py-3 sm:text-base">
         ⚡ Live
       </Link>
-      <Link href="/dashboard/owner/system" className="rounded-xl border border-[var(--fl-faint)] px-3 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-slate-700/30 sm:px-4 sm:py-3 sm:text-base">
+      <Link href="/dashboard/owner/system" className="rounded-xl border border-[var(--fl-faint)] px-3 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] sm:px-4 sm:py-3 sm:text-base">
         🩺 System
       </Link>
     </div>
@@ -242,13 +242,13 @@ function OwnerNav() {
 
 function MetricCard({ label, value, helper, tone }: { label: string; value: string; helper: string; tone: Tone }) {
   const classes: Record<Tone, string> = {
-    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
-    green: "border-green-500/40 bg-green-950/20 text-green-300",
-    blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
-    orange: "border-orange-500/40 bg-orange-950/20 text-orange-300",
-    yellow: "border-yellow-500/40 bg-yellow-950/20 text-yellow-300",
-    red: "border-red-500/40 bg-red-950/20 text-red-300",
+    teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
+    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
+    orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
+    red: "border-red-500/40 bg-red-500/10 text-red-300",
   };
 
   return (

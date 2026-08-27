@@ -400,10 +400,10 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
               <div
                 className={`mb-5 rounded-xl border p-4 text-sm font-bold ${
                   messageType === "success"
-                    ? "border-emerald-500 bg-emerald-950/30 text-emerald-200"
+                    ? "border-emerald-500 bg-emerald-500/10 text-emerald-200"
                     : messageType === "error"
-                      ? "border-red-500 bg-red-950/30 text-red-200"
-                      : "border-cyan-500 bg-cyan-950/30 text-cyan-200"
+                      ? "border-red-500 bg-red-500/10 text-red-200"
+                      : "border-cyan-500 bg-cyan-500/10 text-cyan-200"
                 }`}
               >
                 {message}
@@ -429,7 +429,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
                 <video
                   src={previewUrl}
                   controls
-                  className="mt-5 max-h-[420px] w-full rounded-xl border border-[var(--fl-line)] bg-black"
+                  className="mt-5 max-h-[420px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
                 />
               )}
 

@@ -255,7 +255,7 @@ export default function LiveSectionCoach({
             onClick={() => void refresh()}
             disabled={!online || loading || !inspectionId}
             aria-label="Refresh Section Coach"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/50 bg-black/20 text-lg font-semibold text-emerald-100 active:scale-95 disabled:opacity-40"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/50 bg-[var(--fl-surface-2)] text-lg font-semibold text-emerald-100 active:scale-95 disabled:opacity-40"
           >
             {loading ? "…" : "↻"}
           </button>
@@ -281,7 +281,7 @@ export default function LiveSectionCoach({
           )}
 
           {review && (
-            <div className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3">
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
               <p className="text-sm font-bold leading-5 text-[var(--fl-text)]">
                 {review.summary}
               </p>
@@ -364,7 +364,7 @@ export default function LiveSectionCoach({
                           section,
                         )
                       }
-                      className="min-h-11 rounded-lg border border-current bg-black/15 px-2 py-2 text-xs font-semibold active:scale-[0.97]"
+                      className="min-h-11 rounded-lg border border-current bg-[var(--fl-surface-2)] px-2 py-2 text-xs font-semibold active:scale-[0.97]"
                     >
                       📷 Photo
                     </button>
@@ -379,7 +379,7 @@ export default function LiveSectionCoach({
                           section,
                         )
                       }
-                      className="min-h-11 rounded-lg border border-current bg-black/15 px-2 py-2 text-xs font-semibold active:scale-[0.97]"
+                      className="min-h-11 rounded-lg border border-current bg-[var(--fl-surface-2)] px-2 py-2 text-xs font-semibold active:scale-[0.97]"
                     >
                       ⚠ Limit
                     </button>
@@ -387,7 +387,7 @@ export default function LiveSectionCoach({
                     <button
                       type="button"
                       onClick={() => void recordChecked(issue)}
-                      className="min-h-11 rounded-lg border border-current bg-black/15 px-2 py-2 text-xs font-semibold active:scale-[0.97]"
+                      className="min-h-11 rounded-lg border border-current bg-[var(--fl-surface-2)] px-2 py-2 text-xs font-semibold active:scale-[0.97]"
                     >
                       ✓ Complete
                     </button>
@@ -402,7 +402,7 @@ export default function LiveSectionCoach({
           ) : null}
 
           {review?.completedItems?.length ? (
-            <details className="rounded-xl border border-[var(--fl-line)] bg-black/20 p-3">
+            <details className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
               <summary className="cursor-pointer text-sm font-semibold text-[var(--fl-text)]">
                 Completed coverage ({review.completedItems.length})
               </summary>

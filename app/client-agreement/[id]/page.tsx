@@ -351,7 +351,7 @@ export default async function ClientAgreementPage({
         </div>
 
         {contactChooser.length > 1 ? (
-          <div className="rounded-2xl border border-cyan-700 bg-cyan-950/20 p-6">
+          <div className="rounded-2xl border border-cyan-700 bg-cyan-500/10 p-6">
             <h2 className="text-2xl font-extrabold text-cyan-200">
               Who is signing?
             </h2>
@@ -377,7 +377,7 @@ export default async function ClientAgreementPage({
             </div>
           </div>
         ) : signedAgreement ? (
-          <div className="rounded-2xl border border-green-700 bg-green-950/30 p-6 print:border-black print:bg-white print:text-black">
+          <div className="rounded-2xl border border-green-700 bg-green-500/10 p-6 print:border-black print:bg-white print:text-black">
             <h2 className="text-2xl font-extrabold text-green-300 print:text-black">
               Agreement Signed
             </h2>

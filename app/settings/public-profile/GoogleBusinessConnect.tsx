@@ -290,8 +290,8 @@ export default function GoogleBusinessConnect({
         </div>
       )}
 
-      {message && <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-3 text-sm font-bold text-emerald-300">{message}</p>}
-      {error && <p className="mt-4 rounded-xl border border-red-500/40 bg-red-950/30 p-3 text-sm font-bold text-red-300">{error}</p>}
+      {message && <p className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-300">{message}</p>}
+      {error && <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-red-300">{error}</p>}
     </div>
   );
 }

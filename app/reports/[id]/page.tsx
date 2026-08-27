@@ -2886,7 +2886,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
                 <PrintButton
                   label="Print / Save PDF"
-                  className="rounded-xl bg-black px-5 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
+                  className="rounded-xl bg-[var(--fl-surface-2)] px-5 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
                 />
 
                 <FastLinkButton
@@ -3088,7 +3088,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
             <HomeownerPortalLink token={reportDownloadId} />
 
-            <section id="defect-totals" className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
+            <section id="defect-totals" className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <div className="mb-4">
                 <h2 className="text-2xl font-extrabold text-[var(--fl-accent-text)]">
                   Defect Totals
@@ -3132,7 +3132,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             {equipmentInventory.length > 0 && (
               <section
                 id="equipment-inventory"
-                className="rounded-2xl border border-cyan-500/40 bg-cyan-950/20 p-4"
+                className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4"
               >
                 <div className="mb-4">
                   <h2 className="text-2xl font-extrabold text-cyan-300">
@@ -3422,7 +3422,7 @@ Service-life information is a general industry estimate only. Actual service lif
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-black/25 p-4">
+            <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-muted)]">
@@ -3468,7 +3468,7 @@ Service-life information is a general industry estimate only. Actual service lif
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <div className="rounded-2xl border border-[var(--fl-line)] bg-black/30 p-4">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Total Items
                 </p>
@@ -3476,7 +3476,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 <p className="mt-1 text-xs font-bold text-[var(--fl-faint)]">All report entries</p>
               </div>
 
-              <div className="rounded-2xl border border-[var(--fl-line)] bg-black/30 p-4">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Media
                 </p>
@@ -3509,7 +3509,7 @@ Service-life information is a general industry estimate only. Actual service lif
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-black/25 p-4">
+            <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-faint)]">
                 Next Best Action
               </p>
@@ -3739,7 +3739,7 @@ Service-life information is a general industry estimate only. Actual service lif
                         </div>
 
                         <div className="grid gap-2 sm:grid-cols-4 xl:min-w-[520px]">
-                          <div className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-3">
+                          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                               Items
                             </p>
@@ -4084,7 +4084,7 @@ Service-life information is a general industry estimate only. Actual service lif
                   {viewerActivitySummary.map((viewer: any) => (
                     <div
                       key={viewer.key}
-                      className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-3"
+                      className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -4120,7 +4120,7 @@ Service-life information is a general industry estimate only. Actual service lif
                         {Array.from(viewer.types.entries()).map(([type, count]: any) => (
                           <span
                             key={type}
-                            className="rounded-full border border-[var(--fl-line)] bg-black/30 px-2 py-1 text-[10px] font-semibold text-[var(--fl-muted)]"
+                            className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-1 text-[10px] font-semibold text-[var(--fl-muted)]"
                           >
                             {formatViewType(type)}: {count}
                           </span>
@@ -4142,7 +4142,7 @@ Service-life information is a general industry estimate only. Actual service lif
             defaultOpen={Boolean(executiveSummary)}
             accentClassName="border-purple-500/40 text-purple-100"
           >
-          <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[#071224] p-4 shadow-xl">
+          <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface-2)] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-purple-300">
@@ -4186,7 +4186,7 @@ Service-life information is a general industry estimate only. Actual service lif
             defaultOpen={false}
             accentClassName="border-teal-500/40 text-teal-100"
           >
-          <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
+          <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <h2 className="mb-4 text-2xl font-bold text-[var(--fl-accent-text)]">
               Email Report
             </h2>
@@ -4202,7 +4202,7 @@ Service-life information is a general industry estimate only. Actual service lif
             <ResendConfirmationButton inspectionId={String(inspection.id)} />
           </div>
 
-          <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
+          <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <h2 className="mb-4 text-2xl font-bold text-amber-300">
               Email W9 Form
             </h2>
@@ -4244,7 +4244,7 @@ Service-life information is a general industry estimate only. Actual service lif
             defaultOpen={false}
             accentClassName="border-emerald-500/40 text-emerald-100"
           >
-          <section className="mb-6 rounded-2xl border border-emerald-500/40 bg-[#071224] p-4 shadow-xl">
+          <section className="mb-6 rounded-2xl border border-emerald-500/40 bg-[var(--fl-surface-2)] p-4 shadow-xl">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-emerald-300">
@@ -4316,7 +4316,7 @@ Service-life information is a general industry estimate only. Actual service lif
             defaultOpen={Boolean(propertyPhotoUpdated || propertyPhotoError)}
             accentClassName="border-[var(--fl-line)] text-[var(--fl-text)]"
           >
-          <section className="mb-6 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[#071224]">
+          <section className="mb-6 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
             {propertyPhotoUpdated && (
               <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-300">
                 Property photo updated.
@@ -4727,7 +4727,7 @@ function ViewStatusCard({
                 {viewers.map((viewer: any) => (
                   <div
                     key={viewer.key}
-                    className="rounded-lg border border-[var(--fl-line)] bg-black/20 px-2 py-2"
+                    className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-2"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">

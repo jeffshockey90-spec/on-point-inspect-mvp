@@ -119,7 +119,7 @@ export default function OfflineReportViewer({
   const cachedAt = cache?.cachedAt ? formatAppValue(new Date(cache.cachedAt), {}) : "Unknown";
 
   return (
-    <div className="space-y-4 rounded-2xl border border-cyan-500/40 bg-[#071224] p-4 text-[var(--fl-text)]">
+    <div className="space-y-4 rounded-2xl border border-cyan-500/40 bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
@@ -176,9 +176,9 @@ export default function OfflineReportViewer({
                 const photoUrl = firstPhoto ? getPhotoUrl(firstPhoto) : "";
 
                 return (
-                  <article key={finding.id || `${group.section}-${finding.title}`} className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-3">
+                  <article key={finding.id || `${group.section}-${finding.title}`} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                     <div className="flex gap-3">
-                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-black">
+                      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
                         {photoUrl ? (
                           isVideo(firstPhoto) ? (
                             <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-cyan-300">

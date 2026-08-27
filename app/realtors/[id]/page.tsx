@@ -640,7 +640,7 @@ function StatCard({
   helper?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl">
+    <div className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-6 shadow-xl">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>

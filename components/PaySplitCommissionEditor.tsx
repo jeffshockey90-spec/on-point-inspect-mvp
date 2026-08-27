@@ -72,7 +72,7 @@ export default function PaySplitCommissionEditor({
   return (
     <div className="space-y-3">
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-950/20 p-3 text-sm font-bold text-red-300">
+        <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-bold text-red-300">
           {error}
         </p>
       )}
@@ -108,7 +108,7 @@ export default function PaySplitCommissionEditor({
                     setSavedId("");
                   }}
                   placeholder={String(defaultPct)}
-                  className="w-24 rounded-xl border border-[var(--fl-line)] bg-black px-3 py-2 pr-7 text-right text-sm font-semibold text-[var(--fl-text)] outline-none focus:border-teal-400"
+                  className="w-24 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 pr-7 text-right text-sm font-semibold text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[var(--fl-faint)]">
                   %

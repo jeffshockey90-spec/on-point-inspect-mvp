@@ -91,7 +91,7 @@ export default function InspectionDetailsEditor({
   }
 
   return (
-    <div className="mt-6 space-y-4 rounded-xl border border-[var(--fl-line)] bg-[#111827] p-5">
+    <div className="mt-6 space-y-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5">
       <div>
         <label className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">
           Weather
@@ -100,7 +100,7 @@ export default function InspectionDetailsEditor({
           value={weather}
           onChange={(e) => setWeather(e.target.value)}
           disabled={busy}
-          className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </div>
 
@@ -112,7 +112,7 @@ export default function InspectionDetailsEditor({
           value={attendance}
           onChange={(e) => setAttendance(e.target.value)}
           disabled={busy}
-          className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </div>
 
@@ -125,7 +125,7 @@ export default function InspectionDetailsEditor({
           onChange={(e) => setInspectionMethod(e.target.value)}
           rows={4}
           disabled={busy}
-          className="w-full rounded-lg border border-[var(--fl-line)] bg-black p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60"
         />
       </div>
 

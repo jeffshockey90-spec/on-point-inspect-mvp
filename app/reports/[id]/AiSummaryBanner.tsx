@@ -8,7 +8,7 @@ export default function AiSummaryBanner({
   if (!summary) return null;
 
   return (
-    <section className="mb-8 rounded-2xl border border-teal-500/40 bg-[#071224] p-6 shadow-xl">
+    <section className="mb-8 rounded-2xl border border-teal-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl">
       <div className="mb-4">
         <h2 className="text-2xl font-extrabold text-[var(--fl-accent-text)]">
           Report Summary

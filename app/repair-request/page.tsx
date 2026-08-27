@@ -1382,7 +1382,7 @@ function RepairRequestContent() {
           </div>
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-teal-500/30 bg-[#071224] p-5 md:p-6">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-teal-500/30 bg-[var(--fl-surface-2)] p-5 md:p-6">
           <h2 className="mb-3 break-words text-2xl font-bold text-[var(--fl-accent-text)]">
             Generate Realtor Summary
           </h2>
@@ -1394,7 +1394,7 @@ function RepairRequestContent() {
           </div>
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[#071224] p-5 md:p-6">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-5 md:p-6">
           <h2 className="mb-3 break-words text-2xl font-bold text-[var(--fl-accent-text)]">
             Request Language
           </h2>
@@ -1424,7 +1424,7 @@ function RepairRequestContent() {
           </div>
 
           {selectedFindings.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-indigo-500/40 bg-indigo-950/20 p-3">
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-indigo-500/40 bg-indigo-500/10 p-3">
               <button
                 type="button"
                 onClick={runEstimates}

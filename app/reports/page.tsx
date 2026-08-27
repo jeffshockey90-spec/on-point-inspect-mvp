@@ -492,7 +492,7 @@ export default async function ReportsPage() {
 
 function ReportMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl transition duration-150 hover:border-teal-500/50 hover:bg-[#13213a] active:scale-[0.985]">
+    <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl transition duration-150 hover:border-teal-500/50 hover:bg-[var(--fl-surface-2)] active:scale-[0.985]">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">{label}</p>
       <p className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">{value}</p>
     </div>

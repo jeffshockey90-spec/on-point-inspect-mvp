@@ -657,7 +657,7 @@ export default function BulkAICapturePage() {
             className="mt-5 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
           />
 
-          <div className="mt-5 rounded-2xl border border-purple-800 bg-purple-950/20 p-4">
+          <div className="mt-5 rounded-2xl border border-purple-800 bg-purple-500/10 p-4">
             <h3 className="text-lg font-extrabold text-purple-300">AI Guidance Memory</h3>
 
             <p className="mt-1 text-sm text-[var(--fl-muted)]">
@@ -681,7 +681,7 @@ export default function BulkAICapturePage() {
             </button>
           </div>
 
-          <p className="mt-4 rounded-xl border border-teal-800 bg-teal-950/20 p-3 text-sm text-teal-100">
+          <p className="mt-4 rounded-xl border border-teal-800 bg-teal-500/10 p-3 text-sm text-teal-100">
             Tip: Analyze all photos first. Then click Auto Merge Similar Findings to preview which photos will be grouped together before saving.
           </p>
 
@@ -832,7 +832,7 @@ function MergePreviewPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-cyan-700 bg-cyan-950/20 p-6">
+    <section className="rounded-2xl border border-cyan-700 bg-cyan-500/10 p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold text-cyan-300">Review Merge Plan</h2>
@@ -911,7 +911,7 @@ function MergeMiniCard({
         <video
           src={item.previewUrl}
           controls
-          className="mb-3 h-40 w-full rounded-lg bg-black object-contain"
+          className="mb-3 h-40 w-full rounded-lg bg-[var(--fl-surface-2)] object-contain"
         />
       ) : (
         <img
@@ -968,7 +968,7 @@ function PhotoReviewCard({
       </div>
 
       {isMergedChild && mergedIntoItem && (
-        <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-950/30 p-4">
+        <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-500/10 p-4">
           <p className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
             This photo will merge into:
           </p>
@@ -982,7 +982,7 @@ function PhotoReviewCard({
       )}
 
       {mergedChildren.length > 0 && (
-        <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-950/30 p-4">
+        <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-500/10 p-4">
           <p className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
             Photos merging into this finding:
           </p>
@@ -1011,7 +1011,7 @@ function PhotoReviewCard({
             <video
               src={item.previewUrl}
               controls
-              className="max-h-[320px] w-full rounded-xl border border-[var(--fl-line)] bg-black"
+              className="max-h-[320px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
             />
           ) : (
             <img
@@ -1065,7 +1065,7 @@ function PhotoReviewCard({
           </div>
 
           {item.error && (
-            <p className="mt-3 rounded-lg border border-red-800 bg-red-950/40 p-3 text-sm text-red-200">
+            <p className="mt-3 rounded-lg border border-red-800 bg-red-500/10 p-3 text-sm text-red-200">
               {item.error}
             </p>
           )}
@@ -1131,7 +1131,7 @@ function PhotoReviewCard({
             item.serialNumber ||
             item.estimatedAge ||
             item.notes) && (
-            <div className="rounded-xl border border-blue-800 bg-blue-950/20 p-4">
+            <div className="rounded-xl border border-blue-800 bg-blue-500/10 p-4">
               <h4 className="mb-3 font-bold text-blue-300">Equipment Data</h4>
 
               <div className="grid gap-3 md:grid-cols-2">

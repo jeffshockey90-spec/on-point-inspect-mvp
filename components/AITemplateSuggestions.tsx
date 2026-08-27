@@ -61,7 +61,7 @@ export default function AITemplateSuggestions({
   if (!title && !observation) return null;
 
   return (
-    <div className="mt-5 rounded-2xl border border-cyan-700 bg-cyan-950/20 p-5">
+    <div className="mt-5 rounded-2xl border border-cyan-700 bg-cyan-500/10 p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-xl font-bold text-cyan-300">

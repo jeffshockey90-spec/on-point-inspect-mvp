@@ -537,7 +537,7 @@ export default function BookingRequestForm({
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[12px] font-semibold ${
                       checked
                         ? "border-teal-300 bg-teal-400 text-black"
-                        : "border-zinc-500 bg-black text-transparent"
+                        : "border-zinc-500 bg-[var(--fl-surface-2)] text-transparent"
                     }`}
                   >
                     ✓
@@ -562,7 +562,7 @@ export default function BookingRequestForm({
             </label>
 
             {form.property_image_url ? (
-              <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-black">
+              <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
                 <img
                   src={form.property_image_url}
                   alt="Selected property"

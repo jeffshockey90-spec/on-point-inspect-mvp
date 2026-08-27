@@ -296,7 +296,7 @@ function SectionReferencePhotos({
         setDraggingOver(false);
       }}
       onDrop={handleReferenceDrop}
-      className={`rounded-2xl border bg-[#071224] transition ${
+      className={`rounded-2xl border bg-[var(--fl-surface-2)] transition ${
         draggingOver
           ? "border-cyan-400 ring-2 ring-cyan-400/40"
           : "border-[var(--fl-line)]"
@@ -489,7 +489,7 @@ function SectionReferencePhotos({
                         fullSrc={fullUrl}
                         alt={photo.caption || `Reference photo ${index + 1}`}
                         className="h-48 w-full object-cover transition hover:scale-[1.02]"
-                        buttonClassName="block w-full overflow-hidden bg-black text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
+                        buttonClassName="block w-full overflow-hidden bg-[var(--fl-surface-2)] text-left focus:outline-none focus:ring-2 focus:ring-cyan-300"
                         badgeText="Tap to enlarge"
                       />
                     ) : (

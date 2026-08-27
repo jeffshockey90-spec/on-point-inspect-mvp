@@ -171,7 +171,7 @@ export default function DashboardGrid({ widgets, initialLayout }: Props) {
                   <button
                     type="button"
                     onClick={() => cycleSize(w.id)}
-                    className="rounded-md bg-[var(--fl-raised)] px-2 py-0.5 text-[11px] font-semibold text-[var(--fl-accent-text)] hover:bg-slate-700"
+                    className="rounded-md bg-[var(--fl-raised)] px-2 py-0.5 text-[11px] font-semibold text-[var(--fl-accent-text)] hover:bg-[var(--fl-raised)]"
                     title="Resize"
                   >
                     {SIZE_LABEL[w.size]}

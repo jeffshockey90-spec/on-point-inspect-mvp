@@ -500,7 +500,7 @@ function AISectionReview({
 
   if (dismissed) {
     return (
-      <div className="rounded-xl border border-[var(--fl-line)] bg-[#071224] p-4">
+      <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
         <button
           type="button"
           onClick={() => setDismissed(false)}
@@ -527,7 +527,7 @@ function AISectionReview({
           </p>
         </div>
 
-        <span className="rounded-full border border-[var(--fl-faint)] bg-black/30 px-3 py-1 text-xs font-semibold text-[var(--fl-text)]">
+        <span className="rounded-full border border-[var(--fl-faint)] bg-[var(--fl-surface-2)] px-3 py-1 text-xs font-semibold text-[var(--fl-text)]">
           {review.missing.length} check{review.missing.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -546,7 +546,7 @@ function AISectionReview({
       )}
 
       {review.missing.length > 0 ? (
-        <div className="mt-4 rounded-lg border border-yellow-500/30 bg-black/25 p-3">
+        <div className="mt-4 rounded-lg border border-yellow-500/30 bg-[var(--fl-surface-2)] p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-yellow-300">
             Check Before Leaving
           </p>

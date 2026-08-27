@@ -107,7 +107,7 @@ export default function SmsStatusCard() {
       ) : (
         <>
           {status.lowBalance && (
-            <div className="mt-5 rounded-xl border border-amber-500/50 bg-amber-950/30 p-4 text-sm text-amber-200">
+            <div className="mt-5 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-amber-200">
               <p className="font-semibold">⚠ Low SMS balance</p>
               <p className="mt-1 text-amber-200/90">
                 Your Twilio balance ({money(status.balance, status.currency)}) is below{" "}

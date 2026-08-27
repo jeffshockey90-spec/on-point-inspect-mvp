@@ -97,7 +97,7 @@ export default function SecurityEventsPanel() {
           to start recording attempts.
         </div>
       ) : quiet ? (
-        <div className="mt-5 rounded-xl border border-emerald-700/40 bg-emerald-950/20 p-4 text-sm text-emerald-200">
+        <div className="mt-5 rounded-xl border border-emerald-700/40 bg-emerald-500/10 p-4 text-sm text-emerald-200">
           No blocked intrusion attempts in the last 7 days. 🛡️
         </div>
       ) : (

@@ -278,13 +278,13 @@ export default async function SchedulePage() {
         </div>
 
         {error ? (
-          <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-950/40 p-6 text-red-100">
+          <div className="mb-6 rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-red-100">
             Schedule could not load: {error.message}
           </div>
         ) : null}
 
         {bookingRequestsError ? (
-          <div className="mb-6 rounded-2xl border border-yellow-500/40 bg-yellow-950/30 p-5 text-yellow-100">
+          <div className="mb-6 rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-5 text-yellow-100">
             Booking requests could not load. If this is your first install, run the booking SQL migration first. {bookingRequestsError.message}
           </div>
         ) : null}
@@ -299,7 +299,7 @@ export default async function SchedulePage() {
         </div>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-4">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
             <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
               Scheduled
             </p>
@@ -308,7 +308,7 @@ export default async function SchedulePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-4">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
             <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
               Unscheduled
             </p>
@@ -317,7 +317,7 @@ export default async function SchedulePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-4">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
             <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
               Total Reports
             </p>
@@ -326,7 +326,7 @@ export default async function SchedulePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-4">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
             <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
               Booking Requests
             </p>
@@ -339,7 +339,7 @@ export default async function SchedulePage() {
         <ScheduleReminderSettings />
         <InspectorAvailabilitySettings />
 
-        <section className="mb-8 rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-5">
+        <section className="mb-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Pending Booking Requests</h2>
@@ -357,13 +357,13 @@ export default async function SchedulePage() {
           </div>
 
           {pendingBookingRequests.length === 0 ? (
-            <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[#020817]/70 p-5 text-sm text-[var(--fl-muted)]">
+            <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 text-sm text-[var(--fl-muted)]">
               No pending booking requests right now.
             </div>
           ) : (
             <div className="mt-5 grid gap-4">
               {pendingBookingRequests.map((request: BookingRequestRow) => (
-                <article key={request.id} className="rounded-2xl border border-[var(--fl-line)] bg-[#020817]/70 p-5">
+                <article key={request.id} className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
@@ -422,7 +422,7 @@ export default async function SchedulePage() {
         </div>
 
         {unscheduledRows.length > 0 ? (
-          <div className="mb-8 rounded-2xl border border-yellow-500/30 bg-yellow-950/20 p-5">
+          <div className="mb-8 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5">
             <h2 className="text-lg font-bold text-yellow-100">
               Reports missing a schedule date
             </h2>
@@ -436,7 +436,7 @@ export default async function SchedulePage() {
                 <Link
                   key={inspection.id}
                   href={`/reports/${inspection.id}`}
-                  className="rounded-xl border border-yellow-500/20 bg-black/30 p-4 transition hover:bg-yellow-500/10"
+                  className="rounded-xl border border-yellow-500/20 bg-[var(--fl-surface-2)] p-4 transition hover:bg-yellow-500/10"
                 >
                   <p className="text-sm font-bold text-[var(--fl-text)]">
                     {getAddress(inspection)}
@@ -451,7 +451,7 @@ export default async function SchedulePage() {
         ) : null}
 
         {rows.length === 0 && !error ? (
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a] p-6">
+          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-6">
             <h2 className="text-xl font-bold text-[var(--fl-text)]">
               No inspections scheduled yet
             </h2>
@@ -462,12 +462,12 @@ export default async function SchedulePage() {
             </p>
           </div>
         ) : sortedRows.length > 0 ? (
-          <details className="overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[#0f172a]">
-            <summary className="cursor-pointer bg-zinc-950 px-5 py-4 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-zinc-900">
+          <details className="overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
+            <summary className="cursor-pointer bg-[var(--fl-ground)] px-5 py-4 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-[var(--fl-surface)]">
               Show inspection list
             </summary>
 
-            <div className="hidden grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] gap-4 border-b border-zinc-800 bg-zinc-950 px-5 py-4 text-xs font-bold uppercase tracking-widest text-[var(--fl-accent-text)] lg:grid">
+            <div className="hidden grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] gap-4 border-b border-zinc-800 bg-[var(--fl-ground)] px-5 py-4 text-xs font-bold uppercase tracking-widest text-[var(--fl-accent-text)] lg:grid">
               <div>Date / Time</div>
               <div>Property</div>
               <div>Client</div>
@@ -485,7 +485,7 @@ export default async function SchedulePage() {
                 return (
                   <div
                     key={inspection.id}
-                    className="grid gap-4 px-5 py-5 hover:bg-zinc-800/60 lg:grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] lg:items-center"
+                    className="grid gap-4 px-5 py-5 hover:bg-[var(--fl-raised)] lg:grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] lg:items-center"
                   >
                     <div>
                       <p className="text-sm font-bold text-[var(--fl-text)]">

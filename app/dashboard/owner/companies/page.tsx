@@ -171,15 +171,15 @@ export default async function OwnerCompaniesPage() {
         <SubscriptionPricingEditor />
 
         <section className="grid gap-5 md:grid-cols-3">
-          <div className="rounded-2xl border border-teal-500/40 bg-teal-950/20 p-6 shadow-xl">
+          <div className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-6 shadow-xl">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Total Companies</p>
             <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{rows.length}</p>
           </div>
-          <div className="rounded-2xl border border-green-500/40 bg-green-950/20 p-6 shadow-xl">
+          <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-6 shadow-xl">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Active</p>
             <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{activeCompanies.length}</p>
           </div>
-          <div className="rounded-2xl border border-red-500/40 bg-red-950/20 p-6 shadow-xl">
+          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-6 shadow-xl">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Inactive / Deleted</p>
             <p className="mt-3 text-4xl font-semibold text-[var(--fl-text)]">{inactiveCompanies.length}</p>
           </div>

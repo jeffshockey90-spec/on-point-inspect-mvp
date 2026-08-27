@@ -16,7 +16,7 @@ type FastCardProps = {
 };
 
 const baseClass =
-  "group block w-full rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 text-left shadow-lg transition duration-150 hover:-translate-y-0.5 hover:border-teal-500 hover:bg-[#13213a] active:scale-[0.985] active:border-teal-400 [touch-action:manipulation] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950";
+  "group block w-full rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 text-left shadow-lg transition duration-150 hover:-translate-y-0.5 hover:border-teal-500 hover:bg-[var(--fl-surface-2)] active:scale-[0.985] active:border-teal-400 [touch-action:manipulation] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950";
 
 function CardInner({
   icon,

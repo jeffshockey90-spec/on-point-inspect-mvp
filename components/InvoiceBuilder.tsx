@@ -167,12 +167,12 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {error && (
-        <div className="rounded-xl border border-red-700 bg-red-950/40 px-4 py-3 text-sm font-bold text-red-200">
+        <div className="rounded-xl border border-red-700 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
           {error}
         </div>
       )}
       {notice && (
-        <div className="rounded-xl border border-emerald-700 bg-emerald-950/40 px-4 py-3 text-sm font-bold text-emerald-200">
+        <div className="rounded-xl border border-emerald-700 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-200">
           {notice}
         </div>
       )}
@@ -196,7 +196,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
         </label>
       </div>
 
-      <div className="rounded-2xl border border-[var(--fl-line)] bg-[#071224] p-4">
+      <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-[var(--fl-accent-text)]">Line items</h3>
           <button type="button" onClick={addItem} className="rounded-lg border border-teal-500 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10">

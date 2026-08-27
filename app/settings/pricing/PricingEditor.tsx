@@ -167,14 +167,14 @@ export default function PricingEditor({
   return (
     <div className="space-y-6">
       {mode === "company" && (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-950/20 p-4 text-sm text-amber-200">
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
           This is your <span className="font-semibold">company price sheet</span>. Every
           inspector on your team uses it unless they set their own override.
         </div>
       )}
 
       {mode === "personal" && source === "override" && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-500/40 bg-teal-950/20 p-4 text-sm text-[var(--fl-accent-text)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-500/40 bg-teal-500/10 p-4 text-sm text-[var(--fl-accent-text)]">
           <span className="font-bold">
             You have a personal price override — these rates apply to your jobs
             instead of the company pricing.
@@ -206,13 +206,13 @@ export default function PricingEditor({
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-500/40 bg-red-950/20 p-4 text-sm font-bold text-red-300">
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm font-bold text-red-300">
           {error}
         </div>
       )}
 
       {saved && (
-        <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4 text-sm font-bold text-emerald-300">
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-300">
           Pricing saved. The Quotes calculator will use these rates.
         </div>
       )}

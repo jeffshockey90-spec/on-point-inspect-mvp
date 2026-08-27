@@ -145,7 +145,7 @@ function LiveInspectionScore({
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <div className="relative h-16 w-16 rounded-full bg-black/25 p-1">
+          <div className="relative h-16 w-16 rounded-full bg-[var(--fl-surface-2)] p-1">
             <div className="flex h-full w-full items-center justify-center rounded-full border-4 border-current text-lg font-semibold">
               {score}
             </div>
@@ -154,7 +154,7 @@ function LiveInspectionScore({
         </div>
       </button>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-black/25">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
         <div className="h-full rounded-full bg-current transition-[width] duration-500" style={{ width: `${score}%` }} />
       </div>
 
@@ -162,11 +162,11 @@ function LiveInspectionScore({
         <div className="mt-4 space-y-3">
           {current && (
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-white/15 bg-black/20 p-3">
+              <div className="rounded-xl border border-white/15 bg-[var(--fl-surface-2)] p-3">
                 <p className="text-xs font-semibold uppercase opacity-70">Section score</p>
                 <p className="mt-1 text-xl font-semibold">{current.score}%</p>
               </div>
-              <div className="rounded-xl border border-white/15 bg-black/20 p-3">
+              <div className="rounded-xl border border-white/15 bg-[var(--fl-surface-2)] p-3">
                 <p className="text-xs font-semibold uppercase opacity-70">Missing items</p>
                 <p className="mt-1 text-xl font-semibold">{current.missingItems.length}</p>
               </div>

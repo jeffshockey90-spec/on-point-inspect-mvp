@@ -113,7 +113,7 @@ function DetailBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3">
+    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {title}
       </p>
@@ -136,7 +136,7 @@ export default function AISecondInspector({
   const activeSuggestion = suggestions[0];
 
   return (
-    <section className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-purple-500/40 bg-purple-950/20 p-4 shadow-xl">
+    <section className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4 shadow-xl">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-purple-300">
@@ -209,7 +209,7 @@ export default function AISecondInspector({
                       {confidence ? tone.label : "Pending Review"}
                     </p>
 
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/40">
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--fl-surface-2)]">
                       <div
                         className={`h-full ${tone.bar}`}
                         style={{ width: `${confidence || 0}%` }}
@@ -299,7 +299,7 @@ export default function AISecondInspector({
                   return (
                     <div
                       key={suggestion.id}
-                      className="rounded-xl border border-[var(--fl-line)] bg-black/30 p-3"
+                      className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>

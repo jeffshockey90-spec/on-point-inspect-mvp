@@ -59,7 +59,7 @@ export default function DeleteAccountSection() {
   }
 
   return (
-    <section className="mt-10 rounded-2xl border border-red-500/40 bg-red-950/20 p-6">
+    <section className="mt-10 rounded-2xl border border-red-500/40 bg-red-500/10 p-6">
       <h2 className="text-xl font-bold text-red-300">Delete Account</h2>
 
       <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">

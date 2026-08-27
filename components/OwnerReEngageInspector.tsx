@@ -147,7 +147,7 @@ export default function OwnerReEngageInspector({ email, name }: { email: string;
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-orange-500/40 bg-orange-950/10 p-3">
+    <div className="space-y-3 rounded-xl border border-orange-500/40 bg-orange-500/10 p-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wide text-orange-300">Re-engage by email</p>
         <button type="button" onClick={() => setOpen(false)} className="text-xs font-bold text-[var(--fl-muted)] hover:text-[var(--fl-text)]">

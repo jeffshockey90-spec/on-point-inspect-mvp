@@ -150,7 +150,7 @@ function getUserKey(row: any) {
 function RestrictedOwner() {
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
-      <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-950/20 p-8 shadow-2xl">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-red-500/40 bg-red-500/10 p-8 shadow-2xl">
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-red-300">
           Owner Only
         </p>
@@ -216,7 +216,7 @@ function OwnerNav() {
       </Link>
       <Link
         href="/dashboard/owner/system"
-        className="rounded-xl border border-[var(--fl-faint)] px-4 py-3 font-semibold text-[var(--fl-text)] transition hover:bg-slate-700/30"
+        className="rounded-xl border border-[var(--fl-faint)] px-4 py-3 font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)]"
       >
         🩺 System
       </Link>
@@ -236,13 +236,13 @@ function MetricCard({
   tone: Tone;
 }) {
   const classes: Record<Tone, string> = {
-    teal: "border-teal-500/40 bg-teal-950/20 text-[var(--fl-accent-text)]",
-    green: "border-green-500/40 bg-green-950/20 text-green-300",
-    blue: "border-blue-500/40 bg-blue-950/20 text-blue-300",
-    purple: "border-purple-500/40 bg-purple-950/20 text-purple-300",
-    orange: "border-orange-500/40 bg-orange-950/20 text-orange-300",
-    yellow: "border-yellow-500/40 bg-yellow-950/20 text-yellow-300",
-    red: "border-red-500/40 bg-red-950/20 text-red-300",
+    teal: "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]",
+    green: "border-green-500/40 bg-green-500/10 text-green-300",
+    blue: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+    purple: "border-purple-500/40 bg-purple-500/10 text-purple-300",
+    orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
+    yellow: "border-yellow-500/40 bg-yellow-500/10 text-yellow-300",
+    red: "border-red-500/40 bg-red-500/10 text-red-300",
   };
 
   return (
