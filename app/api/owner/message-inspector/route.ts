@@ -6,6 +6,7 @@ import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
 import { listUnsubscribeHeaders } from "../../../../lib/emailUnsubscribe";
 import { buildAiToolsEmail, AI_TOOLS_SUBJECT } from "../../../../lib/emailTemplates/aiToolsEmail";
 import { buildWhatsNewEmail } from "../../../../lib/emailTemplates/whatsNewEmail";
+import { buildOwnerPlainEmail } from "../../../../lib/emailTemplates/ownerPlainEmail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,13 +18,6 @@ const admin = createServiceClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   { auth: { persistSession: false, autoRefreshToken: false } },
 );
-
-const APP_URL = "https://app.flowinspect.app";
-const IOS_APP_URL = "https://apps.apple.com/us/app/flow-inspection-software/id6777555077";
-
-function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
 
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -47,28 +41,6 @@ function firstName(name?: string, email?: string) {
 
 function personalize(text: string, name?: string, email?: string) {
   return text.replace(/\{\{?\s*name\s*\}?\}/gi, firstName(name, email));
-}
-
-function wrapHtml(message: string) {
-  const body = escapeHtml(message).replace(/\n/g, "<br/>");
-  return `<div style="font-family:Arial,Helvetica,sans-serif;line-height:1.7;color:#0f172a;max-width:600px;margin:auto;padding:28px 24px;background:#ffffff;">
-    <a href="${APP_URL}" style="text-decoration:none;">
-      <img src="${APP_URL}/icons/icon-192-v2.png" alt="FLOW" width="52" height="52" style="border-radius:13px;vertical-align:middle;border:0;" />
-      <span style="font-weight:900;font-size:24px;color:#14b8a6;vertical-align:middle;margin-left:12px;letter-spacing:0.01em;">FLOW</span>
-    </a>
-    <div style="margin-top:22px;font-size:15px;color:#0f172a;">${body}</div>
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:26px;">
-      <tr>
-        <td valign="middle" style="padding-right:14px;">
-          <a href="${APP_URL}" style="display:inline-block;background:#14b8a6;color:#ffffff;font-weight:800;text-decoration:none;padding:13px 24px;border-radius:10px;">Open FLOW</a>
-        </td>
-        <td valign="middle">
-          <a href="${IOS_APP_URL}" style="text-decoration:none;"><img src="${APP_URL}/email/app-store-badge.png" alt="Download on the App Store" height="46" style="display:block;border:0;height:46px;width:auto;" /></a>
-        </td>
-      </tr>
-    </table>
-    <p style="margin-top:28px;font-size:12px;color:#94a3b8;">You're receiving this because you have a FLOW inspector account.</p>
-  </div>`;
 }
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -134,7 +106,7 @@ export async function POST(req: Request) {
       ? buildAiToolsEmail(firstName(r.name, r.email))
       : isWhatsNew
         ? buildWhatsNewEmail(firstName(r.name, r.email), whatsNewEntries)
-        : wrapHtml(personalize(message, r.name, r.email));
+        : buildOwnerPlainEmail(personalize(message, r.name, r.email));
     const { data, error } = await resend.emails.send({
       from: "FLOW <notifications@flowinspect.app>",
       to: r.email,
