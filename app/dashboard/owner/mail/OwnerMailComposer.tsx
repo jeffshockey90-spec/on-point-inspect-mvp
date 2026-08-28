@@ -271,6 +271,11 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
               📸 This one sends a <strong>designed email with screenshots</strong> of the AI Camera + Command Center. The text below is just a preview — each inspector still gets the personalized greeting.
             </p>
           )}
+          {templateId === "whats-new" && (
+            <p className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[12px] font-semibold text-[var(--fl-accent-text)]">
+              ✨ This sends a <strong>designed card email</strong> built from your latest changelog updates. The text below is just a preview — the email always pulls the newest entries at send time.
+            </p>
+          )}
           <p className="text-[11px] text-[var(--fl-faint)]">
             Sends from FLOW with the app logo + &quot;Open FLOW&quot; / &quot;Get the iOS App&quot; buttons. Replies go to support@flowinspect.app.
           </p>

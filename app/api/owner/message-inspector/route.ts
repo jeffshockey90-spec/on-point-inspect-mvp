@@ -5,6 +5,7 @@ import { createClient } from "../../../../utils/supabase/server";
 import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
 import { listUnsubscribeHeaders } from "../../../../lib/emailUnsubscribe";
 import { buildAiToolsEmail, AI_TOOLS_SUBJECT } from "../../../../lib/emailTemplates/aiToolsEmail";
+import { buildWhatsNewEmail } from "../../../../lib/emailTemplates/whatsNewEmail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,6 +108,23 @@ export async function POST(req: Request) {
   const errors: string[] = [];
 
   const isAiTools = template === "ai-tools";
+  const isWhatsNew = template === "whats-new";
+
+  // The What's New template is a designed card email built from the latest
+  // changelog entries (fetched fresh at send time so it's always current),
+  // rather than the plain-text preview body.
+  let whatsNewEntries: { title: string; body: string }[] = [];
+  if (isWhatsNew) {
+    const { data: entries } = await admin
+      .from("changelog_entries")
+      .select("title, body")
+      .order("published_at", { ascending: false })
+      .limit(5);
+    whatsNewEntries = (entries || []).map((e: any) => ({
+      title: String(e.title || ""),
+      body: String(e.body || ""),
+    }));
+  }
 
   for (const r of recipients) {
     const personalSubject = personalize(subject || (isAiTools ? AI_TOOLS_SUBJECT : ""), r.name, r.email);
@@ -114,7 +132,9 @@ export async function POST(req: Request) {
     // screenshots). Every other template is the editable plain-text body.
     const html = isAiTools
       ? buildAiToolsEmail(firstName(r.name, r.email))
-      : wrapHtml(personalize(message, r.name, r.email));
+      : isWhatsNew
+        ? buildWhatsNewEmail(firstName(r.name, r.email), whatsNewEntries)
+        : wrapHtml(personalize(message, r.name, r.email));
     const { data, error } = await resend.emails.send({
       from: "FLOW <notifications@flowinspect.app>",
       to: r.email,
