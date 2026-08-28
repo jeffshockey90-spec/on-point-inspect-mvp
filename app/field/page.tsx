@@ -1200,6 +1200,10 @@ function FieldPageContent() {
     const { data, error } = await supabase
       .from("inspections")
       .select("*")
+      // Field work is only for real inspections — hide demo/imported sample
+      // reports (they clutter the picker and can't be captured against),
+      // matching how the main Reports list filters them out.
+      .or("is_demo.is.null,is_demo.eq.false")
       .order("created_at", { ascending: false });
 
     if (error) {
