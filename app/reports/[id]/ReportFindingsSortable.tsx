@@ -712,9 +712,13 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
             setSelectedCombine(new Set());
             setCombineError("");
           }}
-          className="w-full rounded-xl border border-purple-500/60 px-4 py-3 text-sm font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:py-2"
+          className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-900/30 transition active:scale-[0.98] sm:w-auto sm:py-2 ${
+            combineOpen
+              ? "bg-purple-600 ring-2 ring-purple-300 hover:bg-purple-500"
+              : "bg-purple-500 hover:bg-purple-400"
+          }`}
         >
-          🔗 Combine Defects
+          {combineOpen ? "✕ Done Combining" : "🔗 Combine Defects"}
         </button>
 
         {deletedSections && deletedSections.length > 0 && (
@@ -768,88 +772,20 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       )}
 
       {combineOpen && (
-        <div className="w-full rounded-2xl border border-purple-500/40 bg-[var(--fl-surface)] p-4">
+        <div className="w-full rounded-2xl border border-purple-500/40 bg-purple-500/5 p-4">
           <p className="text-sm font-semibold text-[var(--fl-text)]">Combine duplicate defects</p>
           <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
-            Pick the same defect found at different locations (e.g. missing GFCIs in the
-            exterior, kitchen, and bathroom). AI rewrites them into one finding that lists every
+            Tick the{" "}
+            <span className="font-semibold text-[var(--fl-purple-text)]">☐ Combine</span>{" "}
+            badge on any findings that are the same defect at different locations (e.g. missing
+            GFCIs in the exterior, kitchen, and bathroom), then press{" "}
+            <span className="font-semibold text-[var(--fl-purple-text)]">Combine into one</span>{" "}
+            in the bar at the bottom. AI rewrites them into a single finding that lists every
             location, keeps the most serious severity, and moves all photos onto it.
           </p>
-
-          <div className="mt-3 max-h-[50vh] space-y-3 overflow-y-auto">
-            {(orderedGroups || []).map((group: any) => {
-              const groupFindings = group.findings || [];
-              if (!groupFindings.length) return null;
-              return (
-                <div key={group.section}>
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
-                    {group.section}
-                  </p>
-                  <div className="space-y-1.5">
-                    {groupFindings.map((f: any) => {
-                      const id = String(f.id);
-                      const checked = selectedCombine.has(id);
-                      return (
-                        <label
-                          key={id}
-                          className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition ${
-                            checked
-                              ? "border-purple-400 bg-purple-500/10"
-                              : "border-[var(--fl-line)] bg-[var(--fl-ground)] hover:border-[var(--fl-faint)]"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleCombineSelect(id)}
-                            className="mt-0.5 h-4 w-4 accent-purple-400"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-bold text-[var(--fl-text)]">
-                              {f.title || f.observation || "Untitled finding"}
-                            </span>
-                            {(f.location || f.severity) && (
-                              <span className="block truncate text-xs text-[var(--fl-muted)]">
-                                {[f.severity, f.location].filter(Boolean).join(" · ")}
-                              </span>
-                            )}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
           {combineError && (
             <p className="mt-3 text-sm font-bold text-[var(--fl-crit-text)]">{combineError}</p>
           )}
-
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={combineSelectedFindings}
-              disabled={combining || selectedCombine.size < 2}
-              className="rounded-xl bg-purple-500 px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {combining
-                ? "Combining…"
-                : `🔗 Combine ${selectedCombine.size || ""} into one`}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCombineOpen(false);
-                setSelectedCombine(new Set());
-                setCombineError("");
-              }}
-              className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-[var(--fl-faint)]"
-            >
-              Cancel
-            </button>
-          </div>
         </div>
       )}
 
@@ -1097,18 +1033,48 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                   </div>
                 )}
 
-                {findings.map((finding: any) => (
-                  <FindingCard
-                    key={finding.id}
-                    finding={finding}
-                    inspectionId={inspectionId}
-                    allPhotos={allPhotos}
-                    allFindings={allFindings}
-                    availableSections={availableSections}
-                    onNeedPhotoPicker={() => setPhotoPickerLoaded(true)}
-                    router={router}
-                  />
-                ))}
+                {findings.map((finding: any) => {
+                  const card = (
+                    <FindingCard
+                      key={finding.id}
+                      finding={finding}
+                      inspectionId={inspectionId}
+                      allPhotos={allPhotos}
+                      allFindings={allFindings}
+                      availableSections={availableSections}
+                      onNeedPhotoPicker={() => setPhotoPickerLoaded(true)}
+                      router={router}
+                    />
+                  );
+                  if (!combineOpen) return card;
+                  const cid = String(finding.id);
+                  const picked = selectedCombine.has(cid);
+                  return (
+                    <div
+                      key={finding.id}
+                      className={`relative rounded-2xl transition ${
+                        picked ? "ring-2 ring-inset ring-purple-400" : ""
+                      }`}
+                    >
+                      <label
+                        className={`absolute left-2 top-2 z-40 flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold shadow-lg transition ${
+                          picked
+                            ? "border-purple-300 bg-purple-500 text-white"
+                            : "border-purple-400/70 bg-[var(--fl-surface)] text-[var(--fl-purple-text)] hover:bg-purple-500/10"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={picked}
+                          onChange={() => toggleCombineSelect(cid)}
+                          className="h-3.5 w-3.5 accent-purple-400"
+                        />
+                        {picked ? "Selected" : "Combine"}
+                      </label>
+                      {card}
+                    </div>
+                  );
+                })}
               </div>
             </DeferredOpenSection>
           </section>
@@ -1116,6 +1082,40 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       })}
         </div>
       </div>
+
+      {combineOpen && (
+        <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
+          <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-purple-400/50 bg-[var(--fl-surface)] px-4 py-3 shadow-2xl backdrop-blur">
+            <span className="text-sm font-semibold text-[var(--fl-text)]">
+              {selectedCombine.size} selected
+              {selectedCombine.size === 1 && (
+                <span className="ml-1 font-normal text-[var(--fl-muted)]">· pick one more</span>
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={combineSelectedFindings}
+              disabled={combining || selectedCombine.size < 2}
+              className="rounded-xl bg-purple-500 px-5 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {combining
+                ? "Combining…"
+                : `🔗 Combine ${selectedCombine.size || ""} into one`}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCombineOpen(false);
+                setSelectedCombine(new Set());
+                setCombineError("");
+              }}
+              className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-muted)] transition hover:border-[var(--fl-faint)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

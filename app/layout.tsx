@@ -67,7 +67,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable} overflow-x-clip`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${sans.variable} ${mono.variable} overflow-x-clip`}
+    >
       <head>
         {/* Apply the saved theme before first paint so there's no flash. The DB
             (profiles.theme) is the source of truth; this reads the localStorage
