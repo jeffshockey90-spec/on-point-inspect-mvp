@@ -1120,6 +1120,109 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   );
 }
 
+// Upload one image/video and attach it to a finding as a photos row. Mirrors
+// the card's uploadNewPhotosToFinding so newly-created defects can carry photos
+// from the start (not only after saving). Videos convert to MP4 best-effort.
+async function uploadFindingMediaFile(
+  inspectionId: string,
+  findingId: string,
+  file: File,
+): Promise<void> {
+  let uploadFile = file;
+  let thumbnailFile: File | null = null;
+  let isVideo = false;
+
+  if (file.type.startsWith("video/")) {
+    isVideo = true;
+    try {
+      const formData = new FormData();
+      formData.append("video", file);
+      const response = await fetch("/api/video-convert", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error((await response.text().catch(() => "")) || "Video conversion failed");
+      }
+      const convertedBlob = await response.blob();
+      if (!convertedBlob || convertedBlob.size === 0) {
+        throw new Error("Video conversion returned an empty MP4.");
+      }
+      uploadFile = new File([convertedBlob], `video-${Date.now()}.mp4`, {
+        type: "video/mp4",
+      });
+    } catch {
+      // Fall back to the original so a video is never silently dropped.
+      uploadFile = file;
+    }
+    thumbnailFile = await createVideoThumbnailForUpload(uploadFile).catch(() => null);
+  } else {
+    uploadFile = await createFullImageForUpload(file);
+    thumbnailFile = await createThumbnailForUpload(file);
+  }
+
+  const fileExt = isVideo
+    ? (uploadFile.name.split(".").pop() || uploadFile.type.split("/")[1] || "mp4")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .slice(0, 4) || "mp4"
+    : "jpg";
+  const safeName = uploadFile.name
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-zA-Z0-9-_]/g, "-")
+    .slice(0, 50);
+
+  const baseName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+  const filePath = `${inspectionId}/finding-photos/${findingId}/${baseName}.${fileExt}`;
+  const thumbnailPath = `${inspectionId}/finding-photos/${findingId}/thumbnails/${baseName}-thumb.jpg`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(filePath, uploadFile, {
+      cacheControl: "31536000",
+      upsert: false,
+      contentType: uploadFile.type || (isVideo ? "video/mp4" : "image/jpeg"),
+    });
+
+  if (uploadError) throw uploadError;
+
+  const { data: publicData } = supabase.storage
+    .from(PHOTO_BUCKET)
+    .getPublicUrl(filePath);
+
+  let thumbnailUrl = "";
+
+  if (thumbnailFile) {
+    const { error: thumbnailUploadError } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .upload(thumbnailPath, thumbnailFile, {
+        cacheControl: "31536000",
+        upsert: false,
+        contentType: "image/jpeg",
+      });
+
+    if (!thumbnailUploadError) {
+      const { data: thumbnailData } = supabase.storage
+        .from(PHOTO_BUCKET)
+        .getPublicUrl(thumbnailPath);
+      thumbnailUrl = thumbnailData.publicUrl;
+    }
+  }
+
+  const { error: insertError } = await supabase.from("photos").insert({
+    inspection_id: inspectionId,
+    finding_id: findingId,
+    file_path: filePath,
+    public_url: publicData.publicUrl,
+    thumbnail_path: thumbnailUrl ? thumbnailPath : null,
+    thumbnail_url: thumbnailUrl || null,
+    is_video: isVideo,
+    mime_type: uploadFile.type || (isVideo ? "video/mp4" : "image/jpeg"),
+  });
+
+  if (insertError) throw insertError;
+}
+
 function AddSectionFindingForm({
   inspectionId,
   section,
@@ -1142,6 +1245,36 @@ function AddSectionFindingForm({
   const [generatingAi, setGeneratingAi] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  // Photos/videos to attach as the defect is created (not only afterward).
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+  const pendingPreviews = useMemo(
+    () =>
+      pendingFiles.map((file) => ({
+        file,
+        url: URL.createObjectURL(file),
+        isVideo: file.type.startsWith("video/"),
+      })),
+    [pendingFiles],
+  );
+
+  useEffect(
+    () => () => {
+      pendingPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    },
+    [pendingPreviews],
+  );
+
+  function addPendingFiles(fileList: FileList | null) {
+    const chosen = Array.from(fileList || []).filter(
+      (file) => file.type.startsWith("image/") || file.type.startsWith("video/"),
+    );
+    if (chosen.length) setPendingFiles((current) => [...current, ...chosen]);
+  }
+
+  function removePendingFile(target: File) {
+    setPendingFiles((current) => current.filter((file) => file !== target));
+  }
 
   function pickAiValue(source: any, keys: string[]) {
     for (const key of keys) {
@@ -1273,19 +1406,35 @@ function AddSectionFindingForm({
     setMessage("");
 
     try {
-      const { error } = await supabase.from("findings").insert({
-        inspection_id: inspectionId,
-        section,
-        severity,
-        title: cleanTitle || cleanObservation.slice(0, 80) || "New Defect",
-        location: location.trim() || null,
-        observation: cleanObservation,
-        implication: implication.trim(),
-        recommendation: recommendation.trim(),
-        image_url: null,
-      });
+      const { data: newFinding, error } = await supabase
+        .from("findings")
+        .insert({
+          inspection_id: inspectionId,
+          section,
+          severity,
+          title: cleanTitle || cleanObservation.slice(0, 80) || "New Defect",
+          location: location.trim() || null,
+          observation: cleanObservation,
+          implication: implication.trim(),
+          recommendation: recommendation.trim(),
+          image_url: null,
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
+
+      // Attach any photos/videos chosen while creating the defect.
+      if (newFinding?.id && pendingFiles.length) {
+        setMessage(
+          pendingFiles.length === 1
+            ? "Saving defect and uploading media…"
+            : `Saving defect and uploading ${pendingFiles.length} files…`,
+        );
+        for (const file of pendingFiles) {
+          await uploadFindingMediaFile(inspectionId, String(newFinding.id), file);
+        }
+      }
 
       setTitle("");
       setLocation("");
@@ -1294,6 +1443,7 @@ function AddSectionFindingForm({
       setRecommendation("");
       setAiNote("");
       setSeverity("Recommended Repair");
+      setPendingFiles([]);
       setOpen(false);
       refreshKeepScroll(router);
     } catch (error: any) {
@@ -1332,8 +1482,8 @@ function AddSectionFindingForm({
               </h3>
               <p className="mt-0.5 text-xs font-bold text-[var(--fl-muted)] sm:mt-1 sm:text-sm">
                 Create a normal finding without using AI Capture, Field Tool,
-                Voice Tool, or Equipment Analyzer. Photos can be added after
-                saving.
+                Voice Tool, or Equipment Analyzer. Attach photos or videos below
+                — or add more after saving.
               </p>
             </div>
 
@@ -1349,7 +1499,7 @@ function AddSectionFindingForm({
 
           {message && (
             <div
-              className={`rounded-xl border px-4 py-3 text-sm font-bold ${message.includes("filled in") ? "border-emerald-500/60 bg-emerald-500/10 text-[var(--fl-good-text)]" : "border-red-500/60 bg-red-500/10 text-[var(--fl-crit-text)]"}`}
+              className={`rounded-xl border px-4 py-3 text-sm font-bold ${message.includes("filled in") || message.includes("uploading") ? "border-emerald-500/60 bg-emerald-500/10 text-[var(--fl-good-text)]" : "border-red-500/60 bg-red-500/10 text-[var(--fl-crit-text)]"}`}
             >
               {message}
             </div>
@@ -1440,6 +1590,77 @@ function AddSectionFindingForm({
               placeholder="Recommendation"
               className="min-h-[90px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
+          </div>
+
+          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-base font-semibold text-[var(--fl-accent-text)]">
+                  📷 Photos &amp; videos (optional)
+                </h4>
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
+                  Attach one or more now — they save with the defect. You can still add more later.
+                </p>
+              </div>
+
+              <label
+                className={`inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20 sm:w-auto [touch-action:manipulation] ${
+                  saving ? "cursor-not-allowed opacity-60" : ""
+                }`}
+              >
+                + Add Photos / Videos
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  disabled={saving}
+                  onChange={(event) => {
+                    addPendingFiles(event.target.files);
+                    event.target.value = "";
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {pendingPreviews.length > 0 && (
+              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+                {pendingPreviews.map((preview) => (
+                  <div
+                    key={preview.url}
+                    className="relative overflow-hidden rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
+                  >
+                    {preview.isVideo ? (
+                      <video
+                        src={preview.url}
+                        className="h-20 w-full object-cover"
+                        muted
+                      />
+                    ) : (
+                      <img
+                        src={preview.url}
+                        alt={preview.file.name}
+                        className="h-20 w-full object-cover"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removePendingFile(preview.file)}
+                      disabled={saving}
+                      title="Remove"
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs font-bold text-white transition hover:bg-red-500 disabled:opacity-50"
+                    >
+                      ✕
+                    </button>
+                    {preview.isVideo && (
+                      <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        VIDEO
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
