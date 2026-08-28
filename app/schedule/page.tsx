@@ -214,9 +214,16 @@ export default async function SchedulePage() {
     ? `/book?inspector=${encodeURIComponent(company.profile_slug)}`
     : "/book";
 
+  // Personal schedule/calendar = ONLY the signed-in inspector's own inspections.
+  // RLS already limits regular inspectors to inspector_id = auth.uid(), but a
+  // company OWNER's RLS policy grants company-wide access (for dispatch), which
+  // leaked teammates' jobs onto the owner's personal calendar. Scope explicitly
+  // by inspector_id so every inspector — owner included — sees only their own.
+  // (The team-wide view lives on /dispatch.)
   const { data: inspections, error } = await supabase
     .from("inspections")
     .select("*")
+    .eq("inspector_id", user.id)
     .order("created_at", {
       ascending: false,
     });
