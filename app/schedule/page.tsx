@@ -4,12 +4,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import ScheduleCalendar from "../../components/ScheduleCalendar";
 import ScheduleReminderSettings from "../../components/ScheduleReminderSettings";
 import BookingRequestActions from "../../components/BookingRequestActions";
 import InspectorAvailabilitySettings from "../../components/InspectorAvailabilitySettings";
 import WeatherWidget from "../../components/WeatherWidget";
 import InspectionWeatherChip from "../../components/InspectionWeatherChip";
+import { resolveInspectionAccessFilter } from "../../lib/inspectionAccess";
 
 type InspectionRow = Record<string, any>;
 type BookingRequestRow = Record<string, any>;
@@ -173,7 +175,11 @@ function sortScheduleRows(rows: InspectionRow[]) {
   });
 }
 
-export default async function SchedulePage() {
+export default async function SchedulePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ view?: string }>;
+}) {
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -214,19 +220,59 @@ export default async function SchedulePage() {
     ? `/book?inspector=${encodeURIComponent(company.profile_slug)}`
     : "/book";
 
-  // Personal schedule/calendar = ONLY the signed-in inspector's own inspections.
-  // RLS already limits regular inspectors to inspector_id = auth.uid(), but a
-  // company OWNER's RLS policy grants company-wide access (for dispatch), which
-  // leaked teammates' jobs onto the owner's personal calendar. Scope explicitly
-  // by inspector_id so every inspector — owner included — sees only their own.
-  // (The team-wide view lives on /dispatch.)
-  const { data: inspections, error } = await supabase
-    .from("inspections")
-    .select("*")
-    .eq("inspector_id", user.id)
-    .order("created_at", {
-      ascending: false,
-    });
+  // Scope the calendar correctly. RLS alone doesn't scope a company OWNER (their
+  // policy grants company-wide access for dispatch), so we filter explicitly:
+  //  - Regular inspector: only their own jobs (inspector_id).
+  //  - Company owner: their own jobs by default, but can switch to a TEAM view
+  //    (?view=team) to see every inspector's scheduled inspections (company_id).
+  const access = await resolveInspectionAccessFilter(supabase, user.id);
+  const canViewTeam = access.column === "company_id"; // owner of a company
+  const resolvedSearchParams = (await searchParams) || {};
+  const teamView = canViewTeam && resolvedSearchParams.view === "team";
+
+  const baseInspectionsQuery = supabase.from("inspections").select("*");
+  const scopedInspectionsQuery = teamView
+    ? baseInspectionsQuery.eq("company_id", access.value)
+    : baseInspectionsQuery.eq("inspector_id", user.id);
+
+  const { data: inspections, error } = await scopedInspectionsQuery.order(
+    "created_at",
+    { ascending: false },
+  );
+
+  // In the company/team view, label each job with the inspector it belongs to so
+  // the owner can tell whose inspection is whose. Names come from profiles via a
+  // service-role read (owner-gated: teamView is only ever true for a company owner).
+  if (teamView && inspections && inspections.length) {
+    try {
+      const admin = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+      const inspectorIds = Array.from(
+        new Set(inspections.map((row: any) => row.inspector_id).filter(Boolean)),
+      );
+      if (inspectorIds.length) {
+        const { data: profiles } = await admin
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", inspectorIds);
+        const nameById = new Map(
+          (profiles || []).map((p: any) => [
+            String(p.id),
+            p.full_name || p.email || "Inspector",
+          ]),
+        );
+        for (const row of inspections as any[]) {
+          row.inspector_display_name =
+            nameById.get(String(row.inspector_id)) || "";
+        }
+      }
+    } catch {
+      // Names are a nice-to-have; never block the calendar on them.
+    }
+  }
 
   const { data: bookingRequestsRaw, error: bookingRequestsError } = await supabase
     .from("booking_requests")
@@ -271,17 +317,45 @@ export default async function SchedulePage() {
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm text-[var(--fl-muted)] sm:text-base">
-              Manage the full inspection schedule from the calendar. Drag appointments
-              to reschedule, click an appointment to edit, delete, or open the report.
+              {teamView
+                ? "Company view — every inspector's scheduled inspections. Drag to reschedule, click to edit, delete, or open the report."
+                : "Manage your inspection schedule from the calendar. Drag appointments to reschedule, click an appointment to edit, delete, or open the report."}
             </p>
           </div>
 
-          <Link
-            href="/inspections/new"
-            className="rounded-2xl border border-teal-400/30 bg-teal-500 px-5 py-3 text-center text-sm font-bold text-black transition hover:bg-teal-300 active:scale-[0.98]"
-          >
-            + New Inspection
-          </Link>
+          <div className="flex flex-col gap-3 sm:items-end">
+            {canViewTeam && (
+              <div className="inline-flex rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-1">
+                <Link
+                  href="/schedule"
+                  className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                    teamView
+                      ? "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
+                      : "bg-teal-500 text-black"
+                  }`}
+                >
+                  My Schedule
+                </Link>
+                <Link
+                  href="/schedule?view=team"
+                  className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                    teamView
+                      ? "bg-teal-500 text-black"
+                      : "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
+                  }`}
+                >
+                  Team Schedule
+                </Link>
+              </div>
+            )}
+
+            <Link
+              href="/inspections/new"
+              className="rounded-2xl border border-teal-400/30 bg-teal-500 px-5 py-3 text-center text-sm font-bold text-black transition hover:bg-teal-300 active:scale-[0.98]"
+            >
+              + New Inspection
+            </Link>
+          </div>
         </div>
 
         {error ? (

@@ -265,10 +265,14 @@ export default function ScheduleCalendar({
         const status = getStatus(inspection);
         const type = getType(inspection);
         const colors = typeColors(type, status);
+        // Present only in the owner's team/company view (see app/schedule/page.tsx).
+        const inspectorName = String(inspection.inspector_display_name || "").trim();
 
         return {
           id: String(inspection.id),
-          title: `${displayTime} ${address}`,
+          title: inspectorName
+            ? `${displayTime} · ${inspectorName} · ${address}`
+            : `${displayTime} ${address}`,
           start: `${date}T${time}`,
           allDay: false,
           backgroundColor: colors.backgroundColor,
@@ -283,6 +287,7 @@ export default function ScheduleCalendar({
             date,
             time,
             displayTime,
+            inspectorName,
           },
         };
       })
@@ -453,6 +458,11 @@ export default function ScheduleCalendar({
                   <p className="mt-1 truncate text-xs text-zinc-400">
                     {event.extendedProps.client || "Client not entered"}
                   </p>
+                  {event.extendedProps.inspectorName ? (
+                    <p className="mt-1 truncate text-xs font-semibold text-[var(--fl-info-text)]">
+                      👤 {event.extendedProps.inspectorName}
+                    </p>
+                  ) : null}
                 </button>
               ))}
             </div>
