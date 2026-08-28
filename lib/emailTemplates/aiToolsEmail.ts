@@ -79,7 +79,11 @@ export function buildAiToolsEmail(firstName: string): string {
   </table>
 
   ${p(`Give it a shot on your next inspection — then hit reply and tell me what you think. That's actually me on the other end.`)}
-  ${p(`— Jeff`)}
+  <div style="font-size:15px;line-height:1.5;color:#334155;margin:0 0 14px;">
+    <div style="font-weight:800;color:#0f172a;">Jeff Shockey</div>
+    <div>Founder, FLOW</div>
+    <div><a href="https://flowinspect.app" style="color:#14b8a6;text-decoration:none;font-weight:700;">flowinspect.app</a></div>
+  </div>
 
   <p style="margin-top:24px;font-size:12px;color:#94a3b8;">You're receiving this because you have a FLOW inspector account.</p>
 </div>`;

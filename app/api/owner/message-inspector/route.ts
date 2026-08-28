@@ -56,11 +56,6 @@ function wrapHtml(message: string) {
       <span style="font-weight:900;font-size:24px;color:#14b8a6;vertical-align:middle;margin-left:12px;letter-spacing:0.01em;">FLOW</span>
     </a>
     <div style="margin-top:22px;font-size:15px;color:#0f172a;">${body}</div>
-    <div style="margin-top:24px;font-size:15px;color:#0f172a;line-height:1.5;">
-      <div style="font-weight:800;">Jeff Shockey</div>
-      <div style="color:#475569;">Founder, FLOW</div>
-      <div><a href="https://flowinspect.app" style="color:#14b8a6;text-decoration:none;font-weight:700;">flowinspect.app</a></div>
-    </div>
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:26px;">
       <tr>
         <td valign="middle" style="padding-right:14px;">

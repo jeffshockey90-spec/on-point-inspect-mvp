@@ -4,6 +4,10 @@ import { useMemo, useState } from "react";
 
 type Inspector = { name: string; email: string; active30: boolean; lastActivity: string | null };
 
+// Signature appended to every message so it's visible in the composer and sent
+// as part of the body (keep in sync with the AI-tools designed email footer).
+const SIGNATURE = "Jeff Shockey\nFounder, FLOW\nflowinspect.app";
+
 const TEMPLATES: {
   id: string;
   label: string;
@@ -23,7 +27,8 @@ const TEMPLATES: {
       `• Send the client a clean, branded report — with agreements and payment in the same flow\n` +
       `• Keep scheduling, pricing, quotes, and delivery all in one place\n\n` +
       `If anything's been getting in your way, reply straight to this email and I'll help you personally. No bots, that's actually me.\n\n` +
-      `Ready whenever you are:`,
+      `Ready whenever you are:\n\n` +
+      SIGNATURE,
   },
   {
     id: "need-help",
@@ -37,7 +42,8 @@ const TEMPLATES: {
       `• Do the whole inspection from your phone, then finish the report in minutes\n` +
       `• Save time with AI-assisted finding write-ups instead of typing everything by hand\n` +
       `• Deliver a professional, branded report and collect payment without leaving FLOW\n\n` +
-      `Just reply and I'll walk you through whatever you'd like. Or jump right back in here:`,
+      `Just reply and I'll walk you through whatever you'd like. Or jump right back in here:\n\n` +
+      SIGNATURE,
   },
   {
     id: "whats-new",
@@ -55,7 +61,8 @@ const TEMPLATES: {
       `1) THE AI CAMERA — Point your phone at a defect, snap a photo, and FLOW writes the whole finding (title, severity, observation, implication, recommendation) for you to approve. Open it: on any report, tap Capture Tools → Field Tool → the Live Camera tab → Open AI Camera.\n\n` +
       `2) THE COMMAND CENTER — Press Ctrl-K on any report for one workspace: AI review, publish blockers, signatures, payments, repair requests, and client engagement.\n\n` +
       `Bonus: capture offline with no signal (AI writes the findings when you're back online), or use Bulk AI Capture to turn a whole camera roll into clean findings in one pass.\n\n` +
-      `Give it a shot on your next inspection — reply and tell me what you think.\n— Jeff`,
+      `Give it a shot on your next inspection — reply and tell me what you think.\n\n` +
+      SIGNATURE,
   },
   { id: "custom", label: "Custom message", subject: "", body: "" },
 ];
@@ -112,10 +119,10 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
         setBody(
           `Hi {name},\n\nWe've been shipping a lot lately, and I wanted to make sure you didn't miss what's new in FLOW:\n\n${
             lines || "Lots of improvements across the app."
-          }\n\nEvery one of these came from making FLOW faster and easier for inspectors like you. Log in and take a look — and if there's something you'd love to see next, just reply and let me know.\n\nSee it all here:`,
+          }\n\nEvery one of these came from making FLOW faster and easier for inspectors like you. Log in and take a look — and if there's something you'd love to see next, just reply and let me know.\n\nSee it all here:\n\n${SIGNATURE}`,
         );
       } catch {
-        setBody(`Hi {name},\n\nWe've shipped a bunch of updates in FLOW recently. Come check them out:`);
+        setBody(`Hi {name},\n\nWe've shipped a bunch of updates in FLOW recently. Come check them out:\n\n${SIGNATURE}`);
       }
       setLoading(false);
     } else {
