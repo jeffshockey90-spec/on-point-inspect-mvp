@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Inspector = { name: string; email: string; active30: boolean; lastActivity: string | null };
 
@@ -74,6 +75,7 @@ function firstSentence(text: string) {
 }
 
 export default function OwnerMailComposer({ inspectors }: { inspectors: Inspector[] }) {
+  const router = useRouter();
   const withEmail = useMemo(() => inspectors.filter((i) => i.email), [inspectors]);
   const inactive = useMemo(() => withEmail.filter((i) => !i.active30), [withEmail]);
 
@@ -153,6 +155,9 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
       const data = await res.json().catch(() => ({}) as any);
       if (res.ok && data.ok) {
         setMsg({ tone: "ok", text: `Sent ${data.sent}${data.failed ? `, ${data.failed} failed` : ""}.` });
+        // Refresh so the newly-sent emails appear in the "Sent mail" list below
+        // without a manual page reload.
+        router.refresh();
       } else {
         setMsg({ tone: "err", text: data.error || "Couldn't send." });
       }
