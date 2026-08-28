@@ -343,8 +343,8 @@ export default function OwnerSupportChat() {
 
         {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm font-bold text-[var(--fl-crit-text)]">{error}</div>}
 
-        <section className="grid gap-5 lg:grid-cols-[380px_1fr]">
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4">
+        <section className="grid grid-cols-1 gap-5 lg:grid-cols-[380px_1fr]">
+          <div className="min-w-0 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4">
             <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Threads</h2>
             <div className="mt-4 space-y-3">
               {loading ? (
@@ -368,7 +368,7 @@ export default function OwnerSupportChat() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4">
+          <div className="min-w-0 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4">
             {selected ? (
               <>
                 <div className="border-b border-[var(--fl-raised)] pb-4">
@@ -446,7 +446,7 @@ export default function OwnerSupportChat() {
                     <button
                       onClick={sendReply}
                       disabled={sending || uploading || (!reply.trim() && !attachment)}
-                      className="w-full rounded-xl bg-teal-500 px-5 py-4 font-semibold text-black hover:bg-teal-400 disabled:opacity-50"
+                      className="min-w-0 flex-1 rounded-xl bg-teal-500 px-5 py-4 font-semibold text-black hover:bg-teal-400 disabled:opacity-50"
                     >
                       {sending ? "Sending..." : "Send Reply"}
                     </button>
