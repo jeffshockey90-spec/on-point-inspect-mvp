@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import { createFullImageForUpload } from "../../../../lib/imageVariants";
+import { uploadSectionReferencePhoto } from "../../../../lib/sectionReferencePhotos";
 
 const MAX_PHOTOS = 25;
 
@@ -64,6 +65,11 @@ type BulkItem = {
   savedImageUrl: string;
   savedFilePath: string;
   mergedIntoId: string;
+  // When true this photo is saved as a SECTION REFERENCE photo (no finding,
+  // no narrative required) instead of a finding. `section` = which section it
+  // belongs to; `referenceCaption` is an optional caption (only if generated/typed).
+  isReference: boolean;
+  referenceCaption: string;
 };
 
 type ProposedMerge = {
@@ -103,6 +109,8 @@ function makeItem(file: File): BulkItem {
     savedImageUrl: "",
     savedFilePath: "",
     mergedIntoId: "",
+    isReference: false,
+    referenceCaption: "",
   };
 }
 
@@ -293,6 +301,59 @@ export default function BulkAICapturePage() {
     }
   }
 
+  // Optional: write a short caption for a reference photo (reference photos
+  // otherwise carry no narrative). Uses the same vision endpoint but only keeps
+  // a one-line description.
+  async function generateReferenceCaption(item: BulkItem) {
+    if (item.file.type.startsWith("video/")) return;
+
+    updateItem(item.id, { status: "analyzing", error: "" });
+
+    try {
+      const base64 = await fileToBase64(item.file);
+
+      const res = await fetch("/api/ai-photo-finding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: base64,
+          mode: "inspection",
+          inspectorNote:
+            "Write a short, neutral one-line caption describing what this photo shows for a section reference gallery. Do NOT describe it as a defect unless one is clearly visible.",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Caption generation failed.");
+      }
+
+      const caption =
+        [data.title, data.observation]
+          .map((v: any) => String(v || "").trim())
+          .find(Boolean) || "";
+
+      updateItem(item.id, {
+        status: "ready",
+        error: "",
+        referenceCaption: caption.replace(/\s+/g, " ").slice(0, 240),
+        // Snap the reference photo to the AI's section guess if we don't have one yet.
+        section:
+          item.section && item.section !== "Exterior"
+            ? item.section
+            : SECTIONS.includes(String(data.section))
+              ? data.section
+              : item.section,
+      });
+    } catch (error: any) {
+      updateItem(item.id, {
+        status: "error",
+        error: error?.message || "Failed to generate caption.",
+      });
+    }
+  }
+
   async function analyzeAll() {
     if (items.length === 0 || busy) return;
 
@@ -424,6 +485,43 @@ export default function BulkAICapturePage() {
         status: "error",
         error: "Missing inspection ID. Open Bulk AI Capture from inside a report.",
       });
+      return;
+    }
+
+    // Reference photo: save to the section's reference gallery (no finding, no
+    // narrative required). Caption is optional — only saved if typed/generated.
+    if (item.isReference) {
+      if (item.file.type.startsWith("video/")) {
+        updateItem(item.id, {
+          status: "error",
+          error: "Reference photos must be images. Videos belong on a finding.",
+        });
+        return;
+      }
+
+      updateItem(item.id, { status: "saving", error: "" });
+
+      try {
+        const { row, signedUrl } = await uploadSectionReferencePhoto({
+          inspectionId,
+          section: item.section,
+          file: item.file,
+          caption: item.referenceCaption.trim() || undefined,
+        });
+
+        updateItem(item.id, {
+          status: "saved",
+          error: "",
+          savedImageUrl: signedUrl || row.public_url || "",
+          savedFilePath: row.file_path || "",
+        });
+      } catch (error: any) {
+        updateItem(item.id, {
+          status: "error",
+          error: error?.message || "Failed to save reference photo.",
+        });
+      }
+
       return;
     }
 
@@ -571,18 +669,27 @@ export default function BulkAICapturePage() {
 
     setBusy(true);
 
-    const snapshot = items.filter((item) => item.status === "review" && !item.mergedIntoId);
+    const snapshot = items.filter(
+      (item) =>
+        !item.mergedIntoId &&
+        item.status !== "saved" &&
+        // Findings must be reviewed first; reference photos can save straight from "ready".
+        (item.status === "review" || (item.isReference && item.status === "ready")),
+    );
 
     for (const item of snapshot) {
       await saveOne(item);
     }
+
+    // Only findings feed the learning brain (reference photos have no narrative).
+    const findingSnapshot = snapshot.filter((item) => !item.isReference);
 
     // Teach the per-inspector learning brain from each reviewed item's AI draft
     // vs. the final accepted values. Fire-and-forget batch; must never slow or
     // block the save loop above.
     try {
       await Promise.allSettled(
-        snapshot.map((item) =>
+        findingSnapshot.map((item) =>
           fetch("/api/ai/learning", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -757,6 +864,7 @@ export default function BulkAICapturePage() {
                   updateItem={updateItem}
                   analyzeOne={analyzeOne}
                   saveOne={saveOne}
+                  generateReferenceCaption={generateReferenceCaption}
                   busy={busy}
                 />
               );
@@ -936,6 +1044,7 @@ function PhotoReviewCard({
   updateItem,
   analyzeOne,
   saveOne,
+  generateReferenceCaption,
   busy,
 }: {
   index: number;
@@ -945,9 +1054,12 @@ function PhotoReviewCard({
   updateItem: (id: string, patch: Partial<BulkItem>) => void;
   analyzeOne: (item: BulkItem) => Promise<void>;
   saveOne: (item: BulkItem) => Promise<void>;
+  generateReferenceCaption: (item: BulkItem) => Promise<void>;
   busy: boolean;
 }) {
   const isMergedChild = !!item.mergedIntoId;
+  const isVideo = item.file.type.startsWith("video/");
+  const isReference = item.isReference && !isMergedChild;
 
   return (
     <div
@@ -966,6 +1078,46 @@ function PhotoReviewCard({
 
         <StatusBadge status={item.status} />
       </div>
+
+      {!isMergedChild && !isVideo && (
+        <button
+          type="button"
+          onClick={() =>
+            updateItem(item.id, {
+              isReference: !item.isReference,
+              // Leaving reference mode drops the reference caption; entering it
+              // clears any stale finding error.
+              error: "",
+            })
+          }
+          disabled={busy || item.status === "saving" || item.status === "saved"}
+          className={`mb-4 flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+            isReference
+              ? "border-amber-400 bg-amber-500/10"
+              : "border-[var(--fl-line)] bg-[var(--fl-ground)] hover:border-[var(--fl-faint)]"
+          }`}
+        >
+          <span>
+            <span className="block text-sm font-bold text-[var(--fl-text)]">
+              📌 Reference photo {isReference ? "— on" : ""}
+            </span>
+            <span className="block text-xs text-[var(--fl-muted)]">
+              Save to a section&apos;s reference gallery instead of a finding — no narrative needed.
+            </span>
+          </span>
+          <span
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+              isReference ? "bg-amber-500" : "bg-[var(--fl-raised)]"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                isReference ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          </span>
+        </button>
+      )}
 
       {isMergedChild && mergedIntoItem && (
         <div className="mb-5 rounded-xl border border-cyan-700 bg-cyan-500/10 p-4">
@@ -1032,7 +1184,9 @@ function PhotoReviewCard({
 
           <div className="mt-4 flex flex-wrap gap-2">
             <button
-              onClick={() => analyzeOne(item)}
+              onClick={() =>
+                isReference ? generateReferenceCaption(item) : analyzeOne(item)
+              }
               disabled={
                 busy ||
                 isMergedChild ||
@@ -1041,15 +1195,25 @@ function PhotoReviewCard({
               }
               className="rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-black hover:bg-teal-400 disabled:opacity-50"
             >
-              {item.file.type.startsWith("video/") ? "Prepare Video" : "Re-Analyze"}
+              {isReference
+                ? "✨ Generate caption"
+                : isVideo
+                  ? "Prepare Video"
+                  : "Re-Analyze"}
             </button>
 
             <button
               onClick={() => saveOne(item)}
-              disabled={busy || isMergedChild || item.status !== "review"}
+              disabled={
+                busy ||
+                isMergedChild ||
+                (isReference
+                  ? item.status !== "ready" && item.status !== "review"
+                  : item.status !== "review")
+              }
               className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-500 disabled:opacity-50"
             >
-              Save Finding
+              {isReference ? "Save Reference Photo" : "Save Finding"}
             </button>
 
             {isMergedChild && (
@@ -1072,6 +1236,46 @@ function PhotoReviewCard({
         </div>
 
         <div className="space-y-4">
+          {isReference && (
+            <div className="space-y-4 rounded-xl border border-amber-400/50 bg-amber-500/5 p-4">
+              <p className="text-sm font-bold text-[var(--fl-warn-text)]">
+                Reference photo — saved to this section&apos;s gallery, no finding created.
+              </p>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
+                  Which section
+                </label>
+                <select
+                  value={item.section}
+                  onChange={(e) => updateItem(item.id, { section: e.target.value })}
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-amber-400"
+                >
+                  {SECTIONS.map((section) => (
+                    <option key={section}>{section}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
+                  Caption (optional)
+                </label>
+                <textarea
+                  value={item.referenceCaption}
+                  onChange={(e) =>
+                    updateItem(item.id, { referenceCaption: e.target.value })
+                  }
+                  rows={2}
+                  placeholder="Leave blank for no caption, or ✨ Generate one."
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+          )}
+
+          {!isReference && (
+          <>
           <input
             value={item.title}
             onChange={(e) => updateItem(item.id, { title: e.target.value })}
@@ -1178,6 +1382,8 @@ function PhotoReviewCard({
                 onChange={(value) => updateItem(item.id, { notes: value })}
               />
             </div>
+          )}
+          </>
           )}
         </div>
       </div>

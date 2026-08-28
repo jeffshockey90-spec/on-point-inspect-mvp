@@ -2235,6 +2235,10 @@ function FindingCardBase({
   const [showMarkupEditor, setShowMarkupEditor] = useState(false);
   const [dragPhotoIndex, setDragPhotoIndex] = useState<number | null>(null);
   const [draggingOver, setDraggingOver] = useState(false);
+  // Which photo (if any) is being moved out of this finding into a section's
+  // reference gallery, and the chosen destination section.
+  const [refMovePhoto, setRefMovePhoto] = useState<any | null>(null);
+  const [refMoveSection, setRefMoveSection] = useState<string>("");
   const [expanded, setExpanded] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
@@ -2781,6 +2785,67 @@ function FindingCardBase({
     }
   }
 
+  // Move a photo OUT of this finding and into a section's reference gallery.
+  // Reuses the same storage file (no re-upload): create a section_reference_photos
+  // row pointing at the existing file, then remove the photo from the finding.
+  async function moveFindingPhotoToReference(photo: any, targetSection: string) {
+    if (!photo?.id || photo.isLegacyImage || String(photo.id).startsWith("legacy-")) {
+      showMessage(
+        "error",
+        "This older image is stored on the finding itself — it can't be moved. Re-upload it as a reference photo instead.",
+      );
+      return;
+    }
+
+    if (isVideoMedia(photo)) {
+      showMessage("error", "Only photos can be moved to the reference gallery.");
+      return;
+    }
+
+    const section = String(targetSection || displayFinding.section || "").trim();
+    if (!section) {
+      showMessage("error", "Pick a section for the reference photo first.");
+      return;
+    }
+
+    setMovingPhotoId(String(photo.id));
+
+    try {
+      const { error: insertError } = await supabase
+        .from("section_reference_photos")
+        .insert({
+          inspection_id: inspectionId,
+          section,
+          caption: photo.caption || photo.photo_caption || null,
+          file_path: photo.file_path || photo.storage_path || null,
+          public_url: photo.public_url || photo.publicUrl || getPhotoUrl(photo) || null,
+          thumbnail_path: photo.thumbnail_path || null,
+          thumbnail_url: photo.thumbnail_url || null,
+        });
+
+      if (insertError) throw insertError;
+
+      const { error: deleteError } = await supabase
+        .from("photos")
+        .delete()
+        .eq("id", photo.id)
+        .eq("inspection_id", inspectionId);
+
+      if (deleteError) throw deleteError;
+
+      setRefMovePhoto(null);
+      showMessage("success", `Moved to ${section} reference photos.`);
+      refreshKeepScroll(router);
+    } catch (error: any) {
+      showMessage(
+        "error",
+        error?.message || "Failed to move photo to reference gallery.",
+      );
+    } finally {
+      setMovingPhotoId(null);
+    }
+  }
+
   const findingTitle =
     displayFinding.title ||
     displayFinding.finding_title ||
@@ -3084,6 +3149,23 @@ function FindingCardBase({
                             >
                               ✏️ Markup
                             </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setRefMovePhoto(photo);
+                                setRefMoveSection(
+                                  displayFinding.section ||
+                                    (availableSections && availableSections[0]) ||
+                                    "",
+                                );
+                              }}
+                              disabled={isBusy}
+                              title="Move this photo to a section's reference gallery (no finding)"
+                              className="rounded-lg border border-amber-500 px-3 py-1 font-semibold text-[var(--fl-warn-text)] hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              → Reference
+                            </button>
                           </>
                         )}
 
@@ -3102,6 +3184,56 @@ function FindingCardBase({
                     </div>
 
                     <PhotoCaptionField photo={photo} inspectionId={inspectionId} />
+
+                    {refMovePhoto?.id === photo.id && (
+                      <div
+                        onClick={(event) => event.stopPropagation()}
+                        className="mt-2 rounded-lg border border-amber-400/60 bg-amber-500/10 p-3"
+                      >
+                        <p className="mb-2 text-xs font-bold text-[var(--fl-warn-text)]">
+                          Move to reference gallery — which section?
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <select
+                            value={refMoveSection}
+                            onChange={(event) => setRefMoveSection(event.target.value)}
+                            className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-2 py-1.5 text-xs font-semibold text-[var(--fl-text)] outline-none focus:border-amber-400"
+                          >
+                            {(availableSections && availableSections.length
+                              ? availableSections
+                              : [displayFinding.section]
+                            )
+                              .filter(Boolean)
+                              .map((sectionName: string) => (
+                                <option key={sectionName} value={sectionName}>
+                                  {sectionName}
+                                </option>
+                              ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              moveFindingPhotoToReference(photo, refMoveSection);
+                            }}
+                            disabled={isBusy}
+                            className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isBusy ? "Moving…" : "Move here"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setRefMovePhoto(null);
+                            }}
+                            className="rounded-lg border border-[var(--fl-line)] px-2 py-1.5 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-[var(--fl-faint)]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
