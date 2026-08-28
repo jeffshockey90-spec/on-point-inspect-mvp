@@ -71,7 +71,8 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
   const inactive = useMemo(() => withEmail.filter((i) => !i.active30), [withEmail]);
 
   const [templateId, setTemplateId] = useState("");
-  const [recipient, setRecipient] = useState("all");
+  const [mode, setMode] = useState<"all" | "inactive" | "custom">("all");
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
@@ -79,7 +80,21 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
 
   const targets: Inspector[] =
-    recipient === "all" ? withEmail : recipient === "inactive" ? inactive : withEmail.filter((i) => i.email === recipient);
+    mode === "all"
+      ? withEmail
+      : mode === "inactive"
+        ? inactive
+        : withEmail.filter((i) => selectedEmails.has(i.email));
+
+  function toggleRecipient(email: string) {
+    setSelectedEmails((current) => {
+      const next = new Set(current);
+      if (next.has(email)) next.delete(email);
+      else next.add(email);
+      return next;
+    });
+    setMsg(null);
+  }
 
   async function pick(id: string) {
     setTemplateId(id);
@@ -159,15 +174,72 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
         </div>
         <div>
           <label className={labelCls}>Send to</label>
-          <select value={recipient} onChange={(e) => setRecipient(e.target.value)} className={inputCls}>
+          <select value={mode} onChange={(e) => setMode(e.target.value as "all" | "inactive" | "custom")} className={inputCls}>
             <option value="all">All inspectors ({withEmail.length})</option>
             <option value="inactive">Inactive 30+ days ({inactive.length})</option>
-            <optgroup label="A specific inspector">
-              {withEmail.map((i) => (
-                <option key={i.email} value={i.email}>{i.name} — {i.email}</option>
-              ))}
-            </optgroup>
+            <option value="custom">Choose specific inspectors…</option>
           </select>
+
+          {mode === "custom" && (
+            <div className="mt-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)]">
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--fl-line)] px-3 py-2 text-xs">
+                <span className="font-semibold text-[var(--fl-muted)]">
+                  {selectedEmails.size} selected
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEmails(new Set(withEmail.map((i) => i.email)))}
+                    className="font-semibold text-[var(--fl-accent-text)] hover:underline"
+                  >
+                    Select all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEmails(new Set())}
+                    className="font-semibold text-[var(--fl-muted)] hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <div className="max-h-56 space-y-1 overflow-y-auto p-2">
+                {withEmail.length === 0 ? (
+                  <p className="px-2 py-3 text-sm text-[var(--fl-muted)]">No inspectors with an email yet.</p>
+                ) : (
+                  withEmail.map((i) => {
+                    const checked = selectedEmails.has(i.email);
+                    return (
+                      <label
+                        key={i.email}
+                        className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
+                          checked
+                            ? "border-teal-400 bg-teal-500/10"
+                            : "border-transparent hover:bg-[var(--fl-surface-2)]"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleRecipient(i.email)}
+                          className="h-4 w-4 accent-teal-400"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold text-[var(--fl-text)]">{i.name}</span>
+                          <span className="block truncate text-xs text-[var(--fl-muted)]">{i.email}</span>
+                        </span>
+                        {!i.active30 && (
+                          <span className="shrink-0 rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--fl-faint)]">
+                            Inactive
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
