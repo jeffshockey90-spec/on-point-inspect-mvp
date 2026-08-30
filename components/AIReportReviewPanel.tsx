@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+// Cache the last AI review per inspection so navigating away to fix a finding and
+// coming back shows the SAME list to work through — instead of forcing a full
+// (slow, paid) re-run every time. The inspector re-runs only when they choose to.
+const reviewStorageKey = (id: string) => `fl-ai-review-${id}`;
 
 type AIReportReviewResult = {
   score?: number;
@@ -130,6 +135,33 @@ function recommendationTone(value: string) {
   return "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]";
 }
 
+// Live set of finding ids the inspector has marked reviewed in the Command
+// Center (localStorage, updated by markFindingReviewedForCommandCenter). Lets the
+// review list dim items as they're handled so the inspector works down to zero
+// without re-running — updates on the reviewed-changed event and on tab focus.
+function useReviewedFindings(): Set<string> {
+  const [ids, setIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const read = () => {
+      try {
+        const raw = localStorage.getItem("opi-command-center-reviewed-findings");
+        const arr = raw ? JSON.parse(raw) : [];
+        setIds(new Set((Array.isArray(arr) ? arr : []).map((v: any) => String(v))));
+      } catch {
+        setIds(new Set());
+      }
+    };
+    read();
+    window.addEventListener("opi:reviewed-findings-changed", read);
+    window.addEventListener("focus", read);
+    return () => {
+      window.removeEventListener("opi:reviewed-findings-changed", read);
+      window.removeEventListener("focus", read);
+    };
+  }, []);
+  return ids;
+}
+
 function ReviewList({
   title,
   items,
@@ -141,7 +173,19 @@ function ReviewList({
   emptyText: string;
   tone?: string;
 }) {
-  const cleanItems = toReviewItems(items);
+  const reviewedIds = useReviewedFindings();
+  // Un-reviewed items first so the "next one to fix" is always on top; reviewed
+  // items sink to the bottom, dimmed, rather than disappearing.
+  const cleanItems = toReviewItems(items)
+    .map((item) => ({
+      ...item,
+      reviewed:
+        item.findingId !== undefined &&
+        item.findingId !== null &&
+        reviewedIds.has(String(item.findingId)),
+    }))
+    .sort((a, b) => Number(a.reviewed) - Number(b.reviewed));
+  const remaining = cleanItems.filter((i) => !i.reviewed).length;
 
   return (
     <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
@@ -151,13 +195,19 @@ function ReviewList({
         </h3>
 
         <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)]">
-          {cleanItems.length}
+          {remaining < cleanItems.length ? `${remaining} left` : cleanItems.length}
         </span>
       </div>
 
       {cleanItems.length === 0 ? (
         <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">{emptyText}</p>
-      ) : (
+      ) : remaining === 0 ? (
+        <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">
+          All handled — every item here has been reviewed. ✓
+        </p>
+      ) : null}
+
+      {cleanItems.length > 0 && (
         <ul className="mt-3 space-y-2">
           {cleanItems.map((item, index) =>
             item.findingId !== undefined && item.findingId !== null ? (
@@ -165,11 +215,21 @@ function ReviewList({
                 <button
                   type="button"
                   onClick={() => jumpToFinding(item.findingId, item.section)}
-                  className={`flex w-full items-start justify-between gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-left text-sm leading-6 transition hover:border-purple-400/60 hover:bg-purple-500/10 ${tone}`}
+                  className={`flex w-full items-start justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm leading-6 transition ${
+                    item.reviewed
+                      ? "border-emerald-500/40 bg-emerald-500/5 text-[var(--fl-muted)] opacity-70 hover:opacity-100"
+                      : `border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-purple-400/60 hover:bg-purple-500/10 ${tone}`
+                  }`}
                 >
-                  <span className="min-w-0">{item.text}</span>
-                  <span className="mt-0.5 shrink-0 text-xs font-semibold text-[var(--fl-purple-text)]">
-                    Fix →
+                  <span className={`min-w-0 ${item.reviewed ? "line-through" : ""}`}>
+                    {item.text}
+                  </span>
+                  <span
+                    className={`mt-0.5 shrink-0 text-xs font-semibold ${
+                      item.reviewed ? "text-[var(--fl-good-text)]" : "text-[var(--fl-purple-text)]"
+                    }`}
+                  >
+                    {item.reviewed ? "✓ Reviewed" : "Fix →"}
                   </span>
                 </button>
               </li>
@@ -200,6 +260,17 @@ export default function AIReportReviewPanel({
     retryable?: boolean;
     retryAfterSeconds?: number;
   }>(null);
+
+  // Restore the cached review on mount so returning to the panel shows the saved
+  // list to keep working through, not a blank "Run AI Review" prompt.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(reviewStorageKey(inspectionId));
+      if (raw) setReview(JSON.parse(raw));
+    } catch {
+      /* storage may be unavailable or hold a stale shape */
+    }
+  }, [inspectionId]);
 
   async function runReview() {
     if (loading) return;
@@ -234,6 +305,11 @@ export default function AIReportReviewPanel({
       }
 
       setReview(data);
+      try {
+        localStorage.setItem(reviewStorageKey(inspectionId), JSON.stringify(data));
+      } catch {
+        /* best-effort cache */
+      }
       setMessage("AI report review completed.");
     } catch (error: any) {
       setServiceError({
@@ -280,9 +356,20 @@ export default function AIReportReviewPanel({
           disabled={loading}
           className="rounded-xl bg-purple-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Reviewing Report..." : "🧠 Run AI Review"}
+          {loading
+            ? "Reviewing Report..."
+            : review
+              ? "🔄 Re-run AI Review"
+              : "🧠 Run AI Review"}
         </button>
       </div>
+
+      {review && !loading && (
+        <p className="mt-2 text-xs font-semibold text-[var(--fl-purple-text)]">
+          Showing your last review — work through the items below. Only re-run when
+          you&apos;ve made changes you want re-checked.
+        </p>
+      )}
 
       {message && (
         <div className="mt-4 rounded-xl border border-purple-500/40 bg-purple-500/10 p-3 text-sm font-bold text-[var(--fl-purple-text)]">
