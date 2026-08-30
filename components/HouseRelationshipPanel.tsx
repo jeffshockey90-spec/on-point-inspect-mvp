@@ -273,9 +273,9 @@ export default function HouseRelationshipPanel({
         </div>
       )}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+      <div className="mt-5 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
+        <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+          <p className="break-words text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Relationships
           </p>
           <p className="mt-1 text-3xl font-semibold text-[var(--fl-text)]">
@@ -283,8 +283,8 @@ export default function HouseRelationshipPanel({
           </p>
         </div>
 
-        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+        <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+          <p className="break-words text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Highest Confidence
           </p>
           <p className={`mt-1 text-3xl font-semibold ${confidenceTone(result?.highestConfidence || 0)}`}>
@@ -292,11 +292,11 @@ export default function HouseRelationshipPanel({
           </p>
         </div>
 
-        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+        <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+          <p className="break-words text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Status
           </p>
-          <p className="mt-1 text-lg font-semibold text-[var(--fl-purple-text)]">
+          <p className="mt-1 break-words text-base font-semibold leading-snug text-[var(--fl-purple-text)]">
             {result?.relationshipCount ? "Review Suggested" : "Monitoring"}
           </p>
         </div>

@@ -67,11 +67,11 @@ function quickQuestions() {
 
 function SmallStat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+    <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+      <p className="break-words text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
         {label}
       </p>
-      <p className="mt-1 text-xl font-semibold text-[var(--fl-text)]">{value}</p>
+      <p className="mt-1 break-words text-xl font-semibold text-[var(--fl-text)]">{value}</p>
     </div>
   );
 }
@@ -358,9 +358,9 @@ export default function InspectionCopilotPanel({
         </div>
       )}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className={`rounded-xl border p-4 ${result ? scoreTone(score) : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"}`}>
-          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
+      <div className="mt-5 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
+        <div className={`min-w-0 rounded-xl border p-4 ${result ? scoreTone(score) : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"}`}>
+          <p className="break-words text-xs font-semibold uppercase tracking-wide opacity-80">
             Copilot Score
           </p>
           <p className="mt-1 text-3xl font-semibold">

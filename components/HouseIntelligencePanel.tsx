@@ -119,9 +119,9 @@ export default function HouseIntelligencePanel({
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(110px,1fr))]">
+            <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+              <p className="break-words text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Coverage
               </p>
               <p className="mt-1 text-2xl font-semibold text-[var(--fl-info-text)]">
@@ -135,7 +135,7 @@ export default function HouseIntelligencePanel({
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+            <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 Facts
               </p>
@@ -144,8 +144,8 @@ export default function HouseIntelligencePanel({
               </p>
             </div>
 
-            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+            <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+              <p className="break-words text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                 AI Confidence
               </p>
               <p className={`mt-1 text-2xl font-semibold ${confidenceTone(averageConfidence)}`}>
