@@ -679,6 +679,68 @@ export default function InspectorToolsDrawer({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+
+  // Floating Command Center button so the inspector doesn't have to scroll to the
+  // bottom of the report to open it. Defaults just above the search FAB and is
+  // draggable — its position is remembered per device.
+  const [fabPos, setFabPos] = useState<{ left: number; top: number } | null>(null);
+  const fabDragRef = useRef<{ startX: number; startY: number; moved: boolean } | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("opi-cc-fab-pos");
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p && typeof p.left === "number" && typeof p.top === "number") setFabPos(p);
+      }
+    } catch {
+      /* storage may be unavailable */
+    }
+  }, []);
+
+  function onFabPointerDown(e: React.PointerEvent) {
+    fabDragRef.current = { startX: e.clientX, startY: e.clientY, moved: false };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      /* not all pointers support capture */
+    }
+  }
+
+  function onFabPointerMove(e: React.PointerEvent) {
+    const d = fabDragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.moved && Math.hypot(dx, dy) < 6) return; // ignore tiny jitter (it's a tap)
+    d.moved = true;
+    const w = 60;
+    const h = 46;
+    const left = Math.min(Math.max(8, e.clientX - w / 2), window.innerWidth - w - 8);
+    const top = Math.min(Math.max(8, e.clientY - h / 2), window.innerHeight - h - 8);
+    setFabPos({ left, top });
+  }
+
+  function onFabPointerUp() {
+    const d = fabDragRef.current;
+    fabDragRef.current = null;
+    if (!d) return;
+    if (d.moved) {
+      setFabPos((cur) => {
+        if (cur) {
+          try {
+            localStorage.setItem("opi-cc-fab-pos", JSON.stringify(cur));
+          } catch {
+            /* best-effort */
+          }
+        }
+        return cur;
+      });
+    } else {
+      openWorkspace(); // a tap (no drag) opens the Command Center
+    }
+  }
+
   // `closing` drives the CSS genie-funnel exit (the fallback). When a pre-captured
   // snapshot is ready, the WebGL genie (`genie` state) takes over the close instead
   // and warps the panel image down into the dock.
@@ -1373,6 +1435,29 @@ export default function InspectorToolsDrawer({
 
   return (
     <>
+      {/* Always-reachable floating Command Center button (defaults above the
+          search FAB; drag to move — a tap opens the Command Center). */}
+      <button
+        type="button"
+        aria-label="Open Command Center — drag to move"
+        title="Command Center (Ctrl K) — drag to move"
+        onPointerDown={onFabPointerDown}
+        onPointerMove={onFabPointerMove}
+        onPointerUp={onFabPointerUp}
+        style={fabPos ? { left: fabPos.left, top: fabPos.top, right: "auto", bottom: "auto" } : undefined}
+        className={`fixed z-40 flex items-center gap-2 rounded-full border border-purple-400/50 bg-[var(--fl-surface)] px-4 py-3 text-sm font-bold text-[var(--fl-purple-text)] shadow-xl shadow-black/40 backdrop-blur transition active:scale-95 hover:border-purple-400 [touch-action:none] ${
+          fabPos ? "" : "bottom-44 right-4 md:bottom-20 md:right-6"
+        }`}
+      >
+        <span className="text-base leading-none">🎛️</span>
+        <span className="hidden sm:inline">Command</span>
+        {attentionNotifications.length > 0 && (
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+            {attentionNotifications.length}
+          </span>
+        )}
+      </button>
+
       <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)]">
         <button
           type="button"

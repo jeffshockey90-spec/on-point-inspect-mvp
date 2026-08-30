@@ -4360,17 +4360,15 @@ Service-life information is a general industry estimate only. Actual service lif
           </section>
           </CollapsibleReportSection>
 
-          <form
-            action={updateInspectionDetails}
-            className="mt-8 border-t border-[var(--fl-line)] pt-6"
+          <CollapsibleReportSection
+            title="Inspection Details"
+            subtitle="Property, client, realtor & inspection dates — rarely edited here"
+            defaultOpen={false}
           >
+          <form action={updateInspectionDetails}>
             <input type="hidden" name="inspection_id" value={inspection.id} />
 
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
-                Inspection Details
-              </h2>
-
+            <div className="mb-6 flex items-center justify-end gap-4">
               <PendingSubmitButton
                 className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
                 pendingLabel="Saving..."
@@ -4495,6 +4493,7 @@ Service-life information is a general industry estimate only. Actual service lif
               </div>
             </div>
           </form>
+          </CollapsibleReportSection>
         </div>
       </div>
     </main>
