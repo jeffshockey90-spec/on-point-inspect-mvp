@@ -540,6 +540,23 @@ export async function POST(req: Request) {
 
       if (error) throw error;
 
+      // Inspector-set "flag for review" from the field. Best-effort: the column
+      // only exists after finding-flag.sql is run, so a missing-column error must
+      // never break the sync of an already-saved finding.
+      if (payload?.flagged === true) {
+        const { error: flagError } = await supabase
+          .from("findings")
+          .update({ flagged: true })
+          .eq("id", finding.id)
+          .eq("inspection_id", inspectionId);
+        if (flagError) {
+          console.warn(
+            "Could not set finding flag (run supabase/finding-flag.sql):",
+            flagError.message,
+          );
+        }
+      }
+
       // Flag this row for the Field Review queue. Raw offline captures (a quick
       // note + photo, AI polished after sync) need verifying, so mark them
       // offline_captured + needs_review. But a live-camera capture was already

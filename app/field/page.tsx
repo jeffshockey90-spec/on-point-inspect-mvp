@@ -1821,6 +1821,7 @@ function FieldPageContent() {
           run_ai_after_sync: false,
           ai_after_sync: false,
           confirmed_live: true,
+          flagged: (draft as any).flagged === true,
           offline_created_at: new Date().toISOString(),
           offline_media_skipped_count: 0,
           offline_video_skipped_count: 0,
@@ -1869,6 +1870,7 @@ function FieldPageContent() {
         observation: draft.observation || "",
         implication: draft.implication || "",
         recommendation: draft.recommendation || "",
+        flagged: (draft as any).flagged === true,
       });
       resetForm();
       return;
@@ -3826,6 +3828,7 @@ function FieldPageContent() {
     observation?: string;
     implication?: string;
     recommendation?: string;
+    flagged?: boolean;
   }) {
     const effectivePhotos = overrides?.photos ?? photos;
     const effectiveTitle = overrides?.title ?? title;
@@ -3870,6 +3873,20 @@ function FieldPageContent() {
       .single();
 
     if (error) throw error;
+
+    // Best-effort flag (column only exists after finding-flag.sql is run — a
+    // missing-column error must never break an already-saved finding).
+    if (overrides?.flagged === true && finding?.id) {
+      try {
+        await supabase
+          .from("findings")
+          .update({ flagged: true })
+          .eq("id", finding.id)
+          .eq("inspection_id", selectedReport);
+      } catch {
+        /* column may not exist yet */
+      }
+    }
 
     if (uploadedPhotos.length > 0) {
       const photoRows = uploadedPhotos.map((photo) => ({

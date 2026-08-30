@@ -3068,6 +3068,26 @@ function FindingCardBase({
     }
   }
 
+  const isFlagged = displayFinding.flagged === true;
+
+  // Toggle the inspector "flag for review" (set in the Live Camera, editable here).
+  async function toggleFindingFlag(event?: React.MouseEvent) {
+    event?.stopPropagation();
+    const next = !isFlagged;
+    setLocalFinding((current: any) => ({ ...(current || finding), flagged: next }));
+    try {
+      const { error } = await supabase
+        .from("findings")
+        .update({ flagged: next })
+        .eq("id", finding.id)
+        .eq("inspection_id", inspectionId);
+      if (error) throw error;
+    } catch (error: any) {
+      setLocalFinding((current: any) => ({ ...(current || finding), flagged: !next }));
+      showMessage("error", error?.message || "Could not update the flag.");
+    }
+  }
+
   const findingTitle =
     displayFinding.title ||
     displayFinding.finding_title ||
@@ -3185,6 +3205,12 @@ function FindingCardBase({
                   {photos.length} media
                 </span>
               )}
+
+              {isFlagged && (
+                <span className="rounded-full border border-amber-400 bg-amber-500/15 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[var(--fl-warn-text)]">
+                  🚩 Flagged
+                </span>
+              )}
             </div>
 
             <h3 className="line-clamp-2 break-words text-base font-semibold leading-tight text-[var(--fl-text)] sm:text-xl">
@@ -3258,6 +3284,19 @@ function FindingCardBase({
               Mark Reviewed
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={toggleFindingFlag}
+            title={isFlagged ? "Remove review flag" : "Flag this finding for review"}
+            className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+              isFlagged
+                ? "border-amber-400 bg-amber-500/15 text-[var(--fl-warn-text)] hover:bg-amber-500/25"
+                : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:border-amber-400/60 hover:text-[var(--fl-warn-text)]"
+            }`}
+          >
+            {isFlagged ? "🚩 Flagged" : "🚩 Flag"}
+          </button>
 
           <button
             type="button"

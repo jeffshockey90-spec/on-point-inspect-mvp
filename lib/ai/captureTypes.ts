@@ -11,6 +11,8 @@ export type FindingDraft = {
   // checklist group title (e.g. { "Siding Material": "Vinyl" }). Used to
   // auto-fill the section's system-info checklist. See lib/ai/checklistAutofill.
   sectionInfo?: Record<string, string>;
+  // Inspector flagged this finding in the field to revisit in the report builder.
+  flagged?: boolean;
 };
 
 export type LimitationDraft = {
