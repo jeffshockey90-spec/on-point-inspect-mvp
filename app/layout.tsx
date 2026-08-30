@@ -1,4 +1,5 @@
 import "./globals.css";
+import Script from "next/script";
 import { Manrope, JetBrains_Mono } from "next/font/google";
 import Navbar from "../components/Nav";
 import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
@@ -72,18 +73,17 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${sans.variable} ${mono.variable} overflow-x-clip`}
     >
-      <head>
+      <body className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] text-[var(--fl-text)] antialiased">
         {/* Apply the saved theme before first paint so there's no flash. The DB
             (profiles.theme) is the source of truth; this reads the localStorage
-            cache that ThemeToggle keeps in sync. Default (no value) = dark. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{var t=localStorage.getItem('flow-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
-          }}
-        />
-      </head>
-      <body className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] text-[var(--fl-text)] antialiased">
+            cache that ThemeToggle keeps in sync. Default (no value) = dark.
+            next/script beforeInteractive runs before hydration WITHOUT being a
+            React-rendered <script> — which avoids React 19's "script tag while
+            rendering" warning and the hydration mismatch it caused. */}
+        <Script id="flow-theme-no-flash" strategy="beforeInteractive">
+          {`(function(){try{var t=localStorage.getItem('flow-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`}
+        </Script>
+
         <ServiceWorkerRegister />
 
         <Navbar />

@@ -419,9 +419,9 @@ export default function AIReportReviewPanel({
         </div>
       )}
 
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
+      <div className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
         <div
-          className={`rounded-xl border p-4 ${
+          className={`min-w-0 rounded-xl border p-4 ${
             score === null
               ? "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-muted)]"
               : scoreTone(score)
@@ -437,15 +437,15 @@ export default function AIReportReviewPanel({
           </p>
         </div>
 
-        <div className={`rounded-xl border p-4 ${recommendationTone(publishRecommendation)}`}>
+        <div className={`min-w-0 rounded-xl border p-4 ${recommendationTone(publishRecommendation)}`}>
           <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
             Publish Recommendation
           </p>
 
-          <p className="mt-2 text-xl font-semibold">{publishRecommendation}</p>
+          <p className="mt-2 break-words text-lg font-semibold leading-snug">{publishRecommendation}</p>
         </div>
 
-        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-muted)]">
+        <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-muted)]">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
             Report Data Reviewed
           </p>
@@ -469,7 +469,7 @@ export default function AIReportReviewPanel({
       )}
 
       {review && (
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <div className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           <ReviewList
             title="Critical Issues"
             items={review.criticalIssues}

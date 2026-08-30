@@ -847,7 +847,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       {(orderedGroups || []).length > 1 && (
         <nav
           aria-label="Jump to inspection section"
-          className="sticky top-2 z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-2.5 py-2 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[var(--fl-surface)] xl:hidden"
+          className="sticky top-[calc(env(safe-area-inset-top,0px)+0.5rem)] z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-2.5 py-2 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[var(--fl-surface)] xl:hidden"
         >
           {(orderedGroups || []).map((group: any) => (
             <button
