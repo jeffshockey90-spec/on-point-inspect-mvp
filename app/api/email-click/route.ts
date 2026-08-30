@@ -61,6 +61,32 @@ export async function GET(req: Request) {
 
   const target = url.searchParams.get("target") || "";
 
+  // Owner → inspector campaign emails (owner_inspector_messages): record the click
+  // and redirect to the original link (any https target we ourselves put in the
+  // email, e.g. the App Store link, is allowed here).
+  const ownerMessageId = url.searchParams.get("owner_message_id") || "";
+  if (ownerMessageId) {
+    try {
+      await supabaseAdmin
+        .from("owner_inspector_messages")
+        .update({ clicked_at: new Date().toISOString() })
+        .eq("id", ownerMessageId)
+        .is("clicked_at", null);
+    } catch {
+      /* best-effort */
+    }
+    let dest = "https://app.flowinspect.app";
+    try {
+      const parsed = new URL(target);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        dest = parsed.toString();
+      }
+    } catch {
+      /* keep default */
+    }
+    return NextResponse.redirect(dest);
+  }
+
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_URL

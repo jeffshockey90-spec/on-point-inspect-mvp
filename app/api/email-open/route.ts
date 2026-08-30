@@ -44,6 +44,22 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
 
+    // Owner → inspector campaign emails (owner_inspector_messages) track opens via
+    // this pixel too, keyed by the message row id. Handle and return early.
+    const ownerMessageId = url.searchParams.get("owner_message_id") || "";
+    if (ownerMessageId) {
+      try {
+        await supabaseAdmin
+          .from("owner_inspector_messages")
+          .update({ opened_at: new Date().toISOString() })
+          .eq("id", ownerMessageId)
+          .is("opened_at", null);
+      } catch {
+        /* best-effort */
+      }
+      return transparentGifResponse();
+    }
+
     const inspectionId =
       url.searchParams.get("inspection_id") ||
       url.searchParams.get("inspectionId") ||

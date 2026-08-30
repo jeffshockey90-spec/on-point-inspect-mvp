@@ -102,11 +102,43 @@ export async function POST(req: Request) {
     const personalSubject = personalize(subject || (isAiTools ? AI_TOOLS_SUBJECT : ""), r.name, r.email);
     // The AI-tools announcement is a fully-designed HTML email (with hosted
     // screenshots). Every other template is the editable plain-text body.
-    const html = isAiTools
+    // Insert the log row FIRST so we have an id to key the open-tracking pixel
+    // to (Resend's native open/click tracking is off for these — we use FLOW's
+    // own pixel, exactly like the client/report emails do). Best-effort.
+    let logId: string | number | null = null;
+    try {
+      const { data: logRow } = await admin
+        .from("owner_inspector_messages")
+        .insert({
+          recipient_email: r.email.toLowerCase(),
+          recipient_name: r.name || null,
+          subject: personalSubject,
+          template,
+          status: "sent",
+        })
+        .select("id")
+        .single();
+      logId = logRow?.id ?? null;
+    } catch {
+      /* logging is best-effort */
+    }
+
+    const baseHtml = isAiTools
       ? buildAiToolsEmail(firstName(r.name, r.email))
       : isWhatsNew
         ? buildWhatsNewEmail(firstName(r.name, r.email), whatsNewEntries)
         : buildOwnerPlainEmail(personalize(message, r.name, r.email));
+
+    // Route the email's links through the click tracker, then append a
+    // transparent 1x1 open-tracking pixel — both keyed to this message row.
+    const html = logId
+      ? `${baseHtml.replace(
+          /href="(https:\/\/[^"]+)"/g,
+          (_m, u) =>
+            `href="https://app.flowinspect.app/api/email-click?owner_message_id=${logId}&target=${encodeURIComponent(u)}"`,
+        )}<img src="https://app.flowinspect.app/api/email-open?owner_message_id=${logId}" width="1" height="1" alt="" style="display:none;max-height:0;max-width:0;opacity:0;overflow:hidden" />`
+      : baseHtml;
+
     const { data, error } = await resend.emails.send({
       from: "FLOW <notifications@flowinspect.app>",
       to: r.email,
@@ -120,21 +152,23 @@ export async function POST(req: Request) {
     if (error) {
       failed += 1;
       if (errors.length < 5) errors.push(error.message);
+      if (logId) {
+        try {
+          await admin.from("owner_inspector_messages").update({ status: "failed" }).eq("id", logId);
+        } catch {
+          /* best-effort */
+        }
+      }
       continue;
     }
     sent += 1;
 
-    try {
-      await admin.from("owner_inspector_messages").insert({
-        recipient_email: r.email.toLowerCase(),
-        recipient_name: r.name || null,
-        subject: personalSubject,
-        template,
-        resend_id: data?.id || null,
-        status: "sent",
-      });
-    } catch {
-      /* logging is best-effort */
+    if (logId && data?.id) {
+      try {
+        await admin.from("owner_inspector_messages").update({ resend_id: data.id }).eq("id", logId);
+      } catch {
+        /* best-effort */
+      }
     }
   }
 
