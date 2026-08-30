@@ -252,8 +252,11 @@ export function buildMaterialFills(section: string, sectionInfo: Record<string, 
 
 // Writes confirmed fills to section_checklist_selections. Fills only EMPTY
 // groups by default — never overwrites a selection the inspector already made.
-// Values not in the option list are stored as custom "OTHER" rows (in the
-// correct section), so nothing the AI reads is lost or mismatched.
+// When the AI reads an option value that isn't a built-in option, it is
+// promoted to a real, reusable checklist OPTION (section_checklist_options,
+// exactly like the "+ Add Option" button) and then checked — so it renders as
+// a first-class checkbox and is available on every future inspection, instead
+// of a one-off "OTHER" chip. Nothing the AI reads is lost or mismatched.
 export async function writeChecklistFills(
   supabase: any,
   inspectionId: string,
@@ -281,9 +284,42 @@ export async function writeChecklistFills(
     if (f.kind === "text") {
       row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: "__TEXT_VALUE__", custom_text: f.value };
     } else if (f.matched) {
+      // Value IS a built-in option -> just check that box.
       row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: f.value };
     } else {
-      row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: "OTHER", custom_text: f.value };
+      // Value the AI read isn't a built-in option. Promote it to a real,
+      // reusable custom OPTION for this company (section_checklist_options,
+      // same shape the "+ Add Option" button inserts) and then check it, rather
+      // than dropping a one-off "OTHER" chip. Reuse an existing custom option
+      // with the same (normalized) label instead of creating a duplicate.
+      const label = String(f.value).trim();
+      const wantKey = normKey(label);
+
+      const { data: existingOpts } = await supabase
+        .from("section_checklist_options")
+        .select("option_label, replacement_label, hidden")
+        .eq("section", f.section)
+        .eq("group_title", f.groupTitle);
+
+      let already = false;
+      for (const o of existingOpts || []) {
+        if (o?.hidden) continue;
+        const display = o.replacement_label || String(o.option_label || "").replace("__CUSTOM__:", "");
+        if (display && normKey(display) === wantKey) {
+          already = true;
+          break;
+        }
+      }
+
+      if (!already) {
+        await supabase
+          .from("section_checklist_options")
+          .insert({ section: f.section, group_title: f.groupTitle, option_label: `__CUSTOM__:${label}`, replacement_label: label, hidden: false });
+      }
+
+      // A custom option's checked-state is keyed by its display label (not the
+      // "__CUSTOM__:" prefix), matching how the checklist UI toggles it.
+      row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: label };
     }
 
     const { error } = await supabase.from("section_checklist_selections").insert(row);
