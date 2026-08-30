@@ -143,7 +143,7 @@ function DeferredOpenSection({
   );
 }
 
-export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes, weatherContext }: any) {
+export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes, weatherContext, hasEquipment }: any) {
   const params = useParams();
   const router = useRouter();
   const inspectionId = String(params?.id || "");
@@ -604,6 +604,20 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     }, 60);
   }
 
+  // Jump to the Equipment Inventory section, which lives on the report page
+  // above the findings editor (not a finding section, so it isn't in the group
+  // list). Same smooth-scroll + highlight as the section jumps.
+  function jumpToEquipment() {
+    if (typeof window === "undefined") return;
+    const el = document.getElementById("equipment-inventory");
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.add("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
+    window.setTimeout(() => {
+      el.classList.remove("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
+    }, 1600);
+  }
+
   function expandAll() {
     setClosedSections({});
   }
@@ -855,6 +869,17 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                   </span>
                 </button>
               ))}
+
+              {hasEquipment && (
+                <button
+                  type="button"
+                  onClick={jumpToEquipment}
+                  title="Jump to Equipment Inventory"
+                  className="mt-1 flex w-full items-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-left text-sm font-semibold text-[var(--fl-info-text)] transition-colors hover:bg-cyan-500/20"
+                >
+                  <span className="min-w-0 flex-1 truncate">🔧 Equipment</span>
+                </button>
+              )}
             </div>
           </aside>
         )}
@@ -880,6 +905,17 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
               </span>
             </button>
           ))}
+
+          {hasEquipment && (
+            <button
+              type="button"
+              onClick={jumpToEquipment}
+              title="Jump to Equipment Inventory"
+              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-cyan-500/50 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-[var(--fl-info-text)] transition hover:border-cyan-400 active:scale-95"
+            >
+              🔧 Equipment
+            </button>
+          )}
         </nav>
       )}
 

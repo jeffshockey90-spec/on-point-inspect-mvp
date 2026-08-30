@@ -3608,6 +3608,7 @@ Service-life information is a general industry estimate only. Actual service lif
               groupedFindings={groupedFindingsArray}
               deletedSections={deletedReportSections}
               sectionNotes={sectionNotesMap}
+              hasEquipment={equipmentInventory.length > 0}
               weatherContext={{
                 address: [
                   inspection.property_address || inspection.address,
