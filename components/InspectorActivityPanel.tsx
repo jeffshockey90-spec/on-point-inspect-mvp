@@ -100,7 +100,7 @@ export default function InspectorActivityPanel() {
       ) : (
         <>
           {/* Activation funnel */}
-          <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="mt-6 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(110px,1fr))]">
             {steps.map((s) => {
               const Icon = s.icon;
               return (

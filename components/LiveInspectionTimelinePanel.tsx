@@ -162,7 +162,7 @@ export default function LiveInspectionTimelinePanel({ inspectionId }: { inspecti
 
       {message && <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">{message}</div>}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <div className="mt-5 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
         <SmallStat label="Findings" value={result?.findingCount ?? "—"} />
         <SmallStat label="Equipment" value={result?.equipmentCount ?? "—"} />
         <SmallStat label="Media" value={result?.photoCount ?? "—"} />

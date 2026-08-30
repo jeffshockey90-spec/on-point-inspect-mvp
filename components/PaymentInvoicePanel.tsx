@@ -150,7 +150,7 @@ export default function PaymentInvoicePanel({
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="grid gap-3 text-center [grid-template-columns:repeat(auto-fit,minmax(90px,1fr))]">
           <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Invoice</p>
             <p className="mt-1 text-xl font-semibold text-[var(--fl-text)]">{money(invoiceAmountNumber)}</p>
@@ -167,7 +167,7 @@ export default function PaymentInvoicePanel({
 
         {expanded && (
           <div className="mt-5 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]">
               <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Payment Status</p><select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} disabled={busy} className={fieldClass}>{PAYMENT_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
               <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Invoice Amount</p><input type="number" value={invoiceAmount} onChange={(e) => setInvoiceAmount(e.target.value)} disabled={busy} className={fieldClass} /></label>
               <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Amount Paid</p><input type="number" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} disabled={busy} className={fieldClass} /></label>
