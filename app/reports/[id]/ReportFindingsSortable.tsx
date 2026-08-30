@@ -604,18 +604,28 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     }, 60);
   }
 
-  // Jump to the Equipment Inventory section, which lives on the report page
-  // above the findings editor (not a finding section, so it isn't in the group
-  // list). Same smooth-scroll + highlight as the section jumps.
+  // Jump to the Equipment Inventory section. It lives inside ReportBuilderSectionTabs
+  // (Disclaimers/Payment/Equipment/…), which HIDES inactive panels via the `hidden`
+  // attribute — so a plain scrollIntoView does nothing. Use the tab system's global
+  // reveal helper to activate the Equipment tab AND scroll to it; fall back to a
+  // direct scroll if that isn't available.
   function jumpToEquipment() {
     if (typeof window === "undefined") return;
+    const reveal = (window as any).__revealReportBuilderTab;
+    if (typeof reveal === "function" && reveal("equipment-inventory")) {
+      window.setTimeout(() => {
+        const el = document.getElementById("equipment-inventory");
+        if (!el) return;
+        el.classList.add("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
+        window.setTimeout(
+          () => el.classList.remove("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950"),
+          1600,
+        );
+      }, 120);
+      return;
+    }
     const el = document.getElementById("equipment-inventory");
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    el.classList.add("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
-    window.setTimeout(() => {
-      el.classList.remove("ring-4", "ring-cyan-300", "ring-offset-4", "ring-offset-slate-950");
-    }, 1600);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function expandAll() {

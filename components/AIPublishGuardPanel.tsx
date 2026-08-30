@@ -168,8 +168,8 @@ function IssueCard({
 
       {open && (
         <div className="border-t border-current/20 p-3">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className={`rounded-lg border p-3 ${confidenceTone(confidence)}`}>
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
+            <div className={`min-w-0 rounded-lg border p-3 ${confidenceTone(confidence)}`}>
               <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">AI Confidence</p>
               <p className="mt-1 text-xl font-semibold">{confidence}%</p>
             </div>
@@ -266,18 +266,18 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
 
       {message && <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm font-bold text-[var(--fl-crit-text)]">{message}</div>}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <div className={`rounded-xl border p-4 ${effectiveScore === null ? "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]" : scoreTone(effectiveScore)}`}>
+      <div className="mt-5 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
+        <div className={`min-w-0 rounded-xl border p-4 ${effectiveScore === null ? "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]" : scoreTone(effectiveScore)}`}>
           <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Inspection Completeness</p>
           <p className="mt-1 text-3xl font-semibold">{effectiveScore === null ? "—" : effectiveScore}{effectiveScore !== null && <span className="text-base opacity-80"> / 100</span>}</p>
           {result && <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--fl-surface-2)]"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${effectiveScore}%` }} /></div>}
         </div>
-        <div className={`rounded-xl border p-4 ${recommendationTone(result?.recommendation)}`}>
+        <div className={`min-w-0 rounded-xl border p-4 ${recommendationTone(result?.recommendation)}`}>
           <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Recommendation</p>
-          <p className="mt-1 text-xl font-semibold">{activeIssues.length === 0 && result ? "Ready" : result?.recommendation || "Not checked yet"}</p>
+          <p className="mt-1 break-words text-lg font-semibold leading-snug">{activeIssues.length === 0 && result ? "Ready" : result?.recommendation || "Not checked yet"}</p>
           {result && <p className="mt-2 text-xs font-bold opacity-80">{activeIssues.length} unresolved · {resolvedIds.length} reviewed</p>}
         </div>
-        <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+        <div className="min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Reviewed</p>
           <p className="mt-2 text-sm text-[var(--fl-muted)]">Findings: <span className="font-semibold text-[var(--fl-text)]">{result?.findingCount ?? "—"}</span></p>
           <p className="mt-1 text-sm text-[var(--fl-muted)]">Equipment: <span className="font-semibold text-[var(--fl-text)]">{result?.equipmentCount ?? "—"}</span></p>
@@ -286,7 +286,7 @@ export default function AIPublishGuardPanel({ inspectionId }: { inspectionId: st
       </div>
 
       {result && (
-        <div className="mt-5 grid gap-4 xl:grid-cols-[0.8fr_1.4fr]">
+        <div className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           <aside className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">System Status</h3>
             <div className="mt-3 space-y-2">
