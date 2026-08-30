@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import SectionLimitations from "../../../components/SectionLimitations";
@@ -3789,7 +3790,7 @@ function FindingCardBase({
           </div>
         )}
 
-        {showMarkupEditor && markupPhoto && (
+        {showMarkupEditor && markupPhoto && typeof document !== "undefined" && createPortal(
           <PhotoMarkupEditor
             imageUrl={getPhotoUrl(markupPhoto)}
             severity={displayFinding.severity}
@@ -3975,7 +3976,8 @@ function FindingCardBase({
               document.body.style.removeProperty("touch-action");
               document.documentElement.style.removeProperty("touch-action");
             }}
-          />
+          />,
+          document.body,
         )}
 
         <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-purple-500/50 bg-purple-500/10 p-3 sm:p-4">
