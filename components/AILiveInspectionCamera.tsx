@@ -933,6 +933,16 @@ export default function AILiveInspectionCamera({
       setCapturedFile(markedFile);
       setCapturedPreviewUrl(flattenedDataUrl);
       setCapturedFrameForAi(flattenedDataUrl);
+      // Findings/limitations upload from the `shots` tray, not capturedFile, so
+      // the marked-up version has to replace the matching shot too — otherwise
+      // the markup is dropped on save and the report shows the original photo.
+      setShots((current) =>
+        current.map((s) =>
+          s.file === capturedFile
+            ? { ...s, file: markedFile, frame: flattenedDataUrl }
+            : s,
+        ),
+      );
       setShowMarkup(false);
     } catch (error: any) {
       setSaveError(error?.message || "Could not save the photo markup.");
