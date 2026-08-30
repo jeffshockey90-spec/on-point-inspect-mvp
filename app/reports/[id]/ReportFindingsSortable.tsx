@@ -999,13 +999,19 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       )}
 
       {(orderedGroups || []).map((group: any, index: number) => {
-        const findings = ((group.findings || []) as any[]).filter(
+        const allSectionFindings = (group.findings || []) as any[];
+        const findings = allSectionFindings.filter(
           (f) =>
             severityFilter.size === 0 ||
             severityFilter.has(severityLabel(severityConfig, f?.severity)),
         );
-        // When a severity filter is active, hide sections that have nothing left.
-        if (severityFilter.size > 0 && findings.length === 0) return null;
+        // With a severity filter active, hide only sections that HAVE findings but
+        // none match. Info-only sections (0 findings — e.g. Inspection Details with
+        // the weather auto-fill, General Information) stay visible so their
+        // checklist/weather never disappears behind a filter.
+        if (severityFilter.size > 0 && allSectionFindings.length > 0 && findings.length === 0) {
+          return null;
+        }
         const isClosed = !!closedSections[group.section];
         const isDragging = draggingSection === group.section;
 
