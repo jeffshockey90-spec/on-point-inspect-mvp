@@ -630,6 +630,22 @@ export default function AILiveInspectionCamera({
     await runDraft(last.frame, last.file, undefined, frames);
   }
 
+  // Retry AI after a capture_error. Findings/limitations came through the shots
+  // tray, so re-run analyzeShots (shows the "drafting" spinner AND re-sends every
+  // shot); equipment is a single capture. Without this the old button called
+  // runDraft directly with no drafting state, so it looked like nothing happened.
+  function retryDraft() {
+    if (saving) return;
+    if (shots.length) {
+      void analyzeShots();
+      return;
+    }
+    if (capturedFile && capturedFrameForAi) {
+      setStage("drafting");
+      void runDraft(capturedFrameForAi, capturedFile);
+    }
+  }
+
   // Attach the tray photos to an EXISTING defect without running AI at all.
   async function attachTrayToExisting(findingId: string) {
     if (!findingId || !shots.length || !onAttachToExisting) return;
@@ -1524,11 +1540,7 @@ export default function AILiveInspectionCamera({
             </button>
             <button
               type="button"
-              onClick={() =>
-                capturedFile &&
-                capturedFrameForAi &&
-                void runDraft(capturedFrameForAi, capturedFile)
-              }
+              onClick={retryDraft}
               disabled={saving}
               className="rounded-xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-black disabled:opacity-60"
             >
