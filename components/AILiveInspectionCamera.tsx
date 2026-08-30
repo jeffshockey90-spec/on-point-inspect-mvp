@@ -841,15 +841,21 @@ export default function AILiveInspectionCamera({
           confidence: data.confidence,
           sectionInfo: data.sectionInfo || {},
         });
-        // Capture the AI draft exactly as generated (pre-edit) for learning.
-        aiFindingBaselineRef.current = {
-          title: data.title || "",
-          section: data.section || "",
-          severity: data.severity || "",
-          observation: data.observation || "",
-          implication: data.implication || "",
-          recommendation: data.recommendation || "",
-        };
+        // Capture the FIRST AI draft exactly as generated (pre-edit) for
+        // learning. Only set it once per capture — a "tell how" regenerate must
+        // NOT overwrite it, or the learning delta (original wrong draft → final
+        // corrected finding) collapses to nothing and the AI learns nothing from
+        // the correction. Reset happens in resetCaptureState() on a new capture.
+        if (!aiFindingBaselineRef.current) {
+          aiFindingBaselineRef.current = {
+            title: data.title || "",
+            section: data.section || "",
+            severity: data.severity || "",
+            observation: data.observation || "",
+            implication: data.implication || "",
+            recommendation: data.recommendation || "",
+          };
+        }
         setStage("confirm");
         return;
       }
@@ -1130,6 +1136,8 @@ export default function AILiveInspectionCamera({
     setReferenceCaption("");
     setNoteText("");
     setShowMarkup(false);
+    // Fresh capture → fresh learning baseline (set again on the first AI draft).
+    aiFindingBaselineRef.current = null;
   }
 
   function handleRetake() {

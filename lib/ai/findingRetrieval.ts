@@ -161,10 +161,12 @@ export async function getInspectorFindingExamples(opts: {
 export function formatExamplesForPrompt(examples: FindingExample[]): string {
   if (!examples?.length) return "";
   const blocks = examples.map((ex, i) => {
+    // Deliberately OMIT the example's title — showing past titles caused the
+    // model to copy them onto unrelated findings (e.g. labeling a missing cover
+    // plate "Missing GFCI"). Observation/implication/recommendation convey the
+    // inspector's voice without dictating the current finding's identity.
     const lines = [
       `Example ${i + 1} (${ex.section || "?"} · ${ex.severity || "?"}):`,
-      ex.title ? `Title: ${ex.title}` : "",
-      ex.location ? `Location: ${ex.location}` : "",
       ex.observation ? `Observation: ${ex.observation}` : "",
       ex.implication ? `Implication: ${ex.implication}` : "",
       ex.recommendation ? `Recommendation: ${ex.recommendation}` : "",
@@ -172,7 +174,7 @@ export function formatExamplesForPrompt(examples: FindingExample[]): string {
     return lines.join("\n");
   });
   return [
-    "INSPECTOR'S OWN PUBLISHED EXAMPLES — match this voice, structure, and level of detail (do NOT copy their specifics; write for the current subject):",
+    "INSPECTOR'S OWN PUBLISHED EXAMPLES — use for VOICE, STRUCTURE, and level of detail ONLY. These are UNRELATED past findings (often the SAME kind of component but a DIFFERENT defect). Do NOT copy their wording specifics, and NEVER let them decide what the CURRENT finding is — identify the current finding ONLY from the inspector's note and this photo:",
     ...blocks,
   ].join("\n\n");
 }
