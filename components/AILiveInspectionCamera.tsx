@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
-import type { CaptureCategory, CaptureDraft } from "../lib/ai/captureTypes";
+import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
 import PhotoMarkupEditor from "./PhotoMarkupEditor";
 import FieldFindingLinker from "./FieldFindingLinker";
@@ -31,10 +31,13 @@ type Props = {
     files: File | File[],
   ) => Promise<void>;
   existingFindings?: ExistingFinding[];
+  // Attach the capture's media to an existing finding. When `draft` is provided
+  // (from the confirm card), the existing finding is also AI-rewritten to combine
+  // both — same behaviour as the report builder's Combine Defects.
   onAttachToExisting?: (
     findingId: string,
-    file: File,
-    isVideo: boolean,
+    files: File[],
+    draft?: FindingDraft,
   ) => Promise<void>;
 };
 
@@ -652,9 +655,8 @@ export default function AILiveInspectionCamera({
     setSaving(true);
     setSaveError("");
     try {
-      for (const s of shots) {
-        await onAttachToExisting(findingId, s.file, s.isVideo);
-      }
+      // Pre-analysis tray attach: just add the photos, no AI rewrite (no draft yet).
+      await onAttachToExisting(findingId, shots.map((s) => s.file), undefined);
       setToast("Attached to defect.");
       resetCaptureState();
       setStage("note_entry");
@@ -1105,13 +1107,16 @@ export default function AILiveInspectionCamera({
 
   // Attach the captured media to a defect that already exists in the report,
   // instead of creating a brand-new finding.
-  async function handleAttachToExisting(findingId: string) {
+  async function handleAttachToExisting(findingId: string, draft?: FindingDraft) {
     if (!findingId || !capturedFile || !onAttachToExisting) return;
     setSaving(true);
     setSaveError("");
     try {
-      await onAttachToExisting(findingId, capturedFile, capturedIsVideo);
-      setToast("Media attached to defect.");
+      // Confirm-card combine: attach every shot (or the single capture) AND pass
+      // the draft so the existing finding is AI-rewritten to cover both.
+      const files = shots.length ? shots.map((s) => s.file) : [capturedFile];
+      await onAttachToExisting(findingId, files, draft);
+      setToast(draft ? "Combined into the existing defect." : "Media attached to defect.");
       resetCaptureState();
       setStage("note_entry");
     } catch (error: any) {

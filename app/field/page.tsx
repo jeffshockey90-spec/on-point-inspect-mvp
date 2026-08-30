@@ -1732,33 +1732,72 @@ function FieldPageContent() {
   // exists in the report (instead of creating a new finding).
   async function handleCameraAttachToExisting(
     findingId: string,
-    file: File,
-    _isVideo: boolean,
+    files: File[],
+    draft?: {
+      title?: string;
+      section?: string;
+      severity?: string;
+      observation?: string;
+      implication?: string;
+      recommendation?: string;
+    },
   ) {
     const target = existingFindings.find(
       (finding) => String(finding.id) === String(findingId),
     );
     if (!target) throw new Error("That defect could not be found.");
 
-    const media = await uploadPhotoFile(file, "field-media");
-    const { error: photoError } = await supabase.from("photos").insert({
-      inspection_id: selectedReport,
-      finding_id: findingId,
-      public_url: media.publicUrl,
-      file_path: media.filePath,
-      is_video: Boolean(media.isVideo),
-      mime_type: media.mimeType || (media.isVideo ? "video/mp4" : null),
-      thumbnail_url: media.thumbnailUrl || null,
-      thumbnail_path: media.thumbnailPath || null,
-    });
-    if (photoError) throw photoError;
+    let firstImageUrl = "";
+    for (const file of files) {
+      const media = await uploadPhotoFile(file, "field-media");
+      const { error: photoError } = await supabase.from("photos").insert({
+        inspection_id: selectedReport,
+        finding_id: findingId,
+        public_url: media.publicUrl,
+        file_path: media.filePath,
+        is_video: Boolean(media.isVideo),
+        mime_type: media.mimeType || (media.isVideo ? "video/mp4" : null),
+        thumbnail_url: media.thumbnailUrl || null,
+        thumbnail_path: media.thumbnailPath || null,
+      });
+      if (photoError) throw photoError;
+      if (!firstImageUrl && media.publicUrl && !media.isVideo) {
+        firstImageUrl = media.publicUrl;
+      }
+    }
 
-    if (!target.image_url && media.publicUrl && !media.isVideo) {
+    if (!target.image_url && firstImageUrl) {
       await supabase
         .from("findings")
-        .update({ image_url: media.publicUrl })
+        .update({ image_url: firstImageUrl })
         .eq("id", findingId)
         .eq("inspection_id", selectedReport);
+    }
+
+    // COMBINE: when a drafted finding is provided, AI-rewrite the existing
+    // finding to cover both locations (report-builder Combine Defects behaviour).
+    // Best-effort — the photos are already attached even if the rewrite fails.
+    if (draft) {
+      try {
+        await fetch("/api/findings/combine-capture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inspectionId: selectedReport,
+            findingId,
+            newFinding: {
+              title: draft.title || "",
+              section: draft.section || "",
+              severity: draft.severity || "",
+              observation: draft.observation || "",
+              implication: draft.implication || "",
+              recommendation: draft.recommendation || "",
+            },
+          }),
+        });
+      } catch {
+        /* photos are attached; rewrite is best-effort */
+      }
     }
 
     setQueueTick((current) => current + 1);

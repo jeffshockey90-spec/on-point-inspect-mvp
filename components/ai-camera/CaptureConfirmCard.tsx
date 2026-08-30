@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CaptureDraft } from "../../lib/ai/captureTypes";
+import type { CaptureDraft, FindingDraft } from "../../lib/ai/captureTypes";
 import { SECTION_OPTIONS } from "../../lib/ai/captureTypes";
 import { buildEquipmentFills, buildMaterialFills, writeChecklistFills, type ChecklistFill } from "../../lib/ai/checklistAutofill";
 import { supabase } from "../../lib/supabaseClient";
@@ -30,7 +30,7 @@ type Props = {
   existingFindings?: ExistingFinding[];
   onAccept: (editedDraft: CaptureDraft) => void;
   onRegenerate?: (note: string) => void;
-  onAttachToExisting?: (findingId: string) => void;
+  onAttachToExisting?: (findingId: string, draft?: FindingDraft) => void;
   onRetake: () => void;
   onMarkup?: () => void;
   // Extra angles bundled into this one finding (multi-photo capture).
@@ -272,10 +272,10 @@ export default function CaptureConfirmCard({
           </button>
         )}
 
-        {/* Attach this capture to a defect already in the report */}
+        {/* Combine this capture into a defect already in the report */}
         {canAttach && (
           <div className="mt-3 rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
-            <label className={labelClass}>Attach to an existing defect</label>
+            <label className={labelClass}>Combine with an existing defect</label>
             <select
               className={inputClass}
               value={attachTo}
@@ -292,7 +292,7 @@ export default function CaptureConfirmCard({
             </select>
             {attachTo && (
               <p className="mt-2 text-[11px] font-bold text-[var(--fl-info-text)]">
-                This photo/video will be added to that defect. The write-up below is skipped.
+                This capture&apos;s photos are added to that defect, and AI rewrites the write-up to cover both locations — just like Combine Defects in the report builder.
               </p>
             )}
           </div>
@@ -762,7 +762,12 @@ export default function CaptureConfirmCard({
           type="button"
           onClick={() => {
             if (attachTo) {
-              onAttachToExisting?.(attachTo);
+              // Pass the drafted finding so the existing one is AI-rewritten to
+              // combine both (report-builder Combine Defects behaviour).
+              onAttachToExisting?.(
+                attachTo,
+                edited.kind === "finding" ? (edited as FindingDraft) : undefined,
+              );
             } else {
               emitLiveCameraLearning(edited);
               // Write the inspector-confirmed section system-info fills. Best-
@@ -780,7 +785,7 @@ export default function CaptureConfirmCard({
           {busy
             ? "Saving…"
             : attachTo
-              ? "Attach to Defect"
+              ? "🔗 Combine with Defect"
               : draft.kind === "reference"
                 ? "Save"
                 : "Accept & Save"}
