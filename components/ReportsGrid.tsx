@@ -195,7 +195,11 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                 className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
               />
 
-              <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[var(--fl-ground)] text-[var(--fl-faint)]">
+              {/* The image area is purely decorative — let clicks fall through to
+                  the stretched Link above (the Image sits at the same z-10 but
+                  later in the DOM, so without this it would swallow clicks over
+                  the picture and only the area below would open the report). */}
+              <div className="pointer-events-none relative flex h-56 items-center justify-center overflow-hidden bg-[var(--fl-ground)] text-[var(--fl-faint)]">
                 {!report.propertyPhoto ? (
                   <span className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-bold text-[var(--fl-faint)]">
                     No Property Photo
