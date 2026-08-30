@@ -552,9 +552,16 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       const firstFindingId = Array.isArray(detail.findingIds)
         ? detail.findingIds[0]
         : "";
+      // Section fallback: when a review item's finding no longer exists (combined
+      // or deleted since the review ran), the AI Review panel re-dispatches with
+      // just the section so the click still lands the inspector in the right area.
+      const sectionTarget = detail.section
+        ? `report-section-${commandSlug(String(detail.section))}`
+        : "";
       openTargetFromHash(
         detail.targetAnchor ||
-          (firstFindingId ? `finding-${firstFindingId}` : ""),
+          (firstFindingId ? `finding-${firstFindingId}` : "") ||
+          sectionTarget,
       );
     }
 

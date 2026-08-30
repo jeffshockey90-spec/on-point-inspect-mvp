@@ -92,27 +92,45 @@ function jumpToFinding(findingId?: string | number, section?: string) {
   if (typeof window === "undefined") return;
   const id = findingId === undefined || findingId === null ? "" : String(findingId).trim();
 
-  // Use the finding editor's own jump mechanism: each finding listens for this
-  // event and, when its id matches, EXPANDS itself and scrolls into view (so it
-  // works even when the finding card is collapsed). Same event Command Center uses.
-  if (!id) return;
+  // No finding id at all (e.g. a whole-report concern) → jump to the section.
+  if (!id) {
+    if (section) {
+      window.dispatchEvent(
+        new CustomEvent("opi:command-center-jump", { detail: { section } }),
+      );
+    }
+    return;
+  }
 
-  // Primary: the finding's own listener expands it and scrolls into view.
+  // Primary: the report's jump handler opens the finding's section (even if
+  // collapsed) and scrolls/expands the finding. `section` is a fallback target.
   window.dispatchEvent(
     new CustomEvent("opi:command-center-jump", {
-      detail: { findingIds: [id] },
+      detail: { findingIds: [id], section },
     }),
   );
 
-  // Backup: also scroll directly to the card in case its handler doesn't fire.
-  window.setTimeout(() => {
-    const el = document.querySelector(
-      `[data-finding-id="${id.replace(/"/g, '\\"')}"]`,
-    ) as HTMLElement | null;
-    if (el && el.offsetParent !== null) {
+  // The finding's section may need to open + render first, so POLL for the card
+  // for ~1.5s rather than a single 300ms shot. If it never appears — the finding
+  // was combined/deleted since the review ran, or the id didn't match — fall back
+  // to its section so the click still lands the inspector in the right place.
+  let tries = 0;
+  const selector = `[data-finding-id="${id.replace(/"/g, '\\"')}"]`;
+  const timer = window.setInterval(() => {
+    tries += 1;
+    const el = document.querySelector(selector) as HTMLElement | null;
+    if (el) {
+      window.clearInterval(timer);
       el.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else if (tries >= 9) {
+      window.clearInterval(timer);
+      if (section) {
+        window.dispatchEvent(
+          new CustomEvent("opi:command-center-jump", { detail: { section } }),
+        );
+      }
     }
-  }, 300);
+  }, 170);
 }
 
 function scoreTone(score: number) {
