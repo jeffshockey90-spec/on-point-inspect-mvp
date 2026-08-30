@@ -162,6 +162,20 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   const [combining, setCombining] = useState(false);
   const [combineError, setCombineError] = useState("");
 
+  // Filter the whole report by severity. Empty set = show everything. Uses the
+  // company's severity config so custom severity names/order are respected.
+  const severityConfig = useSeverityConfig();
+  const [severityFilter, setSeverityFilter] = useState<Set<string>>(new Set());
+
+  function toggleSeverityFilter(label: string) {
+    setSeverityFilter((current) => {
+      const next = new Set(current);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }
+
   function toggleCombineSelect(id: string) {
     setSelectedCombine((current) => {
       const next = new Set(current);
@@ -706,6 +720,24 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     .map((group: any) => group.section)
     .filter((section: string) => section && section !== "Other");
 
+  // Count findings per (resolved) severity label across the whole report, so the
+  // filter chips can show counts and hide severities that don't occur.
+  const severityCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const group of (orderedGroups as any[]) || []) {
+      for (const f of group?.findings || []) {
+        const label = severityLabel(severityConfig, f?.severity);
+        counts[label] = (counts[label] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [orderedGroups, severityConfig]);
+
+  // The severity levels that actually occur in this report, in config order.
+  const severityFilterOptions = severityOptions(severityConfig).filter(
+    (label: string) => (severityCounts[label] || 0) > 0,
+  );
+
   return (
     <div
       id="report-findings-editor"
@@ -773,6 +805,43 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
           </button>
         )}
       </div>
+
+      {severityFilterOptions.length > 1 && (
+        <div className="flex w-full flex-wrap items-center gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 sm:p-4">
+          <span className="text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
+            Severity
+          </span>
+          <button
+            type="button"
+            onClick={() => setSeverityFilter(new Set())}
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+              severityFilter.size === 0
+                ? "border-teal-400 bg-teal-500/15 text-[var(--fl-accent-text)]"
+                : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:border-[var(--fl-faint)]"
+            }`}
+          >
+            All ({Object.values(severityCounts).reduce((a, b) => a + b, 0)})
+          </button>
+          {severityFilterOptions.map((label: string) => {
+            const active = severityFilter.has(label);
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => toggleSeverityFilter(label)}
+                style={active ? severityBadgeStyle(severityConfig, label) : undefined}
+                className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                  active
+                    ? ""
+                    : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:border-[var(--fl-faint)]"
+                }`}
+              >
+                {label} ({severityCounts[label]})
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {addSectionOpen && (
         <div className="w-full rounded-2xl border border-cyan-500/40 bg-[var(--fl-surface)] p-4">
@@ -930,7 +999,13 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       )}
 
       {(orderedGroups || []).map((group: any, index: number) => {
-        const findings = group.findings || [];
+        const findings = ((group.findings || []) as any[]).filter(
+          (f) =>
+            severityFilter.size === 0 ||
+            severityFilter.has(severityLabel(severityConfig, f?.severity)),
+        );
+        // When a severity filter is active, hide sections that have nothing left.
+        if (severityFilter.size > 0 && findings.length === 0) return null;
         const isClosed = !!closedSections[group.section];
         const isDragging = draggingSection === group.section;
 
