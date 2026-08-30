@@ -9,6 +9,12 @@ export type ReportSectionOverride = {
 // for the default sections; report pages/PDF/field tool used to each declare
 // their own copy.
 export const BASE_SECTION_ORDER = [
+  // Leads every report: the info-only section holding the inspection's
+  // In Attendance / Occupancy / Style / Temperature / Type of Building /
+  // Weather Conditions checklist + weather auto-fill. Not home-inspection
+  // specific, so it survives the mold/radon service-mode trim below. An
+  // inspector can still delete it per-report via the builder if unwanted.
+  "Inspection Details",
   "Exterior",
   "Roof",
   "Basement, Foundation, Crawlspace & Structure",
@@ -107,7 +113,7 @@ export function resolveActiveSections(
   // ahead of it rather than after, so Garage still reads as "last".
   const garageIndex = baseActive.findIndex((section) => section.toLowerCase() === "garage");
 
-  const merged =
+  const mergedRaw =
     garageIndex === -1
       ? [...baseActive, ...customActive]
       : [
@@ -115,6 +121,17 @@ export function resolveActiveSections(
           ...customActive,
           ...baseActive.slice(garageIndex),
         ];
+
+  // Guard against a duplicate when a report also carries a manually-added
+  // custom section whose name collides with a base one (e.g. someone added
+  // their own "Inspection Details"). Keep the first occurrence, case-insensitive.
+  const seen = new Set<string>();
+  const merged = mergedRaw.filter((name) => {
+    const key = name.toLowerCase().trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   // If the inspector saved a custom section order (drag-to-reorder in the
   // builder), honor it: sections named in customOrder lead, in that order;
