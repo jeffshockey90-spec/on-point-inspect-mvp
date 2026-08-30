@@ -172,6 +172,16 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     setCombineError("");
   }
 
+  // Start combine mode from a single finding's own "Combine" button, with that
+  // finding pre-selected so the inspector just taps the others to merge with it.
+  function startCombineWith(findingId: any) {
+    const id = String(findingId || "");
+    if (!id) return;
+    setSelectedCombine(new Set([id]));
+    setCombineOpen(true);
+    setCombineError("");
+  }
+
   async function combineSelectedFindings() {
     const ids = Array.from(selectedCombine);
     if (ids.length < 2) {
@@ -1044,6 +1054,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                       allFindings={allFindings}
                       availableSections={availableSections}
                       onNeedPhotoPicker={() => setPhotoPickerLoaded(true)}
+                      onStartCombine={startCombineWith}
                       router={router}
                     />
                   );
@@ -2442,6 +2453,7 @@ function FindingCardBase({
   allFindings,
   availableSections,
   onNeedPhotoPicker,
+  onStartCombine,
   router,
 }: any) {
   const severityConfig = useSeverityConfig();
@@ -3282,6 +3294,17 @@ function FindingCardBase({
               className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-good-text)] hover:bg-emerald-500 hover:text-slate-950"
             >
               Mark Reviewed
+            </button>
+          )}
+
+          {onStartCombine && (
+            <button
+              type="button"
+              onClick={() => onStartCombine(finding.id)}
+              title="Combine this finding with another (same defect, different location)"
+              className="rounded-xl border border-purple-500/60 px-4 py-2 text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10"
+            >
+              🔗 Combine
             </button>
           )}
 
