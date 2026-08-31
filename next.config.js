@@ -41,6 +41,18 @@ const nextConfig = {
     NEXT_PUBLIC_BUILD_TIME: buildTime,
   },
 
+  // Clean URLs for the public acquisition landing pages. The pages themselves
+  // are standalone static files in /public (no app chrome, no global-CSS
+  // collision); these rewrites serve them at extension-less marketing URLs.
+  // Both paths are allow-listed in proxy.ts PUBLIC_PREFIXES so they skip the
+  // login wall.
+  async rewrites() {
+    return [
+      { source: "/switch-from-horizon", destination: "/switch-from-horizon.html" },
+      { source: "/vs-spectora", destination: "/vs-spectora.html" },
+    ];
+  },
+
   // Video conversion (/api/video-convert) shells out to the ffmpeg-static binary.
   // Two things are needed for that to work on Vercel:
   // 1) Keep ffmpeg-static EXTERNAL so Next doesn't inline it — otherwise its

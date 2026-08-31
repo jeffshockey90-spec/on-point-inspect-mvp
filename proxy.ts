@@ -84,6 +84,15 @@ const PUBLIC_PREFIXES = [
   // prospective client or realtor opening the link should never hit a login wall).
   "/inspectors",
   "/demo",
+  // Public acquisition landing pages (static files in /public, served via
+  // next.config rewrites). No login wall — these are marketing pages linked
+  // from forums/social to bring inspectors in.
+  "/switch-from-horizon",
+  "/vs-spectora",
+  // Also allow the underlying static .html paths directly (the clean URLs above
+  // rewrite to these), so a crawler or shared .html link isn't bounced to login.
+  "/switch-from-horizon.html",
+  "/vs-spectora.html",
 ];
 
 function cleanText(value: unknown) {
