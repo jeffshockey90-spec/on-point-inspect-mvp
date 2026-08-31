@@ -430,6 +430,14 @@ export default function ImportReportPage() {
   const [companyInspectors, setCompanyInspectors] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
   const [targetInspectorId, setTargetInspectorId] = useState("");
 
+  // Platform owner (super-admin) only: import into ANY company/inspector to set a
+  // new customer up. "" targetCompanyId means "my own company" (normal flow).
+  type CompanyOption = { id: string; name: string; ownerId: string; inspectors: { id: string; name: string; email: string; role: string }[] };
+  const [isPlatformOwner, setIsPlatformOwner] = useState(false);
+  const [allCompanies, setAllCompanies] = useState<CompanyOption[]>([]);
+  const [targetCompanyId, setTargetCompanyId] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -440,6 +448,18 @@ export default function ImportReportPage() {
         if (data?.isOwner && Array.isArray(data.inspectors) && data.inspectors.length > 1) {
           setIsOwner(true);
           setCompanyInspectors(data.inspectors);
+        }
+        if (data?.isPlatformOwner) {
+          setIsPlatformOwner(true);
+          try {
+            const compRes = await fetch("/api/import-report/all-companies");
+            const compData = await compRes.json();
+            if (!cancelled && Array.isArray(compData?.companies)) {
+              setAllCompanies(compData.companies);
+            }
+          } catch {
+            /* keep same-company import available */
+          }
         }
       } catch {
         /* non-owner or offline — self-import only */
@@ -637,7 +657,77 @@ export default function ImportReportPage() {
   async function createImportedInspection(saveAsDemo = false) {
     try {
       setErrorMessage("");
+      setSuccessMessage("");
       setCreating(saveAsDemo ? "demo" : "draft");
+
+      // Platform-owner cross-company import: create inside the chosen company via
+      // the service-role route (RLS blocks a client-side cross-tenant insert).
+      // "" targetCompanyId falls through to the normal same-company flow below.
+      if (isPlatformOwner && targetCompanyId) {
+        const standard = new Set([
+          "inspection details", "exterior", "roof", "basement, foundation, crawlspace & structure",
+          "heating", "cooling", "plumbing", "electrical", "fireplace",
+          "attic, insulation & ventilation", "doors, windows & interior", "built-in appliances",
+          "garage", "disclaimers",
+        ]);
+        const customSections = Array.from(
+          new Map(
+            activeFindings
+              .map((finding) => String(finding.section || "").trim())
+              .filter((name) => name && !standard.has(name.toLowerCase()))
+              .map((name) => [name.toLowerCase(), name]),
+          ).values(),
+        );
+        const payload = {
+          targetCompanyId,
+          targetInspectorId: targetInspectorId || "",
+          saveAsDemo,
+          inspection: {
+            client_name: saveAsDemo ? "Sample Client" : maskInfo ? fakeNames.client : parsedReport.clientName || "Imported Client",
+            client_email: saveAsDemo || maskInfo ? "" : (parsedReport.clientEmail || "").trim().toLowerCase(),
+            client_phone: saveAsDemo || maskInfo ? "" : parsedReport.clientPhone || "",
+            realtor_name: saveAsDemo ? "Sample Realtor" : maskInfo ? fakeNames.realtor : parsedReport.realtorName || "",
+            realtor_email: saveAsDemo || maskInfo ? "" : (parsedReport.realtorEmail || "").trim().toLowerCase(),
+            realtor_phone: saveAsDemo || maskInfo ? "" : parsedReport.realtorPhone || "",
+            property_address: parsedReport.propertyAddress || "Imported Report",
+            city: parsedReport.city || "",
+            state: parsedReport.state || "",
+            zip: parsedReport.zip || "",
+            cover_photo_url: parsedReport.coverPhotoUrl || "",
+            inspection_date: parsedReport.inspectionDate || todayString(),
+            notes: `Imported from ${parsedReport.reportType || "PDF"} by platform owner. Review before publishing.`,
+          },
+          findings: activeFindings.map((finding) => ({
+            section: finding.section,
+            title: finding.title,
+            observation: finding.observation,
+            implication: finding.implication,
+            recommendation: finding.recommendation,
+            severity: normalizeSeverity(finding.severity),
+            image_url: finding.image_url || (finding.photos || [])[0] || "",
+            photos: photoSet(finding),
+          })),
+          customSections,
+        };
+        const res = await fetch("/api/import-report/admin-create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Could not import for that company.");
+
+        const company = allCompanies.find((item) => item.id === targetCompanyId);
+        const inspector = company?.inspectors.find((item) => item.id === targetInspectorId);
+        setSuccessMessage(
+          `Imported into ${company?.name || "the company"}${
+            inspector ? ` for ${inspector.name}` : " at the company level — the owner can assign it"
+          }. It's now in their account.`,
+        );
+        setParsedReport(EMPTY_PARSED_REPORT);
+        setFile(null);
+        return;
+      }
 
       const {
         data: { user },
@@ -896,32 +986,70 @@ export default function ImportReportPage() {
     }
   }
 
-  // Owner-only: choose whose account the imported report lands in. Rendered
-  // above the create buttons in both the PDF and Spectora-link flows.
-  const ownerPicker =
-    isOwner && companyInspectors.length > 1 ? (
-      <div className="mb-4 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3">
+  // Owner tooling: choose whose account the imported report lands in. A company
+  // owner sees their own team; the platform owner (super-admin) also gets a
+  // company picker to set up ANY company/inspector. Rendered above the create
+  // buttons in both the PDF and Spectora-link flows.
+  const selectedCompany = targetCompanyId ? allCompanies.find((c) => c.id === targetCompanyId) : null;
+  const inspectorOptions = selectedCompany ? selectedCompany.inspectors : companyInspectors;
+  const emptyInspectorLabel = selectedCompany ? "Company-level — the owner assigns it" : "Me (my account)";
+  const showPicker =
+    (isPlatformOwner && allCompanies.length > 0) || (isOwner && companyInspectors.length > 1);
+
+  const ownerPicker = showPicker ? (
+    <div className="mb-4 space-y-3 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3">
+      <div>
         <label className="block text-sm font-semibold text-[var(--fl-text)]">
-          Import into inspector&apos;s account
+          {isPlatformOwner ? "Import for a company / inspector" : "Import into inspector's account"}
         </label>
-        <p className="mb-2 text-xs text-[var(--fl-muted)]">
-          As a company owner you can drop this imported report straight into one of your inspectors&apos; accounts — for when you&apos;re migrating a report on their behalf.
+        <p className="text-xs text-[var(--fl-muted)]">
+          {isPlatformOwner
+            ? "Set a company or inspector up by dropping this report straight into their account — pick the company, then an inspector (or leave it company-level for the owner to assign)."
+            : "Drop this imported report straight into one of your inspectors' accounts — for when you're migrating on their behalf."}
         </p>
-        <select
-          value={targetInspectorId}
-          onChange={(event) => setTargetInspectorId(event.target.value)}
-          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-[var(--fl-text)] outline-none focus:border-teal-400"
-        >
-          <option value="">Me (my account)</option>
-          {companyInspectors.map((inspector) => (
-            <option key={inspector.id} value={inspector.id}>
-              {inspector.name}
-              {inspector.role === "owner" ? " (owner)" : ""}
-            </option>
-          ))}
-        </select>
       </div>
-    ) : null;
+
+      {isPlatformOwner && allCompanies.length > 0 && (
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Company</span>
+          <select
+            value={targetCompanyId}
+            onChange={(event) => {
+              setTargetCompanyId(event.target.value);
+              setTargetInspectorId("");
+            }}
+            className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-[var(--fl-text)] outline-none focus:border-teal-400"
+          >
+            <option value="">My company (default)</option>
+            {allCompanies.map((company) => (
+              <option key={company.id} value={company.id}>
+                {company.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {inspectorOptions.length > 0 && (
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Inspector</span>
+          <select
+            value={targetInspectorId}
+            onChange={(event) => setTargetInspectorId(event.target.value)}
+            className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-[var(--fl-text)] outline-none focus:border-teal-400"
+          >
+            <option value="">{emptyInspectorLabel}</option>
+            {inspectorOptions.map((inspector) => (
+              <option key={inspector.id} value={inspector.id}>
+                {inspector.name}
+                {inspector.role === "owner" ? " (owner)" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </div>
+  ) : null;
 
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-8">
@@ -1031,6 +1159,12 @@ export default function ImportReportPage() {
           {errorMessage && (
             <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-[var(--fl-crit-text)]">
               {errorMessage}
+            </p>
+          )}
+
+          {successMessage && (
+            <p className="mt-4 rounded-xl border border-teal-500/40 bg-teal-500/10 p-4 text-[var(--fl-accent-text)]">
+              {successMessage}
             </p>
           )}
         </section>

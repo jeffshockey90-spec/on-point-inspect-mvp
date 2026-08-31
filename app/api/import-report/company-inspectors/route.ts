@@ -41,10 +41,11 @@ export async function GET() {
     .single();
 
   const email = String(user.email || "").toLowerCase();
-  const isOwner = me?.role === "owner" || OWNER_EMAILS.includes(email);
+  const isPlatformOwner = OWNER_EMAILS.includes(email);
+  const isOwner = me?.role === "owner" || isPlatformOwner;
 
   if (!isOwner || !me?.company_id) {
-    return NextResponse.json({ isOwner: false, inspectors: [] });
+    return NextResponse.json({ isOwner: false, isPlatformOwner, inspectors: [] });
   }
 
   // Full company roster via service-role.
@@ -63,5 +64,5 @@ export async function GET() {
     .filter((r: any) => r.id)
     .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
-  return NextResponse.json({ isOwner: true, companyId: me.company_id, inspectors });
+  return NextResponse.json({ isOwner: true, isPlatformOwner, companyId: me.company_id, inspectors });
 }
