@@ -450,11 +450,15 @@ async function extractAndUploadPhotos(
     const { data } = admin.storage.from("company-assets").getPublicUrl(path);
     if (data?.publicUrl) {
       out.push({ page, url: data.publicUrl });
-      // The property cover photo is the largest image near the START of the PDF
-      // (cover page), regardless of the page it maps to -- Spectora often nests
-      // the cover image so page detection returns 0.
+      // The property cover photo is the largest PHOTO-SHAPED image near the START
+      // of the PDF, regardless of the page it maps to (some exporters nest the
+      // cover so page detection returns 0). The aspect-ratio + min-size guard
+      // keeps a wide banner/divider graphic (e.g. Horizon's marketing headers)
+      // from being chosen as the cover.
       const area = w * h;
-      if (idx <= 8 && area > coverArea) {
+      const aspect = h > 0 ? w / h : 0;
+      const photoShaped = aspect >= 0.5 && aspect <= 2.2 && w >= 400 && h >= 400;
+      if (idx <= 12 && photoShaped && area > coverArea) {
         coverArea = area;
         coverUrl = data.publicUrl;
       }
