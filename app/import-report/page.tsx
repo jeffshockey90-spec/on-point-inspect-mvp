@@ -747,6 +747,47 @@ export default function ImportReportPage() {
         insertedFindings = findingsData || [];
       }
 
+      // Any imported section that isn't one of FLOW's standard sections (e.g. a
+      // Hive report's "Lots & Grounds", "Swimming Pools" or "Thermal Camera")
+      // is registered as a CUSTOM section so it shows in the report builder under
+      // its original name and order, instead of collapsing into "Other".
+      try {
+        const standardSections = new Set(
+          [
+            "inspection details", "exterior", "roof", "basement, foundation, crawlspace & structure",
+            "heating", "cooling", "plumbing", "electrical", "fireplace",
+            "attic, insulation & ventilation", "doors, windows & interior", "built-in appliances",
+            "garage", "disclaimers",
+          ],
+        );
+        const customSections: string[] = [];
+        for (const finding of activeFindings) {
+          const name = String(finding.section || "").trim();
+          if (
+            name &&
+            !standardSections.has(name.toLowerCase()) &&
+            !customSections.some((existing) => existing.toLowerCase() === name.toLowerCase())
+          ) {
+            customSections.push(name);
+          }
+        }
+        if (customSections.length > 0) {
+          const { error: sectionError } = await supabase.from("report_section_overrides").insert(
+            customSections.map((name, index) => ({
+              inspection_id: inspection.id,
+              section_name: name,
+              is_custom: true,
+              sort_order: 100 + index,
+            })),
+          );
+          if (sectionError) {
+            console.warn("Imported custom sections were not created:", sectionError.message);
+          }
+        }
+      } catch (sectionError) {
+        console.warn("Imported custom sections were not created.", sectionError);
+      }
+
       const photoRows: any[] = [];
 
       insertedFindings.forEach((insertedFinding, index) => {

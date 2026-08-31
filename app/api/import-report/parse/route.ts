@@ -433,7 +433,8 @@ async function extractAndUploadPhotos(
 // (round-robin when a page has several), otherwise the nearest earlier finding.
 function attachPhotosToFindings(
   findings: ImportedFinding[],
-  photos: { page: number; url: string }[]
+  photos: { page: number; url: string }[],
+  minPhotoPage = 5
 ) {
   const byPage = new Map<number, ImportedFinding[]>();
   findings.forEach((f) => {
@@ -447,10 +448,11 @@ function attachPhotosToFindings(
   const cursor = new Map<number, number>();
 
   for (const ph of photos) {
-    // Pages 1-4 are the cover, table of contents, summary, and inspection
-    // details -- their images are the house cover / report chrome, not defect
-    // photos, so skip them.
-    if (ph.page <= 4) continue;
+    // Early pages are cover / table of contents / summary chrome -- their images
+    // are the house cover or report branding, not defect photos. The floor is
+    // format-aware: Spectora/Hive findings start deeper in the PDF, Horizon's
+    // begin on page 2.
+    if (ph.page < minPhotoPage) continue;
     // Attach to a finding on the same page; if none, widen the search out to
     // +/-2 pages (round-robin when a page has several findings). Only drop a
     // photo if there is no finding within that window (section-info images).
@@ -467,6 +469,251 @@ function attachPhotosToFindings(
     list[c % list.length].photos!.push(ph.url);
     cursor.set(ph.page, c + 1);
   }
+}
+
+// ============================================================================
+// Multi-source support: Carson Dunlop HORIZON and HIVE PDFs (in addition to the
+// Spectora/residential format handled above). Detection keys off text markers;
+// each has its own findings parser + cover extractor. Section names that don't
+// map cleanly to a FLOW standard section are KEPT as-is (custom sections).
+// ============================================================================
+
+type ReportFormat = "horizon" | "hive" | "spectora";
+
+function detectReportFormat(text: string): ReportFormat {
+  const t = text.toLowerCase();
+  if (/carsondunlop|setting the standard for home inspection since 1978|horizon professional/.test(t)) {
+    return "horizon";
+  }
+  // Hive's per-section inspection grid header ("SUBSECTION IN NI NP D # OBSERVATIONS")
+  // collapses to this distinctive token; its tier labels are also unique.
+  if (/subsectioninninpd|maintenance & cosmetic observations|functional or performance observations/.test(t)) {
+    return "hive";
+  }
+  return "spectora";
+}
+
+// Preserve an inspector-defined section name unless it's unambiguously one of
+// FLOW's standard sections (then use FLOW's canonical spelling).
+const FLOW_STANDARD_SECTIONS = [
+  "Inspection Details", "Exterior", "Roof", "Basement, Foundation, Crawlspace & Structure",
+  "Heating", "Cooling", "Plumbing", "Electrical", "Fireplace",
+  "Attic, Insulation & Ventilation", "Doors, Windows & Interior", "Built-in Appliances", "Garage", "Disclaimers",
+];
+const normSectionKey = (s: string) =>
+  String(s || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
+const STD_SECTION_BY_KEY: Record<string, string> = {};
+for (const s of FLOW_STANDARD_SECTIONS) STD_SECTION_BY_KEY[normSectionKey(s)] = s;
+function canonicalOrCustomSection(name: string): string {
+  const k = normSectionKey(name);
+  if (STD_SECTION_BY_KEY[k]) return STD_SECTION_BY_KEY[k];
+  if (k === "attic" || k === "insulation" || k === "attic insulation and ventilation") {
+    return "Attic, Insulation & Ventilation";
+  }
+  return titleCase(String(name || "").trim());
+}
+
+// ---- Carson Dunlop Horizon ----
+const HZ_SECTIONS: Record<string, string> = {
+  ROOFING: "Roof", EXTERIOR: "Exterior", STRUCTURE: "Basement, Foundation, Crawlspace & Structure",
+  ELECTRICAL: "Electrical", HEATING: "Heating", COOLING: "Cooling",
+  INSULATION: "Attic, Insulation & Ventilation", PLUMBING: "Plumbing", INTERIOR: "Doors, Windows & Interior",
+  FIREPLACE: "Fireplace", GARAGE: "Garage", APPLIANCES: "Built-in Appliances",
+};
+const HZ_PAGEBREAK =
+  /carsondunlop|Setting the standard for home inspection|^Report No\.|Page \d+ of \d+|^REFERENCE$|^[A-Z][A-Z ]{14,}$|(January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}, \d{4}\s*$/;
+
+function horizonSeverity(impl: string, task: string, time: string) {
+  const s = `${impl} ${task}`.toLowerCase();
+  const ti = (time || "").toLowerCase();
+  if (/shock|fire|hazard|carbon monoxide|safety|\bfall\b|burn|gas leak|trip hazard|structural failure|collapse/.test(s)) {
+    return "Safety Concern";
+  }
+  if (ti.includes("immediate")) return "Major Concern";
+  if (/less than 1 year|less than one year/.test(ti)) return "Recommended Repair";
+  if ((task || "").toLowerCase().includes("monitor") || ti.includes("discretionary") || ti.includes("ongoing") || /\byears?\b/.test(ti)) {
+    return "Maintenance";
+  }
+  return "Recommended Repair";
+}
+
+function pageMap(lines: string[]): number[] {
+  const pageOfLine = new Array(lines.length).fill(0);
+  let nextPage = 0;
+  for (let k = lines.length - 1; k >= 0; k -= 1) {
+    const pm = lines[k].match(/Page (\d+) of \d+/);
+    if (pm) nextPage = parseInt(pm[1], 10);
+    pageOfLine[k] = nextPage;
+  }
+  return pageOfLine;
+}
+
+function parseHorizonFindings(text: string): ImportedFinding[] {
+  const lines = text.split("\n").map((l) => l.trim());
+  const pageOfLine = pageMap(lines);
+  const out: ImportedFinding[] = [];
+  let section = "Inspection Details";
+  let component = "", subcomponent = "";
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (HZ_SECTIONS[line]) { section = HZ_SECTIONS[line]; i += 1; continue; }
+    const comp = line.match(/^([A-Z][A-Z0-9 ,&\/'\-]{2,})\s\\\s(.+)$/);
+    if (comp) { component = comp[1].trim(); subcomponent = comp[2].trim(); i += 1; continue; }
+    const fm = line.match(/^(\d+)\.Condition:\s*(.*)$/);
+    if (!fm) { i += 1; continue; }
+    const condition = fm[2].trim();
+    const startIdx = i;
+    const findingComponent = component;
+    const narrative: string[] = [];
+    let implication = "", location = "", task = "", time = "", cost = "";
+    let j = i + 1;
+    for (; j < lines.length; j += 1) {
+      const ln = lines[j];
+      if (/^\d+\.Condition:/.test(ln)) break;
+      if (HZ_SECTIONS[ln]) break;
+      if (/^([A-Z][A-Z0-9 ,&\/'\-]{2,})\s\\\s/.test(ln)) break;
+      if (/^(Descriptions|Inspection Methods & Limitations|General:)/i.test(ln)) break;
+      if (HZ_PAGEBREAK.test(ln)) break;
+      if (!ln) continue;
+      let m: RegExpMatchArray | null;
+      if ((m = ln.match(/^Implication\(s\):\s*(.+)$/i))) { implication = m[1].replace(/\s*\|\s*/g, "; ").trim(); continue; }
+      if ((m = ln.match(/^Location:\s*(.+)$/i))) { location = m[1].trim(); continue; }
+      if ((m = ln.match(/^Task:\s*(.+)$/i))) { task = m[1].trim(); continue; }
+      if ((m = ln.match(/^Time:\s*(.+)$/i))) { time = m[1].trim(); continue; }
+      if ((m = ln.match(/^Cost:\s*(.+)$/i))) { cost = m[1].trim(); continue; }
+      narrative.push(ln);
+    }
+    i = j;
+    if (/^COMMENTS?$/i.test(findingComponent) && !task && !location) continue;
+    if (!task && !location && condition.length > 140) continue;
+    const extra = narrative.filter((n) => n.toLowerCase() !== condition.toLowerCase());
+    let observation = extra.join(" ").trim();
+    if (location) observation = observation ? `${observation} (Location: ${location})` : `Location: ${location}.`;
+    if (!observation) observation = condition;
+    const title = titleCase(condition.length > 80 ? subcomponent || condition.slice(0, 60) : condition);
+    let recommendation = "";
+    if (task || time) {
+      recommendation = `Suggested action: ${task || "Review"}${time ? `. Time frame: ${time}` : ""}${cost ? `. Estimated cost: ${cost}` : ""}.`;
+    }
+    out.push({
+      section, title: title || "Imported Finding",
+      observation: cleanText(observation), implication: cleanText(implication),
+      recommendation: cleanText(recommendation), severity: horizonSeverity(implication, task, time),
+      page: pageOfLine[startIdx] || 0, photos: [],
+    });
+  }
+  return out;
+}
+
+function extractHorizonCover(text: string) {
+  const cover = {
+    propertyAddress: "", city: "", state: "", zip: "", clientName: "",
+    clientEmail: "", clientPhone: "", realtorName: "", realtorEmail: "", realtorPhone: "", inspectionDate: "",
+  };
+  // The repeated footer stamp: "443 Madison St, Chicago, IL     March 1, 2018"
+  const stamp = text.match(
+    /^(.+?),\s*([A-Za-z .'-]+),\s*([A-Z]{2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s*(\d{4})/m,
+  );
+  if (stamp) {
+    cover.propertyAddress = stamp[1].trim();
+    cover.city = stamp[2].trim();
+    cover.state = stamp[3].trim();
+    const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+    const mo = months.indexOf(stamp[4].toLowerCase()) + 1;
+    cover.inspectionDate = `${stamp[6]}-${String(mo).padStart(2, "0")}-${stamp[5].padStart(2, "0")}`;
+  }
+  const dear = text.match(/Dear\s+([^,\n]+),/);
+  if (dear) cover.clientName = dear[1].trim();
+  cover.clientEmail = extractEmail(text);
+  return cover;
+}
+
+// ---- Hive ----
+const HIVE_TIERS: Record<string, string> = {
+  "material safety or functional concerns": "Safety Concern",
+  "functional or performance observations": "Recommended Repair",
+  "maintenance & cosmetic observations": "Maintenance",
+};
+
+function parseHiveFindings(text: string): ImportedFinding[] {
+  const lines = text.split("\n").map((l) => l.trim());
+  const pageOfLine = pageMap(lines);
+  // Header/footer chrome (property + client + company) repeats every page.
+  const freq: Record<string, number> = {};
+  for (const l of lines) if (l && l.length < 90) freq[l] = (freq[l] || 0) + 1;
+  const repeated = new Set(
+    Object.keys(freq).filter((l) => freq[l] >= 4 && !/^(OBSERVATIONS|INFORMATION|LIMITATIONS)$/i.test(l)),
+  );
+  const out: ImportedFinding[] = [];
+  let section = "Inspection Details";
+  let inObs = false;
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const sec = line.match(/^(\d+)\.0\s+(.+)$/);
+    if (sec) { section = canonicalOrCustomSection(sec[2]); inObs = false; i += 1; continue; }
+    if (/^OBSERVATIONS$/i.test(line)) { inObs = true; i += 1; continue; }
+    if (/^(INFORMATION|LIMITATIONS|Rating Legend:|SUBSECTION)/i.test(line)) { inObs = false; i += 1; continue; }
+    if (!inObs) { i += 1; continue; }
+    const fm = line.match(/^(\d+)\.(\d+)\s+(.+)$/);
+    if (!fm) { i += 1; continue; }
+    const startIdx = i;
+    const title = (lines[i + 1] || "").trim();
+    const severity = HIVE_TIERS[(lines[i + 2] || "").trim().toLowerCase()];
+    if (!severity) { i += 1; continue; }
+    let j = i + 3;
+    let location = "", service = "";
+    const narr: string[] = [];
+    for (; j < lines.length; j += 1) {
+      const ln = lines[j];
+      if (/^\d+\.\d+\s+/.test(ln)) break;
+      if (/^\d+\.0\s+/.test(ln)) break;
+      if (/^(OBSERVATIONS|INFORMATION|LIMITATIONS|SUBSECTION|Rating Legend:)/i.test(ln)) break;
+      if (!ln) continue;
+      if (/^Page \d+ of \d+/i.test(ln)) continue;
+      if (repeated.has(ln)) continue;
+      let m: RegExpMatchArray | null;
+      if ((m = ln.match(/^Location:\s*(.+)$/i))) { location = m[1].trim(); continue; }
+      if ((m = ln.match(/^Service:\s*(.+)$/i))) { service = m[1].trim(); continue; }
+      narr.push(ln);
+    }
+    i = j;
+    let observation = narr.join(" ").trim();
+    if (location) observation = observation ? `${observation} (Location: ${location})` : `Location: ${location}.`;
+    out.push({
+      section, title: title || "Imported Finding",
+      observation: cleanText(observation || title), implication: "",
+      recommendation: service ? `Recommended service: ${service}.` : "", severity,
+      page: pageOfLine[startIdx] || 0, photos: [],
+    });
+  }
+  return out;
+}
+
+function extractHiveCover(text: string) {
+  const cover = {
+    propertyAddress: "", city: "", state: "", zip: "", clientName: "",
+    clientEmail: "", clientPhone: "", realtorName: "", realtorEmail: "", realtorPhone: "", inspectionDate: "",
+  };
+  const lines = text.split("\n").map((l) => l.trim());
+  const idx = lines.findIndex((l) => /^HOME INSPECTION REPORT$/i.test(l));
+  if (idx >= 0) {
+    const addr = lines[idx + 1] || "";
+    const am = addr.match(/^(.+?),\s*(.+?),\s*([A-Z]{2})\s*(\d{5}(?:-\d{4})?)?/);
+    if (am) { cover.propertyAddress = am[1].trim(); cover.city = am[2].trim(); cover.state = am[3].trim(); cover.zip = am[4] || ""; }
+    cover.clientName = lines[idx + 2] || "";
+  }
+  const d = text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
+  if (d) cover.inspectionDate = `${d[3]}-${d[1].padStart(2, "0")}-${d[2].padStart(2, "0")}`;
+  // Buyer's/Listing agent block -> realtor.
+  const agentIdx = lines.findIndex((l) => /^(Buyer's Agent|Buyers Agent|Listing Agent|Agent)$/i.test(l));
+  if (agentIdx >= 0) {
+    cover.realtorName = lines[agentIdx + 1] || "";
+    cover.realtorPhone = extractPhone(lines.slice(agentIdx + 1, agentIdx + 5).join(" "));
+    cover.realtorEmail = extractEmail(lines.slice(agentIdx + 1, agentIdx + 6).join(" "));
+  }
+  return cover;
 }
 
 export async function GET() {
@@ -496,11 +743,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Could not read text from this PDF." }, { status: 400 });
     }
 
-    const lines = text.split("\n").map((line) => line.trim());
-    const sectionMap = buildSectionMap(lines);
+    const format = detectReportFormat(text);
 
-    const coverInfo = extractCoverInfo(text);
-    const findings = parseFindings(text, sectionMap);
+    let coverInfo: ReturnType<typeof extractCoverInfo>;
+    let findings: ImportedFinding[];
+
+    if (format === "horizon") {
+      coverInfo = extractHorizonCover(text);
+      findings = parseHorizonFindings(text);
+    } else if (format === "hive") {
+      coverInfo = extractHiveCover(text);
+      findings = parseHiveFindings(text);
+    } else {
+      const lines = text.split("\n").map((line) => line.trim());
+      const sectionMap = buildSectionMap(lines);
+      coverInfo = extractCoverInfo(text);
+      findings = parseFindings(text, sectionMap);
+    }
 
     // Extract the embedded photos: attach defect photos to their findings, and
     // use the largest cover-page image as the property photo. Both carry into
@@ -508,17 +767,23 @@ export async function POST(request: Request) {
     let coverPhotoUrl = "";
     try {
       const extracted = await extractAndUploadPhotos(buffer);
-      if (extracted.photos.length) attachPhotosToFindings(findings, extracted.photos);
+      const minPhotoPage = format === "horizon" ? 2 : 5;
+      if (extracted.photos.length) attachPhotosToFindings(findings, extracted.photos, minPhotoPage);
       coverPhotoUrl = extracted.coverUrl;
     } catch (photoError) {
       console.error("Import photo extraction failed:", photoError);
     }
 
-    const reportType = text.toLowerCase().includes("spectora")
-      ? "Spectora"
-      : text.toLowerCase().includes("residential report")
-        ? "PDF Residential Report"
-        : "PDF";
+    const reportType =
+      format === "horizon"
+        ? "Carson Dunlop Horizon"
+        : format === "hive"
+          ? "Hive"
+          : text.toLowerCase().includes("spectora")
+            ? "Spectora"
+            : text.toLowerCase().includes("residential report")
+              ? "PDF Residential Report"
+              : "PDF";
 
     return NextResponse.json({
       report: {
