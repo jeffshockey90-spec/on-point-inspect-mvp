@@ -357,25 +357,52 @@ async function extractAndUploadPhotos(
   }
   const ctx = pdf.context;
 
-  // Map each image XObject ref -> the (1-based) page it first appears on.
+  // Map each image XObject ref -> the (1-based) page it first appears on. Some
+  // exporters (Carson Dunlop Horizon) don't reference images directly on the
+  // page -- they nest them inside a Form XObject whose own Resources hold the
+  // real image. Walk recursively through Form XObjects so those images still get
+  // a page (otherwise every one maps to page 0 and never attaches to a finding).
   const refToPage = new Map<string, number>();
   const pages = pdf.getPages();
+  const resolveDict = (v: any) => {
+    if (v && !v.get && !v.entries) {
+      try {
+        return ctx.lookup(v);
+      } catch {
+        return null;
+      }
+    }
+    return v;
+  };
+  const walkXObjects = (xobjDict: any, page: number, depth: number, seen: Set<string>) => {
+    if (!xobjDict || !xobjDict.entries || depth > 6) return;
+    for (const [, valueRef] of xobjDict.entries()) {
+      const key = valueRef?.toString?.();
+      if (!key) continue;
+      let resolved: any;
+      try {
+        resolved = ctx.lookup(valueRef);
+      } catch {
+        resolved = null;
+      }
+      const d = resolved?.dict;
+      const subtype = (d?.get?.(PDFName.of("Subtype")) as any)?.encodedName;
+      if (subtype === "/Image") {
+        if (!refToPage.has(key)) refToPage.set(key, page);
+      } else if (subtype === "/Form") {
+        if (seen.has(key)) continue; // avoid cycles / re-walking shared forms
+        seen.add(key);
+        const res = resolveDict(d?.get?.(PDFName.of("Resources")));
+        const nested = resolveDict(res?.get?.(PDFName.of("XObject")));
+        walkXObjects(nested, page, depth + 1, seen);
+      }
+    }
+  };
   for (let i = 0; i < pages.length; i += 1) {
     const res = pages[i].node.Resources();
     if (!res) continue;
-    let xobj: any = res.get(PDFName.of("XObject"));
-    if (xobj && !xobj.entries) {
-      try {
-        xobj = ctx.lookup(xobj);
-      } catch {
-        xobj = null;
-      }
-    }
-    if (!xobj || !xobj.entries) continue;
-    for (const [, value] of xobj.entries()) {
-      const key = value?.toString?.();
-      if (key && !refToPage.has(key)) refToPage.set(key, i + 1);
-    }
+    const xobj = resolveDict(res.get(PDFName.of("XObject")));
+    walkXObjects(xobj, i + 1, 0, new Set<string>());
   }
 
   const sessionId = randomUUID();
@@ -389,13 +416,21 @@ async function extractAndUploadPhotos(
     if (!(obj instanceof PDFRawStream)) continue;
     const dict = obj.dict;
     if ((dict.get(PDFName.of("Subtype")) as any)?.encodedName !== "/Image") continue;
-    if ((dict.get(PDFName.of("Filter")) as any)?.encodedName !== "/DCTDecode") continue;
     const w = (dict.get(PDFName.of("Width")) as any)?.numberValue || 0;
     const h = (dict.get(PDFName.of("Height")) as any)?.numberValue || 0;
     if (w < 250 || h < 250) continue; // skip icons / logos
 
+    // Accept a JPEG whether its Filter is the name /DCTDecode or a single-element
+    // array [/DCTDecode] (Carson Dunlop Horizon uses the array form, which the
+    // old encodedName check missed). Detect by the actual JPEG SOI header so we
+    // never hand sharp Flate-compressed raw pixel data it can't decode without
+    // colorspace metadata.
+    const raw = Buffer.from(obj.contents);
+    const isJpeg = raw.length > 3 && raw[0] === 0xff && raw[1] === 0xd8 && raw[2] === 0xff;
+    if (!isJpeg) continue;
+
     const page = refToPage.get(ref.toString()) || 0;
-    let jpeg: any = Buffer.from(obj.contents);
+    let jpeg: any = raw;
     try {
       jpeg = await sharp(jpeg)
         .rotate()
