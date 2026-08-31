@@ -2,7 +2,7 @@
 
 
 import { currentLocalDate } from "../../lib/app-time";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../utils/supabase/client";
 
@@ -424,6 +424,32 @@ export default function ImportReportPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [maskInfo, setMaskInfo] = useState(false);
 
+  // Owner-assisted import: a company owner can drop the report into any of their
+  // inspectors' accounts ("we import it for them"). Non-owners never see this.
+  const [isOwner, setIsOwner] = useState(false);
+  const [companyInspectors, setCompanyInspectors] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
+  const [targetInspectorId, setTargetInspectorId] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/import-report/company-inspectors");
+        const data = await res.json();
+        if (cancelled) return;
+        if (data?.isOwner && Array.isArray(data.inspectors) && data.inspectors.length > 1) {
+          setIsOwner(true);
+          setCompanyInspectors(data.inspectors);
+        }
+      } catch {
+        /* non-owner or offline — self-import only */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Fake but realistic names to swap in when masking personal info (demos /
   // privacy). Chosen once per parsed report so they stay stable.
   const fakeNames = useMemo(() => {
@@ -624,6 +650,12 @@ export default function ImportReportPage() {
       }
 
       const companyId = await getCompanyIdForUser(user.id);
+      // Owner-assisted: if a company owner picked a teammate, the imported report
+      // belongs to that inspector (company-owner RLS allows the cross-inspector
+      // insert as long as company_id stays the owner's company). Otherwise it's
+      // the caller's own account.
+      const ownerPicked = isOwner && targetInspectorId && targetInspectorId !== user.id;
+      const assignedInspectorId = ownerPicked ? targetInspectorId : user.id;
       const inspectionDate = parsedReport.inspectionDate || todayString();
 
       const detailsText = propertyDetails
@@ -653,7 +685,7 @@ export default function ImportReportPage() {
         .from("inspections")
         .insert([
           {
-            inspector_id: user.id,
+            inspector_id: assignedInspectorId,
             company_id: companyId,
 
             client_name: saveAsDemo
@@ -864,6 +896,33 @@ export default function ImportReportPage() {
     }
   }
 
+  // Owner-only: choose whose account the imported report lands in. Rendered
+  // above the create buttons in both the PDF and Spectora-link flows.
+  const ownerPicker =
+    isOwner && companyInspectors.length > 1 ? (
+      <div className="mb-4 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3">
+        <label className="block text-sm font-semibold text-[var(--fl-text)]">
+          Import into inspector&apos;s account
+        </label>
+        <p className="mb-2 text-xs text-[var(--fl-muted)]">
+          As a company owner you can drop this imported report straight into one of your inspectors&apos; accounts — for when you&apos;re migrating a report on their behalf.
+        </p>
+        <select
+          value={targetInspectorId}
+          onChange={(event) => setTargetInspectorId(event.target.value)}
+          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-[var(--fl-text)] outline-none focus:border-teal-400"
+        >
+          <option value="">Me (my account)</option>
+          {companyInspectors.map((inspector) => (
+            <option key={inspector.id} value={inspector.id}>
+              {inspector.name}
+              {inspector.role === "owner" ? " (owner)" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+    ) : null;
+
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-8">
       <div className="mx-auto max-w-6xl">
@@ -1029,6 +1088,8 @@ export default function ImportReportPage() {
                     </span>
                   </span>
                 </label>
+
+                {ownerPicker}
 
                 <div className="flex flex-wrap gap-3">
                   <button
@@ -1203,6 +1264,8 @@ export default function ImportReportPage() {
                     </span>
                   </span>
                 </label>
+
+                {ownerPicker}
 
                 <div className="flex flex-wrap gap-3">
                   <button
