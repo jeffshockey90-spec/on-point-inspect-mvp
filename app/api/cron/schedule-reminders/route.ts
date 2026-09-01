@@ -974,67 +974,95 @@ export async function GET(req: Request) {
         results.push(result);
       }
 
-      // Client SMS reminder - one text ~24h before, sent to the client (not
-      // the inspector push above). Deduped via schedule_reminder_logs.
-      if (
-        isSmsConfigured() &&
-        row.client_phone &&
-        inReminderWindow(start, now, "24h")
-      ) {
-        const settings = await getReminderSettingsForInspection(admin, row);
-        const smsKind = "client_sms_24h";
-        // Honor the client 24h-reminder toggle (company default or inspector
-        // override). Fail-open if unset.
-        const clientPrefs = await getNotificationPrefs(admin, {
+      // Client & agent SMS reminders, per window (24h / 2h / 30m), each gated by
+      // its own toggle (company default or per-inspector override). These are
+      // separate from the inspector push above. Client 24h defaults on (legacy);
+      // the rest are opt-in. Deduped via schedule_reminder_logs (client_sms_24h
+      // keeps its original key so prior sends stay deduped).
+      if (isSmsConfigured() && (row.client_phone || row.realtor_phone || row.agent_phone)) {
+        const prefs = await getNotificationPrefs(admin, {
           inspectorId: row.inspector_id,
           companyId: row.company_id,
         });
 
-        if (
-          settings.enabled &&
-          clientPrefs.client_reminder_sms &&
-          !(await alreadySent(admin, String(row.id), smsKind))
-        ) {
+        const reminderTargets: Array<{
+          who: "client" | "agent";
+          phone: string | null | undefined;
+          windows: Array<{ kind: ReminderKind; on: boolean }>;
+        }> = [
+          {
+            who: "client",
+            phone: row.client_phone,
+            windows: [
+              { kind: "24h", on: prefs.client_reminder_24h },
+              { kind: "2h", on: prefs.client_reminder_2h },
+              { kind: "30m", on: prefs.client_reminder_30m },
+            ],
+          },
+          {
+            who: "agent",
+            phone: row.realtor_phone || row.agent_phone,
+            windows: [
+              { kind: "24h", on: prefs.agent_reminder_24h },
+              { kind: "2h", on: prefs.agent_reminder_2h },
+              { kind: "30m", on: prefs.agent_reminder_30m },
+            ],
+          },
+        ];
+
+        const anyDue = reminderTargets.some(
+          (t) => t.phone && t.windows.some((w) => w.on && inReminderWindow(start, now, w.kind)),
+        );
+
+        if (anyDue) {
           const { data: company } = await admin
             .from("companies")
             .select("name")
             .eq("id", row.company_id)
             .maybeSingle();
+          const companyName = company?.name || "Your inspector";
 
-          const whenStr = new Intl.DateTimeFormat("en-US", {
-            timeZone,
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          }).format(start);
+          for (const target of reminderTargets) {
+            if (!target.phone) continue;
+            for (const win of target.windows) {
+              if (!win.on || !inReminderWindow(start, now, win.kind)) continue;
+              const smsKind = `${target.who}_sms_${win.kind}`;
+              if (await alreadySent(admin, String(row.id), smsKind)) continue;
 
-          const smsResult = await sendSms({
-            to: row.client_phone,
-            body: smsReminder({
-              company: company?.name || "Your inspector",
-              address: getAddress(row),
-              date: whenStr,
-            }),
-          });
+              const whenStr = new Intl.DateTimeFormat("en-US", {
+                timeZone,
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              }).format(start);
 
-          await admin.from("schedule_reminder_logs").insert({
-            inspection_id: String(row.id),
-            reminder_type: smsKind,
-            scheduled_for: start.toISOString(),
-            sent_at: new Date().toISOString(),
-            sent_count: smsResult.ok ? 1 : 0,
-            failed_count: smsResult.ok ? 0 : 1,
-            metadata: {
-              channel: "sms",
-              to: smsResult.to || null,
-              error: smsResult.error || null,
-              address: getAddress(row),
-            },
-          });
+              const smsResult = await sendSms({
+                to: target.phone,
+                body: smsReminder({ company: companyName, address: getAddress(row), date: whenStr }),
+              });
 
-          results.push({ inspectionId: row.id, kind: smsKind, smsSent: smsResult.ok });
+              await admin.from("schedule_reminder_logs").insert({
+                inspection_id: String(row.id),
+                reminder_type: smsKind,
+                scheduled_for: start.toISOString(),
+                sent_at: new Date().toISOString(),
+                sent_count: smsResult.ok ? 1 : 0,
+                failed_count: smsResult.ok ? 0 : 1,
+                metadata: {
+                  channel: "sms",
+                  recipient: target.who,
+                  window: win.kind,
+                  to: smsResult.to || null,
+                  error: smsResult.error || null,
+                  address: getAddress(row),
+                },
+              });
+
+              results.push({ inspectionId: row.id, kind: smsKind, smsSent: smsResult.ok });
+            }
+          }
         }
       }
     }

@@ -1,49 +1,71 @@
 // Resolves the effective per-recipient reminder/notification toggles for an
 // inspection: a per-inspector override (profiles.notification_prefs) wins, else
-// the company default (companies.*_enabled), else true. FAIL-OPEN — any error
-// or missing column (e.g. migration not yet run) yields all-true, so a send is
-// never silently suppressed by this layer. See supabase/add-notification-prefs.sql.
+// the company default (companies.*_enabled), else the built-in default below.
+// Reads fail SAFE: any error / missing column (e.g. migration not yet run)
+// falls back to PREF_DEFAULTS — which keeps today's sends on and the new opt-in
+// reminders off, so nothing is suppressed OR surprise-sent. See
+// supabase/add-notification-prefs.sql + add-reminder-window-prefs.sql.
 
 export type NotificationPrefKey =
   | "client_confirmation"
-  | "client_reminder_sms"
   | "client_report_ready"
   | "agent_confirmation"
-  | "agent_report_ready";
+  | "agent_report_ready"
+  | "client_reminder_24h"
+  | "client_reminder_2h"
+  | "client_reminder_30m"
+  | "agent_reminder_24h"
+  | "agent_reminder_2h"
+  | "agent_reminder_30m";
 
 export const NOTIFICATION_PREF_KEYS: NotificationPrefKey[] = [
   "client_confirmation",
-  "client_reminder_sms",
   "client_report_ready",
   "agent_confirmation",
   "agent_report_ready",
+  "client_reminder_24h",
+  "client_reminder_2h",
+  "client_reminder_30m",
+  "agent_reminder_24h",
+  "agent_reminder_2h",
+  "agent_reminder_30m",
 ];
 
 export const COMPANY_PREF_COLUMN: Record<NotificationPrefKey, string> = {
   client_confirmation: "client_confirmation_enabled",
-  client_reminder_sms: "client_reminder_sms_enabled",
   client_report_ready: "client_report_ready_enabled",
   agent_confirmation: "agent_confirmation_enabled",
   agent_report_ready: "agent_report_ready_enabled",
+  client_reminder_24h: "client_reminder_24h_enabled",
+  client_reminder_2h: "client_reminder_2h_enabled",
+  client_reminder_30m: "client_reminder_30m_enabled",
+  agent_reminder_24h: "agent_reminder_24h_enabled",
+  agent_reminder_2h: "agent_reminder_2h_enabled",
+  agent_reminder_30m: "agent_reminder_30m_enabled",
+};
+
+// Built-in defaults: existing sends stay ON; the newly-added reminder windows
+// (client 2h/30m and all agent reminders) are OFF until turned on.
+export const PREF_DEFAULTS: Record<NotificationPrefKey, boolean> = {
+  client_confirmation: true,
+  client_report_ready: true,
+  agent_confirmation: true,
+  agent_report_ready: true,
+  client_reminder_24h: true,
+  client_reminder_2h: false,
+  client_reminder_30m: false,
+  agent_reminder_24h: false,
+  agent_reminder_2h: false,
+  agent_reminder_30m: false,
 };
 
 export type EffectivePrefs = Record<NotificationPrefKey, boolean>;
-
-function allOn(): EffectivePrefs {
-  return {
-    client_confirmation: true,
-    client_reminder_sms: true,
-    client_report_ready: true,
-    agent_confirmation: true,
-    agent_report_ready: true,
-  };
-}
 
 export async function getNotificationPrefs(
   admin: any,
   opts: { inspectorId?: string | null; companyId?: string | null },
 ): Promise<EffectivePrefs> {
-  const eff = allOn();
+  const eff: EffectivePrefs = { ...PREF_DEFAULTS };
   try {
     let company: any = null;
     if (opts.companyId) {
@@ -68,10 +90,10 @@ export async function getNotificationPrefs(
       } else if (company && typeof company[COMPANY_PREF_COLUMN[key]] === "boolean") {
         eff[key] = company[COMPANY_PREF_COLUMN[key]];
       }
-      // else: stays true (inherit default / fail-open)
+      // else: stays at PREF_DEFAULTS[key]
     }
   } catch {
-    return allOn();
+    return { ...PREF_DEFAULTS };
   }
   return eff;
 }
