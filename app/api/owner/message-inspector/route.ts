@@ -82,16 +82,17 @@ export async function POST(req: Request) {
   const isAiTools = template === "ai-tools";
   const isWhatsNew = template === "whats-new";
 
-  // The What's New template is a designed card email built from the latest
-  // changelog entries (fetched fresh at send time so it's always current),
-  // rather than the plain-text preview body.
+  // The What's New template is a designed card email built from the MOST RECENT
+  // changelog entry only (fetched fresh at send time). Sending just the latest
+  // change keeps each What's New email focused on what's actually new instead of
+  // rehashing prior updates the inspectors already saw.
   let whatsNewEntries: { title: string; body: string }[] = [];
   if (isWhatsNew) {
     const { data: entries } = await admin
       .from("changelog_entries")
       .select("title, body")
       .order("published_at", { ascending: false })
-      .limit(5);
+      .limit(1);
     whatsNewEntries = (entries || []).map((e: any) => ({
       title: String(e.title || ""),
       body: String(e.body || ""),
