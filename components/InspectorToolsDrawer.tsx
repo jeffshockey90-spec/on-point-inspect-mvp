@@ -684,7 +684,18 @@ export default function InspectorToolsDrawer({
   // bottom of the report to open it. Defaults just above the search FAB and is
   // draggable — its position is remembered per device.
   const [fabPos, setFabPos] = useState<{ left: number; top: number } | null>(null);
-  const fabDragRef = useRef<{ startX: number; startY: number; moved: boolean } | null>(null);
+  const fabElRef = useRef<HTMLButtonElement | null>(null);
+  const fabDragRef = useRef<{
+    offsetX: number;
+    offsetY: number;
+    w: number;
+    h: number;
+    startX: number;
+    startY: number;
+    moved: boolean;
+    lastLeft: number;
+    lastTop: number;
+  } | null>(null);
 
   useEffect(() => {
     try {
@@ -699,9 +710,24 @@ export default function InspectorToolsDrawer({
   }, []);
 
   function onFabPointerDown(e: React.PointerEvent) {
-    fabDragRef.current = { startX: e.clientX, startY: e.clientY, moved: false };
+    const el = fabElRef.current;
+    if (!el) return;
+    // Grab the pointer's offset WITHIN the pill (and its real measured size) so
+    // the button doesn't jump when the drag starts and clamps to the real width.
+    const rect = el.getBoundingClientRect();
+    fabDragRef.current = {
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      w: rect.width,
+      h: rect.height,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+      lastLeft: rect.left,
+      lastTop: rect.top,
+    };
     try {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      el.setPointerCapture(e.pointerId);
     } catch {
       /* not all pointers support capture */
     }
@@ -709,33 +735,35 @@ export default function InspectorToolsDrawer({
 
   function onFabPointerMove(e: React.PointerEvent) {
     const d = fabDragRef.current;
-    if (!d) return;
-    const dx = e.clientX - d.startX;
-    const dy = e.clientY - d.startY;
-    if (!d.moved && Math.hypot(dx, dy) < 6) return; // ignore tiny jitter (it's a tap)
+    const el = fabElRef.current;
+    if (!d || !el) return;
+    if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 6) return; // tap, not drag
     d.moved = true;
-    const w = 60;
-    const h = 46;
-    const left = Math.min(Math.max(8, e.clientX - w / 2), window.innerWidth - w - 8);
-    const top = Math.min(Math.max(8, e.clientY - h / 2), window.innerHeight - h - 8);
-    setFabPos({ left, top });
+    const left = Math.min(Math.max(8, e.clientX - d.offsetX), window.innerWidth - d.w - 8);
+    const top = Math.min(Math.max(8, e.clientY - d.offsetY), window.innerHeight - d.h - 8);
+    d.lastLeft = left;
+    d.lastTop = top;
+    // Move via the DOM directly during the drag — no React re-render per frame,
+    // which is what made it stutter. State is committed once on release.
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+    el.style.right = "auto";
+    el.style.bottom = "auto";
   }
 
   function onFabPointerUp() {
     const d = fabDragRef.current;
+    const el = fabElRef.current;
     fabDragRef.current = null;
     if (!d) return;
     if (d.moved) {
-      setFabPos((cur) => {
-        if (cur) {
-          try {
-            localStorage.setItem("opi-cc-fab-pos", JSON.stringify(cur));
-          } catch {
-            /* best-effort */
-          }
-        }
-        return cur;
-      });
+      const pos = { left: Math.round(d.lastLeft), top: Math.round(d.lastTop) };
+      setFabPos(pos);
+      try {
+        localStorage.setItem("opi-cc-fab-pos", JSON.stringify(pos));
+      } catch {
+        /* best-effort */
+      }
     } else {
       openWorkspace(); // a tap (no drag) opens the Command Center
     }
@@ -1438,12 +1466,14 @@ export default function InspectorToolsDrawer({
       {/* Always-reachable floating Command Center button (defaults above the
           search FAB; drag to move — a tap opens the Command Center). */}
       <button
+        ref={fabElRef}
         type="button"
         aria-label="Open Command Center — drag to move"
         title="Command Center (Ctrl K) — drag to move"
         onPointerDown={onFabPointerDown}
         onPointerMove={onFabPointerMove}
         onPointerUp={onFabPointerUp}
+        onPointerCancel={onFabPointerUp}
         style={fabPos ? { left: fabPos.left, top: fabPos.top, right: "auto", bottom: "auto" } : undefined}
         className={`fixed z-40 flex items-center gap-2 rounded-full border border-purple-400/50 bg-[var(--fl-surface)] px-4 py-3 text-sm font-bold text-[var(--fl-purple-text)] shadow-xl shadow-black/40 backdrop-blur transition active:scale-95 hover:border-purple-400 [touch-action:none] ${
           fabPos ? "" : "bottom-44 right-4 md:bottom-20 md:right-6"
