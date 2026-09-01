@@ -4,6 +4,7 @@ import crypto from "crypto";
 import http2 from "http2";
 import { isSmsConfigured, sendSms } from "../../../../lib/sms";
 import { smsReminder } from "../../../../lib/smsTemplates";
+import { getNotificationPrefs } from "../../../../lib/notificationPrefs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -982,9 +983,16 @@ export async function GET(req: Request) {
       ) {
         const settings = await getReminderSettingsForInspection(admin, row);
         const smsKind = "client_sms_24h";
+        // Honor the client 24h-reminder toggle (company default or inspector
+        // override). Fail-open if unset.
+        const clientPrefs = await getNotificationPrefs(admin, {
+          inspectorId: row.inspector_id,
+          companyId: row.company_id,
+        });
 
         if (
           settings.enabled &&
+          clientPrefs.client_reminder_sms &&
           !(await alreadySent(admin, String(row.id), smsKind))
         ) {
           const { data: company } = await admin

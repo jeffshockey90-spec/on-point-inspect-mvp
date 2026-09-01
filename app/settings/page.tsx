@@ -41,6 +41,7 @@ const SETTINGS_TABS = [
   { key: "delete-account", label: "Delete Account", anchorId: "delete-account", group: "Account" },
 ];
 import PushNotificationSetup from "../../components/PushNotificationSetup";
+import NotificationSettings from "../../components/NotificationSettings";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
 import W9Section from "./W9Section";
@@ -935,6 +936,10 @@ export default async function SettingsPage({
 
             <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-5">
               <PushNotificationSetup />
+            </div>
+
+            <div className="mt-6">
+              <NotificationSettings />
             </div>
           </section>
 

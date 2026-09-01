@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { getNotificationPrefs } from "../../../../lib/notificationPrefs";
 import { createClient } from "../../../../utils/supabase/server";
 import { recomputeDealPrevalence } from "../../../../lib/dealInsights";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
@@ -382,10 +383,26 @@ export async function POST(req: Request) {
     const sentEmails: string[] = [];
     const failedEmails: Array<{ email: string; error?: string }> = [];
 
+    // Honor the report-ready toggles (company default or inspector override):
+    // client_report_ready gates the client, agent_report_ready the agent. Publish
+    // still succeeds regardless — this only decides who gets the auto email/text.
+    const notifAdmin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const reportPrefs = await getNotificationPrefs(notifAdmin, {
+      inspectorId: (inspection as any).inspector_id,
+      companyId: inspection.company_id,
+    });
+    const sendRecipients = recipients.filter((r) =>
+      r.type === "realtor" ? reportPrefs.agent_report_ready : reportPrefs.client_report_ready,
+    );
+
     // Send + log each recipient independently: a bad client address must not
     // stop the realtor from receiving (or being logged), and vice versa. Every
     // attempt is written to email_logs so it appears in the Sent Emails list.
-    for (const recipient of recipients) {
+    for (const recipient of sendRecipients) {
       const result = await sendReportEmail({
         to: recipient.email,
         name: recipient.name,
@@ -416,7 +433,7 @@ export async function POST(req: Request) {
     // file, mirroring the emails (client wording -> client, agent wording ->
     // realtor). Never blocks or fails the publish response.
     if (isSmsConfigured()) {
-      for (const recipient of recipients) {
+      for (const recipient of sendRecipients) {
         const phone =
           recipient.type === "client"
             ? inspection.client_phone
@@ -446,7 +463,10 @@ export async function POST(req: Request) {
       );
     }
 
-    if (sentEmails.length === 0) {
+    // Only a genuine failure (we tried to send and all failed). If everyone was
+    // filtered out by the report-ready toggles, that's intentional — publish
+    // still succeeds below with no emails sent.
+    if (sendRecipients.length > 0 && sentEmails.length === 0) {
       return NextResponse.json(
         {
           error: "Report was published, but the report emails failed to send.",
@@ -462,7 +482,7 @@ export async function POST(req: Request) {
       success: true,
       message:
         failedEmails.length > 0
-          ? `Report published. Emailed ${sentEmails.length} of ${recipients.length} recipients.`
+          ? `Report published. Emailed ${sentEmails.length} of ${sendRecipients.length} recipients.`
           : "Report published and emails sent successfully.",
       reportLink,
       sentEmails,

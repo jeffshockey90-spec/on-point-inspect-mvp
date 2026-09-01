@@ -7,6 +7,7 @@ import { formatAppValue, formatClockTime } from "../../../lib/app-time";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
+import { getNotificationPrefs } from "../../../lib/notificationPrefs";
 import { smsConfirmation, smsConfirmationAgent } from "../../../lib/smsTemplates";
 
 export const runtime = "nodejs";
@@ -127,6 +128,13 @@ export async function POST(req: Request) {
     // when their copy was delayed). No filter = resend to everyone.
     const emailFilter = cleanText(recipientEmail).toLowerCase();
     const roleFilter = cleanText(recipientRole).toLowerCase();
+    // A manual targeted resend bypasses the confirmation toggles (the inspector
+    // explicitly chose to send it); the automatic broadcast honors them.
+    const isManualTargeted = Boolean(emailFilter || roleFilter);
+    const notifPrefs = await getNotificationPrefs(supabase, {
+      inspectorId: (inspection as any).inspector_id,
+      companyId: inspection.company_id,
+    });
     if (emailFilter) {
       uniqueRecipients = uniqueRecipients.filter((r) => r.email === emailFilter);
     } else if (roleFilter) {
@@ -135,6 +143,11 @@ export async function POST(req: Request) {
           r.role.includes(roleFilter) ||
           (roleFilter === "realtor" && r.role.includes("transaction"))
       );
+    } else {
+      uniqueRecipients = uniqueRecipients.filter((r) => {
+        const isAgent = r.role.includes("realtor") || r.role.includes("transaction");
+        return isAgent ? notifPrefs.agent_confirmation : notifPrefs.client_confirmation;
+      });
     }
 
     if (uniqueRecipients.length === 0) {
@@ -344,7 +357,14 @@ ${branding.name}`;
           phone: inspection.realtor_phone || inspection.agent_phone,
           type: "realtor" as const,
         },
-      ].filter((target) => target.phone);
+      ]
+        .filter((target) => target.phone)
+        // Same confirmation toggles gate the text (unless it's a manual resend).
+        .filter(
+          (target) =>
+            isManualTargeted ||
+            (target.type === "realtor" ? notifPrefs.agent_confirmation : notifPrefs.client_confirmation),
+        );
 
       const seen = new Set<string>();
       for (const target of smsTargets) {
