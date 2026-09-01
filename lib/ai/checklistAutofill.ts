@@ -212,7 +212,7 @@ export const MATERIAL_FIELDS: Record<string, { groupTitle: string; options: stri
     { groupTitle: "Branch Wire 15 and 20 AMP", options: ["Aluminum", "Copper"] },
   ],
   "Attic, Insulation & Ventilation": [
-    { groupTitle: "Insulation Type", options: ["Batt", "Foam-board", "Fiberglass", "Cellulose", "None", "Vermiculite", "Blown", "Foiled-faced", "Loose-fill", "Mineral Wool", "Spray Foam", "Unknown"] },
+    { groupTitle: "Insulation Type", options: ["Batt", "Blown-in", "Loose-fill", "Fiberglass", "Cellulose", "Mineral Wool", "Spray Foam", "Foam Board", "Vermiculite", "None", "Unknown"] },
     { groupTitle: "Ventilation Type", options: ["Gable Vents", "Passive", "Soffit Vents", "Turbines", "Attic Fan", "None Found", "Ridge Vents", "Thermostatically Controlled Fan", "Whole House Fan"] },
     { groupTitle: "Dryer Vent", options: ["Metal", "None Found", "Rigid PVC", "Plastic (Flex)", "Metal (Flex)", "Unknown", "Vinyl (Flex)"] },
   ],

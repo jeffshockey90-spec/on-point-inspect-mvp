@@ -792,31 +792,36 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
     {
       "title": "Flooring Insulation",
       "options": [
-        "Batt",
+        "Present",
+        "Partial / Spotty",
         "None",
-        "Foam",
-        "Reflective",
-        "Unknown",
-        "Faced",
-        "Fiberglass",
-        "Loose Fill",
-        "Unfaced"
+        "Not Visible / Inaccessible",
+        "Unknown"
       ]
     },
     {
       "title": "Insulation Type",
       "options": [
         "Batt",
-        "Foam-board",
+        "Blown-in",
+        "Loose-fill",
         "Fiberglass",
         "Cellulose",
-        "None",
-        "Vermiculite",
-        "Blown",
-        "Foiled-faced",
-        "Loose-fill",
         "Mineral Wool",
         "Spray Foam",
+        "Foam Board",
+        "Vermiculite",
+        "None",
+        "Unknown"
+      ]
+    },
+    {
+      "title": "Insulation Facing",
+      "options": [
+        "Faced",
+        "Unfaced",
+        "Foiled-faced",
+        "Not Applicable",
         "Unknown"
       ]
     },
