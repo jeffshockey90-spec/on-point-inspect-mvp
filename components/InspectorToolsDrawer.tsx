@@ -680,82 +680,6 @@ export default function InspectorToolsDrawer({
 }) {
   const [open, setOpen] = useState(false);
 
-  // Floating Command Center button so the inspector doesn't have to scroll to the
-  // bottom of the report to open it. Defaults just above the search FAB and is
-  // draggable — its position is remembered per device.
-  const [fabPos, setFabPos] = useState<{ left: number; top: number } | null>(null);
-  const fabElRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("opi-cc-fab-pos");
-      if (raw) {
-        const p = JSON.parse(raw);
-        if (p && typeof p.left === "number" && typeof p.top === "number") setFabPos(p);
-      }
-    } catch {
-      /* storage may be unavailable */
-    }
-  }, []);
-
-  // Drag via WINDOW listeners for the life of one drag — not element handlers +
-  // pointer capture, which drops touch moves on iOS when the finger outruns the
-  // button (that's why it didn't "stick"). preventDefault + a body user-select
-  // lock stop the press-and-hold from selecting text across the screen.
-  function onFabPointerDown(e: React.PointerEvent) {
-    const el = fabElRef.current;
-    if (!el) return;
-    if (e.button && e.button !== 0) return; // left/primary only
-    e.preventDefault();
-
-    const rect = el.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
-    const w = rect.width;
-    const h = rect.height;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    let moved = false;
-    let lastLeft = rect.left;
-    let lastTop = rect.top;
-
-    const prevUserSelect = document.body.style.userSelect;
-    document.body.style.userSelect = "none";
-
-    const move = (ev: PointerEvent) => {
-      if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 6) return; // tap, not drag
-      moved = true;
-      ev.preventDefault();
-      lastLeft = Math.min(Math.max(8, ev.clientX - offsetX), window.innerWidth - w - 8);
-      lastTop = Math.min(Math.max(8, ev.clientY - offsetY), window.innerHeight - h - 8);
-      el.style.left = `${lastLeft}px`;
-      el.style.top = `${lastTop}px`;
-      el.style.right = "auto";
-      el.style.bottom = "auto";
-    };
-
-    const end = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", end);
-      window.removeEventListener("pointercancel", end);
-      document.body.style.userSelect = prevUserSelect;
-      if (moved) {
-        const pos = { left: Math.round(lastLeft), top: Math.round(lastTop) };
-        setFabPos(pos);
-        try {
-          localStorage.setItem("opi-cc-fab-pos", JSON.stringify(pos));
-        } catch {
-          /* best-effort */
-        }
-      } else {
-        openWorkspace(); // a tap (no drag) opens the Command Center
-      }
-    };
-
-    window.addEventListener("pointermove", move, { passive: false });
-    window.addEventListener("pointerup", end);
-    window.addEventListener("pointercancel", end);
-  }
 
   // `closing` drives the CSS genie-funnel exit (the fallback). When a pre-captured
   // snapshot is ready, the WebGL genie (`genie` state) takes over the close instead
@@ -1451,28 +1375,9 @@ export default function InspectorToolsDrawer({
 
   return (
     <>
-      {/* Always-reachable floating Command Center button (defaults above the
-          search FAB; drag to move — a tap opens the Command Center). */}
-      <button
-        ref={fabElRef}
-        type="button"
-        aria-label="Open Command Center — drag to move"
-        title="Command Center (Ctrl K) — drag to move"
-        onPointerDown={onFabPointerDown}
-        style={fabPos ? { left: fabPos.left, top: fabPos.top, right: "auto", bottom: "auto" } : undefined}
-        className={`fixed z-40 flex select-none items-center gap-2 rounded-full border border-purple-400/50 bg-[var(--fl-surface)] px-4 py-3 text-sm font-bold text-[var(--fl-purple-text)] shadow-xl shadow-black/40 backdrop-blur transition hover:border-purple-400 [touch-action:none] [-webkit-user-select:none] [-webkit-touch-callout:none] ${
-          fabPos ? "" : "bottom-44 right-4 md:bottom-20 md:right-6"
-        }`}
-      >
-        <span className="text-base leading-none">🎛️</span>
-        <span className="hidden sm:inline">Command</span>
-        {attentionNotifications.length > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {attentionNotifications.length}
-          </span>
-        )}
-      </button>
-
+      {/* The floating Command Center pill was removed (glitchy to drag). The
+          Command Center opens from the card below, the report-builder card, and
+          Ctrl/⌘-K. */}
       <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)]">
         <button
           type="button"
