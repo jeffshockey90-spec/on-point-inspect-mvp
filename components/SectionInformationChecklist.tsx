@@ -1397,6 +1397,21 @@ function SectionInformationChecklist({
   async function addOption(groupTitle: string) {
     const clean = newOptionLabel.trim();
     if (!clean || saving) return;
+
+    // Don't create an option that already exists (case-insensitive) — either a
+    // built-in option for this group or a custom one already added. This is what
+    // produced duplicate "Rain"/"Clear" chips. If it already exists, just close
+    // the add box instead of inserting a duplicate row.
+    const existingLabels = getGroupOptions(
+      baseGroups.find((g) => g.title === groupTitle) || { title: groupTitle, options: [] },
+    ).map((o) => o.label.trim().toLowerCase());
+    if (existingLabels.includes(clean.toLowerCase())) {
+      showMessage("error", `"${clean}" is already an option here.`);
+      setNewOptionLabel("");
+      setAddingOptionGroup("");
+      return;
+    }
+
     setSaving(true);
 
     try {
