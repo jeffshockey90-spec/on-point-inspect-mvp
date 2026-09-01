@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { resolveReportSections } from "../../../lib/reportSections";
+import { matchStandards } from "../../../lib/ai/standardsReference";
 import { formatClockTime } from "../../../lib/app-time";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
@@ -1179,6 +1180,15 @@ export default async function PublicSharePage({
 
   // Company custom severity colors/labels for the client-facing badges.
   const severityConfig = await loadSeverityConfigForInspection((inspection as any)?.id);
+
+  // Client-report intelligence (standards references) must NEVER change a report
+  // already delivered. Gate on the publish timestamp: reports published before
+  // this feature launched render exactly as they did; drafts and reports
+  // published after get the new references.
+  const CLIENT_INTELLIGENCE_LAUNCH = new Date("2026-09-01T00:00:00Z");
+  const publishedAtRaw = (inspection as any)?.published_at;
+  const showClientIntelligence =
+    !publishedAtRaw || new Date(publishedAtRaw) >= CLIENT_INTELLIGENCE_LAUNCH;
 
   if (inspection) {
     inspectionId = String(inspection.id);
@@ -3215,6 +3225,22 @@ export default async function PublicSharePage({
                                       tone="teal"
                                     />
 
+                                    {showClientIntelligence &&
+                                      matchStandards(
+                                        `${finding.title || ""} ${finding.observation || ""} ${finding.recommendation || ""}`,
+                                      ).map((std) => (
+                                        <div
+                                          key={std.id}
+                                          className="rounded-xl border border-indigo-500/30 bg-indigo-500/[0.06] px-3 py-2 text-sm text-[var(--fl-text)]"
+                                        >
+                                          <span className="font-semibold text-[var(--fl-info-text)]">
+                                            📋 Relevant standard: {std.title}
+                                          </span>{" "}
+                                          <span className="text-xs text-[var(--fl-muted)]">({std.citation})</span>
+                                          <div className="mt-0.5 text-[var(--fl-muted)]">{std.note}</div>
+                                        </div>
+                                      ))}
+
                                     <FindingTextCard
                                       title="Additional Notes"
                                       value={finding.comment}
@@ -3351,6 +3377,22 @@ export default async function PublicSharePage({
                                       value={finding.recommendation}
                                       tone="teal"
                                     />
+
+                                    {showClientIntelligence &&
+                                      matchStandards(
+                                        `${finding.title || ""} ${finding.observation || ""} ${finding.recommendation || ""}`,
+                                      ).map((std) => (
+                                        <div
+                                          key={std.id}
+                                          className="rounded-xl border border-indigo-500/30 bg-indigo-500/[0.06] px-3 py-2 text-sm text-[var(--fl-text)]"
+                                        >
+                                          <span className="font-semibold text-[var(--fl-info-text)]">
+                                            📋 Relevant standard: {std.title}
+                                          </span>{" "}
+                                          <span className="text-xs text-[var(--fl-muted)]">({std.citation})</span>
+                                          <div className="mt-0.5 text-[var(--fl-muted)]">{std.note}</div>
+                                        </div>
+                                      ))}
 
                                     <FindingTextCard
                                       title="Additional Notes"
