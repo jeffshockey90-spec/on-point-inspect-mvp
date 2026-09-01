@@ -91,7 +91,8 @@ const baseMobileItems = [
   { title: "Dashboard", href: "/", icon: Home, mobileLabel: "Home" },
   { title: "Reports", href: "/reports", icon: FileText, mobileLabel: "Reports" },
   { title: "New Inspection", href: "/inspections/new", icon: Plus, mobileLabel: "New" },
-  { title: "AI Capture", href: "/ai-capture", icon: Sparkles, mobileLabel: "AI" },
+  // AI Capture lives in the Field Tool + the full menu; kept off the mobile bar
+  // to give the remaining tabs room (reachable via search / "jump anywhere").
   { title: "Support", href: "/support", icon: LifeBuoy, mobileLabel: "Support" },
   { title: "Settings", href: "/settings", icon: Settings, mobileLabel: "Settings" },
 ];
