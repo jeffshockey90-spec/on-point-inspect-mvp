@@ -28,8 +28,16 @@ export function refreshKeepScroll(router: { refresh: () => void }) {
     window.removeEventListener("keydown", stop);
   };
 
+  // The refresh briefly collapses the (heavy) report DOM, so the page gets
+  // SHORT for a moment. Calling scrollTo(oldY) during that window clamps to the
+  // bottom of the shrunken page — which is exactly the "it jumps me to the
+  // bottom" bug. So only restore once the page is tall enough to actually hold
+  // the saved position; skip the attempt otherwise and let a later tick catch it.
+  const maxScrollNow = () =>
+    Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
   const restore = () => {
-    if (!cancelled) window.scrollTo({ top: y, behavior: "auto" });
+    if (cancelled) return;
+    if (maxScrollNow() >= y - 4) window.scrollTo({ top: y, behavior: "auto" });
   };
 
   // Stop chasing the position as soon as the user takes over.

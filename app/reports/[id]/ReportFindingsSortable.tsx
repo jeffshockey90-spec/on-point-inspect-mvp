@@ -481,34 +481,38 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   }, [orderedGroups]);
 
   // House Graph: detect findings that likely share a physical cause (same-side
-  // water path, roof/plumbing above a ceiling stain) so FLOW can offer to connect
-  // them. Conservative + explainable — see lib/ai/findingRelationships.
-  const relatedByFinding = useMemo(() => {
+  // water path, roof/plumbing above a ceiling stain). Computed ONCE here and
+  // reused by both the per-finding hint and the summary below — the O(n^2) scan
+  // ran twice per render before, which added lag on big reports.
+  const findingGraph = useMemo(() => {
     const list = (allFindings || []).map((f: any) => ({
       id: String(f.id),
       section: f.section,
       title: f.title,
       observation: f.observation,
       location: f.location,
+      severity: f.severity,
     }));
     const byId = new Map(list.map((f: any) => [f.id, f]));
+    return { list, byId, rels: detectFindingRelationships(list) };
+  }, [allFindings]);
+
+  const relatedByFinding = useMemo(() => {
+    const { byId, rels } = findingGraph;
     const map = new Map<string, { otherId: string; otherTitle: string; reason: string }>();
-    for (const r of detectFindingRelationships(list)) {
+    for (const r of rels) {
       if (!map.has(r.aId)) map.set(r.aId, { otherId: r.bId, otherTitle: String((byId.get(r.bId) as any)?.title || "another finding"), reason: r.reason });
       if (!map.has(r.bId)) map.set(r.bId, { otherId: r.aId, otherTitle: String((byId.get(r.aId) as any)?.title || "another finding"), reason: r.reason });
     }
     return map;
-  }, [allFindings]);
+  }, [findingGraph]);
 
   // The "one glance" intelligence read for this inspection: connections FLOW
   // found, systems at/near end of life, and the safety/major count. Purely a
   // synthesis of data already on the report — it changes nothing.
   const intelligenceSummary = useMemo(() => {
-    const list = (allFindings || []).map((f: any) => ({
-      id: String(f.id), section: f.section, title: f.title, observation: f.observation, location: f.location, severity: f.severity,
-    }));
-    const byId = new Map(list.map((f: any) => [f.id, f]));
-    const connections = detectFindingRelationships(list).map((r) => ({
+    const { list, byId, rels } = findingGraph;
+    const connections = rels.map((r) => ({
       reason: r.reason,
       aId: r.aId,
       aTitle: String((byId.get(r.aId) as any)?.title || "finding"),
@@ -524,7 +528,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       .filter((e: any) => e.matched && (e.status === "past" || e.status === "near"));
     const safetyCount = list.filter((f: any) => /safety|major|hazard/.test(String(f.severity || "").toLowerCase())).length;
     return { connections, endOfLife, safetyCount };
-  }, [allFindings, equipment]);
+  }, [findingGraph, equipment]);
 
   const allPhotos = useMemo(() => {
     if (!photoPickerLoaded) return [];
