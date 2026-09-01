@@ -7,6 +7,7 @@ import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/capt
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
 import PhotoMarkupEditor from "./PhotoMarkupEditor";
 import FieldFindingLinker from "./FieldFindingLinker";
+import { useCompassHeading } from "./useCompassHeading";
 
 type Stage =
   | "idle"
@@ -149,6 +150,12 @@ export default function AILiveInspectionCamera({
   const [stage, setStage] = useState<Stage>("idle");
   const [category, setCategory] = useState<CaptureCategory | null>(null);
   const [noteText, setNoteText] = useState("");
+  // Location captured BEFORE the AI runs, so the model gets confirmed facts (which
+  // wall / level / room) instead of guessing. Side auto-fills from the compass.
+  const compass = useCompassHeading();
+  const [locSide, setLocSide] = useState("");
+  const [locLevel, setLocLevel] = useState("");
+  const [locRoom, setLocRoom] = useState("");
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState("");
   const [capturedIsVideo, setCapturedIsVideo] = useState(false);
@@ -581,8 +588,21 @@ export default function AILiveInspectionCamera({
   function selectCategory(cat: CaptureCategory) {
     setCategory(cat);
     setNoteText("");
+    setLocSide("");
+    setLocLevel("");
+    setLocRoom("");
     setCaptureMode("photo");
     setStage("note_entry");
+    // Tapping a category is a user gesture — the moment iOS will allow the
+    // compass permission prompt. No-op where already running / unsupported.
+    void compass.start();
+  }
+
+  // The confirmed location, composed for the AI (side auto-filled from the
+  // compass when the inspector didn't override it).
+  function composedLocation() {
+    const side = locSide || compass.cardinal || "";
+    return [side, locLevel, locRoom.trim()].filter(Boolean).join(", ");
   }
 
   async function proceedAfterCapture(
@@ -821,6 +841,9 @@ export default function AILiveInspectionCamera({
             note,
             inspectionId: selectedReport,
             section: currentSection,
+            // Confirmed location captured before generating — a stated FACT for
+            // the model (which wall / level / room), not something it should infer.
+            location: composedLocation(),
             // Let the AI choose the severity from the evidence rather than
             // biasing it to the field's current value (which made everything come
             // back "Recommended Repair"). The inspector can still adjust on confirm.
@@ -1430,6 +1453,61 @@ export default function AILiveInspectionCamera({
               }
               className="min-h-16 w-full resize-none rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
             />
+
+            {activeCategoryMeta.key !== "reference" && (
+              <div className="mt-2 rounded-lg border border-white/10 bg-black/25 p-2">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--fl-muted)]">
+                    Location — given to AI as fact
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void compass.start()}
+                    className="flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-[11px] font-semibold text-cyan-300"
+                  >
+                    🧭{" "}
+                    {compass.cardinal
+                      ? `${compass.cardinal} ${Math.round(compass.heading ?? 0)}°`
+                      : compass.needsPermission
+                        ? "Enable compass"
+                        : "…"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <select
+                    value={locSide}
+                    onChange={(event) => setLocSide(event.target.value)}
+                    className="rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-2 py-2 text-xs text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                  >
+                    <option value="">{compass.cardinal ? `Side · ${compass.cardinal}?` : "Side"}</option>
+                    {["N", "NE", "E", "SE", "S", "SW", "W", "NW"].map((dir) => (
+                      <option key={dir} value={dir}>
+                        {dir}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={locLevel}
+                    onChange={(event) => setLocLevel(event.target.value)}
+                    className="rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-2 py-2 text-xs text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                  >
+                    <option value="">Level</option>
+                    {["Exterior", "Basement", "Crawlspace", "Main Level", "Upper Level", "Attic", "Garage"].map((lvl) => (
+                      <option key={lvl} value={lvl}>
+                        {lvl}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={locRoom}
+                    onChange={(event) => setLocRoom(event.target.value)}
+                    placeholder="Room / area"
+                    className="min-w-0 rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-2 py-2 text-xs text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => {

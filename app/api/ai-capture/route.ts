@@ -134,6 +134,9 @@ export async function POST(req: Request) {
 
     const requestedSection = cleanText(body.section);
     const requestedSeverity = cleanText(body.severity);
+    // Confirmed location captured in the field BEFORE generating (side/level/room,
+    // side auto-filled from the phone compass). A stated fact, not an inference.
+    const location = cleanText(body.location);
     const propertyYear = cleanText(body.propertyYear || body.yearBuilt || body.year_built);
     const equipmentContext = cleanText(body.equipmentContext || body.equipment_context);
     const existingObservation = cleanText(body.observation);
@@ -287,6 +290,9 @@ ${note || "None — describe the finding based solely on the photo(s) provided."
 
 Inspector's current area (a HINT only — assign the section the note and visible evidence actually indicate, even if it differs from this):
 ${requestedSection || "Not specified — choose the best section from the evidence."}
+
+Confirmed location (a STATED FACT the inspector set in the field — treat as ground truth; do NOT infer, change, or contradict it. Weave it naturally into the observation, e.g. "...at the northeast corner of the basement." If blank, do not invent a location):
+${location || "Not specified"}
 
 Severity: assign from the severity guide above based on the visible evidence${
   requestedSeverity
