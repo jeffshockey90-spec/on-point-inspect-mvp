@@ -624,16 +624,21 @@ export default function Navbar() {
                         : "text-zinc-300 hover:bg-[var(--fl-raised)] hover:text-[var(--fl-accent-text)]"
                 }`}
               >
-                <span className="flex w-full items-center justify-center leading-none">
+                <span className="relative flex w-full items-center justify-center leading-none">
                   {opening ? (
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   ) : (
                     <ItemIcon className="h-5 w-5" strokeWidth={2.25} />
                   )}
+                  {/* Badge overlays the icon corner so it never eats the label's
+                      width (inline it clipped "Support" to "upport" and bled into
+                      the next tab). */}
+                  {!opening && item.mobileLabel === "Support" && (
+                    <SupportUnreadBadge className="absolute -top-2 left-1/2 ml-1.5 min-h-4 min-w-4 px-1 text-[9px]" />
+                  )}
                 </span>
-                <span className="mt-1 flex w-full items-center justify-center gap-1 text-center text-[10px] font-semibold leading-none whitespace-nowrap">
+                <span className="mt-1 block w-full text-center text-[10px] font-semibold leading-none whitespace-nowrap">
                   {opening ? "Opening" : item.mobileLabel}
-                  {!opening && item.mobileLabel === "Support" && <SupportUnreadBadge className="min-h-4 min-w-4 px-1 text-[9px]" />}
                 </span>
               </Link>
             );
