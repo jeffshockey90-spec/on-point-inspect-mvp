@@ -1,6 +1,7 @@
 
 import { formatAppValue } from "../../../../lib/app-time";
 import { resolveReportSections } from "../../../../lib/reportSections";
+import { matchStandards } from "../../../../lib/ai/standardsReference";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { authorizeInspection } from "../../../../lib/apiAuth";
 import { loadSeverityConfigForInspection } from "../../../../lib/severity/loadSeverityConfig";
@@ -1042,6 +1043,19 @@ function buildAgentReportHtml({
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
+  // Standards references must NEVER change a report already delivered. Gate on
+  // the publish timestamp so a PDF of a report published before this feature
+  // launched renders exactly as it did (matches the share page's gate).
+  const CLIENT_INTELLIGENCE_LAUNCH = new Date("2026-09-01T00:00:00Z");
+  const publishedAtRaw = (inspection as any)?.published_at;
+  const wasPublished = Boolean(
+    (inspection as any)?.is_published || (inspection as any)?.published || publishedAtRaw,
+  );
+  const publishedAfterLaunch =
+    Boolean(publishedAtRaw) && new Date(publishedAtRaw) >= CLIENT_INTELLIGENCE_LAUNCH;
+  // Fail-safe: only drafts or reports confirmed published after launch get it;
+  // anything already delivered stays frozen.
+  const showClientIntelligence = publishedAfterLaunch || !wasPublished;
   const activeSectionOrder = sectionOrder || SECTION_ORDER;
   const numberedFindings = addRepairItemNumbers(findings, activeSectionOrder);
   const defects = numberedFindings.filter(isReportDefect);
@@ -1216,6 +1230,15 @@ function buildAgentReportHtml({
         "note-rec",
       );
 
+      const standardsHtml = showClientIntelligence
+        ? matchStandards(`${finding.title || ""} ${finding.observation || ""} ${finding.recommendation || ""}`)
+            .map(
+              (std) =>
+                `<p class="note"><span class="note-k">Relevant standard:</span> ${escapeHtml(std.title)} (${escapeHtml(std.citation)}) — ${escapeHtml(std.note)}</p>`,
+            )
+            .join("")
+        : "";
+
       const subLabel = cleanText(finding.component || finding.subsection || finding.category);
 
       const findingAnchor = getFindingAnchor(finding);
@@ -1233,6 +1256,7 @@ function buildAgentReportHtml({
             ${observationHtml}
             ${implicationHtml}
             ${recommendationHtml}
+            ${standardsHtml}
           </div>
 
           ${photoHtml}

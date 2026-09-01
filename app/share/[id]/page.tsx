@@ -1187,8 +1187,15 @@ export default async function PublicSharePage({
   // published after get the new references.
   const CLIENT_INTELLIGENCE_LAUNCH = new Date("2026-09-01T00:00:00Z");
   const publishedAtRaw = (inspection as any)?.published_at;
-  const showClientIntelligence =
-    !publishedAtRaw || new Date(publishedAtRaw) >= CLIENT_INTELLIGENCE_LAUNCH;
+  const wasPublished = Boolean(
+    (inspection as any)?.is_published || (inspection as any)?.published || publishedAtRaw,
+  );
+  const publishedAfterLaunch =
+    Boolean(publishedAtRaw) && new Date(publishedAtRaw) >= CLIENT_INTELLIGENCE_LAUNCH;
+  // Fail-safe: show only on not-yet-published drafts or reports confirmed
+  // published after launch. A published report with no/earlier timestamp stays
+  // frozen — never retroactively changed.
+  const showClientIntelligence = publishedAfterLaunch || !wasPublished;
 
   if (inspection) {
     inspectionId = String(inspection.id);
