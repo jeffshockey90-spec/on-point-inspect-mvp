@@ -11,6 +11,7 @@ import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
 import { detectFindingRelationships } from "../../../lib/ai/findingRelationships";
+import { estimatePrognosis, deriveAgeYears } from "../../../lib/ai/serviceLife";
 import AISectionReview from "../../../components/AISectionReview";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import RelatedFindingsEditor from "../../../components/RelatedFindingsEditor";
@@ -144,7 +145,7 @@ function DeferredOpenSection({
   );
 }
 
-export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes, weatherContext, hasEquipment }: any) {
+export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes, weatherContext, hasEquipment, equipment }: any) {
   const params = useParams();
   const router = useRouter();
   const inspectionId = String(params?.id || "");
@@ -498,6 +499,32 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     return map;
   }, [allFindings]);
 
+  // The "one glance" intelligence read for this inspection: connections FLOW
+  // found, systems at/near end of life, and the safety/major count. Purely a
+  // synthesis of data already on the report — it changes nothing.
+  const intelligenceSummary = useMemo(() => {
+    const list = (allFindings || []).map((f: any) => ({
+      id: String(f.id), section: f.section, title: f.title, observation: f.observation, location: f.location, severity: f.severity,
+    }));
+    const byId = new Map(list.map((f: any) => [f.id, f]));
+    const connections = detectFindingRelationships(list).map((r) => ({
+      reason: r.reason,
+      aId: r.aId,
+      aTitle: String((byId.get(r.aId) as any)?.title || "finding"),
+      bTitle: String((byId.get(r.bId) as any)?.title || "finding"),
+    }));
+    const currentYear = new Date().getFullYear();
+    const endOfLife = ((equipment || []) as any[])
+      .map((e: any) => {
+        const age = deriveAgeYears(currentYear, e.manufactureYear, e.estimatedAge);
+        const p = estimatePrognosis(e.type || e.name || "", age);
+        return { name: String(e.name || p.label || "Equipment"), status: p.status, summary: p.summary, matched: p.matched };
+      })
+      .filter((e: any) => e.matched && (e.status === "past" || e.status === "near"));
+    const safetyCount = list.filter((f: any) => /safety|major|hazard/.test(String(f.severity || "").toLowerCase())).length;
+    return { connections, endOfLife, safetyCount };
+  }, [allFindings, equipment]);
+
   const allPhotos = useMemo(() => {
     if (!photoPickerLoaded) return [];
 
@@ -779,6 +806,62 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       data-command-target="report-findings"
       className="w-full max-w-full space-y-4 overflow-visible"
     >
+      {(intelligenceSummary.connections.length > 0 ||
+        intelligenceSummary.endOfLife.length > 0 ||
+        intelligenceSummary.safetyCount > 0) && (
+        <div className="w-full rounded-2xl border border-cyan-500/40 bg-cyan-500/[0.07] p-4">
+          <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="text-sm font-bold text-[var(--fl-info-text)]">🧠 Inspection Intelligence</span>
+            <span className="text-xs text-[var(--fl-muted)]">what FLOW noticed across this report — nothing is changed unless you act</span>
+          </div>
+          <div className="mb-3 flex flex-wrap gap-2 text-xs font-semibold">
+            {intelligenceSummary.connections.length > 0 && (
+              <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 text-[var(--fl-info-text)]">
+                🔗 {intelligenceSummary.connections.length} connection{intelligenceSummary.connections.length === 1 ? "" : "s"}
+              </span>
+            )}
+            {intelligenceSummary.endOfLife.length > 0 && (
+              <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[var(--fl-warn-text)]">
+                🕒 {intelligenceSummary.endOfLife.length} at/near end of life
+              </span>
+            )}
+            {intelligenceSummary.safetyCount > 0 && (
+              <span className="rounded-full border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[var(--fl-crit-text)]">
+                ⚠️ {intelligenceSummary.safetyCount} safety / major
+              </span>
+            )}
+          </div>
+          {intelligenceSummary.connections.length > 0 && (
+            <ul className="mb-2 space-y-1">
+              {intelligenceSummary.connections.map((c: any, i: number) => (
+                <li key={`conn-${i}`} className="text-sm text-[var(--fl-text)]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        document.getElementById(`finding-${c.aId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      } catch {}
+                    }}
+                    className="text-left hover:underline"
+                  >
+                    <span className="font-semibold text-[var(--fl-info-text)]">🔗 {c.aTitle} ↔ {c.bTitle}</span> — {c.reason}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {intelligenceSummary.endOfLife.length > 0 && (
+            <ul className="space-y-1">
+              {intelligenceSummary.endOfLife.map((e: any, i: number) => (
+                <li key={`eol-${i}`} className="text-sm text-[var(--fl-text)]">
+                  <span className="font-semibold text-[var(--fl-warn-text)]">🕒 {e.name}</span> — {e.summary}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       <div className="flex w-full flex-col gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 sm:flex-row sm:flex-wrap sm:p-4">
         <button
           type="button"

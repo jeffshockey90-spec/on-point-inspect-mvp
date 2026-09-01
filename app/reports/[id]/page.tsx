@@ -3609,6 +3609,14 @@ Service-life information is a general industry estimate only. Actual service lif
               deletedSections={deletedReportSections}
               sectionNotes={sectionNotesMap}
               hasEquipment={equipmentInventory.length > 0}
+              equipment={equipmentInventory.map((item: any) => ({
+                name: item.equipment_type || item.equipmentType || item.name || item.type || "Equipment",
+                type: [item.equipment_type || item.equipmentType || item.type, item.equipment_category || item.equipmentCategory, item.manufacturer, item.model]
+                  .filter(Boolean)
+                  .join(" "),
+                manufactureYear: item.manufacture_year || item.manufactureYear || item.year || null,
+                estimatedAge: item.estimated_age || item.estimatedAge || null,
+              }))}
               weatherContext={{
                 address: [
                   inspection.property_address || inspection.address,
