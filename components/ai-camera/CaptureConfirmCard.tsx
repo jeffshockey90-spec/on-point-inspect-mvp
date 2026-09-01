@@ -10,6 +10,7 @@ import { severityOptions } from "../../lib/severity/severityConfig";
 import FindingToneControl from "../FindingToneControl";
 import { detectFindingRelationships } from "../../lib/ai/findingRelationships";
 import { estimatePrognosis, deriveAgeYears } from "../../lib/ai/serviceLife";
+import { matchStandards } from "../../lib/ai/standardsReference";
 
 function fillKey(f: ChecklistFill) {
   return `${f.section}|${f.groupTitle}|${f.value}`;
@@ -209,6 +210,14 @@ export default function CaptureConfirmCard({
     return p.matched ? p : null;
   }, [edited]);
 
+  // Standards Brain in the field: the recognized safety standard / code section
+  // this finding is measured against (advisory reference).
+  const standardsHint = useMemo(() => {
+    if (edited.kind !== "finding") return [];
+    const f = edited as FindingDraft;
+    return matchStandards(`${f.title || ""} ${f.observation || ""} ${f.recommendation || ""}`);
+  }, [edited]);
+
   function update(patch: Partial<CaptureDraft>) {
     setEdited((current) => ({ ...current, ...patch }) as CaptureDraft);
   }
@@ -266,6 +275,20 @@ export default function CaptureConfirmCard({
             <span className="font-bold text-[var(--fl-info-text)]">🔗 Connects to an earlier finding:</span>{" "}
             {relationshipHint.reason} You already logged{" "}
             <span className="font-semibold">&ldquo;{relationshipHint.title}&rdquo;</span> — combine them in the report builder.
+          </div>
+        )}
+
+        {standardsHint.length > 0 && (
+          <div className="mb-3 rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-3 py-2">
+            {standardsHint.map((std) => (
+              <p key={std.id} className="text-sm text-[var(--fl-text)]">
+                <span className="font-bold text-[var(--fl-info-text)]">📋 {std.title}</span>{" "}
+                <span className="font-mono text-xs text-[var(--fl-muted)]">({std.citation})</span> — {std.note}
+              </p>
+            ))}
+            <p className="mt-1 text-[11px] text-[var(--fl-faint)]">
+              Reference for context — confirm the standard for your jurisdiction.
+            </p>
           </div>
         )}
 
