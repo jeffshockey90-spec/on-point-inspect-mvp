@@ -685,17 +685,6 @@ export default function InspectorToolsDrawer({
   // draggable — its position is remembered per device.
   const [fabPos, setFabPos] = useState<{ left: number; top: number } | null>(null);
   const fabElRef = useRef<HTMLButtonElement | null>(null);
-  const fabDragRef = useRef<{
-    offsetX: number;
-    offsetY: number;
-    w: number;
-    h: number;
-    startX: number;
-    startY: number;
-    moved: boolean;
-    lastLeft: number;
-    lastTop: number;
-  } | null>(null);
 
   useEffect(() => {
     try {
@@ -709,64 +698,63 @@ export default function InspectorToolsDrawer({
     }
   }, []);
 
+  // Drag via WINDOW listeners for the life of one drag — not element handlers +
+  // pointer capture, which drops touch moves on iOS when the finger outruns the
+  // button (that's why it didn't "stick"). preventDefault + a body user-select
+  // lock stop the press-and-hold from selecting text across the screen.
   function onFabPointerDown(e: React.PointerEvent) {
     const el = fabElRef.current;
     if (!el) return;
-    // Grab the pointer's offset WITHIN the pill (and its real measured size) so
-    // the button doesn't jump when the drag starts and clamps to the real width.
+    if (e.button && e.button !== 0) return; // left/primary only
+    e.preventDefault();
+
     const rect = el.getBoundingClientRect();
-    fabDragRef.current = {
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-      w: rect.width,
-      h: rect.height,
-      startX: e.clientX,
-      startY: e.clientY,
-      moved: false,
-      lastLeft: rect.left,
-      lastTop: rect.top,
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    const w = rect.width;
+    const h = rect.height;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let moved = false;
+    let lastLeft = rect.left;
+    let lastTop = rect.top;
+
+    const prevUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+
+    const move = (ev: PointerEvent) => {
+      if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 6) return; // tap, not drag
+      moved = true;
+      ev.preventDefault();
+      lastLeft = Math.min(Math.max(8, ev.clientX - offsetX), window.innerWidth - w - 8);
+      lastTop = Math.min(Math.max(8, ev.clientY - offsetY), window.innerHeight - h - 8);
+      el.style.left = `${lastLeft}px`;
+      el.style.top = `${lastTop}px`;
+      el.style.right = "auto";
+      el.style.bottom = "auto";
     };
-    try {
-      el.setPointerCapture(e.pointerId);
-    } catch {
-      /* not all pointers support capture */
-    }
-  }
 
-  function onFabPointerMove(e: React.PointerEvent) {
-    const d = fabDragRef.current;
-    const el = fabElRef.current;
-    if (!d || !el) return;
-    if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 6) return; // tap, not drag
-    d.moved = true;
-    const left = Math.min(Math.max(8, e.clientX - d.offsetX), window.innerWidth - d.w - 8);
-    const top = Math.min(Math.max(8, e.clientY - d.offsetY), window.innerHeight - d.h - 8);
-    d.lastLeft = left;
-    d.lastTop = top;
-    // Move via the DOM directly during the drag — no React re-render per frame,
-    // which is what made it stutter. State is committed once on release.
-    el.style.left = `${left}px`;
-    el.style.top = `${top}px`;
-    el.style.right = "auto";
-    el.style.bottom = "auto";
-  }
-
-  function onFabPointerUp() {
-    const d = fabDragRef.current;
-    const el = fabElRef.current;
-    fabDragRef.current = null;
-    if (!d) return;
-    if (d.moved) {
-      const pos = { left: Math.round(d.lastLeft), top: Math.round(d.lastTop) };
-      setFabPos(pos);
-      try {
-        localStorage.setItem("opi-cc-fab-pos", JSON.stringify(pos));
-      } catch {
-        /* best-effort */
+    const end = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      document.body.style.userSelect = prevUserSelect;
+      if (moved) {
+        const pos = { left: Math.round(lastLeft), top: Math.round(lastTop) };
+        setFabPos(pos);
+        try {
+          localStorage.setItem("opi-cc-fab-pos", JSON.stringify(pos));
+        } catch {
+          /* best-effort */
+        }
+      } else {
+        openWorkspace(); // a tap (no drag) opens the Command Center
       }
-    } else {
-      openWorkspace(); // a tap (no drag) opens the Command Center
-    }
+    };
+
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
   }
 
   // `closing` drives the CSS genie-funnel exit (the fallback). When a pre-captured
@@ -1471,11 +1459,8 @@ export default function InspectorToolsDrawer({
         aria-label="Open Command Center — drag to move"
         title="Command Center (Ctrl K) — drag to move"
         onPointerDown={onFabPointerDown}
-        onPointerMove={onFabPointerMove}
-        onPointerUp={onFabPointerUp}
-        onPointerCancel={onFabPointerUp}
         style={fabPos ? { left: fabPos.left, top: fabPos.top, right: "auto", bottom: "auto" } : undefined}
-        className={`fixed z-40 flex items-center gap-2 rounded-full border border-purple-400/50 bg-[var(--fl-surface)] px-4 py-3 text-sm font-bold text-[var(--fl-purple-text)] shadow-xl shadow-black/40 backdrop-blur transition active:scale-95 hover:border-purple-400 [touch-action:none] ${
+        className={`fixed z-40 flex select-none items-center gap-2 rounded-full border border-purple-400/50 bg-[var(--fl-surface)] px-4 py-3 text-sm font-bold text-[var(--fl-purple-text)] shadow-xl shadow-black/40 backdrop-blur transition hover:border-purple-400 [touch-action:none] [-webkit-user-select:none] [-webkit-touch-callout:none] ${
           fabPos ? "" : "bottom-44 right-4 md:bottom-20 md:right-6"
         }`}
       >
