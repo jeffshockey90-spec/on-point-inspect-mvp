@@ -2129,6 +2129,19 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   if (photosError) console.error("Photos load error:", photosError);
 
+  // Section reference-gallery photos live in their own table (not `photos`), but
+  // they're still pictures in the report — count them into the Media stat so the
+  // workspace total matches what's actually in the report.
+  let referencePhotoCount = 0;
+  {
+    const { count, error: refCountError } = await supabase
+      .from("section_reference_photos")
+      .select("id", { count: "exact", head: true })
+      .eq("inspection_id", inspection.id);
+    if (refCountError) console.error("Reference photo count error:", refCountError);
+    referencePhotoCount = count || 0;
+  }
+
   // PERFORMANCE + IMAGE FIX:
   // The editable report uses a private Supabase storage bucket in some installs.
   // Public-looking URLs can fail in the editor, which causes broken thumbnails.
@@ -3489,7 +3502,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
                   Media
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{photosWithUrls.length}</p>
+                <p className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">{photosWithUrls.length + referencePhotoCount}</p>
                 <p className="mt-1 text-xs font-bold text-[var(--fl-faint)]">Photos and videos</p>
               </div>
 
