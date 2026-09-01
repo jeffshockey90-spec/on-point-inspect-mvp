@@ -10,6 +10,7 @@ import PhotoCaptionField from "../../../components/PhotoCaptionField";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import SectionInformationChecklist from "../../../components/SectionInformationChecklist";
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
+import { detectFindingRelationships } from "../../../lib/ai/findingRelationships";
 import AISectionReview from "../../../components/AISectionReview";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import RelatedFindingsEditor from "../../../components/RelatedFindingsEditor";
@@ -194,6 +195,20 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     setSelectedCombine(new Set([id]));
     setCombineOpen(true);
     setCombineError("");
+  }
+
+  // Open combine mode with BOTH findings of a detected relationship pre-selected,
+  // so accepting FLOW's "these look connected" hint is one tap + confirm.
+  function startCombineWithPair(aId: any, bId: any) {
+    const a = String(aId || "");
+    const b = String(bId || "");
+    if (!a || !b) return;
+    setSelectedCombine(new Set([a, b]));
+    setCombineOpen(true);
+    setCombineError("");
+    try {
+      document.getElementById(`finding-${a}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch {}
   }
 
   async function combineSelectedFindings() {
@@ -462,6 +477,26 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   const allFindings = useMemo(() => {
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
   }, [orderedGroups]);
+
+  // House Graph: detect findings that likely share a physical cause (same-side
+  // water path, roof/plumbing above a ceiling stain) so FLOW can offer to connect
+  // them. Conservative + explainable — see lib/ai/findingRelationships.
+  const relatedByFinding = useMemo(() => {
+    const list = (allFindings || []).map((f: any) => ({
+      id: String(f.id),
+      section: f.section,
+      title: f.title,
+      observation: f.observation,
+      location: f.location,
+    }));
+    const byId = new Map(list.map((f: any) => [f.id, f]));
+    const map = new Map<string, { otherId: string; otherTitle: string; reason: string }>();
+    for (const r of detectFindingRelationships(list)) {
+      if (!map.has(r.aId)) map.set(r.aId, { otherId: r.bId, otherTitle: String((byId.get(r.bId) as any)?.title || "another finding"), reason: r.reason });
+      if (!map.has(r.bId)) map.set(r.bId, { otherId: r.aId, otherTitle: String((byId.get(r.aId) as any)?.title || "another finding"), reason: r.reason });
+    }
+    return map;
+  }, [allFindings]);
 
   const allPhotos = useMemo(() => {
     if (!photoPickerLoaded) return [];
@@ -1189,6 +1224,8 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                       availableSections={availableSections}
                       onNeedPhotoPicker={() => setPhotoPickerLoaded(true)}
                       onStartCombine={startCombineWith}
+                      relatedHint={relatedByFinding.get(String(finding.id))}
+                      onCombinePair={startCombineWithPair}
                       router={router}
                     />
                   );
@@ -2588,6 +2625,8 @@ function FindingCardBase({
   availableSections,
   onNeedPhotoPicker,
   onStartCombine,
+  relatedHint,
+  onCombinePair,
   router,
 }: any) {
   const severityConfig = useSeverityConfig();
@@ -3414,6 +3453,24 @@ function FindingCardBase({
     >
       <div className="p-2 pb-0 sm:p-4 sm:pb-0">
         <InlineStatusMessage type={messageType} message={message} />
+
+        {relatedHint && onCombinePair && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2">
+            <span className="min-w-0 flex-1 text-sm text-[var(--fl-text)]">
+              <span className="font-bold text-[var(--fl-info-text)]">🔗 FLOW spotted a connection:</span>{" "}
+              {relatedHint.reason} Possibly related to{" "}
+              <span className="font-semibold">&ldquo;{relatedHint.otherTitle}&rdquo;</span>.
+            </span>
+            <button
+              type="button"
+              onClick={() => onCombinePair(finding.id, relatedHint.otherId)}
+              className="shrink-0 rounded-lg border border-cyan-400 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-[var(--fl-info-text)] hover:bg-cyan-500/25"
+            >
+              Review together →
+            </button>
+          </div>
+        )}
+
         <div className="sticky top-2 z-20 mb-3 flex flex-wrap justify-end gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           {isSafetyOrMajor && (
             <button
