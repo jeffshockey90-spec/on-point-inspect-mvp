@@ -9,6 +9,7 @@ import { useSeverityConfig } from "../../lib/severity/useSeverityConfig";
 import { severityOptions } from "../../lib/severity/severityConfig";
 import FindingToneControl from "../FindingToneControl";
 import { detectFindingRelationships } from "../../lib/ai/findingRelationships";
+import { estimatePrognosis, deriveAgeYears } from "../../lib/ai/serviceLife";
 
 function fillKey(f: ChecklistFill) {
   return `${f.section}|${f.groupTitle}|${f.value}`;
@@ -192,6 +193,21 @@ export default function CaptureConfirmCard({
     const other = others.find((o) => o.id === otherId);
     return { title: String(other?.title || "a finding you already logged"), reason: rel.reason };
   }, [draft, existingFindings]);
+
+  // Grounded prognosis for equipment: a deterministic service-life read from the
+  // component type + age (data plate). Recomputes as the inspector edits the type
+  // or year. This is FLOW's consistent end-of-life flag, separate from the
+  // analyzer's free-form estimate shown below it.
+  const groundedPrognosis = useMemo(() => {
+    if (edited.kind !== "equipment") return null;
+    const eq = edited as any;
+    const type = [eq.equipmentType, eq.equipmentCategory, eq.manufacturer, eq.model]
+      .filter(Boolean)
+      .join(" ");
+    const age = deriveAgeYears(new Date().getFullYear(), eq.manufactureYear, eq.estimatedAge);
+    const p = estimatePrognosis(type, age);
+    return p.matched ? p : null;
+  }, [edited]);
 
   function update(patch: Partial<CaptureDraft>) {
     setEdited((current) => ({ ...current, ...patch }) as CaptureDraft);
@@ -577,6 +593,22 @@ export default function CaptureConfirmCard({
                   />
                 </Field>
               </div>
+
+              {groundedPrognosis && (
+                <div
+                  className={`rounded-xl border px-3 py-2 text-sm ${
+                    groundedPrognosis.status === "past"
+                      ? "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]"
+                      : groundedPrognosis.status === "near"
+                        ? "border-amber-500/50 bg-amber-500/10 text-[var(--fl-warn-text)]"
+                        : groundedPrognosis.status === "serviceable"
+                          ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                          : "border-white/15 bg-[var(--fl-surface-2)] text-[var(--fl-muted)]"
+                  }`}
+                >
+                  <span className="font-bold">🕒 Prognosis:</span> {groundedPrognosis.summary}
+                </div>
+              )}
 
               {/* Full equipment intelligence the analyzer returned (read-only). */}
               <div className="rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-3">
