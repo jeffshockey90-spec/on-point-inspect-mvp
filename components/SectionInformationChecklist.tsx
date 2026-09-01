@@ -1153,13 +1153,34 @@ function SectionInformationChecklist({
         }
       }
 
-      // Select the matching Weather Conditions option. Use conditionSimple
+      // Set the matching Weather Conditions option. Use conditionSimple
       // ("Clear" | "Cloudy" | "Rain" | "Snow" | "Fog" | "Storm") because those
       // are the actual option labels — the detailed conditionText (e.g. "Partly
       // cloudy") never matches, which is why the condition wasn't auto-filling.
+      //
+      // Weather Conditions is single-select for auto-fill: FIRST clear any
+      // previously-set condition, so re-running actually CORRECTS a stale value
+      // (e.g. an old forecast's "Rain") instead of leaving it stuck alongside
+      // the new one. Without this, a wrong condition never went away on re-run.
       const conditionBucket = w.conditionSimple || w.conditionText;
-      if (conditionBucket && !isSelected("Weather Conditions", conditionBucket)) {
-        await toggleSelection("Weather Conditions", conditionBucket);
+      if (conditionBucket) {
+        const staleConditions = selections.filter(
+          (item) =>
+            item.group_title === "Weather Conditions" &&
+            item.value !== "__TEXT_VALUE__" &&
+            item.value !== conditionBucket,
+        );
+        if (staleConditions.length > 0) {
+          const staleIds = staleConditions.map((s) => s.id);
+          setSelections((prev) => prev.filter((item) => !staleIds.includes(item.id)));
+          await supabase
+            .from("section_checklist_selections")
+            .delete()
+            .in("id", staleIds);
+        }
+        if (!isSelected("Weather Conditions", conditionBucket)) {
+          await toggleSelection("Weather Conditions", conditionBucket);
+        }
       }
 
       const parts = [
