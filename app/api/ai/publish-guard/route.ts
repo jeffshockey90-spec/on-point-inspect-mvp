@@ -225,6 +225,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       ...result,
+      // Total media in the report = finding/inspection photos & videos (photos
+      // table) PLUS section reference-gallery photos (separate table). The AI's
+      // gap analysis still runs on finding photos only; this is the display total.
+      photoCount: photos.length + referencePhotos.length,
       score,
       blocked,
       readyToPublish,

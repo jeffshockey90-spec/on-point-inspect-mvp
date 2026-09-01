@@ -78,8 +78,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const [{ data: findings }, { data: equipment }, { data: photos }] =
-      await Promise.all([
+    const [
+      { data: findings },
+      { data: equipment },
+      { data: photos },
+      { data: referencePhotos },
+    ] = await Promise.all([
         supabase
           .from("findings")
           .select(
@@ -96,6 +100,10 @@ export async function POST(req: Request) {
         supabase
           .from("photos")
           .select("id,finding_id,public_url,file_path")
+          .eq("inspection_id", inspectionId),
+        supabase
+          .from("section_reference_photos")
+          .select("id")
           .eq("inspection_id", inspectionId),
       ]);
 
@@ -336,7 +344,9 @@ Keep items short and actionable.
       aiVersion: AI_VERSION,
       findingCount: safeArray(findings).length,
       equipmentCount: safeArray(equipment).length,
-      photoCount: safeArray(photos).length,
+      // Total report media = finding/inspection photos & videos + section
+      // reference-gallery photos (separate table).
+      photoCount: safeArray(photos).length + safeArray(referencePhotos).length,
     };
 
     await logAIEvent({
