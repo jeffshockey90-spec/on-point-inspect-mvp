@@ -8,6 +8,7 @@ import { getSessionUser } from "../../../lib/apiAuth";
 import { buildWritingStyleInstructions } from "../../../lib/ai/writingStyle";
 import { loadWritingConfigForUser } from "../../../lib/ai/loadWritingConfig";
 import { buildDefectKnowledge } from "../../../lib/ai/flowWriter";
+import { matchStandards } from "../../../lib/ai/standardsReference";
 import {
   getInspectorFindingExamples,
   formatExamplesForPrompt,
@@ -177,6 +178,13 @@ export async function POST(req: Request) {
     // just leaves the (already strong) style + learning prompt untouched.
     const retrievalSubject = `${note || ""} ${existingObservation || ""}`.trim();
     const defectKnowledgeBlock = buildDefectKnowledge(retrievalSubject);
+
+    // Standards Brain: if the note/subject names a defect tied to a recognized
+    // safety standard, hand the model that standard so its recommendation aligns
+    // with it (advisory reference, not a legal citation).
+    const standardsContext = matchStandards(retrievalSubject)
+      .map((s) => `- ${s.title} (${s.citation}): ${s.note}`)
+      .join("\n");
     let publishedExamplesBlock = "";
     try {
       const examples = await getInspectorFindingExamples({
@@ -293,6 +301,9 @@ ${requestedSection || "Not specified — choose the best section from the eviden
 
 Confirmed location (a STATED FACT the inspector set in the field — treat as ground truth; do NOT infer, change, or contradict it. Weave it naturally into the observation, e.g. "...at the northeast corner of the basement." If blank, do not invent a location):
 ${location || "Not specified"}
+
+Recognized standard(s) relevant to the inspector's note${standardsContext ? "" : " (none matched)"}. If this finding is genuinely about the item below, make the recommendation ALIGN with the standard and you may reference it as guidance (e.g. "modern safety standards call for..."). Do NOT declare a legal code "violation" — the inspector references standards, they are not a code official. If it doesn't apply, ignore this:
+${standardsContext || "None"}
 
 Severity: assign from the severity guide above based on the visible evidence${
   requestedSeverity
