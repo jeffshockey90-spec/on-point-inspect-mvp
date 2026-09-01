@@ -80,19 +80,36 @@ export async function GET(req: Request) {
       }
       const hourParam = searchParams.get("hour");
       const hour = hourParam == null ? null : Number(hourParam);
-      const weather = await getWeatherForDate(lat, lng, date, hour);
+      const today = new Date().toISOString().slice(0, 10);
+
+      let weather = null;
+      let isForecast = false;
+
+      if (date === today) {
+        // Inspection is TODAY → pull real-time CURRENT conditions, i.e. what's
+        // actually happening during the inspection. This intentionally avoids
+        // getWeatherForDate's archive fallback: the historical/reanalysis API
+        // is a coarse (~9km) model that can falsely report light drizzle when
+        // it's clear on the ground, which is what was corrupting same-day
+        // auto-fills. Fall back to the date lookup only if "current" is down.
+        weather = await getCurrentWeather(lat, lng);
+        if (!weather) weather = await getWeatherForDate(lat, lng, date, hour, { allowArchive: false });
+      } else if (date > today) {
+        // A future date is a forecast (a prediction that changes as the day
+        // nears). Flag it so the report doesn't silently keep a stale forecast.
+        isForecast = true;
+        weather = await getWeatherForDate(lat, lng, date, hour);
+      } else {
+        // Past inspection → look up conditions for that date/hour.
+        weather = await getWeatherForDate(lat, lng, date, hour);
+      }
+
       if (!weather) {
         return NextResponse.json(
           { error: "No weather data available for that date/location." },
           { status: 404 },
         );
       }
-      // A date still in the future is a forecast (a prediction that changes as
-      // the day nears), not observed conditions. Flag it so the report doesn't
-      // silently capture a stale forecast — the inspector should re-run on the
-      // inspection day for what actually happened.
-      const today = new Date().toISOString().slice(0, 10);
-      const isForecast = date > today;
       return NextResponse.json({ lat, lng, weather, isForecast });
     }
 

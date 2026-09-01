@@ -145,7 +145,13 @@ export async function getWeatherForDate(
   lng: number,
   date: string,
   hour?: number | null,
+  opts?: { allowArchive?: boolean },
 ): Promise<WeatherResult | null> {
+  // The historical archive is a coarse (~9km) reanalysis that can report light
+  // precipitation the higher-res forecast/current models (and reality) don't.
+  // Callers looking at a recent/today date can turn it off so a forecast hiccup
+  // never falls back to a misleading "drizzle" reading.
+  const allowArchive = opts?.allowArchive !== false;
   const targetHour = Number.isFinite(hour as number)
     ? Math.max(0, Math.min(23, Math.round(hour as number)))
     : 12;
@@ -189,6 +195,8 @@ export async function getWeatherForDate(
   const forecast = await fetchJson(forecastUrl);
   const fromForecast = forecast ? pickFromHourly(forecast, "hourly") : null;
   if (fromForecast && fromForecast.temperatureF != null) return fromForecast;
+
+  if (!allowArchive) return fromForecast;
 
   // Fall back to the historical archive for older dates.
   const archiveUrl =
