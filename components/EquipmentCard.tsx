@@ -405,13 +405,13 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
           .map(([label, value]) => (
             <div
               key={label}
-              className="grid gap-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 transition duration-150 active:scale-[0.995] sm:grid-cols-[170px_1fr] sm:items-center"
+              className="grid gap-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 transition duration-150 active:scale-[0.995] sm:grid-cols-[170px_minmax(0,1fr)] sm:items-center"
             >
               <span className="text-sm font-bold text-[var(--fl-muted)]">
                 {label}
               </span>
 
-              <span className="text-left font-semibold text-[var(--fl-text)] sm:text-right">
+              <span className="min-w-0 break-words text-left font-semibold text-[var(--fl-text)] sm:text-right">
                 {String(value)}
               </span>
             </div>

@@ -847,7 +847,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                         document.getElementById(`finding-${c.aId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
                       } catch {}
                     }}
-                    className="text-left hover:underline"
+                    className="block w-full min-w-0 break-words text-left hover:underline"
                   >
                     <span className="font-semibold text-[var(--fl-info-text)]">🔗 {c.aTitle} ↔ {c.bTitle}</span> — {c.reason}
                   </button>
@@ -858,7 +858,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
           {intelligenceSummary.endOfLife.length > 0 && (
             <ul className="space-y-1">
               {intelligenceSummary.endOfLife.map((e: any, i: number) => (
-                <li key={`eol-${i}`} className="text-sm text-[var(--fl-text)]">
+                <li key={`eol-${i}`} className="min-w-0 break-words text-sm text-[var(--fl-text)]">
                   <span className="font-semibold text-[var(--fl-warn-text)]">🕒 {e.name}</span> — {e.summary}
                 </li>
               ))}
