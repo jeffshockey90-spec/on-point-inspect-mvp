@@ -70,33 +70,36 @@ export function estimatePrognosis(typeText: string, ageYears: number | null): Pr
   const entry = findEntry(typeText);
   if (!entry) return { matched: false, summary: "" };
 
-  const life = `typical ${entry.low}–${entry.high} yrs`;
+  // Cautious, maintenance-aware wording: these are TYPICAL industry service-life
+  // ranges, never a prediction that a component WILL fail — upkeep and condition
+  // change actual lifespan for anything. Never say "will fail" or a hard deadline.
+  const typical = `${entry.low}–${entry.high} yrs`;
   if (ageYears == null) {
     return {
       matched: true, label: entry.label, low: entry.low, high: entry.high,
       ageYears: null, remainingYears: null, status: "unknown-age",
-      summary: `${cap(entry.label)}: ${life}. Age unknown — capture the data plate to estimate remaining life.`,
+      summary: `${cap(entry.label)}: typical service life ${typical}. Age not confirmed — capture the data plate for an estimate.`,
     };
   }
 
   const remainingToHigh = Math.max(0, entry.high - ageYears);
+  const ageStr = `~${ageYears} yr${ageYears === 1 ? "" : "s"} old`;
   let status: Prognosis["status"];
-  let tail: string;
+  let summary: string;
   if (ageYears >= entry.high) {
     status = "past";
-    tail = "past its expected service life — budget for replacement.";
+    summary = `${ageStr} — beyond the typical service life of ${typical}. Actual lifespan varies with maintenance and condition; consider planning for eventual replacement and monitoring performance.`;
   } else if (ageYears >= entry.low) {
     status = "near";
-    tail = `near end of expected life (~${remainingToHigh} yr${remainingToHigh === 1 ? "" : "s"} remaining).`;
+    summary = `${ageStr} — approaching the typical service life of ${typical}. With good maintenance it may last longer; worth monitoring and planning ahead.`;
   } else {
     status = "serviceable";
-    tail = `serviceable (~${entry.low - ageYears}–${entry.high - ageYears} yrs remaining).`;
+    summary = `${ageStr} — within the typical service life of ${typical}.`;
   }
 
   return {
     matched: true, label: entry.label, low: entry.low, high: entry.high,
-    ageYears, remainingYears: remainingToHigh, status,
-    summary: `~${ageYears} yr${ageYears === 1 ? "" : "s"} old · ${life} · ${tail}`,
+    ageYears, remainingYears: remainingToHigh, status, summary,
   };
 }
 
