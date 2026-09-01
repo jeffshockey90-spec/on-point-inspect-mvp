@@ -2,6 +2,7 @@
 import { formatAppValue } from "../../../../lib/app-time";
 import { resolveReportSections } from "../../../../lib/reportSections";
 import { matchStandards } from "../../../../lib/ai/standardsReference";
+import { estimatePrognosis, deriveAgeYears } from "../../../../lib/ai/serviceLife";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { authorizeInspection } from "../../../../lib/apiAuth";
 import { loadSeverityConfigForInspection } from "../../../../lib/severity/loadSeverityConfig";
@@ -1038,7 +1039,7 @@ function buildAgentReportHtml({
   checklistBySection?: Record<string, Record<string, string[]>>;
   referencePhotosBySection?: Record<string, Array<{ url: string; caption: string }>>;
   disclaimers?: Array<{ topic: string; text: string }>;
-  equipment?: Array<{ type: string; name: string; photoUrl: string; rows: Array<[string, string]>; note: string }>;
+  equipment?: Array<{ type: string; name: string; photoUrl: string; rows: Array<[string, string]>; note: string; prognosis?: string }>;
   realtorBrand?: { name: string; brokerage: string; photo: string } | null;
 }) {
   const property = getPropertyAddress(inspection);
@@ -1413,6 +1414,7 @@ function buildAgentReportHtml({
               <p class="equip-type">${escapeHtml(e.type)}</p>
               <h3 class="equip-name">${escapeHtml(e.name)}</h3>
               ${e.rows.length ? `<div class="equip-rows">${e.rows.map(([k, v]) => `<div class="equip-row"><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`).join("")}</div>` : ""}
+              ${showClientIntelligence && e.prognosis ? `<p class="equip-note">🕒 Prognosis: ${escapeHtml(e.prognosis)}</p>` : ""}
               ${e.note ? `<p class="equip-note">${escapeHtml(e.note)}</p>` : ""}
             </div>
           `).join("")}
@@ -2398,6 +2400,13 @@ export async function GET(req: Request, { params }: RouteProps) {
           ["Condition", cleanText(e.condition)],
         ] as Array<[string, string]>).filter(([, v]) => v),
         note: cleanText(e.notes || e.inspector_note || e.ai_notes),
+        prognosis: (() => {
+          const p = estimatePrognosis(
+            cleanText(e.equipment_type),
+            deriveAgeYears(new Date().getFullYear(), e.manufacture_year, e.estimated_age),
+          );
+          return p.matched && (p.status === "past" || p.status === "near") ? p.summary : "";
+        })(),
       };
     });
 

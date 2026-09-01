@@ -6,6 +6,7 @@ import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { resolveReportSections } from "../../../lib/reportSections";
 import { matchStandards } from "../../../lib/ai/standardsReference";
+import { estimatePrognosis, deriveAgeYears } from "../../../lib/ai/serviceLife";
 import { formatClockTime } from "../../../lib/app-time";
 import PdfExportButton from "../../../components/PdfExportButton";
 import ReportTimeTracker from "../../../components/ReportTimeTracker";
@@ -2597,6 +2598,17 @@ export default async function PublicSharePage({
                         <ShareEquipmentLine label="Serial" value={item.serial} />
                         <ShareEquipmentLine label="Manufacture Year" value={item.manufacture_year} />
                         <ShareEquipmentLine label="Estimated Age" value={item.estimated_age} />
+                        {showClientIntelligence
+                          ? (() => {
+                              const p = estimatePrognosis(
+                                item.equipment_type || "",
+                                deriveAgeYears(new Date().getFullYear(), item.manufacture_year, item.estimated_age),
+                              );
+                              return p.matched && (p.status === "past" || p.status === "near") ? (
+                                <ShareEquipmentLine label="Prognosis" value={p.summary} />
+                              ) : null;
+                            })()
+                          : null}
                         <ShareEquipmentLine
                           label="Typical Industry Range"
                           value={getTypicalIndustryRange(item.expected_service_life)}
