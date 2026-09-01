@@ -8,12 +8,13 @@ import { supabase } from "../../lib/supabaseClient";
 import { useSeverityConfig } from "../../lib/severity/useSeverityConfig";
 import { severityOptions } from "../../lib/severity/severityConfig";
 import FindingToneControl from "../FindingToneControl";
+import { detectFindingRelationships } from "../../lib/ai/findingRelationships";
 
 function fillKey(f: ChecklistFill) {
   return `${f.section}|${f.groupTitle}|${f.value}`;
 }
 
-type ExistingFinding = { id: string; title?: string; section?: string };
+type ExistingFinding = { id: string; title?: string; section?: string; observation?: string };
 
 type Props = {
   mediaPreviewUrl: string;
@@ -163,6 +164,35 @@ export default function CaptureConfirmCard({
   const canAttach =
     Boolean(onAttachToExisting) && draft.kind === "finding" && (existingFindings?.length || 0) > 0;
 
+  // House Graph in the field: does THIS finding likely share a cause with one
+  // the inspector already logged (same-side water path / roof-or-plumbing above a
+  // ceiling stain)? Location is parsed from the AI's observation (which now weaves
+  // in the confirmed side/level). Informational here — combining happens later in
+  // the builder — but it's the "you already flagged the downspout on this side"
+  // nudge in the moment.
+  const relationshipHint = useMemo(() => {
+    if (draft.kind !== "finding") return null;
+    const others = (existingFindings || []).map((f) => ({
+      id: String(f.id),
+      section: f.section,
+      title: f.title,
+      observation: f.observation,
+    }));
+    if (!others.length) return null;
+    const draftLite = {
+      id: "__new__",
+      section: (draft as FindingDraft).section,
+      title: (draft as FindingDraft).title,
+      observation: (draft as FindingDraft).observation,
+    };
+    const rels = detectFindingRelationships([...others, draftLite]);
+    const rel = rels.find((r) => r.aId === "__new__" || r.bId === "__new__");
+    if (!rel) return null;
+    const otherId = rel.aId === "__new__" ? rel.bId : rel.aId;
+    const other = others.find((o) => o.id === otherId);
+    return { title: String(other?.title || "a finding you already logged"), reason: rel.reason };
+  }, [draft, existingFindings]);
+
   function update(patch: Partial<CaptureDraft>) {
     setEdited((current) => ({ ...current, ...patch }) as CaptureDraft);
   }
@@ -215,6 +245,14 @@ export default function CaptureConfirmCard({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3">
+        {relationshipHint && (
+          <div className="mb-3 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-sm text-[var(--fl-text)]">
+            <span className="font-bold text-[var(--fl-info-text)]">🔗 Connects to an earlier finding:</span>{" "}
+            {relationshipHint.reason} You already logged{" "}
+            <span className="font-semibold">&ldquo;{relationshipHint.title}&rdquo;</span> — combine them in the report builder.
+          </div>
+        )}
+
         <div className="overflow-hidden rounded-xl border border-white/10 bg-[var(--fl-surface-2)]">
           {isVideo ? (
             <video

@@ -1276,7 +1276,9 @@ function FieldPageContent() {
       setLoadingExistingFindings(true);
       const { data, error } = await supabase
         .from("findings")
-        .select("id, title, section, severity, image_url, created_at")
+        // observation is included so the capture card can spot cross-finding
+        // relationships (House Graph) — e.g. this new finding vs. one already logged.
+        .select("id, title, section, severity, observation, image_url, created_at")
         .eq("inspection_id", selectedReport)
         .order("created_at", { ascending: false });
 
