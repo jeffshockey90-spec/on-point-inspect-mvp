@@ -1166,7 +1166,17 @@ function SectionInformationChecklist({
         w.temperatureF != null ? `${w.temperatureF}°F` : "",
         w.conditionText || "",
       ].filter(Boolean);
-      showMessage("success", `Weather set${parts.length ? `: ${parts.join(", ")}` : ""}.`);
+      const setStr = `Weather set${parts.length ? `: ${parts.join(", ")}` : ""}.`;
+      if (json.isForecast) {
+        // A future date only has a forecast, which changes day to day. Warn so a
+        // stale prediction isn't left in the report — re-run on inspection day.
+        showMessage(
+          "error",
+          `${setStr} Note: this is a forecast for a future date — re-run Auto-fill Weather on the inspection day for actual conditions.`,
+        );
+      } else {
+        showMessage("success", setStr);
+      }
     } catch (error: any) {
       showMessage("error", error?.message || "Weather lookup failed.");
     } finally {

@@ -87,7 +87,13 @@ export async function GET(req: Request) {
           { status: 404 },
         );
       }
-      return NextResponse.json({ lat, lng, weather });
+      // A date still in the future is a forecast (a prediction that changes as
+      // the day nears), not observed conditions. Flag it so the report doesn't
+      // silently capture a stale forecast — the inspector should re-run on the
+      // inspection day for what actually happened.
+      const today = new Date().toISOString().slice(0, 10);
+      const isForecast = date > today;
+      return NextResponse.json({ lat, lng, weather, isForecast });
     }
 
     // default: current
