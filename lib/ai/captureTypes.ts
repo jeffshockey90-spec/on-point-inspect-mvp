@@ -13,6 +13,9 @@ export type FindingDraft = {
   sectionInfo?: Record<string, string>;
   // Inspector flagged this finding in the field to revisit in the report builder.
   flagged?: boolean;
+  // Confirmed location captured in the field (side/level/room), persisted to
+  // findings.location and used by the House Graph for grounded matching.
+  location?: string;
 };
 
 export type LimitationDraft = {

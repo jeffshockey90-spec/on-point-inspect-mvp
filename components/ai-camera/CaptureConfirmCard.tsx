@@ -16,7 +16,7 @@ function fillKey(f: ChecklistFill) {
   return `${f.section}|${f.groupTitle}|${f.value}`;
 }
 
-type ExistingFinding = { id: string; title?: string; section?: string; observation?: string };
+type ExistingFinding = { id: string; title?: string; section?: string; observation?: string; location?: string };
 
 type Props = {
   mediaPreviewUrl: string;
@@ -179,6 +179,7 @@ export default function CaptureConfirmCard({
       section: f.section,
       title: f.title,
       observation: f.observation,
+      location: f.location,
     }));
     if (!others.length) return null;
     const draftLite = {
@@ -186,6 +187,7 @@ export default function CaptureConfirmCard({
       section: (draft as FindingDraft).section,
       title: (draft as FindingDraft).title,
       observation: (draft as FindingDraft).observation,
+      location: (draft as FindingDraft).location,
     };
     const rels = detectFindingRelationships([...others, draftLite]);
     const rel = rels.find((r) => r.aId === "__new__" || r.bId === "__new__");

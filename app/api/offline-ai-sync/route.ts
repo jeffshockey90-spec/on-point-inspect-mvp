@@ -557,6 +557,23 @@ export async function POST(req: Request) {
         }
       }
 
+      // Confirmed field location (findings.location — add-finding-location.sql).
+      // Best-effort, same guard: a missing column must never break the sync.
+      const syncLocation = cleanText(payload.location);
+      if (syncLocation) {
+        const { error: locError } = await supabase
+          .from("findings")
+          .update({ location: syncLocation })
+          .eq("id", finding.id)
+          .eq("inspection_id", inspectionId);
+        if (locError) {
+          console.warn(
+            "Could not set finding location (run supabase/add-finding-location.sql):",
+            locError.message,
+          );
+        }
+      }
+
       // Flag this row for the Field Review queue. Raw offline captures (a quick
       // note + photo, AI polished after sync) need verifying, so mark them
       // offline_captured + needs_review. But a live-camera capture was already

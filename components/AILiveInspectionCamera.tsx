@@ -865,6 +865,7 @@ export default function AILiveInspectionCamera({
           recommendation: data.recommendation,
           confidence: data.confidence,
           sectionInfo: data.sectionInfo || {},
+          location: composedLocation(),
         });
         // Capture the FIRST AI draft exactly as generated (pre-edit) for
         // learning. Only set it once per capture — a "tell how" regenerate must

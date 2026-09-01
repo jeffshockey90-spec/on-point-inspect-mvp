@@ -1276,9 +1276,10 @@ function FieldPageContent() {
       setLoadingExistingFindings(true);
       const { data, error } = await supabase
         .from("findings")
-        // observation is included so the capture card can spot cross-finding
-        // relationships (House Graph) — e.g. this new finding vs. one already logged.
-        .select("id, title, section, severity, observation, image_url, created_at")
+        // observation + location are included so the capture card can spot
+        // cross-finding relationships (House Graph) — this new finding vs. one
+        // already logged, matched on the confirmed side/level.
+        .select("id, title, section, severity, observation, location, image_url, created_at")
         .eq("inspection_id", selectedReport)
         .order("created_at", { ascending: false });
 
@@ -1859,6 +1860,7 @@ function FieldPageContent() {
           observation: draft.observation || "",
           implication: draft.implication || "",
           recommendation: draft.recommendation || "",
+          location: (draft as any).location || "",
           run_ai_after_sync: false,
           ai_after_sync: false,
           confirmed_live: true,
@@ -1911,6 +1913,7 @@ function FieldPageContent() {
         observation: draft.observation || "",
         implication: draft.implication || "",
         recommendation: draft.recommendation || "",
+        location: (draft as any).location || "",
         flagged: (draft as any).flagged === true,
       });
       resetForm();
@@ -3870,6 +3873,7 @@ function FieldPageContent() {
     implication?: string;
     recommendation?: string;
     flagged?: boolean;
+    location?: string;
   }) {
     const effectivePhotos = overrides?.photos ?? photos;
     const effectiveTitle = overrides?.title ?? title;
@@ -3922,6 +3926,20 @@ function FieldPageContent() {
         await supabase
           .from("findings")
           .update({ flagged: true })
+          .eq("id", finding.id)
+          .eq("inspection_id", selectedReport);
+      } catch {
+        /* column may not exist yet */
+      }
+    }
+
+    // Best-effort confirmed location (findings.location — add-finding-location.sql).
+    // Same guard as flagged: a missing column must never break the saved finding.
+    if (overrides?.location && finding?.id) {
+      try {
+        await supabase
+          .from("findings")
+          .update({ location: overrides.location })
           .eq("id", finding.id)
           .eq("inspection_id", selectedReport);
       } catch {
