@@ -12,6 +12,7 @@ import SectionInformationChecklist from "../../../components/SectionInformationC
 import SectionReferencePhotos from "../../../components/SectionReferencePhotos";
 import { detectFindingRelationships } from "../../../lib/ai/findingRelationships";
 import { estimatePrognosis, deriveAgeYears } from "../../../lib/ai/serviceLife";
+import { matchStandards } from "../../../lib/ai/standardsReference";
 import AISectionReview from "../../../components/AISectionReview";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import RelatedFindingsEditor from "../../../components/RelatedFindingsEditor";
@@ -2713,6 +2714,12 @@ function FindingCardBase({
   router,
 }: any) {
   const severityConfig = useSeverityConfig();
+  // Standards Brain: the recognized safety standard / code section this finding
+  // is commonly evaluated against (advisory reference, not a legal verdict).
+  const standardsHint = useMemo(
+    () => matchStandards(`${finding?.title || ""} ${finding?.observation || ""} ${finding?.recommendation || ""}`),
+    [finding?.title, finding?.observation, finding?.recommendation],
+  );
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [photoPickerLimit, setPhotoPickerLimit] = useState(
     PHOTO_PICKER_PAGE_SIZE,
@@ -3551,6 +3558,20 @@ function FindingCardBase({
             >
               Review together →
             </button>
+          </div>
+        )}
+
+        {standardsHint.length > 0 && (
+          <div className="mb-3 rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-3 py-2">
+            {standardsHint.map((std: any) => (
+              <p key={std.id} className="text-sm text-[var(--fl-text)]">
+                <span className="font-bold text-[var(--fl-info-text)]">📋 {std.title}</span>{" "}
+                <span className="font-mono text-xs text-[var(--fl-muted)]">({std.citation})</span> — {std.note}
+              </p>
+            ))}
+            <p className="mt-1 text-[11px] text-[var(--fl-faint)]">
+              Reference for context — confirm the applicable standard for your jurisdiction.
+            </p>
           </div>
         )}
 
