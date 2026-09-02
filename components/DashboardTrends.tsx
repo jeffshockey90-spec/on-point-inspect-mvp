@@ -20,14 +20,17 @@ function BarChart({
   const width = 320;
   const height = 110;
   const gap = 6;
+  // Headroom above the bars so the value label on the tallest bar (which reaches
+  // the top of the plot) isn't clipped off the top of the SVG.
+  const topPad = 16;
   const barWidth = (width - gap * (points.length + 1)) / points.length;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height + 22}`} className="mt-3 w-full">
+    <svg viewBox={`0 0 ${width} ${topPad + height + 22}`} className="mt-3 w-full">
       {points.map((point, index) => {
         const barHeight = Math.max(3, (point.value / max) * height);
         const x = gap + index * (barWidth + gap);
-        const y = height - barHeight;
+        const y = topPad + height - barHeight;
         const isLast = index === points.length - 1;
 
         return (
@@ -52,7 +55,7 @@ function BarChart({
             </text>
             <text
               x={x + barWidth / 2}
-              y={height + 15}
+              y={topPad + height + 15}
               textAnchor="middle"
               fontSize="9"
               fill="var(--fl-faint)"
