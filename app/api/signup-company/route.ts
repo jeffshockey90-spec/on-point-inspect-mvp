@@ -11,6 +11,74 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const ALLOWED_ROLES = ["inspector", "client", "realtor"];
 
+// Notify the owner(s) of a new signup over BOTH push and email, for ANY role
+// (inspector, realtor, client). Awaited so the serverless runtime doesn't
+// freeze the sends when the response returns; failures are logged, never fatal.
+async function notifyOwnersOfSignup(opts: {
+  fullName: string;
+  email: string;
+  role: string;
+  businessLabel?: string;
+}) {
+  const fullName = String(opts.fullName || "").trim() || "Someone";
+  const email = String(opts.email || "").trim();
+  const role = String(opts.role || "").trim().toLowerCase();
+  const businessLabel = String(opts.businessLabel || "").trim();
+  const roleWord = role === "inspector" ? "inspector" : role === "realtor" ? "realtor" : role || "user";
+  const asPart =
+    role === "inspector" && businessLabel ? `as "${businessLabel}"` : `as a ${roleWord}`;
+  const bodyText = `${fullName} (${email}) just signed up ${asPart}.`;
+  const subject =
+    role === "inspector"
+      ? `New FLOW signup: ${fullName}${businessLabel ? ` (${businessLabel})` : ""}`
+      : `New FLOW ${roleWord} signup: ${fullName}`;
+  const businessLine =
+    role === "inspector" && businessLabel
+      ? `<p style="margin:0 0 4px;color:#334155;">Business: <strong>${businessLabel}</strong></p>`
+      : "";
+
+  const results = await Promise.allSettled([
+    ...OWNER_EMAILS.map((ownerEmail) =>
+      sendPushNotification({
+        title: "🎉 New Account Created",
+        body: bodyText,
+        url: "/dashboard/owner/users",
+        eventType: "new_account",
+        target: "user",
+        targetUserEmail: ownerEmail,
+      }),
+    ),
+    resend.emails.send({
+      from: "FLOW <notifications@flowinspect.app>",
+      to: OWNER_EMAILS,
+      subject,
+      html: `
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;">
+          <h2 style="margin:0 0 8px;">🎉 New ${roleWord} signed up</h2>
+          <p style="margin:0 0 4px;"><strong>${fullName}</strong></p>
+          <p style="margin:0 0 4px;color:#334155;">${email}</p>
+          ${businessLine}
+          <p style="margin:16px 0;">
+            <a href="https://app.flowinspect.app/dashboard/owner/users" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
+              View in Owner Dashboard
+            </a>
+          </p>
+          <p style="font-size:12px;color:#64748b;">FLOW</p>
+        </div>
+      `,
+      text: `New ${roleWord} signed up on FLOW\n\n${fullName}\n${email}${
+        businessLabel && role === "inspector" ? `\nBusiness: ${businessLabel}` : ""
+      }\n\nhttps://app.flowinspect.app/dashboard/owner/users`,
+    }),
+  ]);
+
+  results.forEach((result) => {
+    if (result.status === "rejected") {
+      console.error("New account owner alert failed:", result.reason);
+    }
+  });
+}
+
 // Finalizes a new signup with the service-role client so it works even before
 // the user's email is confirmed (no session yet, so a client-side write would
 // be blocked by RLS). Creates the profile for every role, and a company +
@@ -110,8 +178,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Only inspectors get a company + owner membership.
+    // Only inspectors get a company + owner membership. Non-inspector signups
+    // (realtor / client) still alert the owner here before returning.
     if (role !== "inspector") {
+      await notifyOwnersOfSignup({ fullName, email, role });
       return NextResponse.json({ success: true });
     }
 
@@ -186,50 +256,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Notify the owner(s) of the new account over BOTH push and email, and
-    // AWAIT them. In a serverless runtime, fire-and-forget promises can be
-    // frozen the moment the response returns - which is why the previous
-    // push often never actually sent. Email is the reliable channel (push
-    // tokens go stale); failures are logged but never block signup.
-    const businessLabel = String(businessName).trim();
-
-    const notifyResults = await Promise.allSettled([
-      ...OWNER_EMAILS.map((ownerEmail) =>
-        sendPushNotification({
-          title: "🎉 New Account Created",
-          body: `${fullName} (${email}) just signed up as "${businessLabel}".`,
-          url: "/dashboard/owner",
-          eventType: "new_account",
-          target: "user",
-          targetUserEmail: ownerEmail,
-        })
-      ),
-      resend.emails.send({
-        from: "FLOW <notifications@flowinspect.app>",
-        to: OWNER_EMAILS,
-        subject: `New FLOW signup: ${fullName} (${businessLabel})`,
-        html: `
-          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;">
-            <h2 style="margin:0 0 8px;">🎉 New inspector signed up</h2>
-            <p style="margin:0 0 4px;"><strong>${fullName}</strong></p>
-            <p style="margin:0 0 4px;color:#334155;">${email}</p>
-            <p style="margin:0 0 16px;color:#334155;">Business: <strong>${businessLabel}</strong></p>
-            <p style="margin:16px 0;">
-              <a href="https://app.flowinspect.app/dashboard/owner/users" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
-                View in Owner Dashboard
-              </a>
-            </p>
-            <p style="font-size:12px;color:#64748b;">FLOW</p>
-          </div>
-        `,
-        text: `New inspector signed up on FLOW\n\n${fullName}\n${email}\nBusiness: ${businessLabel}\n\nhttps://app.flowinspect.app/dashboard/owner/users`,
-      }),
-    ]);
-
-    notifyResults.forEach((result) => {
-      if (result.status === "rejected") {
-        console.error("New account owner alert failed:", result.reason);
-      }
+    // Notify the owner(s) of the new inspector + company (push + email).
+    await notifyOwnersOfSignup({
+      fullName,
+      email,
+      role: "inspector",
+      businessLabel: String(businessName).trim(),
     });
 
     return NextResponse.json({
