@@ -11,6 +11,8 @@ import {
 import { isReportViewReload } from "../../../lib/reportViewThrottle";
 import { sendPushNotification } from "../../../lib/push";
 import ReportLanguageSwitcher from "../../../components/ReportLanguageSwitcher";
+import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
+import InsuranceReferralCard from "../../../components/InsuranceReferralCard";
 import UiAutoTranslate from "../../../components/UiAutoTranslate";
 import { REPORT_UI_STRINGS } from "../../../lib/uiStrings";
 import {
@@ -421,6 +423,9 @@ export default async function HomeownerPortal({
             </Link>
           </section>
         )}
+
+        <Secure24ReferralCard shareToken={shareToken} autoCheck />
+        <InsuranceReferralCard shareToken={shareToken} />
 
         <footer className="border-t border-[var(--fl-raised)] pt-6 text-center text-xs text-[var(--fl-faint)]">
           Prepared for you by {companyName}. This hub is a homeowner convenience — your full
