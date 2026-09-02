@@ -1253,6 +1253,39 @@ export default async function OwnerDashboardPage() {
           <SecurityEventsPanel />
         </div>
 
+        {(() => {
+          // Loud warning when the owner has NO enabled push devices — otherwise
+          // every owner push alert (new signups, payments, support…) fails
+          // silently, which is exactly how a new-account alert got missed.
+          const ownerEnabledDevices =
+            (pushSubscriptions || []).filter(
+              (r: any) =>
+                OWNER_EMAILS.includes(String(r?.user_email || "").toLowerCase()) && r?.enabled,
+            ).length +
+            (nativePushTokens || []).filter(
+              (r: any) =>
+                OWNER_EMAILS.includes(String(r?.user_email || "").toLowerCase()) && r?.enabled,
+            ).length;
+          if (ownerEnabledDevices > 0) return null;
+          return (
+            <div
+              data-owner-tab="system"
+              className="rounded-2xl border border-amber-500/50 bg-amber-500/10 p-5"
+            >
+              <p className="text-sm font-bold text-[var(--fl-warn-text)]">
+                ⚠️ Push notifications are OFF on all your devices
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
+                You won&apos;t get push alerts (new signups, payments, support, etc.) until you
+                re-enable them. Open FLOW on your phone and tap{" "}
+                <span className="font-semibold">Enable notifications</span> in the section below,
+                then use <span className="font-semibold">Send Test</span> to confirm. Email alerts
+                still go out in the meantime.
+              </p>
+            </div>
+          );
+        })()}
+
         <div data-owner-tab="system">
           <PushAlertsPanel />
         </div>
