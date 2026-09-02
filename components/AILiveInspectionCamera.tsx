@@ -252,6 +252,54 @@ export default function AILiveInspectionCamera({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // iOS (and some Android) END or MUTE the camera track when a phone call comes
+  // in or the app is backgrounded, and the stream does NOT resume on its own —
+  // the live preview goes black/frozen. When we return to the foreground with
+  // the preview actually on screen, re-acquire the camera (or just replay it) so
+  // it keeps working after a call/interruption.
+  useEffect(() => {
+    if (!open) return;
+
+    async function recoverCamera() {
+      if (typeof document === "undefined") return;
+      if (document.visibilityState !== "visible") return;
+      // Only act when the live preview is mounted — never spin the camera back up
+      // during a review/confirm stage where it was intentionally stopped.
+      if (!videoRef.current) return;
+
+      const stream = streamRef.current;
+      const videoTrack = stream?.getVideoTracks?.()[0];
+      const dead = !stream || !videoTrack || videoTrack.readyState === "ended";
+
+      if (dead) {
+        try {
+          stream?.getTracks?.().forEach((t) => t.stop());
+        } catch {}
+        streamRef.current = null;
+        await startCamera(facingMode);
+        return;
+      }
+
+      // Track is still live but the OS paused playback (common right after a
+      // call ends) — just resume it.
+      if (videoRef.current.paused) {
+        try {
+          await videoRef.current.play();
+        } catch {}
+      }
+    }
+
+    document.addEventListener("visibilitychange", recoverCamera);
+    window.addEventListener("focus", recoverCamera);
+    window.addEventListener("pageshow", recoverCamera);
+    return () => {
+      document.removeEventListener("visibilitychange", recoverCamera);
+      window.removeEventListener("focus", recoverCamera);
+      window.removeEventListener("pageshow", recoverCamera);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, facingMode]);
+
   useEffect(() => {
     if (!open || typeof document === "undefined") return;
 
