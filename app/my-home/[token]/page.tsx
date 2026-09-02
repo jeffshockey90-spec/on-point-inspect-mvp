@@ -425,7 +425,7 @@ export default async function HomeownerPortal({
         )}
 
         <Secure24ReferralCard shareToken={shareToken} autoCheck />
-        <InsuranceReferralCard shareToken={shareToken} />
+        <InsuranceReferralCard shareToken={shareToken} placement="hub" />
 
         <footer className="border-t border-[var(--fl-raised)] pt-6 text-center text-xs text-[var(--fl-faint)]">
           Prepared for you by {companyName}. This hub is a homeowner convenience — your full

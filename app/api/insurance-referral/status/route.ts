@@ -25,6 +25,13 @@ export async function GET(request: Request) {
     const lookup = String(searchParams.get("lookup") || "").trim();
     if (!lookup) return NextResponse.json({ enabled: false });
 
+    // Which surface is asking (report | portal | hub) and, on the report, the
+    // viewer's role — so per-placement + hide-from-realtor toggles can apply.
+    const placement = String(searchParams.get("placement") || "").toLowerCase();
+    const role = String(searchParams.get("role") || "").toLowerCase();
+    const isRealtor =
+      role.includes("realtor") || role.includes("agent") || role.includes("coordinator");
+
     const inspection = await resolveInspectionByToken(db, lookup);
     if (!inspection?.id || !inspection.inspector_id) {
       return NextResponse.json({ enabled: false });
@@ -32,13 +39,30 @@ export async function GET(request: Request) {
 
     const { data: setting } = await db
       .from("insurance_referral_settings")
-      .select("enabled, agent_name, agent_company, agent_email, agent_link, blurb")
+      .select(
+        "enabled, agent_name, agent_company, agent_email, agent_link, blurb, show_on_report, show_on_portal, show_on_hub, show_to_realtors",
+      )
       .eq("user_id", inspection.inspector_id)
       .maybeSingle();
 
     // Enabled only if the inspector turned it on AND has a way to reach the agent.
     const reachable = Boolean(setting?.agent_link || setting?.agent_email);
     if (setting?.enabled !== true || !reachable) {
+      return NextResponse.json({ enabled: false });
+    }
+
+    // Per-placement visibility (absent column pre-migration reads as on).
+    const placementOk =
+      placement === "report"
+        ? setting?.show_on_report !== false
+        : placement === "portal"
+          ? setting?.show_on_portal !== false
+          : placement === "hub"
+            ? setting?.show_on_hub !== false
+            : true;
+    // Hide-from-realtor only matters when a realtor is the one viewing.
+    const realtorOk = isRealtor ? setting?.show_to_realtors !== false : true;
+    if (!placementOk || !realtorOk) {
       return NextResponse.json({ enabled: false });
     }
 

@@ -55,6 +55,11 @@ export async function GET() {
       agentEmail: data?.agent_email || "",
       agentLink: data?.agent_link || "",
       blurb: data?.blurb || "",
+      // Placement toggles — absent (pre-migration) reads as on.
+      showOnReport: data?.show_on_report !== false,
+      showOnPortal: data?.show_on_portal !== false,
+      showOnHub: data?.show_on_hub !== false,
+      showToRealtors: data?.show_to_realtors !== false,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "Could not load setting." }, { status: 500 });
@@ -74,6 +79,11 @@ export async function POST(request: Request) {
     const agentEmail = str(body?.agentEmail).toLowerCase();
     const agentLink = normalizeAgentLink(body?.agentLink);
     const blurb = str(body?.blurb);
+    // Placement toggles — default on when omitted so existing rows/behavior hold.
+    const showOnReport = body?.showOnReport !== false;
+    const showOnPortal = body?.showOnPortal !== false;
+    const showOnHub = body?.showOnHub !== false;
+    const showToRealtors = body?.showToRealtors !== false;
 
     // Turning it on needs a way for the client to actually reach the agent:
     // either a link or the agent's email. Guard so an empty referral never ships.
@@ -101,6 +111,10 @@ export async function POST(request: Request) {
           agent_email: agentEmail || null,
           agent_link: agentLink || null,
           blurb: blurb || null,
+          show_on_report: showOnReport,
+          show_on_portal: showOnPortal,
+          show_on_hub: showOnHub,
+          show_to_realtors: showToRealtors,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" },
@@ -117,6 +131,10 @@ export async function POST(request: Request) {
       agentEmail,
       agentLink: agentLink || "",
       blurb,
+      showOnReport,
+      showOnPortal,
+      showOnHub,
+      showToRealtors,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "Could not save setting." }, { status: 500 });

@@ -3452,7 +3452,13 @@ export default async function PublicSharePage({
             />
           )}
 
-          {secure24Token && <InsuranceReferralCard shareToken={secure24Token} />}
+          {secure24Token && (
+            <InsuranceReferralCard
+              shareToken={secure24Token}
+              placement="report"
+              viewerRole={resolvedSearchParams?.role || ""}
+            />
+          )}
 
           <footer className="mt-12 border-t border-[var(--fl-line)] pt-6 text-sm text-[var(--fl-muted)]">
             <p>{branding.name} • Shared Report Portal</p>

@@ -9,7 +9,17 @@ import { INSURANCE_CONSENT_TEXT } from "../lib/insuranceReferral";
 // stays hidden until /api/insurance-referral/status confirms it's on. Nothing
 // is sent and no link is opened unless the client ticks consent and taps the
 // button.
-export default function InsuranceReferralCard({ shareToken }: { shareToken: string }) {
+export default function InsuranceReferralCard({
+  shareToken,
+  placement = "portal",
+  viewerRole = "",
+}: {
+  shareToken: string;
+  // Which surface this card is on, so the inspector's per-placement toggle
+  // (report / portal / hub) and the hide-from-realtor toggle can gate it.
+  placement?: "report" | "portal" | "hub";
+  viewerRole?: string;
+}) {
   const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [error, setError] = useState("");
@@ -22,9 +32,9 @@ export default function InsuranceReferralCard({ shareToken }: { shareToken: stri
   useEffect(() => {
     if (!shareToken) return;
     let active = true;
-    fetch(`/api/insurance-referral/status?lookup=${encodeURIComponent(shareToken)}`, {
-      cache: "no-store",
-    })
+    const q = new URLSearchParams({ lookup: shareToken, placement });
+    if (viewerRole) q.set("role", viewerRole);
+    fetch(`/api/insurance-referral/status?${q.toString()}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!active || !d?.enabled) return;
@@ -39,7 +49,7 @@ export default function InsuranceReferralCard({ shareToken }: { shareToken: stri
     return () => {
       active = false;
     };
-  }, [shareToken]);
+  }, [shareToken, placement, viewerRole]);
 
   if (!visible) return null;
 

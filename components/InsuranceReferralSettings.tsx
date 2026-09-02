@@ -17,6 +17,12 @@ export default function InsuranceReferralSettings() {
   const [agentLink, setAgentLink] = useState("");
   const [blurb, setBlurb] = useState("");
 
+  // Per-placement visibility.
+  const [showOnReport, setShowOnReport] = useState(true);
+  const [showOnPortal, setShowOnPortal] = useState(true);
+  const [showOnHub, setShowOnHub] = useState(true);
+  const [showToRealtors, setShowToRealtors] = useState(true);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -34,24 +40,40 @@ export default function InsuranceReferralSettings() {
         setAgentEmail(d.agentEmail || "");
         setAgentLink(d.agentLink || "");
         setBlurb(d.blurb || "");
+        setShowOnReport(d.showOnReport !== false);
+        setShowOnPortal(d.showOnPortal !== false);
+        setShowOnHub(d.showOnHub !== false);
+        setShowToRealtors(d.showToRealtors !== false);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  async function save(nextEnabled?: boolean) {
+  type Overrides = Partial<{
+    enabled: boolean;
+    showOnReport: boolean;
+    showOnPortal: boolean;
+    showOnHub: boolean;
+    showToRealtors: boolean;
+  }>;
+
+  async function save(overrides?: Overrides) {
     if (saving) return;
     setSaving(true);
     setError("");
     setSaved(false);
     const payload = {
-      enabled: typeof nextEnabled === "boolean" ? nextEnabled : enabled,
+      enabled: overrides?.enabled ?? enabled,
       agentName,
       agentCompany,
       agentPhone,
       agentEmail,
       agentLink,
       blurb,
+      showOnReport: overrides?.showOnReport ?? showOnReport,
+      showOnPortal: overrides?.showOnPortal ?? showOnPortal,
+      showOnHub: overrides?.showOnHub ?? showOnHub,
+      showToRealtors: overrides?.showToRealtors ?? showToRealtors,
     };
     try {
       const res = await fetch("/api/settings/insurance-referral", {
@@ -63,6 +85,10 @@ export default function InsuranceReferralSettings() {
       if (!res.ok) throw new Error(data?.error || "Couldn't save. Please try again.");
       setEnabled(data.enabled === true);
       setAgentLink(data.agentLink || "");
+      setShowOnReport(data.showOnReport !== false);
+      setShowOnPortal(data.showOnPortal !== false);
+      setShowOnHub(data.showOnHub !== false);
+      setShowToRealtors(data.showToRealtors !== false);
       setSaved(true);
     } catch (e: any) {
       setError(e?.message || "Couldn't save. Please try again.");
@@ -97,7 +123,7 @@ export default function InsuranceReferralSettings() {
           ariaLabel="Insurance agent referral"
           onChange={(next) => {
             setEnabled(next);
-            void save(next);
+            void save({ enabled: next });
           }}
           className="mt-1"
         />
@@ -144,6 +170,67 @@ export default function InsuranceReferralSettings() {
         and/or an <span className="font-semibold">email</span> (the client's details are sent to the
         agent when they opt in). At least one is required to turn this on.
       </p>
+
+      {/* Per-placement visibility — each inspector chooses where their card shows. */}
+      <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+          Where it shows
+        </p>
+        <div className="mt-3 space-y-2">
+          {[
+            {
+              label: "On the shared report",
+              desc: "The bottom of the client's report page.",
+              value: showOnReport,
+              apply: (v: boolean) => {
+                setShowOnReport(v);
+                void save({ showOnReport: v });
+              },
+            },
+            {
+              label: "In the client portal",
+              desc: "The client's report portal.",
+              value: showOnPortal,
+              apply: (v: boolean) => {
+                setShowOnPortal(v);
+                void save({ showOnPortal: v });
+              },
+            },
+            {
+              label: "On the home maintenance hub",
+              desc: "The homeowner's /my-home hub.",
+              value: showOnHub,
+              apply: (v: boolean) => {
+                setShowOnHub(v);
+                void save({ showOnHub: v });
+              },
+            },
+            {
+              label: "To realtors viewing the report",
+              desc: "When a realtor opens the report link. (Can't affect a link the client forwards.)",
+              value: showToRealtors,
+              apply: (v: boolean) => {
+                setShowToRealtors(v);
+                void save({ showToRealtors: v });
+              },
+            },
+          ].map((row) => (
+            <div key={row.label} className="flex items-start justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-[var(--fl-text)]">{row.label}</span>
+                <span className="block text-xs text-[var(--fl-muted)]">{row.desc}</span>
+              </span>
+              <SettingsToggle
+                checked={row.value}
+                disabled={loading || saving}
+                ariaLabel={row.label}
+                onChange={row.apply}
+                className="mt-0.5"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button

@@ -1208,6 +1208,7 @@ export default function ClientPortalPage() {
         {inspection && (
           <InsuranceReferralCard
             shareToken={getInspectionShareToken(inspection) || shareLookup}
+            placement="portal"
           />
         )}
 
