@@ -838,7 +838,10 @@ export default async function HomePage() {
     .filter((job: any) => job.stage !== "delivered")
     .slice(0, 8);
 
-  // Last 6 months of inspections + collected revenue, bucketed by created_at.
+  // Last 6 months of inspections + revenue, bucketed by the date the inspection
+  // actually happened (inspection_date), NOT when the record was created — so a
+  // job on the 1st of this month lands in this month even if it was booked
+  // weeks earlier. Falls back to created_at for records with no inspection_date.
   const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const trendNow = new Date();
   const monthlyTrends = Array.from({ length: 6 }, (_, index) => {
@@ -852,10 +855,24 @@ export default async function HomePage() {
   });
   const trendBucketMap = new Map(monthlyTrends.map((bucket) => [bucket.key, bucket]));
   inspections.forEach((inspection: any) => {
-    if (!inspection.created_at) return;
-    const created = new Date(inspection.created_at);
-    if (Number.isNaN(created.getTime())) return;
-    const bucket = trendBucketMap.get(`${created.getFullYear()}-${created.getMonth()}`);
+    // Prefer inspection_date; parse it by parts so a "YYYY-MM-01" date isn't
+    // pulled back a day (and a month) by UTC-midnight time-zone conversion.
+    let year: number | null = null;
+    let monthIdx: number | null = null;
+    const dateStr = String(inspection.inspection_date || "").slice(0, 10);
+    const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+    if (parts) {
+      year = Number(parts[1]);
+      monthIdx = Number(parts[2]) - 1;
+    } else if (inspection.created_at) {
+      const created = new Date(inspection.created_at);
+      if (!Number.isNaN(created.getTime())) {
+        year = created.getFullYear();
+        monthIdx = created.getMonth();
+      }
+    }
+    if (year == null || monthIdx == null) return;
+    const bucket = trendBucketMap.get(`${year}-${monthIdx}`);
     if (!bucket) return;
     bucket.inspections += 1;
     bucket.revenue += getNumber(inspection.amount_paid);
