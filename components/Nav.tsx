@@ -21,6 +21,7 @@ import {
   Sparkles,
   LayoutTemplate,
   Calculator,
+  BarChart3,
   CalendarDays,
   Compass,
   Car,
@@ -53,6 +54,7 @@ const baseNavItems = [
   { title: "Templates", href: "/templates", icon: LayoutTemplate, mobileLabel: "Templates", group: "Deliver" },
   { title: "Sent Emails", href: "/emails", icon: Mail, mobileLabel: "Emails", group: "Deliver" },
   // Grow
+  { title: "Analytics", href: "/analytics", icon: BarChart3, mobileLabel: "Analytics", group: "Grow" },
   { title: "Realtors", href: "/realtors", icon: Building2, mobileLabel: "Realtors", group: "Grow" },
   { title: "Quotes", href: "/quotes", icon: Calculator, mobileLabel: "Quotes", group: "Grow" },
   { title: "Mileage", href: "/mileage", icon: Car, mobileLabel: "Mileage", group: "Grow" },
