@@ -17,6 +17,7 @@ import ReportDownloadButton from "../../../components/ReportDownloadButton";
 import ShareReportTabs from "../../../components/ShareReportTabs";
 import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
 import InsuranceReferralCard from "../../../components/InsuranceReferralCard";
+import SocialMediaConsentCard from "../../../components/SocialMediaConsentCard";
 import { normalizeCompanyBranding } from "../../../lib/companyBranding";
 import { sendPushNotification } from "../../../lib/push";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
@@ -3458,6 +3459,10 @@ export default async function PublicSharePage({
               placement="report"
               viewerRole={resolvedSearchParams?.role || ""}
             />
+          )}
+
+          {secure24Token && (
+            <SocialMediaConsentCard shareToken={secure24Token} placement="report" />
           )}
 
           <footer className="mt-12 border-t border-[var(--fl-line)] pt-6 text-sm text-[var(--fl-muted)]">

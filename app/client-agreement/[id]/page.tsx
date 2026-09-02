@@ -12,6 +12,7 @@ import {
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
 import AgreementSignatureForm from "./AgreementSignatureForm";
+import SocialMediaConsentCard from "../../../components/SocialMediaConsentCard";
 import { getCompanyBrandingById, getCompanyOwnerName } from "../../../lib/companyBranding";
 
 const supabase = createClient(
@@ -465,6 +466,13 @@ export default async function ClientAgreementPage({
             contactId={selectedContact?.id || ""}
             defaultClientName={selectedContact?.name || inspection.client_name || ""}
             defaultClientEmail={selectedContact?.email || inspection.client_email || ""}
+          />
+        )}
+
+        {inspection?.public_share_token && (
+          <SocialMediaConsentCard
+            shareToken={String(inspection.public_share_token)}
+            placement="signing"
           />
         )}
       </div>

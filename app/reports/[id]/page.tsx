@@ -1841,7 +1841,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       inspection.company_id
         ? supabase
             .from("companies")
-            .select("office_address, currency")
+            .select("office_address, currency, social_media_release_enabled")
             .eq("id", inspection.company_id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
@@ -1879,6 +1879,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const officeAddress = officeAddressResult?.data?.office_address || null;
   const companyCurrency = normalizeCurrency(officeAddressResult?.data?.currency);
+  const socialReleaseEnabled =
+    (officeAddressResult?.data as any)?.social_media_release_enabled === true;
 
   let liveDistanceMiles = inspection.distance_miles ?? null;
   let liveDriveMinutes = inspection.drive_minutes ?? null;
@@ -3089,6 +3091,37 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             <AgreementBodyEditor inspectionId={String(inspection.id)} />
 
             <AgreementStatusPanel inspectionId={String(inspection.id)} />
+
+            {socialReleaseEnabled && (
+              <div
+                className={`mt-4 rounded-2xl border p-4 ${
+                  (inspection as any).social_media_consent === true
+                    ? "border-emerald-500/40 bg-emerald-500/10"
+                    : "border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
+                }`}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--fl-faint)]">
+                  Social Media Release
+                </p>
+                {(inspection as any).social_media_consent === true ? (
+                  <p className="mt-1 text-sm font-semibold text-[var(--fl-good-text)]">
+                    ✓ Client agreed — you may post content from this inspection
+                    {(inspection as any).social_media_consent_name
+                      ? ` (signed: ${(inspection as any).social_media_consent_name})`
+                      : ""}
+                    .
+                  </p>
+                ) : (inspection as any).social_media_consent === false ? (
+                  <p className="mt-1 text-sm font-semibold text-[var(--fl-muted)]">
+                    Client declined — do not post content from this inspection.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-[var(--fl-muted)]">
+                    Not answered yet — the client can agree on their report or portal.
+                  </p>
+                )}
+              </div>
+            )}
             </div>
 
             <div id="payment-invoice" data-command-target="payment-invoice">

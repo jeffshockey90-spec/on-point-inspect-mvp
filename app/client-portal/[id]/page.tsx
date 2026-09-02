@@ -6,6 +6,7 @@ import FastLinkButton from "../../../components/FastLinkButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
 import InsuranceReferralCard from "../../../components/InsuranceReferralCard";
+import SocialMediaConsentCard from "../../../components/SocialMediaConsentCard";
 import PortalAutoTranslate from "../../../components/PortalAutoTranslate";
 import { getOnlineProcessingFee } from "../../../lib/onlinePaymentFee";
 import { formatClockTime } from "../../../lib/app-time";
@@ -1207,6 +1208,13 @@ export default function ClientPortalPage() {
 
         {inspection && (
           <InsuranceReferralCard
+            shareToken={getInspectionShareToken(inspection) || shareLookup}
+            placement="portal"
+          />
+        )}
+
+        {inspection && (
+          <SocialMediaConsentCard
             shareToken={getInspectionShareToken(inspection) || shareLookup}
             placement="portal"
           />

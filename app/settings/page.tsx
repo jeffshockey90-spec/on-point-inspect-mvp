@@ -46,6 +46,7 @@ import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
 import W9Section from "./W9Section";
 import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
+import SocialMediaReleaseSettings from "../../components/SocialMediaReleaseSettings";
 import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
 import SettingsToggle from "../../components/SettingsToggle";
 import OnlinePaymentFeeFields from "../../components/OnlinePaymentFeeFields";
@@ -1404,6 +1405,26 @@ export default async function SettingsPage({
               initialIncludePdf={standardsIncludePdf}
             />
           </div>
+
+          <section
+            id="social-media-release"
+            className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/20 sm:p-6"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
+              Agreements
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">
+              Social Media Release
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
+              Optionally ask clients to allow you to use inspection photos/video on social media.
+              Separate from your inspection agreement, always optional for the client, and their
+              answer shows on the report builder and report.
+            </p>
+            <div className="mt-5">
+              <SocialMediaReleaseSettings />
+            </div>
+          </section>
 
           <div id="time-location">
             <TimePreferencesSettings />
