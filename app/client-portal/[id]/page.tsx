@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import FastLinkButton from "../../../components/FastLinkButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
+import InsuranceReferralCard from "../../../components/InsuranceReferralCard";
 import PortalAutoTranslate from "../../../components/PortalAutoTranslate";
 import { getOnlineProcessingFee } from "../../../lib/onlinePaymentFee";
 import { formatClockTime } from "../../../lib/app-time";
@@ -1193,6 +1194,12 @@ export default function ClientPortalPage() {
           <Secure24ReferralCard
             shareToken={getInspectionShareToken(inspection) || shareLookup}
             autoCheck
+          />
+        )}
+
+        {inspection && (
+          <InsuranceReferralCard
+            shareToken={getInspectionShareToken(inspection) || shareLookup}
           />
         )}
 
