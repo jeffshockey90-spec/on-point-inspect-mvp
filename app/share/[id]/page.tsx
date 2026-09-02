@@ -16,6 +16,7 @@ import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import ReportDownloadButton from "../../../components/ReportDownloadButton";
 import ShareReportTabs from "../../../components/ShareReportTabs";
 import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
+import InsuranceReferralCard from "../../../components/InsuranceReferralCard";
 import { normalizeCompanyBranding } from "../../../lib/companyBranding";
 import { sendPushNotification } from "../../../lib/push";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
@@ -3450,6 +3451,8 @@ export default async function PublicSharePage({
               alreadyRequested={secure24AlreadyRequested}
             />
           )}
+
+          {secure24Token && <InsuranceReferralCard shareToken={secure24Token} />}
 
           <footer className="mt-12 border-t border-[var(--fl-line)] pt-6 text-sm text-[var(--fl-muted)]">
             <p>{branding.name} • Shared Report Portal</p>
