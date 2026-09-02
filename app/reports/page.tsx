@@ -415,6 +415,14 @@ export default async function ReportsPage() {
       clientName: inspection.client_name || "N/A",
       realtorName: inspection.realtor_name || "N/A",
       inspectionDate: inspection.inspection_date || "N/A",
+      // Social-media consent: true = OK to post, false = declined, null = not
+      // answered (no badge). Lets the inspector scan which jobs they can post.
+      socialMediaConsent:
+        inspection.social_media_consent === true
+          ? true
+          : inspection.social_media_consent === false
+            ? false
+            : null,
       propertyPhoto,
       isInspectorOwner: Boolean(isInspectorOwner),
       createdAtMs,

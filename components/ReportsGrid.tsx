@@ -20,6 +20,8 @@ export type PreparedReport = {
   paymentComplete: boolean;
   agreementRequiredCount: number;
   agreementUnsignedCount: number;
+  // Social-media consent: true = OK to post, false = declined, null/absent = not answered.
+  socialMediaConsent?: boolean | null;
   activity: {
     totalViews: number;
     clientViewed: boolean;
@@ -244,6 +246,17 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                       goodLabel="📝 Signed"
                       badLabel={`📝 Unsigned (${report.agreementUnsignedCount})`}
                     />
+                  )}
+
+                  {report.socialMediaConsent === true && (
+                    <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]">
+                      🎬 OK to post
+                    </span>
+                  )}
+                  {report.socialMediaConsent === false && (
+                    <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-raised)] px-3 py-1 text-xs font-semibold text-[var(--fl-muted)]">
+                      🎬 No posting
+                    </span>
                   )}
                 </div>
 
