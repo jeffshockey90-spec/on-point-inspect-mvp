@@ -1143,10 +1143,18 @@ export default function ClientPortalPage() {
         </section>
 
         {checklistSections.length > 0 && (
-          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
-            <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
-              Inspection Components
-            </h2>
+          <details className="group rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+              <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
+                Inspection Components
+              </h2>
+              <span
+                aria-hidden
+                className="text-xl leading-none text-[var(--fl-muted)] transition-transform duration-200 group-open:rotate-180"
+              >
+                ▾
+              </span>
+            </summary>
 
             <div className="mt-6 space-y-5">
               {checklistSections.map((section) => (
@@ -1187,7 +1195,7 @@ export default function ClientPortalPage() {
                 </div>
               ))}
             </div>
-          </section>
+          </details>
         )}
 
         {inspection && (
