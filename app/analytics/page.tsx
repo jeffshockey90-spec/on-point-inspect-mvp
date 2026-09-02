@@ -68,6 +68,14 @@ function money(value: any) {
 function isSameMonth(dateValue: any, now = new Date()) {
   if (!dateValue) return false;
 
+  // A date-only string ("YYYY-MM-DD") parsed via new Date() is treated as UTC
+  // midnight, which shifts to the previous day (and month) in western zones —
+  // e.g. "2026-09-01" reads as Aug 31. Compare by parts to avoid that.
+  const parts = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateValue));
+  if (parts) {
+    return Number(parts[1]) === now.getFullYear() && Number(parts[2]) - 1 === now.getMonth();
+  }
+
   const date = new Date(dateValue);
 
   if (Number.isNaN(date.getTime())) return false;
