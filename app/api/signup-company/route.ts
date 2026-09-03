@@ -37,8 +37,9 @@ async function notifyOwnersOfSignup(opts: {
       ? `<p style="margin:0 0 4px;color:#334155;">Business: <strong>${businessLabel}</strong></p>`
       : "";
 
-  const results = await Promise.allSettled([
-    ...OWNER_EMAILS.map((ownerEmail) =>
+  // Push to each owner (each may have devices). Capture per-owner results.
+  const pushResults = await Promise.allSettled(
+    OWNER_EMAILS.map((ownerEmail) =>
       sendPushNotification({
         title: "🎉 New Account Created",
         body: bodyText,
@@ -48,7 +49,19 @@ async function notifyOwnersOfSignup(opts: {
         targetUserEmail: ownerEmail,
       }),
     ),
-    resend.emails.send({
+  );
+  const pushSummary = pushResults.map((r, i) => ({
+    owner: OWNER_EMAILS[i],
+    ok: r.status === "fulfilled",
+    ...(r.status === "fulfilled" ? { result: r.value } : { error: String(r.reason) }),
+  }));
+
+  // Email the owners. Capture id/error.
+  let emailStatus: "sent" | "error" = "sent";
+  let emailId: string | null = null;
+  let emailError: string | null = null;
+  try {
+    const em = await resend.emails.send({
       from: "FLOW <notifications@flowinspect.app>",
       to: OWNER_EMAILS,
       subject,
@@ -69,14 +82,46 @@ async function notifyOwnersOfSignup(opts: {
       text: `New ${roleWord} signed up on FLOW\n\n${fullName}\n${email}${
         businessLabel && role === "inspector" ? `\nBusiness: ${businessLabel}` : ""
       }\n\nhttps://app.flowinspect.app/dashboard/owner/users`,
-    }),
-  ]);
-
-  results.forEach((result) => {
-    if (result.status === "rejected") {
-      console.error("New account owner alert failed:", result.reason);
+    });
+    if ((em as any)?.error) {
+      emailStatus = "error";
+      emailError = String((em as any).error.message || (em as any).error);
+    } else {
+      emailId = (em as any)?.data?.id || null;
     }
-  });
+  } catch (e: any) {
+    emailStatus = "error";
+    emailError = e?.message || "send threw";
+  }
+
+  // Record EVERY owner alert in email_logs so it's never a blind spot again —
+  // shows up in Sent Emails and lets us confirm whether the alert actually fired
+  // (and whether push/email succeeded) after the fact.
+  try {
+    const logAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+    await logAdmin.from("email_logs").insert({
+      inspection_id_bigint: null,
+      recipient: OWNER_EMAILS.join(", "),
+      recipient_email: OWNER_EMAILS[0] || null,
+      email_type: "owner_signup_alert",
+      subject,
+      message: `${bodyText} Email ${emailStatus}${emailError ? ` (${emailError})` : ""}.`,
+      status: emailStatus,
+      resend_id: emailId,
+      sent_at: emailStatus === "sent" ? new Date().toISOString() : null,
+      metadata: {
+        type: "owner_signup_alert",
+        signup: { fullName, email, role, businessLabel },
+        push: pushSummary,
+        emailError,
+      },
+    });
+  } catch (e) {
+    console.error("owner alert log insert failed:", e);
+  }
 }
 
 // Finalizes a new signup with the service-role client so it works even before

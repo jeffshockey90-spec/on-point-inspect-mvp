@@ -233,7 +233,14 @@ function getInspectionDate(inspection: any) {
 }
 
 function getUserKey(row: any) {
-  return String(row?.id || row?.user_id || row?.auth_user_id || row?.inspector_id || getUserEmail(row) || "");
+  // Key by the USER's auth id, not a table row id. company_users has both a
+  // membership `id` (per-row) AND `user_id` (the auth user) — keying on `id`
+  // first made every company_users row a separate ghost user ("Unknown User"
+  // with no email) instead of merging into that person's profile. Prefer the
+  // user id so all sources for one person collapse to a single row.
+  return String(
+    row?.user_id || row?.auth_user_id || row?.inspector_id || row?.id || getUserEmail(row) || "",
+  );
 }
 
 function getInspectionRevenue(inspection: any) {
