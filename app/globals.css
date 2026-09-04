@@ -28,6 +28,13 @@ body {
   font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Safety net: the page body must NEVER scroll horizontally. A stray wide
+     element should be fixed at its source (wrap it in overflow-x:auto), but this
+     stops the whole-page sideways-scroll "janky" tell if one slips through.
+     `clip` (not hidden/auto) doesn't create a scroll container, so it can't
+     break position:sticky. Intentional horizontal scrollers have their own
+     overflow-x containers and are unaffected. */
+  overflow-x: clip;
 }
 
 /* Branded text selection */
