@@ -73,14 +73,14 @@ export default function SetupChecklist() {
             href={step.href}
             className={`flex items-center gap-3 rounded-xl border p-3 transition ${
               step.done
-                ? "border-[#37d6a6]/30 bg-[#37d6a6]/5"
+                ? "border-[var(--fl-good)]/30 bg-[var(--fl-good)]/5"
                 : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-[var(--fl-accent)]/50"
             }`}
           >
             <span
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                 step.done
-                  ? "bg-[#37d6a6] text-[#06120f]"
+                  ? "bg-[var(--fl-good)] text-slate-950"
                   : "border border-[var(--fl-line)] text-[var(--fl-faint)]"
               }`}
             >

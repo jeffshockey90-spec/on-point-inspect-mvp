@@ -433,7 +433,7 @@ export default async function RealtorPortalPage({
 
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
                 FLOW
               </p>
 

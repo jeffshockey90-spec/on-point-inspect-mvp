@@ -581,7 +581,7 @@ export default async function SettingsPage({
     <main className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] px-4 py-4 pb-28 text-[var(--fl-text)] md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
         <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#14c8d2] sm:tracking-[0.35em]">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)] sm:tracking-[0.35em]">
             FLOW
           </p>
 
@@ -864,7 +864,7 @@ export default async function SettingsPage({
         <form action={saveCompanySettings} className="space-y-6">
           <section
             id="notifications"
-            className="rounded-2xl border border-[#f3b23f]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-6 md:p-8"
+            className="rounded-2xl border border-[var(--fl-warn)]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-6 md:p-8"
           >
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex gap-4">

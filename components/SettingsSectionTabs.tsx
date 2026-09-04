@@ -119,7 +119,7 @@ export default function SettingsSectionTabs({
                 aria-pressed={active}
                 className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-semibold transition duration-100 active:scale-[0.98] [touch-action:manipulation] ${
                   active
-                    ? "border-[var(--fl-accent)] bg-[var(--fl-accent)] text-[#06120f]"
+                    ? "border-[var(--fl-accent)] bg-[var(--fl-accent)] text-slate-950"
                     : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
                 }`}
               >

@@ -902,7 +902,7 @@ export default async function HomePage() {
                 <Link
                   href="/inspections/new"
                   data-tour="tour-new-inspection"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--fl-accent)] px-4 py-2.5 text-sm font-semibold text-[#06120f] transition-colors hover:bg-[#2fd8c6]"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--fl-accent)] px-4 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-[var(--fl-accent)]"
                 >
                   <Plus className="h-4 w-4" strokeWidth={2.5} /> New Inspection
                 </Link>
@@ -1006,7 +1006,7 @@ export default async function HomePage() {
             ) },
             { id: "whats-new", node: (
 
-        <section className="overflow-hidden rounded-xl border border-[#f3b23f]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+        <section className="overflow-hidden rounded-xl border border-[var(--fl-warn)]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-warn-text)]">
@@ -1412,10 +1412,10 @@ function CommandMetric({
 }) {
   const dot = {
     teal: "bg-[var(--fl-accent)]",
-    yellow: "bg-[#f3b23f]",
-    green: "bg-[#37d6a6]",
-    cyan: "bg-[#4bb8e0]",
-    orange: "bg-[#f0954e]",
+    yellow: "bg-[var(--fl-warn)]",
+    green: "bg-[var(--fl-good)]",
+    cyan: "bg-[var(--fl-info-text)]",
+    orange: "bg-[var(--fl-warn)]",
   }[tone];
 
   return (
@@ -1453,7 +1453,7 @@ function MiniStatus({
         {label}
       </p>
       <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-[var(--fl-text)]">
-        <span className={`h-1.5 w-1.5 rounded-full ${good ? "bg-[#37d6a6]" : "bg-[#f3b23f]"}`} />
+        <span className={`h-1.5 w-1.5 rounded-full ${good ? "bg-[var(--fl-good)]" : "bg-[var(--fl-warn)]"}`} />
         {value}
       </p>
     </div>
@@ -1510,9 +1510,9 @@ function KpiTile({
 }) {
   const dot = {
     teal: "bg-[var(--fl-accent)]",
-    amber: "bg-[#f3b23f]",
-    rose: "bg-[#f76d6d]",
-    emerald: "bg-[#37d6a6]",
+    amber: "bg-[var(--fl-warn)]",
+    rose: "bg-[var(--fl-crit)]",
+    emerald: "bg-[var(--fl-good)]",
   }[accent];
 
   return (

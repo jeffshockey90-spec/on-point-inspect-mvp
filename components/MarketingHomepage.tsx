@@ -537,7 +537,7 @@ export default function MarketingHomepage({
               alt="FLOW"
               className="h-10 w-auto rounded-lg border border-teal-500/30"
             />
-            <span className="text-xl font-semibold tracking-tight text-[#14c8d2]">FLOW</span>
+            <span className="text-xl font-semibold tracking-tight text-[var(--fl-accent-text)]">FLOW</span>
           </div>
 
           <nav className="flex items-center gap-2 sm:gap-4">
@@ -576,7 +576,7 @@ export default function MarketingHomepage({
               <h1 className="mt-5 text-5xl font-semibold leading-[1.05] tracking-tight text-[var(--fl-text)] md:text-7xl">
                 Capture. Organize.
                 <br />
-                <span className="text-[#14c8d2]">Complete.</span>
+                <span className="text-[var(--fl-accent-text)]">Complete.</span>
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--fl-muted)]">
                 FLOW runs the entire inspection business in one place - booking, AI-assisted

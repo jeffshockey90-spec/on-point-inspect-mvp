@@ -18,7 +18,7 @@ export default function CodeAssistantPage() {
         </div>
 
         <header className="overflow-hidden rounded-2xl border border-teal-500/30 bg-gradient-to-br from-[var(--fl-surface)] via-[var(--fl-surface)] to-[var(--fl-surface)] p-6 shadow-2xl shadow-teal-950/30 md:p-8">
-          <p className="mb-3 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
+          <p className="mb-3 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
             <BookOpenCheck className="h-4 w-4" strokeWidth={2.5} /> Code Assistant
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-[var(--fl-text)] md:text-5xl">

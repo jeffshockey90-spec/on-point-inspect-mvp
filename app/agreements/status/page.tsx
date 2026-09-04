@@ -88,7 +88,7 @@ export default async function AgreementStatusPage() {
       <div className="mx-auto max-w-[96rem]">
         <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.3em] text-[#14c8d2]">FLOW</p>
+            <p className="text-sm font-bold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">FLOW</p>
             <h1 className="mt-3 text-4xl font-extrabold">Agreement Signing Status</h1>
             <p className="mt-2 text-[var(--fl-muted)]">
               {pendingCount > 0

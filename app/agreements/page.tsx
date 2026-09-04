@@ -7,7 +7,7 @@ export default function AgreementsPage() {
       <div className="mx-auto max-w-[96rem]">
         <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.3em] text-[#14c8d2]">
+            <p className="text-sm font-bold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
               FLOW
             </p>
 

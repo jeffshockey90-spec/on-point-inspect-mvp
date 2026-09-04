@@ -536,7 +536,7 @@ function EditableFinding({
     return (
       <div className="mt-3 w-full max-w-full space-y-3 overflow-hidden print:hidden">
         <InlineStatusMessage type={messageType} message={message} />
-        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-[#1ac5b4]/25 bg-[var(--fl-surface-2)] p-3 sm:p-5">
+        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-accent)]/25 bg-[var(--fl-surface-2)] p-3 sm:p-5">
           <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-accent-text)] sm:text-sm">
             Quick Tools
           </h4>

@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] px-4 py-10 text-[var(--fl-text)]">
       <section className="w-full max-w-2xl rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#14c8d2]">
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
           FLOW
         </p>
 
