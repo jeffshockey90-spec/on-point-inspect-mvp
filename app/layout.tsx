@@ -70,18 +70,20 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="light"
       suppressHydrationWarning
       className={`${sans.variable} ${mono.variable} overflow-x-clip`}
     >
       <body className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] text-[var(--fl-text)] antialiased">
-        {/* Apply the saved theme before first paint so there's no flash. The DB
-            (profiles.theme) is the source of truth; this reads the localStorage
-            cache that ThemeToggle keeps in sync. Default (no value) = dark.
-            next/script beforeInteractive runs before hydration WITHOUT being a
-            React-rendered <script> — which avoids React 19's "script tag while
-            rendering" warning and the hydration mismatch it caused. */}
+        {/* Default theme = LIGHT (set on <html data-theme="light"> above), so the
+            majority who never toggle paint light immediately with no flash. This
+            script overrides to the saved choice (e.g. dark) before first paint.
+            The DB (profiles.theme) is the source of truth; this reads the
+            localStorage cache ThemeToggle keeps in sync. next/script
+            beforeInteractive runs before hydration WITHOUT being a React-rendered
+            <script>, avoiding React 19's hydration warning. */}
         <Script id="flow-theme-no-flash" strategy="beforeInteractive">
-          {`(function(){try{var t=localStorage.getItem('flow-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`}
+          {`(function(){try{var t=localStorage.getItem('flow-theme');document.documentElement.setAttribute('data-theme',(t==='light'||t==='dark')?t:'light');}catch(e){}})();`}
         </Script>
 
         <ServiceWorkerRegister />
