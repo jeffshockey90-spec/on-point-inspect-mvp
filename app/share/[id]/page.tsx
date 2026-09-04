@@ -1406,21 +1406,18 @@ export default async function PublicSharePage({
     .map((finding: any) => getStoragePathFromUrl(finding.image_url))
     .filter(Boolean);
 
-  const signedUrlMap = await createSignedUrlMap([
-    ...photoStoragePaths,
-    ...oldFindingImagePaths,
-  ]);
-
-  const signedThumbnailUrlMap = await createSignedUrlMap(photoThumbnailPaths);
-
   const legacyPhotoPreviewPaths = (photosRaw || [])
     .filter((photo: any) => !photo.thumbnail_path)
     .map((photo: any) => getPhotoStoragePath(photo))
     .filter((path: string) => Boolean(path) && !isVideoPathOrPhoto({}, path));
 
-  const signedPreviewUrlMap = await createSignedImagePreviewUrlMap([
-    ...legacyPhotoPreviewPaths,
-    ...oldFindingImagePaths,
+  // These three signed-URL batches are independent (each derives only from the
+  // already-loaded photos/findings), so run them in parallel instead of paying
+  // the sum of three storage round-trips on this client-facing render.
+  const [signedUrlMap, signedThumbnailUrlMap, signedPreviewUrlMap] = await Promise.all([
+    createSignedUrlMap([...photoStoragePaths, ...oldFindingImagePaths]),
+    createSignedUrlMap(photoThumbnailPaths),
+    createSignedImagePreviewUrlMap([...legacyPhotoPreviewPaths, ...oldFindingImagePaths]),
   ]);
 
   const photosWithUrls = (photosRaw || []).map((photo: any) => {
@@ -1625,8 +1622,10 @@ export default async function PublicSharePage({
     .map((photo: any) => photo.thumbnail_path)
     .filter(Boolean);
 
-  const limitationSignedUrlMap = await createSignedUrlMap(limitationPhotoPaths);
-  const limitationThumbnailSignedUrlMap = await createSignedUrlMap(limitationThumbnailPaths);
+  const [limitationSignedUrlMap, limitationThumbnailSignedUrlMap] = await Promise.all([
+    createSignedUrlMap(limitationPhotoPaths),
+    createSignedUrlMap(limitationThumbnailPaths),
+  ]);
 
   const limitationPhotosWithUrls = (limitationPhotosRaw || []).map((photo: any) => {
     const photoPath = getStoragePathFromUrl(photo.photo_url);
@@ -1674,8 +1673,10 @@ export default async function PublicSharePage({
     .map((photo: any) => photo.thumbnail_path)
     .filter(Boolean);
 
-  const referenceSignedUrlMap = await createSignedUrlMap(referencePhotoPaths);
-  const referenceThumbnailSignedUrlMap = await createSignedUrlMap(referenceThumbnailPaths);
+  const [referenceSignedUrlMap, referenceThumbnailSignedUrlMap] = await Promise.all([
+    createSignedUrlMap(referencePhotoPaths),
+    createSignedUrlMap(referenceThumbnailPaths),
+  ]);
 
   const sectionReferencePhotos = (sectionReferencePhotosRaw || []).map(
     (photo: any) => ({
@@ -1786,8 +1787,10 @@ export default async function PublicSharePage({
     .map((item: any) => item.thumbnail_path)
     .filter(Boolean);
 
-  const equipmentSignedUrlMap = await createSignedUrlMap(equipmentPhotoPaths);
-  const equipmentThumbnailSignedUrlMap = await createSignedUrlMap(equipmentThumbnailPaths);
+  const [equipmentSignedUrlMap, equipmentThumbnailSignedUrlMap] = await Promise.all([
+    createSignedUrlMap(equipmentPhotoPaths),
+    createSignedUrlMap(equipmentThumbnailPaths),
+  ]);
 
   const equipmentInventory = (equipmentInventoryRaw || []).map((item: any) => ({
     ...item,
