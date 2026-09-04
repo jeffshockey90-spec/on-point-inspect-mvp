@@ -810,6 +810,12 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     return counts;
   }, [orderedGroups, severityConfig]);
 
+  // Any section currently expanded — drives a single Expand/Collapse toggle
+  // instead of two separate buttons, to calm the toolbar.
+  const anySectionOpen = (orderedGroups as any[] | undefined || []).some(
+    (g: any) => g?.section && !closedSections[g.section],
+  );
+
   // The severity levels that actually occur in this report, in config order.
   const severityFilterOptions = severityOptions(severityConfig).filter(
     (label: string) => (severityCounts[label] || 0) > 0,
@@ -880,26 +886,11 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       <div className="flex w-full flex-col gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 sm:flex-row sm:flex-wrap sm:p-4">
         <button
           type="button"
-          onClick={expandAll}
+          onClick={anySectionOpen ? collapseAll : expandAll}
           className="w-full rounded-xl bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 sm:w-auto sm:py-2"
         >
-          Expand All
+          {anySectionOpen ? "Collapse All" : "Expand All"}
         </button>
-
-        <button
-          type="button"
-          onClick={collapseAll}
-          className="w-full rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] sm:w-auto sm:py-2"
-        >
-          Collapse All
-        </button>
-
-        <div className="w-full rounded-xl border border-[var(--fl-line)] px-4 py-2 text-center text-xs font-bold text-[var(--fl-muted)] sm:w-auto sm:text-left sm:text-sm">
-          <span className="sm:hidden">Use arrows to reorder</span>
-          <span className="hidden sm:inline">
-            Drag section headers to reorder
-          </span>
-        </div>
 
         <button
           type="button"
@@ -938,6 +929,11 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
           </button>
         )}
       </div>
+
+      <p className="mt-1.5 px-1 text-xs text-[var(--fl-faint)]">
+        <span className="sm:hidden">Use the arrows on a section to reorder.</span>
+        <span className="hidden sm:inline">Tip: drag a section header to reorder.</span>
+      </p>
 
       {severityFilterOptions.length > 1 && (
         <div className="flex w-full flex-wrap items-center gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 sm:p-4">

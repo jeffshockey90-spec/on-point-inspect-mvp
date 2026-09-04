@@ -3477,7 +3477,26 @@ Service-life information is a general industry estimate only. Actual service lif
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+            <details className="group mt-6">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3 [&::-webkit-details-marker]:hidden">
+                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-semibold">
+                  <span className="text-[var(--fl-accent-text)]">{inspectionProgressPercent}% complete</span>
+                  <span className="text-[var(--fl-faint)]">·</span>
+                  <span className="text-[var(--fl-text)]">{findings.length} items</span>
+                  <span className="text-[var(--fl-faint)]">·</span>
+                  <span className="text-[var(--fl-text)]">{photosWithUrls.length + referencePhotoCount} media</span>
+                  <span className="text-[var(--fl-faint)]">·</span>
+                  <span className="text-[var(--fl-crit-text)]">{defectTotals.safety} safety</span>
+                </span>
+                <span
+                  aria-hidden
+                  className="shrink-0 text-xs font-semibold text-[var(--fl-muted)] transition-transform duration-200 group-open:rotate-180"
+                >
+                  ▾
+                </span>
+              </summary>
+
+              <div className="mt-4 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-muted)]">
@@ -3563,6 +3582,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 <p className="mt-1 text-xs font-bold text-[var(--fl-purple-text)]">Negotiation history</p>
               </div>
             </div>
+            </details>
 
             <div className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-faint)]">
