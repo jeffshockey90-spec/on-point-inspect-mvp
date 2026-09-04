@@ -1277,6 +1277,25 @@ function SectionInformationChecklist({
     return [...base, ...customAdded];
   }
 
+  // Unit options (e.g. Fahrenheit/Celsius, SEER, gallons) were rendered from the
+  // raw list, so Edit/Delete wrote override rows that were never consulted —
+  // a silent no-op. Run them through the same hide/rename override pipeline.
+  function getGroupUnitOptions(group: ChecklistGroup): RenderOption[] {
+    if (!group.unitOptions) return [];
+    const overridesForGroup = optionOverrides.filter((item) => item.group_title === group.title);
+    const hidden = new Set(
+      overridesForGroup.filter((item) => item.hidden).map((item) => item.option_label),
+    );
+    const renamed = new Map(
+      overridesForGroup
+        .filter((item) => item.replacement_label && !item.hidden)
+        .map((item) => [item.option_label, item.replacement_label as string]),
+    );
+    return group.unitOptions
+      .filter((unit) => !hidden.has(unit))
+      .map((unit) => ({ label: renamed.get(unit) || unit, baseOriginal: unit, custom: false }));
+  }
+
   function isSelected(groupTitle: string, value: string) {
     return selections.some((item) => item.group_title === groupTitle && item.value === value);
   }
@@ -1627,15 +1646,21 @@ function SectionInformationChecklist({
                     />
                     {group.unitOptions && (
                       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {group.unitOptions.map((unit) => (
+                        {getGroupUnitOptions(group).map((u) => (
                           <ChecklistOptionButton
-                            key={unit}
-                            label={unit}
-                            selected={isSelected(group.title, unit)}
+                            key={u.baseOriginal || u.label}
+                            label={u.label}
+                            selected={isSelected(group.title, u.label)}
                             saving={saving}
-                            onClick={() => toggleSelection(group.title, unit)}
-                            onEdit={() => setEditingOption({ groupTitle: group.title, optionLabel: unit, nextLabel: unit })}
-                            onDelete={() => deleteOption(group.title, { label: unit, baseOriginal: unit, custom: false })}
+                            onClick={() => toggleSelection(group.title, u.label)}
+                            onEdit={() =>
+                              setEditingOption({
+                                groupTitle: group.title,
+                                optionLabel: u.baseOriginal || u.label,
+                                nextLabel: u.label,
+                              })
+                            }
+                            onDelete={() => deleteOption(group.title, u)}
                           />
                         ))}
                       </div>

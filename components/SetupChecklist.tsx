@@ -33,7 +33,7 @@ export default function SetupChecklist() {
   const pct = Math.round((done / steps.length) * 100);
 
   return (
-    <section className="rounded-xl border border-[#1ac5b4]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+    <section className="rounded-xl border border-[var(--fl-accent)]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
@@ -61,7 +61,7 @@ export default function SetupChecklist() {
 
       <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-[var(--fl-raised)]">
         <div
-          className="h-full rounded-full bg-[#1ac5b4] transition-all"
+          className="h-full rounded-full bg-[var(--fl-accent)] transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -74,7 +74,7 @@ export default function SetupChecklist() {
             className={`flex items-center gap-3 rounded-xl border p-3 transition ${
               step.done
                 ? "border-[#37d6a6]/30 bg-[#37d6a6]/5"
-                : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-[#1ac5b4]/50"
+                : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-[var(--fl-accent)]/50"
             }`}
           >
             <span

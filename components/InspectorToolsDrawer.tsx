@@ -1497,7 +1497,7 @@ export default function InspectorToolsDrawer({
 
           <aside
             ref={asideRef}
-            className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[#0a0f1a] shadow-2xl ${
+            className={`absolute inset-0 flex min-w-0 flex-col overflow-hidden bg-[var(--fl-ground)] shadow-2xl ${
               warming && !open
                 ? "" // warm-up: render static + opaque so the capture is fully drawn
                 : genie || (open && !closing && !webglOpened && captureRef.current && canWebglGenie())
@@ -1512,7 +1512,7 @@ export default function InspectorToolsDrawer({
             <div className="shrink-0 overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-surface)] p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-5 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#14c8d2]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--fl-accent-text)]">
                     FLOW
                   </p>
                   <h2 className="mt-1 text-lg font-semibold text-[var(--fl-text)] sm:text-2xl lg:text-3xl">

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import ScheduleCalendar from "../../components/ScheduleCalendar";
+import ScheduleCalendar from "../../components/ScheduleCalendarLazy";
 import ScheduleReminderSettings from "../../components/ScheduleReminderSettings";
 import BookingRequestActions from "../../components/BookingRequestActions";
 import InspectorAvailabilitySettings from "../../components/InspectorAvailabilitySettings";

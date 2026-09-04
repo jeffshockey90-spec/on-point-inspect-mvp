@@ -472,7 +472,7 @@ export default function Navbar() {
           <img
             src="/icons/icon-192.png?v=3"
             alt="FLOW Logo"
-            className="h-9 w-9 shrink-0 rounded-[10px] border border-[#1ac5b4]/35 object-cover"
+            className="h-9 w-9 shrink-0 rounded-[10px] border border-[var(--fl-accent)]/35 object-cover"
           />
 
           <div className="min-w-0 leading-tight">
@@ -514,16 +514,16 @@ export default function Navbar() {
                     aria-busy={opening}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
                       active
-                        ? "bg-[#1ac5b4]/[0.12] text-[var(--fl-text)]"
+                        ? "bg-[var(--fl-accent)]/[0.12] text-[var(--fl-text)]"
                         : opening
-                          ? "bg-white/[0.04] text-[#1ac5b4]"
+                          ? "bg-[var(--fl-raised)] text-[var(--fl-accent)]"
                           : item.href === "/dashboard/owner"
                             ? "text-[var(--fl-warn-text)] hover:bg-yellow-500/10 hover:text-[var(--fl-warn-text)]"
-                            : "text-[var(--fl-muted)] hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
+                            : "text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] hover:text-[var(--fl-text)]"
                     }`}
                   >
                     <NavSpinner active={opening} />
-                    {!opening && <ItemIcon className={`h-[17px] w-[17px] shrink-0 ${active ? "text-[#1ac5b4]" : ""}`} strokeWidth={2} />}
+                    {!opening && <ItemIcon className={`h-[17px] w-[17px] shrink-0 ${active ? "text-[var(--fl-accent)]" : ""}`} strokeWidth={2} />}
                     <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
                       {opening ? "Opening..." : item.title}
                     </span>
@@ -550,8 +550,8 @@ export default function Navbar() {
                       href={`#${anchorId}`}
                       className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
                         active
-                          ? "bg-[#1ac5b4]/[0.12] text-[var(--fl-text)]"
-                          : "text-[var(--fl-muted)] hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
+                          ? "bg-[var(--fl-accent)]/[0.12] text-[var(--fl-text)]"
+                          : "text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] hover:text-[var(--fl-text)]"
                       }`}
                     >
                       {label}
@@ -565,7 +565,7 @@ export default function Navbar() {
 
         <div className="shrink-0 border-t border-[var(--fl-raised)] p-3">
           <div className="flex items-center gap-3 rounded-[10px] border border-[var(--fl-raised)] bg-[var(--fl-surface)] px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1ac5b4]/12 text-xs font-semibold text-[#1ac5b4]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--fl-accent)]/12 text-xs font-semibold text-[var(--fl-accent)]">
               {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
             </div>
 

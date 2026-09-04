@@ -531,18 +531,23 @@ function getTargetUrl(row: InspectionRow) {
 }
 
 async function alreadySent(admin: any, inspectionId: string, kind: string) {
+  // Use a limit(1) list read, NOT .maybeSingle(): if two overlapping cron runs
+  // ever insert duplicate log rows for the same (inspection_id, reminder_type),
+  // maybeSingle() throws — and that error previously propagated to the handler's
+  // outer catch and aborted reminder processing for EVERY remaining inspection,
+  // staying broken because the duplicates persist. A list read is dedup-safe.
   const { data, error } = await admin
     .from("schedule_reminder_logs")
     .select("id")
     .eq("inspection_id", inspectionId)
     .eq("reminder_type", kind)
-    .maybeSingle();
+    .limit(1);
 
-  if (error) {
-    throw error;
-  }
+  // On a read error, treat as already-sent (fail closed) so we never spam a
+  // duplicate reminder, and never abort the whole run over one row.
+  if (error) return true;
 
-  return Boolean(data?.id);
+  return Array.isArray(data) && data.length > 0;
 }
 
 async function markSent(

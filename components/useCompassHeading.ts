@@ -16,6 +16,11 @@ export function useCompassHeading() {
   const [heading, setHeading] = useState<number | null>(null);
   const [needsPermission, setNeedsPermission] = useState(false);
   const startedRef = useRef(false);
+  // Last committed whole-degree heading — deviceorientation fires ~60Hz and the
+  // raw value jitters in fractions of a degree, so without this every sample
+  // would setHeading() and re-render the (large) live-camera component. Only
+  // commit when the rounded heading actually changes.
+  const lastHeadingRef = useRef<number | null>(null);
 
   const handle = useCallback((event: any) => {
     let deg: number | null = null;
@@ -26,7 +31,11 @@ export function useCompassHeading() {
       // alpha is counter-clockwise from north; convert to a compass heading.
       deg = 360 - event.alpha;
     }
-    if (deg != null) setHeading(((deg % 360) + 360) % 360);
+    if (deg == null) return;
+    const rounded = Math.round(((deg % 360) + 360) % 360) % 360;
+    if (lastHeadingRef.current === rounded) return; // ignore sub-degree jitter
+    lastHeadingRef.current = rounded;
+    setHeading(rounded);
   }, []);
 
   const attach = useCallback(() => {

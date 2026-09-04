@@ -886,7 +886,7 @@ export default async function HomePage() {
           <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:items-center">
             <div>
               <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#1ac5b4]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--fl-accent)]" />
                 FLOW · Command Center
               </p>
 
@@ -902,7 +902,7 @@ export default async function HomePage() {
                 <Link
                   href="/inspections/new"
                   data-tour="tour-new-inspection"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#1ac5b4] px-4 py-2.5 text-sm font-semibold text-[#06120f] transition-colors hover:bg-[#2fd8c6]"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--fl-accent)] px-4 py-2.5 text-sm font-semibold text-[#06120f] transition-colors hover:bg-[#2fd8c6]"
                 >
                   <Plus className="h-4 w-4" strokeWidth={2.5} /> New Inspection
                 </Link>
@@ -910,7 +910,7 @@ export default async function HomePage() {
                 <Link
                   href="/field"
                   data-tour="tour-field-tool"
-                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent)]"
                 >
                   <Smartphone className="h-4 w-4" strokeWidth={2} /> Field Tool
                 </Link>
@@ -918,14 +918,14 @@ export default async function HomePage() {
                 <Link
                   href="/schedule"
                   data-tour="tour-schedule"
-                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent)]"
                 >
                   <CalendarDays className="h-4 w-4" strokeWidth={2} /> Schedule
                 </Link>
 
                 <Link
                   href="/import-report"
-                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[#1ac5b4]/50 hover:text-[#1ac5b4]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent)]"
                 >
                   <FileDown className="h-4 w-4" strokeWidth={2} /> Import Report
                 </Link>
@@ -1305,7 +1305,7 @@ export default async function HomePage() {
                   key={card.href + card.title}
                   href={card.href}
                   data-tour={card.title === "Getting Started" ? "tour-getting-started" : undefined}
-                  className="group flex items-center gap-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3 transition hover:border-[#1ac5b4]/50 hover:bg-white/[0.02] active:scale-[0.99]"
+                  className="group flex items-center gap-3 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3 transition hover:border-[var(--fl-accent)]/50 hover:bg-white/[0.02] active:scale-[0.99]"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-accent-text)] transition group-hover:border-teal-500/60 group-hover:text-[var(--fl-accent-text)]">
                     <CardIcon className="h-5 w-5" strokeWidth={2} />
@@ -1411,7 +1411,7 @@ function CommandMetric({
   tone: "teal" | "yellow" | "green" | "cyan" | "orange";
 }) {
   const dot = {
-    teal: "bg-[#1ac5b4]",
+    teal: "bg-[var(--fl-accent)]",
     yellow: "bg-[#f3b23f]",
     green: "bg-[#37d6a6]",
     cyan: "bg-[#4bb8e0]",
@@ -1509,7 +1509,7 @@ function KpiTile({
   accent: "teal" | "amber" | "rose" | "emerald";
 }) {
   const dot = {
-    teal: "bg-[#1ac5b4]",
+    teal: "bg-[var(--fl-accent)]",
     amber: "bg-[#f3b23f]",
     rose: "bg-[#f76d6d]",
     emerald: "bg-[#37d6a6]",
@@ -1647,7 +1647,7 @@ function JobsTable({
               <td className="px-3 py-3 text-right">
                 <Link
                   href={`/reports/${inspection.id}`}
-                  className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[#1ac5b4] transition-colors hover:border-[#1ac5b4]/50 hover:bg-[#1ac5b4]/10"
+                  className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent)] transition-colors hover:border-[var(--fl-accent)]/50 hover:bg-[var(--fl-accent)]/10"
                 >
                   Open
                 </Link>

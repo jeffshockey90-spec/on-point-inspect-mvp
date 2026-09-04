@@ -119,7 +119,7 @@ export default function SettingsSectionTabs({
                 aria-pressed={active}
                 className={`inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-semibold transition duration-100 active:scale-[0.98] [touch-action:manipulation] ${
                   active
-                    ? "border-[#1ac5b4] bg-[#1ac5b4] text-[#06120f]"
+                    ? "border-[var(--fl-accent)] bg-[var(--fl-accent)] text-[#06120f]"
                     : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
                 }`}
               >
@@ -152,13 +152,13 @@ export default function SettingsSectionTabs({
                       aria-pressed={active}
                       className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${
                         active
-                          ? "bg-[#1ac5b4]/[0.12] text-[var(--fl-text)]"
+                          ? "bg-[var(--fl-accent)]/[0.12] text-[var(--fl-text)]"
                           : "text-[var(--fl-muted)] hover:bg-white/[0.04] hover:text-[var(--fl-text)]"
                       }`}
                     >
                       <span
                         className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${
-                          active ? "bg-[#1ac5b4]" : "bg-transparent"
+                          active ? "bg-[var(--fl-accent)]" : "bg-transparent"
                         }`}
                       />
                       {label}

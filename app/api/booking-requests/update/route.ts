@@ -837,6 +837,10 @@ export async function POST(request: Request) {
 
     let inspectionId = bookingRequest.inspection_id || null;
     let removedColumns: string[] = [];
+    // The real total actually saved on the inspection (add-on aware: home +
+    // radon + mold), so the response reports the billed price rather than the
+    // sqft-only base. Set when we build the payload below.
+    let confirmedPrice: number | null = null;
 
     // Idempotency: a booking that's already confirmed (has its inspection) must
     // not re-run the side effects — otherwise a double-click / retry / re-accept
@@ -856,6 +860,7 @@ export async function POST(request: Request) {
         user.id,
         inspectionCompanyId
       );
+      confirmedPrice = (payload as any)?.price ?? null;
 
       try {
         const result = await insertInspectionWithSchemaFallback(
@@ -924,7 +929,10 @@ export async function POST(request: Request) {
       contacts,
       confirmationEmails,
       removedColumns,
-      calculatedPrice: calculatePriceFromSqft(bookingRequest.square_feet),
+      calculatedPrice:
+        confirmedPrice != null
+          ? confirmedPrice
+          : calculatePriceFromSqft(bookingRequest.square_feet),
     });
   } catch (error: any) {
     return NextResponse.json(
