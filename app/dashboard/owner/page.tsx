@@ -415,8 +415,11 @@ export default async function OwnerDashboardPage() {
     safeSelect(admin.from("app_push_subscriptions").select("*").order("created_at", { ascending: false }), "app_push_subscriptions"),
     safeSelect(admin.from("app_native_push_tokens").select("*").order("updated_at", { ascending: false }), "app_native_push_tokens"),
     safeSelect(admin.from("app_device_events").select("*").order("created_at", { ascending: false }).limit(2000), "app_device_events"),
-    safeSelect(admin.from("findings").select("*"), "findings"),
-    safeSelect(admin.from("photos").select("*"), "photos"),
+    // Project only the columns the dashboard actually reads — these are the two
+    // largest tables (across ALL companies) and select("*") pulled every wide
+    // column (photo URLs/metadata, finding text) just to produce counts.
+    safeSelect(admin.from("findings").select("id, inspection_id, report_id, section, severity"), "findings"),
+    safeSelect(admin.from("photos").select("id, inspection_id, report_id"), "photos"),
     safeSelect(admin.from("inspection_agreements").select("*"), "inspection_agreements"),
     Promise.resolve([]),
     safeSelect(admin.from("finding_templates").select("*"), "finding_templates"),

@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
@@ -28,7 +29,16 @@ import type {
   CaptureDraft,
 } from "../../lib/ai/captureTypes";
 import FieldCamera from "../../components/FieldCamera";
-import PhotoMarkupEditor from "../../components/PhotoMarkupEditor";
+// Lazy-load the Konva-based markup editor so the heavy canvas library isn't in
+// the mobile /field first-paint bundle — it only loads when markup is opened.
+const PhotoMarkupEditor = dynamic(() => import("../../components/PhotoMarkupEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-xl border border-purple-700 bg-purple-500/10 p-4 text-sm font-bold text-[var(--fl-purple-text)]">
+      Loading photo markup…
+    </div>
+  ),
+});
 import VoiceOnlyInspectionMode from "../../components/VoiceOnlyInspectionMode";
 import LiveSectionCoach from "../../components/LiveSectionCoach";
 import {

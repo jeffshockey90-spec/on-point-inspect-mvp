@@ -124,7 +124,7 @@ export default function PaymentInvoicePanel({
 
   return (
     <section className={`mb-6 w-full max-w-full overflow-hidden rounded-2xl border shadow-2xl shadow-black/20 ${isPaid ? "border-emerald-600/70 bg-emerald-500/10" : "border-orange-600/70 bg-orange-500/10"}`}>
-      <div className="border-b border-[var(--fl-raised)] bg-gradient-to-r from-[var(--fl-surface)] via-[#0b1628] to-[var(--fl-surface)] p-4 sm:p-5">
+      <div className="border-b border-[var(--fl-raised)] bg-gradient-to-r from-[var(--fl-surface)] via-[var(--fl-surface-2)] to-[var(--fl-surface)] p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">Invoice / Payment</p>

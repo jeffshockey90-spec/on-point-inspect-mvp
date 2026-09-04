@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -191,17 +191,19 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
 
   // Start combine mode from a single finding's own "Combine" button, with that
   // finding pre-selected so the inspector just taps the others to merge with it.
-  function startCombineWith(findingId: any) {
+  // useCallback so FindingCard's memo() isn't defeated by a new function
+  // identity every parent render (only stable state setters are used inside).
+  const startCombineWith = useCallback((findingId: any) => {
     const id = String(findingId || "");
     if (!id) return;
     setSelectedCombine(new Set([id]));
     setCombineOpen(true);
     setCombineError("");
-  }
+  }, []);
 
   // Open combine mode with BOTH findings of a detected relationship pre-selected,
   // so accepting FLOW's "these look connected" hint is one tap + confirm.
-  function startCombineWithPair(aId: any, bId: any) {
+  const startCombineWithPair = useCallback((aId: any, bId: any) => {
     const a = String(aId || "");
     const b = String(bId || "");
     if (!a || !b) return;
@@ -211,7 +213,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     try {
       document.getElementById(`finding-${a}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
     } catch {}
-  }
+  }, []);
 
   async function combineSelectedFindings() {
     const ids = Array.from(selectedCombine);
@@ -338,6 +340,8 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   );
   const [draggingSection, setDraggingSection] = useState<string | null>(null);
   const [photoPickerLoaded, setPhotoPickerLoaded] = useState(false);
+  // Stable handler so passing it to every FindingCard doesn't break its memo().
+  const handleNeedPhotoPicker = useCallback(() => setPhotoPickerLoaded(true), []);
 
   useEffect(() => {
     const nextGroups = groupedFindings || [];
@@ -783,9 +787,15 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
 
   // All section names currently on this inspection (built-in + custom), so a
   // finding can be moved into a custom section, not just the 12 built-ins.
-  const availableSections = (orderedGroups || [])
-    .map((group: any) => group.section)
-    .filter((section: string) => section && section !== "Other");
+  // Memoized so it isn't a fresh array each render (which would defeat the
+  // memo() on every FindingCard it's passed to).
+  const availableSections = useMemo(
+    () =>
+      (orderedGroups || [])
+        .map((group: any) => group.section)
+        .filter((section: string) => section && section !== "Other"),
+    [orderedGroups],
+  );
 
   // Count findings per (resolved) severity label across the whole report, so the
   // filter chips can show counts and hide severities that don't occur.
@@ -1310,7 +1320,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                       allPhotos={allPhotos}
                       allFindings={allFindings}
                       availableSections={availableSections}
-                      onNeedPhotoPicker={() => setPhotoPickerLoaded(true)}
+                      onNeedPhotoPicker={handleNeedPhotoPicker}
                       onStartCombine={startCombineWith}
                       relatedHint={relatedByFinding.get(String(finding.id))}
                       onCombinePair={startCombineWithPair}

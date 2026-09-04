@@ -838,6 +838,18 @@ export async function POST(request: Request) {
     let inspectionId = bookingRequest.inspection_id || null;
     let removedColumns: string[] = [];
 
+    // Idempotency: a booking that's already confirmed (has its inspection) must
+    // not re-run the side effects — otherwise a double-click / retry / re-accept
+    // re-sends the "Inspection Confirmed" email to the client, co-clients, and
+    // realtor. Return the existing state instead.
+    if (bookingRequest.status === "confirmed" && inspectionId) {
+      return NextResponse.json({
+        ok: true,
+        request: bookingRequest,
+        alreadyConfirmed: true,
+      });
+    }
+
     if (!inspectionId) {
       const payload = getInspectionPayload(
         bookingRequest,

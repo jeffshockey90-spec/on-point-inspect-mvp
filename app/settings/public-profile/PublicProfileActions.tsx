@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import QRCode from "qrcode";
 
 type PublicProfileActionsProps = {
   profileUrl?: string;
@@ -87,6 +86,8 @@ export default function PublicProfileActions({
       if (!qrValue) return;
 
       try {
+        // Load the qrcode lib on demand so it's not in the page's first-paint bundle.
+        const QRCode = (await import("qrcode")).default;
         const svg = await QRCode.toString(qrValue, {
           type: "svg",
           width: 420,

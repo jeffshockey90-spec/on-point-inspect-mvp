@@ -1217,15 +1217,21 @@ export default async function PublicSharePage({
   // "Deliver anyway" override). Public demo reports and inspector sample
   // reports stay open, and the owning inspector/owner can always preview an
   // undelivered report.
-  let allowShareView = isDemo || (inspection as any).is_demo === true;
+  // SECURITY: access is granted only by a real property of the inspection —
+  // never by the ?role=demo URL param alone (that only drives demo-mode
+  // rendering below). Otherwise anyone with a genuine share token could append
+  // ?role=demo to bypass the payment/agreement/publish gate.
+  let allowShareView = (inspection as any).is_demo === true;
 
   if (!allowShareView) {
     const { data: sampleRow } = await supabase
       .from("public_sample_reports")
-      .select("inspection_id")
+      .select("inspection_id, is_enabled")
       .eq("inspection_id", inspectionId)
       .maybeSingle();
-    if (sampleRow) allowShareView = true;
+    // Only an ENABLED public sample is viewable — a disabled/unpublished sample
+    // must not be publicly reachable.
+    if (sampleRow && (sampleRow as any).is_enabled !== false) allowShareView = true;
   }
 
   if (!allowShareView) {

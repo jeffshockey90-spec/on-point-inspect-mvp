@@ -1,11 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
-import PhotoMarkupEditor from "./PhotoMarkupEditor";
+// Lazy-load the Konva markup editor so the canvas library isn't pulled into the
+// live-camera bundle up front — it loads only when the inspector opens markup.
+const PhotoMarkupEditor = dynamic(() => import("./PhotoMarkupEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-xl border border-purple-700 bg-purple-500/10 p-4 text-sm font-bold text-[var(--fl-purple-text)]">
+      Loading photo markup…
+    </div>
+  ),
+});
 import FieldFindingLinker from "./FieldFindingLinker";
 import { useCompassHeading } from "./useCompassHeading";
 
