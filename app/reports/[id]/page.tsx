@@ -43,6 +43,7 @@ import SendReviewRequestButton from "../../../components/SendReviewRequestButton
 import DeleteSummaryButton from "../../../components/DeleteSummaryButton";
 import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
 import ReportBuilderSectionTabs from "../../../components/ReportBuilderSectionTabs";
+import ReportEditTimer from "../../../components/ReportEditTimer";
 import InspectionRouteCard from "../../../components/InspectionRouteCard";
 import { getDrivingDistance } from "../../../lib/geocode";
 import FastLinkButton from "../../../components/FastLinkButton";
@@ -3669,6 +3670,10 @@ Service-life information is a general industry estimate only. Actual service lif
               inspectionId={String(inspection.id)}
               currentTemplateId={(inspection as any).report_template_id || null}
             />
+
+            {/* Silently clocks active report-editing time for the "finished in
+                X minutes" metric — foreground-only, excludes overnight gaps. */}
+            <ReportEditTimer inspectionId={String(inspection.id)} />
 
             <ReportFindingsSortable
               groupedFindings={groupedFindingsArray}

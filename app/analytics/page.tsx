@@ -435,6 +435,18 @@ export default async function AnalyticsPage() {
 
   const totalInspections = rows.length;
   const signedAgreementCount = rows.filter(isAgreementSigned).length;
+
+  // "Finished the report in X minutes" — average ACTIVE report-editing time
+  // (foreground heartbeat, excludes overnight gaps + the physical inspection).
+  const reportsWithEditTime = rows.filter(
+    (i: any) => getNumber(i.report_edit_seconds) > 0,
+  );
+  const avgReportEditSeconds = reportsWithEditTime.length
+    ? reportsWithEditTime.reduce(
+        (sum: number, i: any) => sum + getNumber(i.report_edit_seconds),
+        0,
+      ) / reportsWithEditTime.length
+    : 0;
   const paidInspectionCount = rows.filter(isPaymentComplete).length;
   const publishedReportCount = rows.filter(isReportPublished).length;
 
@@ -829,6 +841,17 @@ export default async function AnalyticsPage() {
             label="Revenue All Time"
             value={money(revenueAllTime)}
             helper={`${paidRows.length} paid inspection${paidRows.length === 1 ? "" : "s"}`}
+            tone="teal"
+          />
+
+          <MetricCard
+            label="Avg Report Finish Time"
+            value={reportsWithEditTime.length ? formatDuration(avgReportEditSeconds) : "—"}
+            helper={
+              reportsWithEditTime.length
+                ? `Active editing across ${reportsWithEditTime.length} report${reportsWithEditTime.length === 1 ? "" : "s"}`
+                : "Editing time will appear as you build reports"
+            }
             tone="teal"
           />
 
