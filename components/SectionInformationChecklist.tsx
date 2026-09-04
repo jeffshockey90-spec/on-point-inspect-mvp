@@ -1482,6 +1482,33 @@ function SectionInformationChecklist({
         if (error) throw error;
         if (data) setOptionOverrides((prev) => [...prev, data]);
       }
+
+      // Migrate any already-saved selections from the OLD display label to the
+      // new one. Selections are stored by the label shown at click time, so
+      // without this a renamed-after-checked option would render unchecked and
+      // re-clicking would insert a duplicate row. Only touches this rename.
+      const oldDisplayLabel =
+        existing?.replacement_label ||
+        editingOption.optionLabel.replace(/^__CUSTOM__:/, "");
+      if (oldDisplayLabel && oldDisplayLabel !== clean) {
+        const { error: migrateError } = await supabase
+          .from("section_checklist_selections")
+          .update({ value: clean })
+          .eq("inspection_id", inspectionId)
+          .eq("section", section)
+          .eq("group_title", editingOption.groupTitle)
+          .eq("value", oldDisplayLabel);
+        if (!migrateError) {
+          setSelections((prev) =>
+            prev.map((item) =>
+              item.group_title === editingOption.groupTitle && item.value === oldDisplayLabel
+                ? { ...item, value: clean }
+                : item,
+            ),
+          );
+        }
+      }
+
       setEditingOption(null);
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to edit checklist option.");
