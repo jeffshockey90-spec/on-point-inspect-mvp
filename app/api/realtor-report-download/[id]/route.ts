@@ -18,6 +18,7 @@ import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import sharp from "sharp";
 import { existsSync } from "fs";
+import { recompressPdfImages } from "../../../../lib/pdfRecompress";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -647,7 +648,7 @@ async function signedPdfImageUrlMap(admin: any, paths: string[]) {
             // Feed sharp a generous, high-quality source so the final downscale
             // stays crisp. The old 900px/q78 pre-shrink capped detail before
             // sharp even ran, which is why PDF photos looked soft.
-            transform: { width: 2000, quality: 85, resize: "contain" },
+            transform: { width: 1600, quality: 85, resize: "contain" },
           });
         const signed = data?.signedUrl;
         if (!signed) continue;
@@ -655,13 +656,16 @@ async function signedPdfImageUrlMap(admin: any, paths: string[]) {
         const resp = await fetch(signed);
         if (!resp.ok) continue;
         const input = Buffer.from(await resp.arrayBuffer());
-        // 1400px @ q74 prints crisply at every layout (single photos display
-        // large, grid tiles ~235px) while keeping the PDF in Spectora's size
-        // range. The old 660px @ q58 was the main cause of blurry report photos.
+        // 1200px @ q78. Because the report CSS now draws photos WITHOUT a clip
+        // (no border-radius / object-fit), Chrome's printToPDF passes these JPEGs
+        // straight through as DCTDecode instead of re-rasterizing them into
+        // lossless FlateDecode bitmaps — so the PDF stays small (Spectora-style)
+        // AND crisp. The old pipeline (660px @ q58, then clipped in CSS) was both
+        // blurry AND huge because every photo got baked to a raw bitmap.
         const out = await sharp(input)
           .rotate()
-          .resize(1400, null, { withoutEnlargement: true })
-          .jpeg({ quality: 74, mozjpeg: true })
+          .resize(1200, null, { withoutEnlargement: true })
+          .jpeg({ quality: 78, mozjpeg: true })
           .toBuffer();
         result[path] = `data:image/jpeg;base64,${out.toString("base64")}`;
       } catch (imageError) {
@@ -670,7 +674,7 @@ async function signedPdfImageUrlMap(admin: any, paths: string[]) {
           const { data } = await admin.storage
             .from("inspection-photos")
             .createSignedUrl(path, 60 * 60 * 24 * 7, {
-              transform: { width: 1400, quality: 74, resize: "contain" },
+              transform: { width: 1200, quality: 78, resize: "contain" },
             });
           if (data?.signedUrl) result[path] = data.signedUrl;
         } catch {
@@ -1550,16 +1554,14 @@ function buildAgentReportHtml({
     .note:last-child { margin-bottom: 0; }
     .note-k { font-weight: 700; color: #111827; }
     .note-rec .note-k { color: #0f8f8f; }
-    .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+    .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; align-items: start; }
     .photos.two { grid-template-columns: repeat(2, 1fr); }
-    .photos.one { grid-template-columns: minmax(0, 480px); }
-    /* Clean uniform grid like Spectora: portrait-ish tiles. A phone photo is
-       landscape, so a portrait tile crops the SIDES, never the top/bottom —
-       which keeps vertical subjects (down-arrows, downspouts) fully in frame.
-       The old short-and-wide 208px tile cropped top/bottom and cut them off. */
-    .photos img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center; border-radius: 5px; border: 1px solid #e5e7eb; display: block; background: #f8fafc; }
-    /* A lone photo has room to show whole and large — no crop. */
-    .photos.one img { aspect-ratio: auto; height: auto; object-fit: contain; }
+    .photos.one { grid-template-columns: minmax(0, 520px); }
+    /* NO object-fit and NO fixed height: each photo keeps its NATURAL shape
+       (a landscape phone photo stays landscape) and is never cropped — so
+       nothing gets cut off and nothing is forced vertical. No border/frame —
+       the photo sits flush, Spectora-style. */
+    .photos img { width: 100%; height: auto; display: block; border-radius: 4px; }
     h3 { margin: 0; font-weight: 600; color: #1f2937; }
 
     .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 26px; margin-bottom: 4px; }
@@ -1568,12 +1570,12 @@ function buildAgentReportHtml({
     .info-v { color: #1f2937; font-weight: 500; }
     .ref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .ref-photo { margin: 0; break-inside: avoid; }
-    .ref-photo img { width: 100%; height: 178px; object-fit: contain; background: #f8fafc; border-radius: 5px; border: 1px solid #e5e7eb; display: block; }
+    .ref-photo img { width: 100%; height: auto; border-radius: 4px; display: block; }
     .ref-photo figcaption { margin-top: 5px; color: #64748b; font-size: 11px; line-height: 1.4; }
 
     .equip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
     .equip-card { break-inside: avoid; page-break-inside: avoid; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; background: #fbfcfe; }
-    .equip-img { width: 100%; height: 190px; object-fit: contain; background: #f8fafc; border-radius: 5px; border: 1px solid #e5e7eb; display: block; margin-bottom: 12px; }
+    .equip-img { width: 100%; height: auto; border-radius: 4px; display: block; margin-bottom: 12px; }
     .equip-type { margin: 0; color: #0f8f8f; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
     .equip-name { margin: 4px 0 10px; color: #1f2937; font-size: 16px; font-weight: 600; }
     .equip-rows { display: grid; gap: 5px; }
@@ -1942,6 +1944,23 @@ async function renderHtmlToPdf(html: string) {
         margin: zeroMargin,
         timeout: remaining(),
       });
+    }
+
+    // Chrome's serverless printToPDF stores every photo as a LOSSLESS bitmap,
+    // which makes reports 5-10x bigger than they should be. Re-encode those
+    // images to JPEG in place — same pixels, a fraction of the size (a 26 MB
+    // report drops to ~3 MB). Never fatal: on any failure we keep Chrome's PDF.
+    try {
+      const before = pdf.length;
+      const { bytes, changed, recompressed } = await recompressPdfImages(pdf, { quality: 72 });
+      if (changed) {
+        console.log(
+          `PDF image recompress: ${recompressed} images, ${(before / 1048576).toFixed(1)}MB -> ${(bytes.length / 1048576).toFixed(1)}MB`,
+        );
+        return Buffer.from(bytes);
+      }
+    } catch (recompressError) {
+      console.error("PDF image recompress failed, sending original:", recompressError);
     }
 
     return Buffer.from(pdf);
