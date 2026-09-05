@@ -413,7 +413,7 @@ export default function ScheduleCalendar({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-[var(--fl-surface)] p-3 sm:p-4">
+    <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 sm:p-4">
       <div className="mb-4 grid gap-4 lg:grid-cols-[1.1fr_2fr]">
         <div className="rounded-2xl border border-teal-400/20 bg-[var(--fl-surface-2)] p-4">
           <div className="flex items-center justify-between gap-3">
@@ -424,7 +424,7 @@ export default function ScheduleCalendar({
           </div>
 
           {todaysEvents.length === 0 ? (
-            <p className="mt-3 text-sm text-zinc-400">
+            <p className="mt-3 text-sm text-[var(--fl-muted)]">
               No inspections scheduled for today.
             </p>
           ) : (
@@ -447,7 +447,7 @@ export default function ScheduleCalendar({
                       time: props.time,
                     });
                   }}
-                  className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-ground)] p-4 text-left transition hover:border-teal-400/40 hover:bg-[var(--fl-raised)] active:scale-[0.99]"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-left transition hover:border-teal-400/40 hover:bg-[var(--fl-raised)] active:scale-[0.99]"
                 >
                   <p className="text-sm font-semibold text-[var(--fl-accent-text)]">
                     {event.extendedProps.displayTime}
@@ -455,7 +455,7 @@ export default function ScheduleCalendar({
                   <p className="mt-1 truncate text-sm font-bold text-[var(--fl-text)]">
                     {event.extendedProps.address}
                   </p>
-                  <p className="mt-1 truncate text-xs text-zinc-400">
+                  <p className="mt-1 truncate text-xs text-[var(--fl-muted)]">
                     {event.extendedProps.client || "Client not entered"}
                   </p>
                   {event.extendedProps.inspectorName ? (
@@ -624,13 +624,13 @@ export default function ScheduleCalendar({
 
       {selected ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center">
-          <div className="w-full max-w-lg rounded-2xl border border-zinc-700 bg-[var(--fl-ground)] p-5 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-[var(--fl-text)]">
                   Edit Appointment
                 </h2>
-                <p className="mt-1 text-sm text-zinc-400">
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
                   {selected.address}
                 </p>
               </div>
@@ -641,7 +641,7 @@ export default function ScheduleCalendar({
                   setSelected(null);
                   setMessage("");
                 }}
-                className="rounded-xl border border-zinc-700 px-3 py-2 text-sm font-bold text-zinc-300 hover:bg-[var(--fl-raised)]"
+                className="rounded-xl border border-[var(--fl-line)] px-3 py-2 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
               >
                 Close
               </button>
@@ -649,7 +649,7 @@ export default function ScheduleCalendar({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
                   Date
                 </span>
                 <input
@@ -661,12 +661,12 @@ export default function ScheduleCalendar({
                       date: event.target.value,
                     })
                   }
-                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                  className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
 
               <label className="block">
-                <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
                   Time
                 </span>
                 <input
@@ -678,13 +678,13 @@ export default function ScheduleCalendar({
                       time: event.target.value,
                     })
                   }
-                  className="mt-2 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                  className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
             </div>
 
             <label className="mt-4 block">
-              <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+              <span className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
                 Status
               </span>
               <select
@@ -695,7 +695,7 @@ export default function ScheduleCalendar({
                     status: event.target.value,
                   })
                 }
-                className="mt-2 w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
               >
                 <option>Scheduled</option>
                 <option>Pending</option>
@@ -705,20 +705,20 @@ export default function ScheduleCalendar({
               </select>
             </label>
 
-            <div className="mt-4 rounded-xl border border-zinc-800 bg-[var(--fl-surface-2)] p-4">
+            <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <p className="text-sm font-bold text-[var(--fl-text)]">
                 {selected.client || "Client not entered"}
               </p>
-              <p className="mt-1 text-sm text-zinc-400">
+              <p className="mt-1 text-sm text-[var(--fl-muted)]">
                 Realtor: {selected.realtor || "Not entered"}
               </p>
-              <p className="mt-1 text-sm text-zinc-400">
+              <p className="mt-1 text-sm text-[var(--fl-muted)]">
                 Type: {selected.type || "Home Inspection"}
               </p>
             </div>
 
             {message ? (
-              <p className="mt-4 rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-zinc-200">
+              <p className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)]">
                 {message}
               </p>
             ) : null}
@@ -728,7 +728,7 @@ export default function ScheduleCalendar({
                 type="button"
                 disabled={saving}
                 onClick={() => saveScheduleUpdate(selected)}
-                className="rounded-xl bg-teal-500 px-4 py-3 text-sm font-semibold text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-[var(--fl-accent)] px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Saving..." : "Save"}
               </button>
@@ -756,18 +756,18 @@ export default function ScheduleCalendar({
 
       <style jsx global>{`
         .schedule-calendar .fc {
-          color: white;
+          color: var(--fl-text);
           font-size: 13px;
         }
 
         .schedule-calendar .fc-theme-standard td,
         .schedule-calendar .fc-theme-standard th,
         .schedule-calendar .fc-theme-standard .fc-scrollgrid {
-          border-color: rgba(63, 63, 70, 0.9);
+          border-color: var(--fl-line);
         }
 
         .schedule-calendar .fc-toolbar-title {
-          color: white;
+          color: var(--fl-text);
           font-size: 1.1rem;
           font-weight: 800;
         }
@@ -780,26 +780,27 @@ export default function ScheduleCalendar({
 
         .schedule-calendar .fc-button {
           border-radius: 0.75rem !important;
-          border-color: rgba(45, 212, 191, 0.35) !important;
-          background: rgba(20, 184, 166, 0.14) !important;
-          color: rgb(204, 251, 241) !important;
+          border-color: var(--fl-accent-line) !important;
+          background: var(--fl-accent-bg) !important;
+          color: var(--fl-accent-text) !important;
           font-weight: 800 !important;
           box-shadow: none !important;
         }
 
         .schedule-calendar .fc-button:hover,
         .schedule-calendar .fc-button-active {
-          background: rgba(20, 184, 166, 0.28) !important;
+          background: var(--fl-accent) !important;
+          color: var(--fl-accent-text) !important;
         }
 
         .schedule-calendar .fc-daygrid-day-number,
         .schedule-calendar .fc-col-header-cell-cushion {
-          color: rgb(212, 212, 216);
+          color: var(--fl-muted);
           text-decoration: none;
         }
 
         .schedule-calendar .fc-day-today {
-          background: rgba(20, 184, 166, 0.08) !important;
+          background: var(--fl-accent-bg) !important;
         }
 
         .schedule-calendar .fc-event {
@@ -822,7 +823,7 @@ export default function ScheduleCalendar({
         }
 
         .schedule-calendar .fc-daygrid-more-link {
-          color: rgb(45, 212, 191);
+          color: var(--fl-accent-text);
           font-weight: 800;
         }
 

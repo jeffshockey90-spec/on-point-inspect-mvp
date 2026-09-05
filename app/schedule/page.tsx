@@ -331,7 +331,7 @@ export default async function SchedulePage({
                   className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
                     teamView
                       ? "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
-                      : "bg-teal-500 text-black"
+                      : "bg-[var(--fl-accent)] text-[var(--fl-accent-text)]"
                   }`}
                 >
                   My Schedule
@@ -340,7 +340,7 @@ export default async function SchedulePage({
                   href="/schedule?view=team"
                   className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
                     teamView
-                      ? "bg-teal-500 text-black"
+                      ? "bg-[var(--fl-accent)] text-[var(--fl-accent-text)]"
                       : "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
                   }`}
                 >
@@ -351,7 +351,7 @@ export default async function SchedulePage({
 
             <Link
               href="/inspections/new"
-              className="rounded-2xl border border-teal-400/30 bg-teal-500 px-5 py-3 text-center text-sm font-bold text-black transition hover:bg-teal-300 active:scale-[0.98]"
+              className="rounded-2xl border border-[var(--fl-accent-line)] bg-[var(--fl-accent)] px-5 py-3 text-center text-sm font-bold text-[var(--fl-accent-text)] transition hover:opacity-90 active:scale-[0.98]"
             >
               + New Inspection
             </Link>
@@ -416,9 +416,6 @@ export default async function SchedulePage({
             </p>
           </div>
         </div>
-
-        <ScheduleReminderSettings />
-        <InspectorAvailabilitySettings />
 
         <section className="mb-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -502,6 +499,19 @@ export default async function SchedulePage({
           <ScheduleCalendar inspections={scheduledRows} />
         </div>
 
+        {/* Reminder + availability config — set once, so it lives in a collapsed
+            drawer below the calendar instead of pushing the calendar down. */}
+        <details className="group mb-8 overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-[var(--fl-surface)]">
+            <span>Schedule settings — reminders &amp; availability</span>
+            <span className="text-[var(--fl-muted)] transition group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="border-t border-[var(--fl-line)] p-5">
+            <ScheduleReminderSettings />
+            <InspectorAvailabilitySettings />
+          </div>
+        </details>
+
         {unscheduledRows.length > 0 ? (
           <div className="mb-8 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-5">
             <h2 className="text-lg font-bold text-[var(--fl-warn-text)]">
@@ -548,7 +558,7 @@ export default async function SchedulePage({
               Show inspection list
             </summary>
 
-            <div className="hidden grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] gap-4 border-b border-zinc-800 bg-[var(--fl-ground)] px-5 py-4 text-xs font-bold uppercase tracking-widest text-[var(--fl-accent-text)] lg:grid">
+            <div className="hidden grid-cols-[1.1fr_1.7fr_1fr_1fr_.8fr_.7fr] gap-4 border-b border-[var(--fl-line)] bg-[var(--fl-ground)] px-5 py-4 text-xs font-bold uppercase tracking-widest text-[var(--fl-accent-text)] lg:grid">
               <div>Date / Time</div>
               <div>Property</div>
               <div>Client</div>
@@ -557,7 +567,7 @@ export default async function SchedulePage({
               <div className="text-right">Open</div>
             </div>
 
-            <div className="divide-y divide-zinc-800">
+            <div className="divide-y divide-[var(--fl-line)]">
               {sortedRows.map((inspection: InspectionRow) => {
                 const date = getInspectionDate(inspection);
                 const time = formatTime(getInspectionTime(inspection));
@@ -603,11 +613,11 @@ export default async function SchedulePage({
                       )}
                     </div>
 
-                    <p className="text-sm text-zinc-200">
+                    <p className="text-sm text-[var(--fl-text)]">
                       {getClient(inspection)}
                     </p>
 
-                    <p className="text-sm text-zinc-200">
+                    <p className="text-sm text-[var(--fl-text)]">
                       {getRealtor(inspection)}
                     </p>
 

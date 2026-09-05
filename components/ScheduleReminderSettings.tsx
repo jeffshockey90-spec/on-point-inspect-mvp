@@ -165,7 +165,7 @@ function ToggleSwitch({
       aria-hidden="true"
       className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border transition ${
         checked
-          ? "border-teal-400/60 bg-teal-500"
+          ? "border-teal-400/60 bg-[var(--fl-accent)]"
           : "border-[var(--fl-line)] bg-[var(--fl-raised)]"
       } ${disabled ? "opacity-50" : ""}`}
     >
@@ -330,7 +330,7 @@ export default function ScheduleReminderSettings() {
           onClick={toggleMaster}
           className={`shrink-0 rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${
             mainEnabled
-              ? "border-teal-400/50 bg-teal-500 text-slate-950 hover:bg-teal-400"
+              ? "border-teal-400/50 bg-[var(--fl-accent)] text-[var(--fl-accent-text)] hover:bg-[var(--fl-accent)]"
               : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-muted)] hover:border-[var(--fl-faint)]"
           }`}
         >
