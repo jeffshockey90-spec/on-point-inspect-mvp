@@ -1004,65 +1004,6 @@ export default async function HomePage() {
             { id: "trends", node: (
         <DashboardTrends data={monthlyTrends} />
             ) },
-            { id: "whats-new", node: (
-
-        <section className="overflow-hidden rounded-xl border border-[var(--fl-warn)]/25 bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-warn-text)]">
-                <Rocket className="h-3.5 w-3.5" strokeWidth={2.5} /> What&apos;s New
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
-                Latest updates to FLOW
-              </h2>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/whats-new"
-                className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
-              >
-                See All Updates
-              </Link>
-              <Link
-                href="/support"
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-warn-text)] transition hover:bg-amber-500/20"
-              >
-                <Lightbulb className="h-4 w-4" strokeWidth={2.5} /> Suggest a Feature
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            {(latestChangelogEntries || []).length === 0 ? (
-              <div className="md:col-span-3 rounded-xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm text-[var(--fl-muted)]">
-                No updates posted yet. Got an idea for FLOW? Use the suggestion box above - Jeff sees it the moment
-                you submit it.
-              </div>
-            ) : (
-              latestChangelogEntries!.map((entry: any) => (
-                <Link
-                  key={entry.id}
-                  href="/whats-new"
-                  className="block rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-amber-400/60 active:scale-[0.99]"
-                >
-                  <p className="text-xs font-bold text-[var(--fl-faint)]">
-                    {getRelativeTime(entry.published_at)}
-                  </p>
-                  <p className="mt-1 font-semibold text-[var(--fl-text)]">{entry.title}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-[var(--fl-muted)]">{entry.body}</p>
-                  {entry.credited_user_name && (
-                    <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--fl-warn-text)]">
-                      <Sparkles className="h-3.5 w-3.5" strokeWidth={2.5} /> Requested by {entry.credited_user_name}
-                    </p>
-                  )}
-                </Link>
-              ))
-            )}
-          </div>
-        </section>
-
-            ) },
             { id: "next-attention", node: (
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">

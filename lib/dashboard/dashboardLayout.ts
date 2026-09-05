@@ -9,16 +9,23 @@ export type DashboardLayout = WidgetLayout[];
 
 // The customizable widgets, in their default order. `id` is stable; adding a
 // new widget here makes it show up (at the end) for everyone automatically.
-export const DASHBOARD_WIDGETS: { id: string; title: string; defaultSize: WidgetSize }[] = [
+// `defaultVisible: false` keeps a widget OFF the default dashboard (a ruthless,
+// clean default) while still letting users add it back in edit mode — the
+// dashboard leads with money + pipeline + what's next, not a wall of modules.
+export const DASHBOARD_WIDGETS: {
+  id: string;
+  title: string;
+  defaultSize: WidgetSize;
+  defaultVisible?: boolean;
+}[] = [
   { id: "kpis", title: "Revenue & Status", defaultSize: "full" },
   { id: "pipeline", title: "Pipeline", defaultSize: "full" },
-  { id: "active-jobs", title: "Active Jobs", defaultSize: "full" },
-  { id: "trends", title: "Trends", defaultSize: "half" },
-  { id: "whats-new", title: "What's New", defaultSize: "half" },
   { id: "next-attention", title: "Next Up & Needs Attention", defaultSize: "full" },
-  { id: "activity-metrics", title: "Engagement", defaultSize: "full" },
-  { id: "recent-tools", title: "Recent Activity & Tools", defaultSize: "full" },
-  { id: "email-activity", title: "Email Activity", defaultSize: "full" },
+  { id: "active-jobs", title: "Active Jobs", defaultSize: "full", defaultVisible: false },
+  { id: "trends", title: "Trends", defaultSize: "half", defaultVisible: false },
+  { id: "activity-metrics", title: "Engagement", defaultSize: "full", defaultVisible: false },
+  { id: "recent-tools", title: "Recent Activity & Tools", defaultSize: "full", defaultVisible: false },
+  { id: "email-activity", title: "Email Activity", defaultSize: "full", defaultVisible: false },
 ];
 
 export const WIDGET_IDS = DASHBOARD_WIDGETS.map((w) => w.id);
@@ -29,7 +36,7 @@ export const WIDGET_TITLES: Record<string, string> = Object.fromEntries(
 export const DEFAULT_LAYOUT: DashboardLayout = DASHBOARD_WIDGETS.map((w) => ({
   id: w.id,
   size: w.defaultSize,
-  visible: true,
+  visible: w.defaultVisible !== false,
 }));
 
 const SIZES: WidgetSize[] = ["full", "half", "third"];
@@ -53,7 +60,7 @@ export function normalizeLayout(raw: any): DashboardLayout {
   }
 
   for (const w of DASHBOARD_WIDGETS) {
-    if (!seen.has(w.id)) out.push({ id: w.id, size: w.defaultSize, visible: true });
+    if (!seen.has(w.id)) out.push({ id: w.id, size: w.defaultSize, visible: w.defaultVisible !== false });
   }
 
   return out;
