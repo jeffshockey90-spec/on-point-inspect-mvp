@@ -2,6 +2,7 @@
 
 import { formatAppValue } from "../../lib/app-time";
 import { useEffect, useState } from "react";
+import WhatsNewSeenMarker from "../../components/WhatsNewSeenMarker";
 
 type ChangelogEntry = {
   id: number;
@@ -46,6 +47,7 @@ export default function WhatsNewPage() {
 
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
+      <WhatsNewSeenMarker />
       <div className="mx-auto max-w-5xl space-y-6">
         <section className="rounded-2xl border border-teal-500/40 bg-[var(--fl-surface)] p-6 shadow-2xl md:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">What's New</p>

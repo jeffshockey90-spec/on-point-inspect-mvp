@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import SupportUnreadBadge from "./SupportUnreadBadge";
+import WhatsNewBadge from "./WhatsNewBadge";
 import ThemeToggle from "./ThemeToggle";
 import { isPortalRoute } from "../lib/navVisibility";
 import {
@@ -528,6 +529,7 @@ export default function Navbar() {
                       {opening ? "Opening..." : item.title}
                     </span>
                     {!opening && item.mobileLabel === "Support" && <SupportUnreadBadge />}
+                    {!opening && item.href === "/whats-new" && <WhatsNewBadge className="ml-auto" />}
                   </Link>
                 </Fragment>
               );
