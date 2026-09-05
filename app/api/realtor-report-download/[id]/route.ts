@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-09-05-video-poster-overlay";
+const PDF_TEMPLATE_VERSION = "2026-09-05-video-poster-playtriangle";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -1240,7 +1240,7 @@ function buildAgentReportHtml({
           ? `<img src="${escapeHtml(url)}" alt="Video preview" />`
           : `<span class="video-placeholder-inner"></span>`;
         const overlay =
-          `<span class="video-badge"><span class="video-play">&#9658;</span>` +
+          `<span class="video-badge"><span class="video-play"></span>` +
           `<span class="video-label">Video</span>` +
           `${onlineReportUrl ? `<span class="video-sub">click to view on web</span>` : ""}</span>`;
         return onlineReportUrl
@@ -1596,7 +1596,9 @@ function buildAgentReportHtml({
     .photos.one .video-media img { width: 100%; height: auto; max-height: 470px; margin: 0; object-fit: cover; }
     .video-placeholder-inner { display: block; width: 100%; padding-top: 60%; }
     .video-badge { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(15, 23, 42, 0.30); color: #fff; }
-    .video-play { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; padding-left: 3px; border-radius: 999px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(255, 255, 255, 0.92); font-size: 20px; line-height: 1; }
+    .video-play { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 999px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(255, 255, 255, 0.92); }
+    /* Reliable play triangle (a font glyph like ▶ often isn't in the PDF font). */
+    .video-play::before { content: ""; width: 0; height: 0; margin-left: 3px; border-style: solid; border-width: 9px 0 9px 15px; border-color: transparent transparent transparent #ffffff; }
     .video-label { font-size: 15px; font-weight: 800; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
     .video-sub { font-size: 11px; font-weight: 600; opacity: 0.95; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
     h3 { margin: 0; font-weight: 600; color: #1f2937; }
@@ -2252,7 +2254,7 @@ export async function GET(req: Request, { params }: RouteProps) {
         admin.from(table).select(cols).eq("inspection_id", inspectionId).order("created_at", { ascending: true });
       const [f, ph, eq, di, ch, rf, li, nt, rb] = await Promise.all([
         sel("findings", "id,title,observation,implication,recommendation,severity,section,component,report_item_number,defect_type"),
-        sel("photos", "id,finding_id,file_path,thumbnail_path,caption,is_video"),
+        sel("photos", "id,finding_id,file_path,thumbnail_path,thumbnail_url,caption,is_video"),
         sel("equipment_inventory", "id,equipment_type,manufacturer,model,serial,manufacture_year,estimated_age,capacity,fuel_type,condition,notes,file_path,thumbnail_path"),
         sel("report_disclaimers", "id,topic,disclaimer_text"),
         sel("section_checklist_selections", "id,section,group_title,value,custom_text"),
