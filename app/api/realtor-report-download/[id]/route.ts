@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-09-05-photo-single-height-cap";
+const PDF_TEMPLATE_VERSION = "2026-09-05-video-poster-overlay";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -1213,20 +1213,42 @@ function buildAgentReportHtml({
 
     const findingsHtml = group.findings.map((finding: any) => {
       const sectionItemNumber = String(finding.report_item_number || "");
-      // Only render still images. A video whose poster/thumbnail didn't resolve
-      // leaves a plain video-file URL that an <img> can't display (blank box);
-      // drop those so the PDF never shows an empty photo.
+      const videoExt = /\.(mp4|mov|m4v|webm|avi|quicktime)(\?|#|$)/i;
+      // Keep still images AND videos. A video shows its poster frame with a
+      // "Video — view on web" overlay (like Spectora); the only thing we drop is
+      // a still-image entry whose URL somehow points at a raw video file (an
+      // <img> would render a blank box for that).
       const photos = (Array.isArray(finding.photos) ? finding.photos : [])
-        .filter(
-          (photo: any) =>
-            cleanText(photo?.download_url) &&
-            !/\.(mp4|mov|m4v|webm|avi|quicktime)(\?|#|$)/i.test(String(photo.download_url)),
-        )
+        .filter((photo: any) => {
+          const url = cleanText(photo?.download_url);
+          if (!url) return false;
+          if (isVideoPhoto(photo)) return true;
+          return !videoExt.test(url);
+        })
         .slice(0, isFull ? 6 : 3);
 
       const photoCountClass = photos.length === 1 ? "one" : photos.length === 2 ? "two" : "";
+      const renderPhoto = (photo: any) => {
+        const url = cleanText(photo.download_url);
+        if (!isVideoPhoto(photo)) {
+          return `<img src="${escapeHtml(url)}" alt="Finding photo" />`;
+        }
+        // Video: show the poster frame (if the resolved URL is an image) with a
+        // play overlay linking to the online report where it can be watched.
+        const hasPoster = url && !videoExt.test(url);
+        const inner = hasPoster
+          ? `<img src="${escapeHtml(url)}" alt="Video preview" />`
+          : `<span class="video-placeholder-inner"></span>`;
+        const overlay =
+          `<span class="video-badge"><span class="video-play">&#9658;</span>` +
+          `<span class="video-label">Video</span>` +
+          `${onlineReportUrl ? `<span class="video-sub">click to view on web</span>` : ""}</span>`;
+        return onlineReportUrl
+          ? `<a class="video-media" href="${escapeHtml(onlineReportUrl)}">${inner}${overlay}</a>`
+          : `<span class="video-media">${inner}${overlay}</span>`;
+      };
       const photoHtml = photos.length
-        ? `<div class="photos ${photoCountClass}">${photos.map((photo: any) => `<img src="${escapeHtml(photo.download_url)}" alt="Finding photo" />`).join("")}</div>`
+        ? `<div class="photos ${photoCountClass}">${photos.map(renderPhoto).join("")}</div>`
         : "";
 
       const note = (label: string, value: any, cls = "") => {
@@ -1566,6 +1588,17 @@ function buildAgentReportHtml({
        so a single tall photo can't balloon onto its own page and leave the
        finding text stranded on a half-empty page above it. */
     .photos.one img { width: auto; max-width: 100%; max-height: 470px; margin: 0 auto; }
+    /* Video: poster frame + a play overlay that links to the online report. */
+    .video-media { position: relative; display: block; overflow: hidden; border-radius: 4px; background: #1f2937; text-decoration: none; }
+    .video-media img { display: block; width: 100%; height: auto; max-height: 470px; object-fit: cover; }
+    /* Win over .photos.one img (which sets width:auto) so a single video poster
+       fills the column and the overlay stays aligned to it. */
+    .photos.one .video-media img { width: 100%; height: auto; max-height: 470px; margin: 0; object-fit: cover; }
+    .video-placeholder-inner { display: block; width: 100%; padding-top: 60%; }
+    .video-badge { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(15, 23, 42, 0.30); color: #fff; }
+    .video-play { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; padding-left: 3px; border-radius: 999px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(255, 255, 255, 0.92); font-size: 20px; line-height: 1; }
+    .video-label { font-size: 15px; font-weight: 800; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
+    .video-sub { font-size: 11px; font-weight: 600; opacity: 0.95; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
     h3 { margin: 0; font-weight: 600; color: #1f2937; }
 
     .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 26px; margin-bottom: 4px; }
