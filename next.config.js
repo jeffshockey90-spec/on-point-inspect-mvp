@@ -101,6 +101,8 @@ const nextConfig = {
     "/api/repair-video": ["./node_modules/ffmpeg-static/ffmpeg"],
     "/api/convert-video": ["./node_modules/ffmpeg-static/ffmpeg"],
     "/api/video-convert": ["./node_modules/ffmpeg-static/ffmpeg"],
+    // Nightly job that extracts a poster frame from videos missing one.
+    "/api/cron/backfill-video-posters": ["./node_modules/ffmpeg-static/ffmpeg"],
 
     // Ship Chromium inside the PDF functions. Without this, @sparticuz/chromium
     // has no binary in the traced bundle and the routes fall back to pulling a
