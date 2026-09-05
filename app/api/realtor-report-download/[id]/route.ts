@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-09-05-photo-recompress-natural-aspect-noframe";
+const PDF_TEMPLATE_VERSION = "2026-09-05-photo-single-height-cap";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -1562,6 +1562,10 @@ function buildAgentReportHtml({
        nothing gets cut off and nothing is forced vertical. No border/frame —
        the photo sits flush, Spectora-style. */
     .photos img { width: 100%; height: auto; display: block; border-radius: 4px; }
+    /* Cap a lone photo's height (width scales with it — no crop, no distortion)
+       so a single tall photo can't balloon onto its own page and leave the
+       finding text stranded on a half-empty page above it. */
+    .photos.one img { width: auto; max-width: 100%; max-height: 470px; margin: 0 auto; }
     h3 { margin: 0; font-weight: 600; color: #1f2937; }
 
     .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 26px; margin-bottom: 4px; }
