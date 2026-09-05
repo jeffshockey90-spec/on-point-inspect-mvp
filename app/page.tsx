@@ -1,4 +1,4 @@
-
+﻿
 import { formatAppValue, currentLocalDate } from "../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -20,6 +20,9 @@ import CommandSearchTrigger from "../components/CommandSearchTrigger";
 import SetupChecklist from "../components/SetupChecklist";
 import DashboardTrends from "../components/DashboardTrends";
 import DashboardGrid from "../components/DashboardGrid";
+import PipelineBoard from "../components/PipelineBoard";
+import AttentionQueue from "../components/AttentionQueue";
+import TodayRoute from "../components/TodayRoute";
 import { normalizeLayout } from "../lib/dashboard/dashboardLayout";
 import {
   Plus,
@@ -463,7 +466,10 @@ function getInspectionAttentionItems({
   repairSharesByInspectionId: Record<string, any[]>;
   responsesByShareId: Record<string, any[]>;
 }) {
-  const items: string[] = [];
+  // Each item carries a `key` (what kind of follow-up it is) alongside its
+  // human label, so the dashboard's Needs Attention queue can offer the right
+  // one-tap action per row (Request Payment / Send Agreement / Review / Open).
+  const items: { key: string; label: string }[] = [];
   const published = isPublished(inspection);
   const paymentComplete = isPaymentComplete(inspection);
   const agreementStats = getAgreementStatsForInspection({
@@ -483,21 +489,33 @@ function getInspectionAttentionItems({
     return getRepairShareStatus(share, responses.length) === "responded";
   });
 
-  if (!published) items.push("Draft report");
+  if (!published) items.push({ key: "draft", label: "Draft report" });
   if (agreementStats.unsignedCount > 0) {
-    items.push(`${agreementStats.unsignedCount} agreement${agreementStats.unsignedCount === 1 ? "" : "s"} unsigned`);
+    items.push({
+      key: "agreement",
+      label: `${agreementStats.unsignedCount} agreement${agreementStats.unsignedCount === 1 ? "" : "s"} unsigned`,
+    });
   }
   if (!paymentComplete) {
     const balance = getBalanceDue(inspection);
-    items.push(balance > 0 ? `${money(balance)} balance due` : "Payment not complete");
+    items.push({
+      key: "payment",
+      label: balance > 0 ? `${money(balance)} balance due` : "Payment not complete",
+    });
   }
   if (waitingRepairShares.length > 0) {
-    items.push(`${waitingRepairShares.length} repair request${waitingRepairShares.length === 1 ? "" : "s"} waiting`);
+    items.push({
+      key: "repair-waiting",
+      label: `${waitingRepairShares.length} repair request${waitingRepairShares.length === 1 ? "" : "s"} waiting`,
+    });
   }
   if (respondedRepairShares.length > 0) {
-    items.push(`${respondedRepairShares.length} seller response${respondedRepairShares.length === 1 ? "" : "s"} ready`);
+    items.push({
+      key: "repair-responded",
+      label: `${respondedRepairShares.length} seller response${respondedRepairShares.length === 1 ? "" : "s"} ready`,
+    });
   }
-  if (isTodayInspection(inspection)) items.push("Scheduled today");
+  if (isTodayInspection(inspection)) items.push({ key: "today", label: "Scheduled today" });
 
   return items;
 }
@@ -538,6 +556,10 @@ export default async function HomePage() {
     "client_name",
     "realtor_name",
     "inspection_date",
+    "inspection_time",
+    "city",
+    "state",
+    "zip",
     "created_at",
     "published",
     "report_status",
@@ -587,7 +609,7 @@ export default async function HomePage() {
   const inspectionIds = inspections.map((inspection: any) => Number(inspection.id)).filter(Boolean);
 
   // These five reads are independent, so run them in parallel instead of
-  // sequentially — the dashboard waits for the slowest one, not the sum.
+  // sequentially â€” the dashboard waits for the slowest one, not the sum.
   const emptyQueryResult = { data: [] as any[], error: null } as any;
   const [
     activityResult,
@@ -704,6 +726,29 @@ export default async function HomePage() {
     .slice(0, 8);
 
   const todayInspections = inspections.filter(isTodayInspection);
+
+  // Today's stops in appointment order, serialized for the Today's Route widget.
+  // Distance-optimized ordering + the office origin live on the /route planner;
+  // the dashboard just surfaces the day's stops with one-tap directions.
+  const todayStops = todayInspections
+    .slice()
+    .sort((a: any, b: any) =>
+      String(a.inspection_time || "~").localeCompare(String(b.inspection_time || "~")),
+    )
+    .map((insp: any) => {
+      const address = getAddress(insp);
+      const locality = [insp.city, insp.state, insp.zip].filter(Boolean).join(", ");
+      const full = [address, locality].filter(Boolean).join(", ");
+      return {
+        id: String(insp.id),
+        time: insp.inspection_time || null,
+        address,
+        locality,
+        client: insp.client_name || "",
+        mapsQuery: encodeURIComponent(full || address),
+      };
+    });
+
   const draftReports = inspections.filter((inspection: any) => !isPublished(inspection));
   const publishedReports = inspections.filter(isPublished);
   const unpaidInspections = inspections.filter((inspection: any) => !isPaymentComplete(inspection));
@@ -787,6 +832,17 @@ export default async function HomePage() {
     .filter((item: any) => item.items.length > 0);
 
   const needsAttentionCount = attentionItems.length;
+
+  // Serialize the attention list for the interactive client action queue — it
+  // needs plain data (no inspection objects) so it can render inline one-tap
+  // actions (Request Payment / Send Agreement) that POST to the send routes.
+  const attentionQueue = attentionItems.slice(0, 8).map(({ inspection, items }: any) => ({
+    id: String(inspection.id),
+    address: getAddress(inspection),
+    client: inspection.client_name || "",
+    items: items.map((i: any) => ({ key: i.key, label: i.label })),
+  }));
+
   const totalBalanceDue = unpaidInspections.reduce(
     (sum: number, inspection: any) => sum + getBalanceDue(inspection),
     0
@@ -834,12 +890,24 @@ export default async function HomePage() {
     count: jobsWithStage.filter((job: any) => job.stage === stage.key).length,
   }));
 
-  const activeJobs = jobsWithStage
-    .filter((job: any) => job.stage !== "delivered")
-    .slice(0, 8);
+  // Serialize the jobs (all stages) for the interactive client PipelineBoard â€”
+  // it filters by stage on the client, so it needs every job, not just active.
+  const pipelineJobs = jobsWithStage.map(({ inspection, stage }: any) => {
+    const paid = isPaymentComplete(inspection);
+    const balance = getBalanceDue(inspection);
+    return {
+      id: String(inspection.id),
+      address: getAddress(inspection),
+      client: inspection.client_name || "",
+      stage,
+      paid,
+      paymentLabel: paid ? "Paid" : balance > 0 ? `${money(balance)} due` : "Due",
+      dateLabel: formatInspectionDate(inspection.inspection_date),
+    };
+  });
 
   // Last 6 months of inspections + revenue, bucketed by the date the inspection
-  // actually happened (inspection_date), NOT when the record was created — so a
+  // actually happened (inspection_date), NOT when the record was created â€” so a
   // job on the 1st of this month lands in this month even if it was booked
   // weeks earlier. Falls back to created_at for records with no inspection_date.
   const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -887,7 +955,7 @@ export default async function HomePage() {
             <div>
               <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--fl-accent)]" />
-                FLOW · Command Center
+                FLOW Â· Command Center
               </p>
 
               <h1 className="text-[28px] font-semibold tracking-tight text-[var(--fl-text)] md:text-[34px]">
@@ -895,7 +963,7 @@ export default async function HomePage() {
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fl-muted)]">
-                Inspections, report delivery, payments, agreements, and repair requests — all in one place.
+                Inspections, report delivery, payments, agreements, and repair requests â€” all in one place.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2.5">
@@ -958,48 +1026,7 @@ export default async function HomePage() {
 
             ) },
             { id: "pipeline", node: (
-        <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
-                Pipeline
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
-                Every job, at a glance
-              </h2>
-            </div>
-            <Link
-              href="/reports"
-              className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
-            >
-              All Reports
-            </Link>
-          </div>
-          <PipelineFunnel stages={pipelineCounts} />
-        </section>
-
-            ) },
-            { id: "active-jobs", node: (
-        <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
-                Active Jobs
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
-                {activeJobs.length} in progress
-              </h2>
-            </div>
-            <Link
-              href="/reports"
-              className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
-            >
-              View all
-            </Link>
-          </div>
-          <JobsTable jobs={activeJobs} />
-        </section>
-
+        <PipelineBoard stages={pipelineCounts} jobs={pipelineJobs} />
             ) },
             { id: "trends", node: (
         <DashboardTrends data={monthlyTrends} />
@@ -1019,7 +1046,7 @@ export default async function HomePage() {
 
                 <p className="mt-2 text-sm text-[var(--fl-muted)]">
                   {nextInspection
-                    ? `${nextInspection.client_name || "No client listed"} • ${formatInspectionDate(
+                    ? `${nextInspection.client_name || "No client listed"} â€¢ ${formatInspectionDate(
                         nextInspection.inspection_date
                       )}`
                     : "Create your first inspection to get started."}
@@ -1112,7 +1139,7 @@ export default async function HomePage() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-                  Showing draft reports, unpaid reports, unsigned agreements, and repair requests that need follow-up.
+                  One-tap follow-up on drafts, unsigned agreements, unpaid invoices, and repair responses.
                 </p>
               </div>
 
@@ -1121,32 +1148,13 @@ export default async function HomePage() {
               </span>
             </div>
 
-            <div className="mt-5 space-y-3">
-              {attentionItems.slice(0, 8).map(({ inspection, items }: any) => (
-                <Link
-                  key={inspection.id}
-                  href={`/reports/${inspection.id}`}
-                  className="block rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 transition hover:border-yellow-400/70 active:scale-[0.99]"
-                >
-                  <p className="font-semibold text-[var(--fl-text)]">
-                    {getAddress(inspection)}
-                  </p>
-
-                  <p className="mt-1 text-xs text-[var(--fl-muted)]">
-                    {items.slice(0, 3).join(" • ")}
-                  </p>
-                </Link>
-              ))}
-
-              {attentionItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm text-[var(--fl-muted)]">
-                  No reports needing attention right now.
-                </div>
-              ) : null}
-            </div>
+            <AttentionQueue rows={attentionQueue} />
           </section>
         </section>
 
+            ) },
+            { id: "today-route", node: (
+        <TodayRoute stops={todayStops} />
             ) },
             { id: "activity-metrics", node: (
         <section className="grid gap-4 md:grid-cols-4">
@@ -1310,7 +1318,7 @@ export default async function HomePage() {
                         </p>
 
                         <p className="mt-1 truncate text-sm text-[var(--fl-muted)]">
-                          {log.recipient_email || log.recipient || "Unknown recipient"} · {address}
+                          {log.recipient_email || log.recipient || "Unknown recipient"} Â· {address}
                         </p>
                       </div>
 
@@ -1427,17 +1435,6 @@ function ActivityMetric({
   );
 }
 
-const STAGE_META: Record<
-  string,
-  { label: string; color: string; chip: string; dot: string }
-> = {
-  scheduled: { label: "Scheduled", color: "text-[var(--fl-info-text)]", chip: "border-sky-500/40 bg-sky-500/10", dot: "bg-sky-400" },
-  report: { label: "In Report", color: "text-[var(--fl-purple-text)]", chip: "border-violet-500/40 bg-violet-500/10", dot: "bg-violet-400" },
-  agreement: { label: "Agreement", color: "text-[var(--fl-warn-text)]", chip: "border-amber-500/40 bg-amber-500/10", dot: "bg-amber-400" },
-  payment: { label: "Payment", color: "text-[var(--fl-warn-text)]", chip: "border-orange-500/40 bg-orange-500/10", dot: "bg-orange-400" },
-  delivered: { label: "Delivered", color: "text-[var(--fl-good-text)]", chip: "border-emerald-500/40 bg-emerald-500/10", dot: "bg-emerald-400" },
-};
-
 function KpiTile({
   label,
   value,
@@ -1468,135 +1465,6 @@ function KpiTile({
         {value}
       </p>
       <p className="mt-2 text-sm text-[var(--fl-muted)]">{sub}</p>
-    </div>
-  );
-}
-
-function PipelineFunnel({
-  stages,
-}: {
-  stages: { key: string; label: string; hint: string; count: number }[];
-}) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-      {stages.map((stage, index) => {
-        const meta = STAGE_META[stage.key] || STAGE_META.report;
-
-        return (
-          <div
-            key={stage.key}
-            className="relative rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4"
-          >
-            <div className="flex items-center justify-between">
-              <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
-              <span className="font-mono text-[26px] font-semibold tabular-nums text-[var(--fl-text)]">
-                {stage.count}
-              </span>
-            </div>
-            <p className={`mt-3 text-sm font-semibold ${meta.color}`}>
-              {stage.label}
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--fl-muted)]">{stage.hint}</p>
-            {index < stages.length - 1 ? (
-              <span className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-xl text-[var(--fl-faint)] lg:block">
-                ›
-              </span>
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function StagePill({ stage }: { stage: string }) {
-  const meta = STAGE_META[stage] || STAGE_META.report;
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${meta.chip} ${meta.color}`}
-    >
-      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-      {meta.label}
-    </span>
-  );
-}
-
-function PaymentChip({ inspection }: { inspection: any }) {
-  const paid = isPaymentComplete(inspection);
-  const balance = getBalanceDue(inspection);
-
-  return (
-    <span
-      className={
-        paid
-          ? "text-xs font-semibold text-[var(--fl-good-text)]"
-          : "text-xs font-semibold text-[var(--fl-warn-text)]"
-      }
-    >
-      {paid ? "Paid" : balance > 0 ? `${money(balance)} due` : "Due"}
-    </span>
-  );
-}
-
-function JobsTable({
-  jobs,
-}: {
-  jobs: { inspection: any; stage: string }[];
-}) {
-  if (jobs.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center text-sm text-[var(--fl-muted)]">
-        No active jobs - everything is delivered. Nice work.
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] border-collapse text-left">
-        <thead>
-          <tr className="border-b border-[var(--fl-raised)] text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fl-faint)]">
-            <th className="px-3 py-2.5">Property / Client</th>
-            <th className="px-3 py-2.5">Stage</th>
-            <th className="px-3 py-2.5">Payment</th>
-            <th className="px-3 py-2.5">Date</th>
-            <th className="px-3 py-2.5 text-right">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {jobs.map(({ inspection, stage }) => (
-            <tr
-              key={inspection.id}
-              className="border-b border-[var(--fl-raised)] transition-colors hover:bg-white/[0.02]"
-            >
-              <td className="px-3 py-3">
-                <p className="font-semibold text-[var(--fl-text)]">{getAddress(inspection)}</p>
-                <p className="text-xs text-[var(--fl-muted)]">
-                  {inspection.client_name || "No client listed"}
-                </p>
-              </td>
-              <td className="px-3 py-3">
-                <StagePill stage={stage} />
-              </td>
-              <td className="px-3 py-3">
-                <PaymentChip inspection={inspection} />
-              </td>
-              <td className="px-3 py-3 font-mono text-sm tabular-nums text-[var(--fl-muted)]">
-                {formatInspectionDate(inspection.inspection_date)}
-              </td>
-              <td className="px-3 py-3 text-right">
-                <Link
-                  href={`/reports/${inspection.id}`}
-                  className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent)] transition-colors hover:border-[var(--fl-accent)]/50 hover:bg-[var(--fl-accent)]/10"
-                >
-                  Open
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }

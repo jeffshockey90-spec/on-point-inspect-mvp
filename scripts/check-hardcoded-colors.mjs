@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Fails if a themed UI file uses a HARDCODED hex color in a Tailwind arbitrary
 // color utility (bg-[#..], text-[#..], border-[#..], via-[#..], etc.). Those
-// don't flip with the light/dark theme tokens (--fl-*), which is exactly how
-// light mode ends up broken. Design rule: never hard-code a color in a class —
-// use bg-[var(--fl-*)] instead. (Competitive UX audit item #2.)
+// don't flip with the light/dark theme tokens (the fl- CSS vars), which is
+// exactly how light mode ends up broken. Design rule: never hard-code a color
+// in a class — route through an fl- design token instead. (UX audit item #2.)
 //
 // Intentionally-fixed-theme surfaces are allowlisted below (PDF/print, email,
 // the marketing site, standalone error/payment pages that render before the
@@ -81,12 +81,12 @@ if (offenders.length === 0) {
   process.exit(0);
 }
 
-console.error(`❌ ${offenders.length} hardcoded color(s) in themed UI — use bg-[var(--fl-*)] tokens so light/dark work:\n`);
+console.error(`❌ ${offenders.length} hardcoded color(s) in themed UI — use fl- design tokens so light/dark work:\n`);
 for (const o of offenders) {
   console.error(`  ${o.file}:${o.line}  ${o.hits.join("  ")}`);
 }
 console.error(
-  `\nRule: never hard-code a hex in a class. Route through the --fl-* design tokens.\n` +
+  `\nRule: never hard-code a hex in a class. Route through the fl- design tokens.\n` +
     `If a file is a genuinely fixed-theme surface (PDF/print/email/marketing), add it to ALLOW in scripts/check-hardcoded-colors.mjs.`,
 );
 process.exit(1);

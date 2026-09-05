@@ -21,7 +21,7 @@ export const DASHBOARD_WIDGETS: {
   { id: "kpis", title: "Revenue & Status", defaultSize: "full" },
   { id: "pipeline", title: "Pipeline", defaultSize: "full" },
   { id: "next-attention", title: "Next Up & Needs Attention", defaultSize: "full" },
-  { id: "active-jobs", title: "Active Jobs", defaultSize: "full", defaultVisible: false },
+  { id: "today-route", title: "Today's Route", defaultSize: "half" },
   { id: "trends", title: "Trends", defaultSize: "half", defaultVisible: false },
   { id: "activity-metrics", title: "Engagement", defaultSize: "full", defaultVisible: false },
   { id: "recent-tools", title: "Recent Activity & Tools", defaultSize: "full", defaultVisible: false },

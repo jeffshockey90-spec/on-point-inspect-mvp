@@ -437,7 +437,7 @@ img {
 
 /* ---- Light mode -------------------------------------------------------------
    The same token names, flipped to a considered light palette. Every screen
-   that draws its neutrals from these tokens (bg-[var(--fl-*)], text-white ->
+   that draws its neutrals from these tokens (the fl- CSS vars, text-white ->
    var(--fl-text), etc.) switches automatically. The toggle sets data-theme on
    <html>; dark is the default when nothing is set. Accents stay in the same
    family, darkened just enough to stay legible on white. ------------------- */
