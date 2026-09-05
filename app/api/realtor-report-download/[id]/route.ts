@@ -644,7 +644,10 @@ async function signedPdfImageUrlMap(admin: any, paths: string[]) {
         const { data } = await admin.storage
           .from("inspection-photos")
           .createSignedUrl(path, 60 * 60, {
-            transform: { width: 900, quality: 78, resize: "contain" },
+            // Feed sharp a generous, high-quality source so the final downscale
+            // stays crisp. The old 900px/q78 pre-shrink capped detail before
+            // sharp even ran, which is why PDF photos looked soft.
+            transform: { width: 2000, quality: 85, resize: "contain" },
           });
         const signed = data?.signedUrl;
         if (!signed) continue;
@@ -652,10 +655,13 @@ async function signedPdfImageUrlMap(admin: any, paths: string[]) {
         const resp = await fetch(signed);
         if (!resp.ok) continue;
         const input = Buffer.from(await resp.arrayBuffer());
+        // 1400px @ q74 prints crisply at every layout (single photos display
+        // large, grid tiles ~235px) while keeping the PDF in Spectora's size
+        // range. The old 660px @ q58 was the main cause of blurry report photos.
         const out = await sharp(input)
           .rotate()
-          .resize(660, null, { withoutEnlargement: true })
-          .jpeg({ quality: 58, mozjpeg: true })
+          .resize(1400, null, { withoutEnlargement: true })
+          .jpeg({ quality: 74, mozjpeg: true })
           .toBuffer();
         result[path] = `data:image/jpeg;base64,${out.toString("base64")}`;
       } catch (imageError) {
@@ -664,7 +670,7 @@ async function signedPdfImageUrlMap(admin: any, paths: string[]) {
           const { data } = await admin.storage
             .from("inspection-photos")
             .createSignedUrl(path, 60 * 60 * 24 * 7, {
-              transform: { width: 680, quality: 58, resize: "contain" },
+              transform: { width: 1400, quality: 74, resize: "contain" },
             });
           if (data?.signedUrl) result[path] = data.signedUrl;
         } catch {
@@ -1546,8 +1552,14 @@ function buildAgentReportHtml({
     .note-rec .note-k { color: #0f8f8f; }
     .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
     .photos.two { grid-template-columns: repeat(2, 1fr); }
-    .photos.one { grid-template-columns: minmax(0, 440px); }
-    .photos img { width: 100%; height: 208px; object-fit: cover; border-radius: 5px; border: 1px solid #e5e7eb; display: block; }
+    .photos.one { grid-template-columns: minmax(0, 480px); }
+    /* Clean uniform grid like Spectora: portrait-ish tiles. A phone photo is
+       landscape, so a portrait tile crops the SIDES, never the top/bottom —
+       which keeps vertical subjects (down-arrows, downspouts) fully in frame.
+       The old short-and-wide 208px tile cropped top/bottom and cut them off. */
+    .photos img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center; border-radius: 5px; border: 1px solid #e5e7eb; display: block; background: #f8fafc; }
+    /* A lone photo has room to show whole and large — no crop. */
+    .photos.one img { aspect-ratio: auto; height: auto; object-fit: contain; }
     h3 { margin: 0; font-weight: 600; color: #1f2937; }
 
     .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 26px; margin-bottom: 4px; }
@@ -1556,12 +1568,12 @@ function buildAgentReportHtml({
     .info-v { color: #1f2937; font-weight: 500; }
     .ref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .ref-photo { margin: 0; break-inside: avoid; }
-    .ref-photo img { width: 100%; height: 178px; object-fit: cover; border-radius: 5px; border: 1px solid #e5e7eb; display: block; }
+    .ref-photo img { width: 100%; height: 178px; object-fit: contain; background: #f8fafc; border-radius: 5px; border: 1px solid #e5e7eb; display: block; }
     .ref-photo figcaption { margin-top: 5px; color: #64748b; font-size: 11px; line-height: 1.4; }
 
     .equip-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
     .equip-card { break-inside: avoid; page-break-inside: avoid; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; background: #fbfcfe; }
-    .equip-img { width: 100%; height: 190px; object-fit: cover; border-radius: 5px; border: 1px solid #e5e7eb; display: block; margin-bottom: 12px; }
+    .equip-img { width: 100%; height: 190px; object-fit: contain; background: #f8fafc; border-radius: 5px; border: 1px solid #e5e7eb; display: block; margin-bottom: 12px; }
     .equip-type { margin: 0; color: #0f8f8f; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
     .equip-name { margin: 4px 0 10px; color: #1f2937; font-size: 16px; font-weight: 600; }
     .equip-rows { display: grid; gap: 5px; }

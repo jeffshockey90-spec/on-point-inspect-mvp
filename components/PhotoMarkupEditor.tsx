@@ -571,11 +571,17 @@ function PhotoMarkupEditor({
     setMessageType("");
 
     try {
-      // Export the visible photo and markup as one permanent image.
+      // Export the visible photo and markup as one permanent image AT THE
+      // PHOTO'S NATIVE RESOLUTION. The stage is only ~900px wide for editing, so
+      // a fixed pixelRatio:2 baked every marked-up photo down to ~1800px and
+      // made them look blurry in the report. Scaling pixelRatio by the source
+      // size keeps the flattened image as sharp as the original (capped so a
+      // huge photo can't blow up canvas memory on mobile).
+      const exportPixelRatio = Math.min(4, Math.max(2, sourceWidth / stageWidth));
       const flattenedDataUrl = stage.toDataURL({
-        pixelRatio: 2,
+        pixelRatio: exportPixelRatio,
         mimeType: "image/jpeg",
-        quality: 0.9,
+        quality: 0.92,
       });
 
       await Promise.race([
