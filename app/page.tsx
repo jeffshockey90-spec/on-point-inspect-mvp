@@ -1,5 +1,5 @@
 ﻿
-import { formatAppValue, currentLocalDate } from "../lib/app-time";
+import { formatAppValue, currentLocalDate, DEFAULT_TIME_ZONE } from "../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -403,10 +403,10 @@ function isRecentActivity(value: any) {
   return Date.now() - date.getTime() <= sevenDaysMs;
 }
 
-function isTodayInspection(inspection: any) {
+function isTodayInspection(inspection: any, timeZone?: string) {
   if (!inspection?.inspection_date) return false;
 
-  const today = currentLocalDate();
+  const today = currentLocalDate(timeZone);
   return String(inspection.inspection_date).slice(0, 10) === today;
 }
 
@@ -424,8 +424,17 @@ function getFirstName(email: string | null | undefined) {
   return first.charAt(0).toUpperCase() + first.slice(1);
 }
 
-function getGreeting() {
-  const hour = new Date().getHours();
+function getGreeting(timeZone?: string) {
+  // Compute the hour in the USER's time zone, not the server's (Vercel = UTC),
+  // so it doesn't say "Good evening" during an Eastern afternoon.
+  const hour =
+    Number(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: timeZone || DEFAULT_TIME_ZONE,
+        hour: "numeric",
+        hour12: false,
+      }).format(new Date()),
+    ) % 24;
 
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
@@ -458,6 +467,7 @@ function getInspectionAttentionItems({
   signedAgreementMap,
   repairSharesByInspectionId,
   responsesByShareId,
+  timeZone,
 }: {
   inspection: any;
   activityLogs: any[];
@@ -465,6 +475,7 @@ function getInspectionAttentionItems({
   signedAgreementMap: Map<string, any>;
   repairSharesByInspectionId: Record<string, any[]>;
   responsesByShareId: Record<string, any[]>;
+  timeZone?: string;
 }) {
   // Each item carries a `key` (what kind of follow-up it is) alongside its
   // human label, so the dashboard's Needs Attention queue can offer the right
@@ -515,7 +526,7 @@ function getInspectionAttentionItems({
       label: `${respondedRepairShares.length} seller response${respondedRepairShares.length === 1 ? "" : "s"} ready`,
     });
   }
-  if (isTodayInspection(inspection)) items.push({ key: "today", label: "Scheduled today" });
+  if (isTodayInspection(inspection, timeZone)) items.push({ key: "today", label: "Scheduled today" });
 
   return items;
 }
@@ -537,9 +548,13 @@ export default async function HomePage() {
 
   const { data: tourProfile } = await supabase
     .from("profiles")
-    .select("dashboard_tour_dismissed_at, dashboard_layout")
+    .select("dashboard_tour_dismissed_at, dashboard_layout, time_zone")
     .eq("id", user.id)
     .maybeSingle();
+
+  // The inspector's saved time zone, so "today" / the greeting are computed in
+  // THEIR zone rather than the server's UTC (or the Eastern fallback).
+  const userTimeZone = (tourProfile as any)?.time_zone || undefined;
 
   const dashboardLayout = normalizeLayout((tourProfile as any)?.dashboard_layout);
 
@@ -725,7 +740,7 @@ export default async function HomePage() {
     )
     .slice(0, 8);
 
-  const todayInspections = inspections.filter(isTodayInspection);
+  const todayInspections = inspections.filter((i: any) => isTodayInspection(i, userTimeZone));
 
   // Today's stops in appointment order, serialized for the Today's Route widget.
   // Distance-optimized ordering + the office origin live on the /route planner;
@@ -827,6 +842,7 @@ export default async function HomePage() {
         signedAgreementMap,
         repairSharesByInspectionId,
         responsesByShareId,
+        timeZone: userTimeZone,
       }),
     }))
     .filter((item: any) => item.items.length > 0);
@@ -855,7 +871,7 @@ export default async function HomePage() {
 
   // Assign every inspection to a single pipeline stage - its earliest
   // incomplete step - so the funnel reads as a true funnel.
-  const todayKey = currentLocalDate();
+  const todayKey = currentLocalDate(userTimeZone);
 
   const stageForInspection = (inspection: any): string => {
     if (!isPublished(inspection)) {
@@ -959,7 +975,7 @@ export default async function HomePage() {
               </p>
 
               <h1 className="text-[28px] font-semibold tracking-tight text-[var(--fl-text)] md:text-[34px]">
-                {getGreeting()}, {getFirstName(user.email)}
+                {getGreeting(userTimeZone)}, {getFirstName(user.email)}
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fl-muted)]">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 
 export default async function MyReportsPage() {
@@ -7,6 +8,9 @@ export default async function MyReportsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Require sign-in — without this an anonymous visitor just hit an empty state.
+  if (!user) redirect("/login?redirectedFrom=%2Fmy-reports");
 
   const { data: access } = await supabase
     .from("report_access")

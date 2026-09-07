@@ -279,7 +279,14 @@ export default function AILiveInspectionCamera({
 
       const stream = streamRef.current;
       const videoTrack = stream?.getVideoTracks?.()[0];
-      const dead = !stream || !videoTrack || videoTrack.readyState === "ended";
+      // iOS often leaves the video track LIVE but MUTED after a phone call /
+      // interruption (readyState stays "live", track.muted === true) — the
+      // preview then shows black frames. Treat that as dead and re-acquire.
+      const dead =
+        !stream ||
+        !videoTrack ||
+        videoTrack.readyState === "ended" ||
+        videoTrack.muted === true;
 
       if (dead) {
         try {

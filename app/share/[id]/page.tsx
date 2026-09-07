@@ -1323,23 +1323,29 @@ export default async function PublicSharePage({
     }).catch(() => {});
   }
 
-  const { data: findingsRaw, error: findingsError } = await supabase
-    .from("findings")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .order("created_at", { ascending: true });
-
-  const { data: reportSectionsRaw } = await supabase
-    .from("report_section_overrides")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .order("sort_order", { ascending: true });
-
-  // Per-section notes written by the inspector, shown above each section.
-  const { data: sectionNotesRaw } = await supabase
-    .from("report_section_notes")
-    .select("section_name, notes")
-    .eq("inspection_id", inspectionId);
+  // These three reads only depend on inspectionId and are independent of each
+  // other — run them in one parallel wave instead of three serial round-trips.
+  const [
+    { data: findingsRaw, error: findingsError },
+    { data: reportSectionsRaw },
+    { data: sectionNotesRaw },
+  ] = await Promise.all([
+    supabase
+      .from("findings")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("report_section_overrides")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("sort_order", { ascending: true }),
+    // Per-section notes written by the inspector, shown above each section.
+    supabase
+      .from("report_section_notes")
+      .select("section_name, notes")
+      .eq("inspection_id", inspectionId),
+  ]);
 
   const notesBySection: Record<string, string> = {};
   for (const row of sectionNotesRaw || []) {
@@ -1591,17 +1597,19 @@ export default async function PublicSharePage({
       }
     : null;
 
-  const { data: checklistRows } = await supabase
-    .from("section_checklist_selections")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .order("created_at", { ascending: true });
-
-  const { data: limitationRows } = await supabase
-    .from("section_limitations")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .order("created_at", { ascending: true });
+  // Independent reads — one parallel wave.
+  const [{ data: checklistRows }, { data: limitationRows }] = await Promise.all([
+    supabase
+      .from("section_checklist_selections")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("section_limitations")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true }),
+  ]);
 
   const limitationIds = (limitationRows || []).map((item: any) => item.id);
 
@@ -1814,17 +1822,10 @@ export default async function PublicSharePage({
       "",
   }));
 
-  const { data: moldTest } = await supabase
-    .from("mold_tests")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .maybeSingle();
-
-  const { data: radonTest } = await supabase
-    .from("radon_tests")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .maybeSingle();
+  const [{ data: moldTest }, { data: radonTest }] = await Promise.all([
+    supabase.from("mold_tests").select("*").eq("inspection_id", inspectionId).maybeSingle(),
+    supabase.from("radon_tests").select("*").eq("inspection_id", inspectionId).maybeSingle(),
+  ]);
 
   const moldReportUrl = moldTest?.lab_report_url || "";
   const radonReportUrl = radonTest?.report_url || "";
