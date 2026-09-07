@@ -854,6 +854,50 @@ export async function POST(request: Request) {
       });
     }
 
+    // Atomically CLAIM this booking before doing any side effects. Two concurrent
+    // confirms (double-click, two owners, a slow email send) both read status
+    // "pending" and would each create an inspection + send a duplicate "Inspection
+    // Confirmed" email. A conditional update gated on the exact status we observed
+    // is atomic in Postgres: only the FIRST writer matches a row still in that
+    // status and flips it; the loser matches 0 rows and returns the confirmed
+    // state instead of re-running.
+    const claimStatus = bookingRequest.status;
+    const nowIso = new Date().toISOString();
+    const { data: claimedRows, error: claimError } = await admin
+      .from("booking_requests")
+      .update(
+        compactUpdatePayload({
+          status: "confirmed",
+          inspector_id: user.id,
+          reviewed_by: user.id,
+          reviewed_at: nowIso,
+          updated_at: nowIso,
+        })
+      )
+      .eq("id", requestId)
+      .eq("status", claimStatus)
+      .select("id");
+
+    if (claimError) {
+      return NextResponse.json(
+        { error: claimError.message || "Could not claim booking request." },
+        { status: 500 }
+      );
+    }
+    if (!claimedRows || claimedRows.length === 0) {
+      // Another request already claimed/confirmed this booking — don't duplicate.
+      const { data: current } = await admin
+        .from("booking_requests")
+        .select("*")
+        .eq("id", requestId)
+        .maybeSingle();
+      return NextResponse.json({
+        ok: true,
+        request: current || bookingRequest,
+        alreadyConfirmed: true,
+      });
+    }
+
     if (!inspectionId) {
       const payload = getInspectionPayload(
         bookingRequest,
@@ -871,6 +915,20 @@ export async function POST(request: Request) {
         inspectionId = result.inspection?.id;
         removedColumns = result.removedColumns;
       } catch (insertFailure: any) {
+        // Creation failed after we claimed the row — roll the claim back to the
+        // original status so the booking can be retried (and isn't stuck showing
+        // "confirmed" with no inspection).
+        await admin
+          .from("booking_requests")
+          .update(
+            compactUpdatePayload({
+              status: claimStatus,
+              inspection_id: null,
+              reviewed_at: null,
+              updated_at: new Date().toISOString(),
+            })
+          )
+          .eq("id", requestId);
         return NextResponse.json(
           {
             error:

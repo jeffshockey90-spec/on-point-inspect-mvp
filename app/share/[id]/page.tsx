@@ -1307,7 +1307,10 @@ export default async function PublicSharePage({
       resolvedSearchParams?.v || resolvedSearchParams?.viewer || ""
     ).trim();
 
-    await recordInspectionView({
+    // Fire-and-forget: view tracking is a non-blocking analytics WRITE and the
+    // report render doesn't depend on it. Awaiting it added a full DB round-trip
+    // to time-to-first-byte on every client view. Let it run alongside the reads.
+    void recordInspectionView({
       inspectionId,
       viewType: "report_share",
       contactId: resolvedSearchParams?.contact || null,
@@ -1317,7 +1320,7 @@ export default async function PublicSharePage({
       sharePathId,
       userAgent: requestUserAgent,
       ipHash: requestIpHash,
-    });
+    }).catch(() => {});
   }
 
   const { data: findingsRaw, error: findingsError } = await supabase

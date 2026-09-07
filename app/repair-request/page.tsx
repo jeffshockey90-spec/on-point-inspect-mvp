@@ -302,8 +302,8 @@ function buildPrintableRepairRequestHtml({
     @page { size: letter; margin: 0.42in; }
     html, body { margin: 0; padding: 0; }
     body {
-      background: var(--fl-ground);
-      color: var(--fl-ground);
+      background: #f1f5f9;
+      color: #0f172a;
       font-family: Arial, Helvetica, sans-serif;
       font-size: 12px;
       line-height: 1.45;
@@ -320,7 +320,7 @@ function buildPrintableRepairRequestHtml({
       min-height: 46px;
       border: 1px solid #14b8a6;
       border-radius: 12px;
-      background: var(--fl-ground);
+      background: #0b1120;
       color: #5eead4;
       padding: 10px 16px;
       font-weight: 900;
@@ -371,7 +371,7 @@ function buildPrintableRepairRequestHtml({
       font-size: 30px;
       line-height: 1.08;
       font-weight: 900;
-      color: var(--fl-ground);
+      color: #0f172a;
     }
     .summary-strip {
       display: grid;
@@ -396,7 +396,7 @@ function buildPrintableRepairRequestHtml({
     }
     .summary-strip strong {
       display: block;
-      color: var(--fl-ground);
+      color: #0f172a;
       font-size: 12px;
       font-weight: 900;
       word-break: break-word;
@@ -418,7 +418,7 @@ function buildPrintableRepairRequestHtml({
       margin: 0 0 12px;
       padding-bottom: 8px;
       border-bottom: 1px solid #cbd5e1;
-      color: var(--fl-ground);
+      color: #0f172a;
       font-size: 18px;
       line-height: 1.2;
       font-weight: 900;
@@ -466,7 +466,7 @@ function buildPrintableRepairRequestHtml({
     }
     .finding-head h4 {
       margin: 0;
-      color: var(--fl-ground);
+      color: #0f172a;
       font-size: 13px;
       line-height: 1.25;
       font-weight: 900;
@@ -504,7 +504,7 @@ function buildPrintableRepairRequestHtml({
     .report-text { margin-top: 9px; }
     .label {
       margin: 0 0 3px;
-      color: var(--fl-ground);
+      color: #0f172a;
       font-size: 12px;
       font-weight: 900;
     }
@@ -526,7 +526,7 @@ function buildPrintableRepairRequestHtml({
     }
     .seller-title {
       margin: 0 0 10px;
-      color: var(--fl-ground);
+      color: #0f172a;
       font-size: 12px;
       font-weight: 900;
     }
@@ -547,7 +547,7 @@ function buildPrintableRepairRequestHtml({
       justify-content: center;
       gap: 8px;
       text-align: center;
-      color: var(--fl-ground);
+      color: #0f172a;
       font-size: 10px;
       font-weight: 900;
     }
@@ -560,7 +560,7 @@ function buildPrintableRepairRequestHtml({
     .notes-wrap {
       display: block;
       margin-top: 12px;
-      color: var(--fl-ground);
+      color: #0f172a;
       font-size: 12px;
       font-weight: 900;
     }
@@ -571,8 +571,8 @@ function buildPrintableRepairRequestHtml({
       margin-top: 7px;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
-      background: var(--fl-ground);
-      color: #ffffff;
+      background: #ffffff;
+      color: #0f172a;
       padding: 9px;
       resize: vertical;
       font-size: 11px;
@@ -1027,9 +1027,39 @@ function RepairRequestContent() {
       setPrintingPdf(true);
       setPdfMessage("Downloading repair request file...");
 
+      // Finding photos aren't loaded with the page (kept light), so fetch them
+      // now with include_photos=1 — otherwise the printable's photo frames are
+      // blank. Merge the signed photo URLs into the selected findings by id.
+      const photosByFindingId: Record<string, any[]> = {};
+      try {
+        const photoQuery = new URLSearchParams({
+          inspection_id: String(inspectionId),
+          include_photos: "1",
+        });
+        if (selectedIds.length) photoQuery.set("selected", selectedIds.join(","));
+        if (initialUrlParams.role) photoQuery.set("role", initialUrlParams.role);
+        if (initialUrlParams.email) photoQuery.set("email", initialUrlParams.email);
+        if (initialUrlParams.token) photoQuery.set("token", initialUrlParams.token);
+        const photoRes = await fetch(
+          `/api/repair-request-public?${photoQuery.toString()}`,
+          { cache: "no-store" },
+        );
+        const photoData = await photoRes.json().catch(() => ({}));
+        if (photoRes.ok && Array.isArray(photoData?.findings)) {
+          for (const f of photoData.findings) {
+            if (Array.isArray(f?.photos) && f.photos.length) {
+              photosByFindingId[String(f.id)] = f.photos;
+            }
+          }
+        }
+      } catch {
+        // Non-fatal: fall back to whatever photos the finding already carries.
+      }
+
       const selectedFindingsWithCredits: Finding[] = selectedFindings.map(
         (finding: Finding) => ({
           ...finding,
+          photos: photosByFindingId[String(finding.id)] || finding.photos || [],
           requested_credit_amount: getFindingCredit(finding, requestedCredits),
         }),
       );

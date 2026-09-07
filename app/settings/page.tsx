@@ -428,6 +428,19 @@ export default async function SettingsPage({
     const company = await getCompanyForUser(supabase, user.id);
     if (!company) redirect("/settings?error=no_company");
 
+    // Company-wide settings (name, branding, fees, SoP, office address) are
+    // owner-only. Without this, any invited inspector could rewrite them — the
+    // `companies` RLS grants write to any member, so the check must live here.
+    const { data: membership } = await supabase
+      .from("company_users")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("company_id", company.id)
+      .maybeSingle();
+    if (membership?.role !== "owner") {
+      redirect("/settings?error=owner_only");
+    }
+
     const onlinePaymentFeeEnabled =
       String(formData.get("online_payment_fee_enabled") || "") === "on";
 

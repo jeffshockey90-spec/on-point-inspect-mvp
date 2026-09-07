@@ -4114,7 +4114,10 @@ function FieldPageContent() {
       );
     } catch (error: any) {
       // Don't lose the inspector's work -- queue it offline to retry automatically.
-      if (snapshot.photos.length > 0 && (isLikelyNetworkError(error) || !isOnline())) {
+      // Applies to text-only findings too (no photos): a dictated/typed note with
+      // no media must not be dropped on a mid-save network failure. The offline
+      // queue accepts an empty media array.
+      if (isLikelyNetworkError(error) || !isOnline()) {
         try {
           await addOfflineQueueItem({
             type: "finding",
@@ -4139,7 +4142,9 @@ function FieldPageContent() {
           });
           clearCompletedProgressSoon();
           setMessage(
-            "A background upload hit a snag — that finding (with its photos and videos) was saved locally and will retry automatically when service is stable.",
+            snapshot.photos.length > 0
+              ? "A background upload hit a snag — that finding (with its photos and videos) was saved locally and will retry automatically when service is stable."
+              : "A background save hit a snag — that finding was saved locally and will retry automatically when service is stable.",
           );
         } catch {
           setMessage(

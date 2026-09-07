@@ -96,6 +96,18 @@ export default async function PublicProfilePage({ searchParams }: PublicProfileP
     const company = await getCompanyForUser(supabase, user.id);
     if (!company) redirect("/settings?error=no_company");
 
+    // Publishing / renaming the public booking profile is owner-only (the
+    // `companies` RLS is member-writable, so enforce it here).
+    const { data: membership } = await supabase
+      .from("company_users")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("company_id", company.id)
+      .maybeSingle();
+    if (membership?.role !== "owner") {
+      redirect("/settings/public-profile?error=owner_only");
+    }
+
     const nextSlug =
       slugifyProfile(formData.get("profile_slug")) ||
       slugifyProfile(formData.get("display_name")) ||
