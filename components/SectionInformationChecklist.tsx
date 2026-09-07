@@ -1210,9 +1210,32 @@ function SectionInformationChecklist({
     }
   }
 
+  // The current inspector — checklist-option customizations are scoped to them,
+  // so one inspector's renames/additions don't leak into or mutate another's.
+  const [inspectorId, setInspectorId] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) setInspectorId(data.user?.id ?? null);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   useEffect(() => {
     async function load() {
       if (!inspectionId || !section) return;
+
+      // Options: this inspector's own rows PLUS legacy rows that predate scoping
+      // (inspector_id is null) so nothing an inspector already customized vanishes.
+      let optionsQuery = supabase
+        .from("section_checklist_options")
+        .select("*")
+        .eq("section", section);
+      optionsQuery = inspectorId
+        ? optionsQuery.or(`inspector_id.eq.${inspectorId},inspector_id.is.null`)
+        : optionsQuery.is("inspector_id", null);
 
       const [selectedResult, overrideResult] = await Promise.all([
         supabase
@@ -1222,11 +1245,7 @@ function SectionInformationChecklist({
           .eq("section", section)
           .order("created_at", { ascending: true }),
 
-        supabase
-          .from("section_checklist_options")
-          .select("*")
-          .eq("section", section)
-          .order("created_at", { ascending: true }),
+        optionsQuery.order("created_at", { ascending: true }),
       ]);
 
       if (!selectedResult.error) {
@@ -1244,7 +1263,7 @@ function SectionInformationChecklist({
     }
 
     load();
-  }, [inspectionId, section]);
+  }, [inspectionId, section, inspectorId]);
 
   function getGroupOptions(group: ChecklistGroup): RenderOption[] {
     const overridesForGroup = optionOverrides.filter((item) => item.group_title === group.title);
@@ -1441,7 +1460,7 @@ function SectionInformationChecklist({
     try {
       const { data, error } = await supabase
         .from("section_checklist_options")
-        .insert({ section, group_title: groupTitle, option_label: `__CUSTOM__:${clean}`, replacement_label: clean, hidden: false })
+        .insert({ section, group_title: groupTitle, option_label: `__CUSTOM__:${clean}`, replacement_label: clean, hidden: false, inspector_id: inspectorId })
         .select("*")
         .single();
       if (error) throw error;
@@ -1476,7 +1495,7 @@ function SectionInformationChecklist({
       } else {
         const { data, error } = await supabase
           .from("section_checklist_options")
-          .insert({ section, group_title: editingOption.groupTitle, option_label: editingOption.optionLabel, replacement_label: clean, hidden: false })
+          .insert({ section, group_title: editingOption.groupTitle, option_label: editingOption.optionLabel, replacement_label: clean, hidden: false, inspector_id: inspectorId })
           .select("*")
           .single();
         if (error) throw error;
@@ -1555,7 +1574,7 @@ function SectionInformationChecklist({
         } else {
           const { data, error } = await supabase
             .from("section_checklist_options")
-            .insert({ section, group_title: groupTitle, option_label: originalLabel, hidden: true })
+            .insert({ section, group_title: groupTitle, option_label: originalLabel, hidden: true, inspector_id: inspectorId })
             .select("*")
             .single();
           if (error) throw error;

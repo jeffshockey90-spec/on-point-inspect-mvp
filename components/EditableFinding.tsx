@@ -319,6 +319,9 @@ function EditableFinding({
     setTemplateLabel("Saving...");
 
     try {
+      // Stamp the owning inspector so saved library entries are scoped to them
+      // (comment_library.inspector_id) rather than saved unowned/global.
+      const { data: authData } = await supabase.auth.getUser();
       const { error } = await supabase.from("comment_library").insert({
         title,
         section,
@@ -327,6 +330,7 @@ function EditableFinding({
         implication,
         recommendation,
         tags: `${section}, ${severity}`,
+        inspector_id: authData?.user?.id ?? null,
       });
 
       if (error) {
