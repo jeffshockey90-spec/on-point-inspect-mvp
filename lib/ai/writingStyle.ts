@@ -59,6 +59,24 @@ export const TONE_OPTIONS: { value: WritingTone; label: string; hint: string }[]
   { value: "clinical", label: "Clinical", hint: "Precise and technical" },
 ];
 
+// One-click "personas" — quick-load combinations of the length/detail/tone
+// dials below (like a report studio's preset formats). Applying one just sets
+// the three global defaults; the inspector can still fine-tune afterward.
+export type WritingPreset = {
+  name: string;
+  hint: string;
+  length: WritingLength;
+  detail: WritingDetail;
+  tone: WritingTone;
+};
+export const WRITING_PRESETS: WritingPreset[] = [
+  { name: "Standard Professional", hint: "Balanced, full narratives", length: "normal", detail: "detailed", tone: "balanced" },
+  { name: "Client-Friendly & Calm", hint: "Plain wording, reassuring", length: "normal", detail: "simplified", tone: "reassuring" },
+  { name: "Concise", hint: "Short and to the point", length: "short", detail: "simplified", tone: "balanced" },
+  { name: "Technical / Compliance", hint: "Full detail, precise terms", length: "long", detail: "detailed", tone: "clinical" },
+  { name: "Thorough & Defensible", hint: "Long, detailed, neutral", length: "long", detail: "detailed", tone: "balanced" },
+];
+
 function defaultOverride(): SeverityOverride {
   return { inherit: true, length: "normal", detail: "detailed", tone: "balanced" };
 }

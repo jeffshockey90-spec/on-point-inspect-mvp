@@ -10,6 +10,7 @@ import {
   LENGTH_OPTIONS,
   DETAIL_OPTIONS,
   TONE_OPTIONS,
+  WRITING_PRESETS,
   type AiWritingConfig,
   type Severity,
   type WritingLength,
@@ -183,7 +184,41 @@ export default function AiWritingStudioEditor() {
             The baseline length, detail, and tone for every finding. Per-severity rows below can
             override these.
           </p>
-          <div className="mt-4 space-y-5">
+
+          <div className="mt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+              Quick presets
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {WRITING_PRESETS.map((preset) => {
+                const active =
+                  config.length === preset.length &&
+                  config.detail === preset.detail &&
+                  config.tone === preset.tone;
+                return (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    disabled={!isOwner}
+                    onClick={() =>
+                      patch({ length: preset.length, detail: preset.detail, tone: preset.tone })
+                    }
+                    title={preset.hint}
+                    className={`rounded-xl border px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      active
+                        ? "border-[var(--fl-accent)] bg-[var(--fl-accent-bg)] text-[var(--fl-accent-text)]"
+                        : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-text)] hover:border-[var(--fl-accent)]/50"
+                    }`}
+                  >
+                    <span className="block font-semibold">{preset.name}</span>
+                    <span className="block text-xs text-[var(--fl-muted)]">{preset.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-5">
             <Field label="Length">
               <Segmented
                 value={config.length}
