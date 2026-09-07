@@ -624,7 +624,7 @@ export default async function HomePage() {
   const inspectionIds = inspections.map((inspection: any) => Number(inspection.id)).filter(Boolean);
 
   // These five reads are independent, so run them in parallel instead of
-  // sequentially â€” the dashboard waits for the slowest one, not the sum.
+  // sequentially — the dashboard waits for the slowest one, not the sum.
   const emptyQueryResult = { data: [] as any[], error: null } as any;
   const [
     activityResult,
@@ -906,7 +906,7 @@ export default async function HomePage() {
     count: jobsWithStage.filter((job: any) => job.stage === stage.key).length,
   }));
 
-  // Serialize the jobs (all stages) for the interactive client PipelineBoard â€”
+  // Serialize the jobs (all stages) for the interactive client PipelineBoard —
   // it filters by stage on the client, so it needs every job, not just active.
   const pipelineJobs = jobsWithStage.map(({ inspection, stage }: any) => {
     const paid = isPaymentComplete(inspection);
@@ -923,7 +923,7 @@ export default async function HomePage() {
   });
 
   // Last 6 months of inspections + revenue, bucketed by the date the inspection
-  // actually happened (inspection_date), NOT when the record was created â€” so a
+  // actually happened (inspection_date), NOT when the record was created — so a
   // job on the 1st of this month lands in this month even if it was booked
   // weeks earlier. Falls back to created_at for records with no inspection_date.
   const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -971,7 +971,7 @@ export default async function HomePage() {
             <div>
               <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--fl-accent)]" />
-                FLOW Â· Command Center
+                FLOW · Command Center
               </p>
 
               <h1 className="text-[28px] font-semibold tracking-tight text-[var(--fl-text)] md:text-[34px]">
@@ -979,7 +979,7 @@ export default async function HomePage() {
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fl-muted)]">
-                Inspections, report delivery, payments, agreements, and repair requests â€” all in one place.
+                Inspections, report delivery, payments, agreements, and repair requests — all in one place.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2.5">
@@ -1062,7 +1062,7 @@ export default async function HomePage() {
 
                 <p className="mt-2 text-sm text-[var(--fl-muted)]">
                   {nextInspection
-                    ? `${nextInspection.client_name || "No client listed"} â€¢ ${formatInspectionDate(
+                    ? `${nextInspection.client_name || "No client listed"} • ${formatInspectionDate(
                         nextInspection.inspection_date
                       )}`
                     : "Create your first inspection to get started."}
@@ -1334,7 +1334,7 @@ export default async function HomePage() {
                         </p>
 
                         <p className="mt-1 truncate text-sm text-[var(--fl-muted)]">
-                          {log.recipient_email || log.recipient || "Unknown recipient"} Â· {address}
+                          {log.recipient_email || log.recipient || "Unknown recipient"} · {address}
                         </p>
                       </div>
 
