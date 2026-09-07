@@ -157,12 +157,12 @@ Do not guess if information is not visible.
   }
 
   return (
-    <section className="mt-8 rounded-xl border border-gray-300 bg-gray-50 p-5 text-black">
+    <section className="mt-8 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-[var(--fl-text)]">
       <h2 className="mb-2 text-2xl font-bold text-teal-700">
         Data Plate Scanner
       </h2>
 
-      <p className="mb-4 text-sm text-gray-700">
+      <p className="mb-4 text-sm text-[var(--fl-muted)]">
         Take or upload a photo of an HVAC, water heater, appliance, or equipment
         data plate and let AI help read the visible information.
       </p>
@@ -176,7 +176,7 @@ Do not guess if information is not visible.
           <select
             value={equipmentType}
             onChange={(e) => setEquipmentType(e.target.value)}
-            className="w-full rounded-lg border p-3 text-black"
+            className="w-full rounded-lg border p-3 text-[var(--fl-text)]"
           >
             <option>HVAC</option>
             <option>Plumbing</option>
@@ -192,7 +192,7 @@ Do not guess if information is not visible.
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
-            className="w-full rounded-lg border p-3 text-black"
+            className="w-full rounded-lg border p-3 text-[var(--fl-text)]"
           >
             {SEVERITIES.map((item) => (
               <option key={item}>{item}</option>
@@ -209,10 +209,10 @@ Do not guess if information is not visible.
             type="file"
             accept="image/*"
             onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
-            className="w-full rounded-lg border bg-white p-3 text-black"
+            className="w-full rounded-lg border bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
           />
 
-          <p className="mt-2 text-xs text-gray-600">
+          <p className="mt-2 text-xs text-[var(--fl-muted)]">
             On iPhone, this should allow Camera, Photo Library, or Browse.
           </p>
         </div>
@@ -235,13 +235,13 @@ Do not guess if information is not visible.
       </div>
 
       {result && (
-        <div className="mt-6 space-y-4 rounded-xl border border-teal-600 bg-white p-5">
+        <div className="mt-6 space-y-4 rounded-xl border border-teal-600 bg-[var(--fl-ground)] p-5">
           <h3 className="text-xl font-bold text-teal-700">Scan Result</h3>
 
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
-            className="w-full rounded-lg border p-3 text-black"
+            className="w-full rounded-lg border p-3 text-[var(--fl-text)]"
           >
             {SEVERITIES.map((item) => (
               <option key={item}>{item}</option>
@@ -256,7 +256,7 @@ Do not guess if information is not visible.
                 title: e.target.value,
               })
             }
-            className="w-full rounded-lg border p-3 font-bold text-black"
+            className="w-full rounded-lg border p-3 font-bold text-[var(--fl-text)]"
           />
 
           <textarea
@@ -267,7 +267,7 @@ Do not guess if information is not visible.
                 observation: e.target.value,
               })
             }
-            className="min-h-28 w-full rounded-lg border p-3 text-black"
+            className="min-h-28 w-full rounded-lg border p-3 text-[var(--fl-text)]"
             placeholder="Observation"
           />
 
@@ -279,7 +279,7 @@ Do not guess if information is not visible.
                 implication: e.target.value,
               })
             }
-            className="min-h-28 w-full rounded-lg border p-3 text-black"
+            className="min-h-28 w-full rounded-lg border p-3 text-[var(--fl-text)]"
             placeholder="Implication"
           />
 
@@ -291,7 +291,7 @@ Do not guess if information is not visible.
                 recommendation: e.target.value,
               })
             }
-            className="min-h-28 w-full rounded-lg border p-3 text-black"
+            className="min-h-28 w-full rounded-lg border p-3 text-[var(--fl-text)]"
             placeholder="Recommendation"
           />
 

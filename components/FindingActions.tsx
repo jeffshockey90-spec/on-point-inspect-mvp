@@ -178,28 +178,28 @@ export default function FindingActions({ finding }: { finding: any }) {
   }
 
   return (
-    <div className="mt-5 space-y-4 rounded-xl border border-teal-600 bg-gray-50 p-5 print:hidden">
+    <div className="mt-5 space-y-4 rounded-xl border border-teal-600 bg-[var(--fl-surface-2)] p-5 print:hidden">
       <div>
-        <label className="mb-2 block text-sm font-bold text-black">
+        <label className="mb-2 block text-sm font-bold text-[var(--fl-text)]">
           Section
         </label>
 
         <input
           value={section}
           onChange={(e) => setSection(e.target.value)}
-          className="w-full rounded-lg border p-3 text-black"
+          className="w-full rounded-lg border p-3 text-[var(--fl-text)]"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-bold text-black">
+        <label className="mb-2 block text-sm font-bold text-[var(--fl-text)]">
           Severity
         </label>
 
         <select
           value={severity}
           onChange={(e) => setSeverity(e.target.value)}
-          className="w-full rounded-lg border p-3 text-black"
+          className="w-full rounded-lg border p-3 text-[var(--fl-text)]"
         >
           {SEVERITIES.map((item) => (
             <option key={item}>{item}</option>
@@ -208,50 +208,50 @@ export default function FindingActions({ finding }: { finding: any }) {
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-bold text-black">
+        <label className="mb-2 block text-sm font-bold text-[var(--fl-text)]">
           Title
         </label>
 
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-lg border p-3 font-bold text-black"
+          className="w-full rounded-lg border p-3 font-bold text-[var(--fl-text)]"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-bold text-black">
+        <label className="mb-2 block text-sm font-bold text-[var(--fl-text)]">
           Observation
         </label>
 
         <textarea
           value={observation}
           onChange={(e) => setObservation(e.target.value)}
-          className="min-h-28 w-full rounded-lg border p-3 text-black"
+          className="min-h-28 w-full rounded-lg border p-3 text-[var(--fl-text)]"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-bold text-black">
+        <label className="mb-2 block text-sm font-bold text-[var(--fl-text)]">
           Implication
         </label>
 
         <textarea
           value={implication}
           onChange={(e) => setImplication(e.target.value)}
-          className="min-h-28 w-full rounded-lg border p-3 text-black"
+          className="min-h-28 w-full rounded-lg border p-3 text-[var(--fl-text)]"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-bold text-black">
+        <label className="mb-2 block text-sm font-bold text-[var(--fl-text)]">
           Recommendation
         </label>
 
         <textarea
           value={recommendation}
           onChange={(e) => setRecommendation(e.target.value)}
-          className="min-h-28 w-full rounded-lg border p-3 text-black"
+          className="min-h-28 w-full rounded-lg border p-3 text-[var(--fl-text)]"
         />
       </div>
 

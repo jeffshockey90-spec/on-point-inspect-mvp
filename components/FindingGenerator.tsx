@@ -198,7 +198,7 @@ ${imageUrl || "No photo uploaded."}
   }
 
   return (
-    <section className="mt-8 rounded-xl border border-gray-300 bg-gray-50 p-5 text-black">
+    <section className="mt-8 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-[var(--fl-text)]">
       <h2 className="mb-4 text-2xl font-bold text-teal-700">
         Add AI Photo Finding
       </h2>
@@ -210,7 +210,7 @@ ${imageUrl || "No photo uploaded."}
           <select
             value={section}
             onChange={(e) => setSection(e.target.value)}
-            className="w-full rounded-lg border p-3 text-black"
+            className="w-full rounded-lg border p-3 text-[var(--fl-text)]"
           >
             {SECTIONS.map((item) => (
               <option key={item} value={item}>
@@ -226,7 +226,7 @@ ${imageUrl || "No photo uploaded."}
           <select
             value={severity}
             onChange={(e) => setSeverity(e.target.value)}
-            className="w-full rounded-lg border p-3 text-black"
+            className="w-full rounded-lg border p-3 text-[var(--fl-text)]"
           >
             {SEVERITIES.map((item) => (
               <option key={item} value={item}>
@@ -246,7 +246,7 @@ ${imageUrl || "No photo uploaded."}
             accept="image/*"
             capture="environment"
             onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
-            className="w-full rounded-lg border bg-white p-3 text-black"
+            className="w-full rounded-lg border bg-[var(--fl-ground)] p-3 text-[var(--fl-text)]"
           />
         </div>
 
@@ -265,7 +265,7 @@ ${imageUrl || "No photo uploaded."}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Example: Missing GFCI protection at kitchen counter outlet."
-            className="min-h-32 w-full rounded-lg border p-3 text-black"
+            className="min-h-32 w-full rounded-lg border p-3 text-[var(--fl-text)]"
           />
         </div>
 
@@ -286,7 +286,7 @@ ${imageUrl || "No photo uploaded."}
       </div>
 
       {generatedFinding && (
-        <div className="mt-6 space-y-4 rounded-xl border border-teal-600 bg-white p-5">
+        <div className="mt-6 space-y-4 rounded-xl border border-teal-600 bg-[var(--fl-ground)] p-5">
           <h3 className="text-xl font-bold text-teal-700">
             Generated Finding
           </h3>
@@ -299,7 +299,7 @@ ${imageUrl || "No photo uploaded."}
                 section: e.target.value,
               })
             }
-            className="w-full rounded-lg border p-3 text-black"
+            className="w-full rounded-lg border p-3 text-[var(--fl-text)]"
           >
             {SECTIONS.map((item) => (
               <option key={item} value={item}>
@@ -316,7 +316,7 @@ ${imageUrl || "No photo uploaded."}
                 severity: e.target.value,
               })
             }
-            className="w-full rounded-lg border p-3 text-black"
+            className="w-full rounded-lg border p-3 text-[var(--fl-text)]"
           >
             {SEVERITIES.map((item) => (
               <option key={item} value={item}>
@@ -341,7 +341,7 @@ ${imageUrl || "No photo uploaded."}
                 title: e.target.value,
               })
             }
-            className="w-full rounded-lg border p-3 font-bold text-black"
+            className="w-full rounded-lg border p-3 font-bold text-[var(--fl-text)]"
             placeholder="Title"
           />
 
@@ -353,7 +353,7 @@ ${imageUrl || "No photo uploaded."}
                 observation: e.target.value,
               })
             }
-            className="min-h-28 w-full rounded-lg border p-3 text-black"
+            className="min-h-28 w-full rounded-lg border p-3 text-[var(--fl-text)]"
             placeholder="Observation"
           />
 
@@ -365,7 +365,7 @@ ${imageUrl || "No photo uploaded."}
                 implication: e.target.value,
               })
             }
-            className="min-h-28 w-full rounded-lg border p-3 text-black"
+            className="min-h-28 w-full rounded-lg border p-3 text-[var(--fl-text)]"
             placeholder="Implication"
           />
 
@@ -377,7 +377,7 @@ ${imageUrl || "No photo uploaded."}
                 recommendation: e.target.value,
               })
             }
-            className="min-h-28 w-full rounded-lg border p-3 text-black"
+            className="min-h-28 w-full rounded-lg border p-3 text-[var(--fl-text)]"
             placeholder="Recommendation"
           />
 

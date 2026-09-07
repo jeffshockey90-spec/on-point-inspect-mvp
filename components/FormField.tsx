@@ -7,5 +7,5 @@ export function FormField({ label, children }: { label: string; children: React.
   );
 }
 
-export const inputClass = "w-full rounded-lg border border-white/10 bg-white p-3 text-slate-900 outline-none focus:ring-2 focus:ring-onpoint-teal";
-export const darkInputClass = "w-full rounded-lg border border-white/10 bg-white/95 p-3 text-slate-900 outline-none focus:ring-2 focus:ring-onpoint-teal";
+export const inputClass = "w-full rounded-lg border border-white/10 bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:ring-2 focus:ring-onpoint-teal";
+export const darkInputClass = "w-full rounded-lg border border-white/10 bg-[var(--fl-ground)]/95 p-3 text-[var(--fl-text)] outline-none focus:ring-2 focus:ring-onpoint-teal";

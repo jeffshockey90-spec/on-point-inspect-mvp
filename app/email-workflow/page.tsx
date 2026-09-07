@@ -123,22 +123,22 @@ export default function EmailWorkflowPage() {
             Email + Client Workflow
           </h1>
 
-          <p className="text-zinc-400 mt-2">
+          <p className="text-[var(--fl-muted)] mt-2">
             Generate client and realtor workflow emails.
           </p>
         </div>
 
-        <div className="bg-[var(--fl-surface)] border border-zinc-800 rounded-2xl p-6 space-y-4">
+        <div className="bg-[var(--fl-surface)] border border-[var(--fl-line)] rounded-2xl p-6 space-y-4">
 
           <div>
-            <label className="block mb-2 text-sm text-zinc-400">
+            <label className="block mb-2 text-sm text-[var(--fl-muted)]">
               Select Inspection
             </label>
 
             <select
               value={selectedInspection}
               onChange={(e) => handleInspectionSelect(e.target.value)}
-              className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+              className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
             >
               <option value="">Choose Inspection</option>
 
@@ -154,7 +154,7 @@ export default function EmailWorkflowPage() {
           </div>
 
           <div>
-            <label className="block mb-2 text-sm text-zinc-400">
+            <label className="block mb-2 text-sm text-[var(--fl-muted)]">
               Email Type
             </label>
 
@@ -163,7 +163,7 @@ export default function EmailWorkflowPage() {
               onChange={(e) =>
                 setEmailType(e.target.value as EmailType)
               }
-              className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+              className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
             >
               <option value="inspection_confirmation">
                 Inspection Confirmation
@@ -190,7 +190,7 @@ export default function EmailWorkflowPage() {
           <div className="grid md:grid-cols-2 gap-4">
 
             <div>
-              <label className="block mb-2 text-sm text-zinc-400">
+              <label className="block mb-2 text-sm text-[var(--fl-muted)]">
                 Client Name
               </label>
 
@@ -199,12 +199,12 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setClientName(e.target.value)
                 }
-                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
               />
             </div>
 
             <div>
-              <label className="block mb-2 text-sm text-zinc-400">
+              <label className="block mb-2 text-sm text-[var(--fl-muted)]">
                 Client Email
               </label>
 
@@ -213,14 +213,14 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setClientEmail(e.target.value)
                 }
-                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
               />
             </div>
 
           </div>
 
           <div>
-            <label className="block mb-2 text-sm text-zinc-400">
+            <label className="block mb-2 text-sm text-[var(--fl-muted)]">
               Property Address
             </label>
 
@@ -229,14 +229,14 @@ export default function EmailWorkflowPage() {
               onChange={(e) =>
                 setPropertyAddress(e.target.value)
               }
-              className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+              className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
             />
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
 
             <div>
-              <label className="block mb-2 text-sm text-zinc-400">
+              <label className="block mb-2 text-sm text-[var(--fl-muted)]">
                 Inspection Date
               </label>
 
@@ -245,12 +245,12 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setInspectionDate(e.target.value)
                 }
-                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
               />
             </div>
 
             <div>
-              <label className="block mb-2 text-sm text-zinc-400">
+              <label className="block mb-2 text-sm text-[var(--fl-muted)]">
                 Inspection Time
               </label>
 
@@ -259,14 +259,14 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setInspectionTime(e.target.value)
                 }
-                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
               />
             </div>
 
           </div>
 
           <div>
-            <label className="block mb-2 text-sm text-zinc-400">
+            <label className="block mb-2 text-sm text-[var(--fl-muted)]">
               Report Link
             </label>
 
@@ -275,14 +275,14 @@ export default function EmailWorkflowPage() {
               onChange={(e) =>
                 setReportLink(e.target.value)
               }
-              className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+              className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
             />
           </div>
 
           <button
             onClick={generateEmail}
             disabled={loading}
-            className="bg-teal-500 hover:bg-teal-400 text-black font-bold rounded-xl px-6 py-3"
+            className="bg-[var(--fl-accent)] hover:bg-[var(--fl-accent)] text-[var(--fl-accent-text)] font-bold rounded-xl px-6 py-3"
           >
             {loading ? "Generating..." : "Generate Email"}
           </button>
@@ -290,10 +290,10 @@ export default function EmailWorkflowPage() {
         </div>
 
         {subject && message && (
-          <div className="bg-[var(--fl-surface)] border border-zinc-800 rounded-2xl p-6 space-y-4">
+          <div className="bg-[var(--fl-surface)] border border-[var(--fl-line)] rounded-2xl p-6 space-y-4">
 
             <div>
-              <label className="block mb-2 text-sm text-zinc-400">
+              <label className="block mb-2 text-sm text-[var(--fl-muted)]">
                 Subject
               </label>
 
@@ -302,12 +302,12 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setSubject(e.target.value)
                 }
-                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
               />
             </div>
 
             <div>
-              <label className="block mb-2 text-sm text-zinc-400">
+              <label className="block mb-2 text-sm text-[var(--fl-muted)]">
                 Message
               </label>
 
@@ -317,13 +317,13 @@ export default function EmailWorkflowPage() {
                 onChange={(e) =>
                   setMessage(e.target.value)
                 }
-                className="w-full bg-[var(--fl-surface-2)] border border-zinc-700 rounded-xl p-3"
+                className="w-full bg-[var(--fl-surface-2)] border border-[var(--fl-line)] rounded-xl p-3"
               />
             </div>
 
             <button
               onClick={copyEmail}
-              className="bg-white text-black hover:bg-zinc-200 rounded-xl px-6 py-3 font-bold"
+              className="bg-[var(--fl-surface-2)] text-[var(--fl-text)] border border-[var(--fl-line)] hover:bg-[var(--fl-surface)] rounded-xl px-6 py-3 font-bold"
             >
               Copy Email
             </button>

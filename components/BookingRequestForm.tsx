@@ -415,7 +415,7 @@ export default function BookingRequestForm({
         <h2 className="mt-3 text-2xl font-semibold text-[var(--fl-text)] sm:text-3xl">
           Not Currently Accepting Online Requests
         </h2>
-        <p className="mt-3 text-sm leading-6 text-zinc-400">
+        <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">
           This inspector isn't accepting online booking requests right now. Please contact them
           directly to schedule an inspection.
         </p>
@@ -435,7 +435,7 @@ export default function BookingRequestForm({
         <h2 className="mt-2 text-2xl font-semibold leading-tight text-[var(--fl-text)] sm:text-3xl">
           Booking Request
         </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fl-muted)]">
           Send the client, realtor, property, services, and preferred times. The inspector will confirm after reviewing availability.
         </p>
       </div>
@@ -513,10 +513,10 @@ export default function BookingRequestForm({
         </Section>
 
         <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-zinc-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--fl-muted)]">
             Services Requested
           </p>
-          <p className="mt-1 text-xs text-zinc-500">Select all that apply.</p>
+          <p className="mt-1 text-xs text-[var(--fl-faint)]">Select all that apply.</p>
 
           <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
             {SERVICE_OPTIONS.map((service) => {
@@ -530,14 +530,14 @@ export default function BookingRequestForm({
                   className={`flex min-h-[64px] w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                     checked
                       ? "border-teal-400 bg-teal-500/15 text-[var(--fl-text)] shadow-[0_0_0_1px_rgba(45,212,191,0.35)]"
-                      : "border-zinc-700 bg-[var(--fl-ground)] text-zinc-200 hover:border-teal-500/50"
+                      : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-text)] hover:border-teal-500/50"
                   }`}
                 >
                   <span
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[12px] font-semibold ${
                       checked
-                        ? "border-teal-300 bg-teal-400 text-black"
-                        : "border-zinc-500 bg-[var(--fl-surface-2)] text-transparent"
+                        ? "border-teal-300 bg-[var(--fl-accent)] text-[var(--fl-accent-text)]"
+                        : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-transparent"
                     }`}
                   >
                     ✓
@@ -557,7 +557,7 @@ export default function BookingRequestForm({
           </div>
 
           <div className="xl:col-span-2">
-            <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fl-muted)]">
               Property Photo Override
             </label>
 
@@ -570,7 +570,7 @@ export default function BookingRequestForm({
                 />
               </div>
             ) : (
-              <div className="mt-2 rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm leading-6 text-zinc-400">
+              <div className="mt-2 rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
                 Optional. Upload the correct front photo if the lookup or Street View image is wrong.
               </div>
             )}
@@ -617,7 +617,7 @@ export default function BookingRequestForm({
         </Section>
 
         <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
+          <label className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--fl-muted)]">
             Notes
           </label>
           <textarea
@@ -625,7 +625,7 @@ export default function BookingRequestForm({
             onChange={(event) => update("notes", event.target.value)}
             rows={5}
             placeholder="Access details, deadlines, add-ons, concerns, or anything else the inspector should know."
-            className="mt-2 box-border w-full max-w-full resize-y rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-3 text-sm text-[var(--fl-text)] outline-none transition placeholder:text-zinc-600 focus:border-teal-400"
+            className="mt-2 box-border w-full max-w-full resize-y rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-3 text-sm text-[var(--fl-text)] outline-none transition placeholder:text-[var(--fl-faint)] focus:border-teal-400"
           />
         </div>
 
@@ -665,7 +665,7 @@ export default function BookingRequestForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-2xl bg-teal-400 px-5 py-4 text-sm font-semibold text-black transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-2xl bg-[var(--fl-accent)] px-5 py-4 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Sending..." : "Send Booking Request"}
         </button>
@@ -677,7 +677,7 @@ export default function BookingRequestForm({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-zinc-400">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--fl-muted)]">
         {title}
       </p>
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">{children}</div>
@@ -706,7 +706,7 @@ function Field({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+      <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fl-muted)]">
         {label} {required ? "*" : ""}
       </span>
       <input
@@ -717,7 +717,7 @@ function Field({
         autoComplete={autoComplete}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 box-border h-12 w-full min-w-0 max-w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 text-sm text-[var(--fl-text)] outline-none transition placeholder:text-zinc-600 focus:border-teal-400"
+        className="mt-2 box-border h-12 w-full min-w-0 max-w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 text-sm text-[var(--fl-text)] outline-none transition placeholder:text-[var(--fl-faint)] focus:border-teal-400"
       />
     </label>
   );
@@ -738,7 +738,7 @@ function Select({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+      <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fl-muted)]">
         {label} {required ? "*" : ""}
       </span>
       <select

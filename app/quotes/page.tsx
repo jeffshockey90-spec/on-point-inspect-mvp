@@ -319,7 +319,7 @@ export default function QuotePage() {
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-4 pb-24 pt-6 text-[var(--fl-text)] md:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="rounded-2xl border border-zinc-800 bg-[var(--fl-surface)] p-6 md:p-8">
+        <section className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.25em] text-[var(--fl-accent-text)]">
@@ -330,7 +330,7 @@ export default function QuotePage() {
                 Quote Calculator
               </h1>
 
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400 md:text-base">
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--fl-muted)] md:text-base">
                 Generate pricing for home inspections, radon-only tests, mold-only
                 sampling, Radon + Mold, and bundled services.
               </p>
@@ -349,7 +349,7 @@ export default function QuotePage() {
           <Card title="Build Quote">
             <div className="grid gap-5 md:grid-cols-2">
               <label className="space-y-2 md:col-span-2">
-                <span className="text-sm font-bold text-zinc-300">
+                <span className="text-sm font-bold text-[var(--fl-text)]">
                   Property Address (optional - auto-fills square footage)
                 </span>
                 <input
@@ -358,7 +358,7 @@ export default function QuotePage() {
                   value={propertyAddress}
                   onChange={(e) => setPropertyAddress(e.target.value)}
                   placeholder="Start typing an address..."
-                  className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
                 />
               </label>
 
@@ -368,12 +368,12 @@ export default function QuotePage() {
                     type="button"
                     onClick={runManualPropertyLookup}
                     disabled={loadingProperty}
-                    className="rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] px-4 py-2 text-sm font-bold text-[var(--fl-text)] transition hover:border-teal-500 disabled:opacity-50"
+                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2 text-sm font-bold text-[var(--fl-text)] transition hover:border-teal-500 disabled:opacity-50"
                   >
                     {loadingProperty ? "Looking Up..." : "Lookup Property Info"}
                   </button>
                   {propertyLookupStatus && (
-                    <span className="text-xs text-zinc-400">
+                    <span className="text-xs text-[var(--fl-muted)]">
                       {propertyLookupStatus}
                     </span>
                   )}
@@ -381,7 +381,7 @@ export default function QuotePage() {
               )}
 
               <div className="space-y-2 md:col-span-2">
-                <span className="text-sm font-bold text-zinc-300">
+                <span className="text-sm font-bold text-[var(--fl-text)]">
                   Services
                 </span>
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -394,7 +394,7 @@ export default function QuotePage() {
                         className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${
                           checked
                             ? "border-teal-500 bg-teal-500/10"
-                            : "border-zinc-700 bg-[var(--fl-surface-2)] hover:border-zinc-500"
+                            : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-[var(--fl-line)]"
                         }`}
                       >
                         <input
@@ -456,9 +456,9 @@ export default function QuotePage() {
           </Card>
 
           <Card title="Quote Summary">
-            <div className="space-y-3 text-zinc-300">
+            <div className="space-y-3 text-[var(--fl-text)]">
               {quote.lineItems.length === 0 ? (
-                <p className="text-sm text-zinc-500">No services selected yet.</p>
+                <p className="text-sm text-[var(--fl-faint)]">No services selected yet.</p>
               ) : (
                 quote.lineItems.map((item) => (
                   <SummaryLine key={item.id} label={item.name} value={item.fee} />
@@ -468,7 +468,7 @@ export default function QuotePage() {
               <SummaryLine label="Discount" value={-quote.discount} />
 
               <div className="mt-5 rounded-2xl border border-teal-700 bg-teal-500/10 p-5">
-                <p className="text-sm font-bold uppercase tracking-wide text-zinc-400">
+                <p className="text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
                   Total Quote
                 </p>
 
@@ -477,7 +477,7 @@ export default function QuotePage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-zinc-800 bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-zinc-400">
+              <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
                 <p className="font-bold text-[var(--fl-text)]">Your Pricing Rules</p>
                 <p className="mt-2">{pricingRulesSummary}</p>
                 <Link href="/settings/pricing" className="mt-2 inline-block font-bold text-[var(--fl-accent-text)] hover:text-[var(--fl-accent-text)]">
@@ -490,7 +490,7 @@ export default function QuotePage() {
 
         <Card title="Quote Message">
           <textarea
-            className="h-36 w-full rounded-2xl border border-zinc-700 bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"
+            className="h-36 w-full rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"
             value={message}
             readOnly
           />
@@ -498,14 +498,14 @@ export default function QuotePage() {
           <div className="mt-5 flex flex-wrap gap-4">
             <button
               onClick={copyQuote}
-              className="rounded-2xl bg-teal-500 px-6 py-4 font-bold text-black transition hover:bg-teal-400"
+              className="rounded-2xl bg-[var(--fl-accent)] px-6 py-4 font-bold text-[var(--fl-accent-text)] transition hover:bg-[var(--fl-accent)]"
             >
               Copy Quote Message
             </button>
 
             <button
               onClick={convertToInspection}
-              className="rounded-2xl bg-white px-6 py-4 font-bold text-black transition hover:bg-zinc-200"
+              className="rounded-2xl bg-[var(--fl-surface-2)] text-[var(--fl-text)] border border-[var(--fl-line)] px-6 py-4 font-bold transition hover:bg-[var(--fl-surface)]"
             >
               Continue in New Inspection
             </button>
@@ -527,10 +527,10 @@ function Input({
 }) {
   return (
     <label className="space-y-2">
-      <span className="text-sm font-bold text-zinc-300">{label}</span>
+      <span className="text-sm font-bold text-[var(--fl-text)]">{label}</span>
 
       <input
-        className="w-full rounded-xl border border-zinc-700 bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
+        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
         type="number"
         min="0"
         value={value}
@@ -542,7 +542,7 @@ function Input({
 
 function SummaryLine({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+    <div className="flex items-center justify-between border-b border-[var(--fl-line)] pb-2">
       <span>{label}</span>
       <span className="font-bold">
         {value < 0 ? "-" : ""}${Math.abs(value)}

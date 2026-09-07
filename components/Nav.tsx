@@ -601,7 +601,7 @@ export default function Navbar() {
       </aside>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-[100] border-t border-zinc-800 bg-[var(--fl-surface)] shadow-2xl shadow-black/60 backdrop-blur xl:hidden [transform:translateZ(0)] [will-change:transform]"
+        className="fixed inset-x-0 bottom-0 z-[100] border-t border-[var(--fl-line)] bg-[var(--fl-surface)] shadow-2xl shadow-black/60 backdrop-blur xl:hidden [transform:translateZ(0)] [will-change:transform]"
         style={{ bottom: 0, paddingBottom: "env(safe-area-inset-bottom)", transform: "translateZ(0)" }}
       >
         <div className="flex h-[78px] w-full flex-row flex-nowrap items-center justify-between">
@@ -626,7 +626,7 @@ export default function Navbar() {
                       ? "bg-[var(--fl-raised)] text-[var(--fl-accent-text)] opacity-80"
                       : item.href === "/dashboard/owner"
                         ? "text-[var(--fl-warn-text)] hover:bg-yellow-500/10"
-                        : "text-zinc-300 hover:bg-[var(--fl-raised)] hover:text-[var(--fl-accent-text)]"
+                        : "text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] hover:text-[var(--fl-accent-text)]"
                 }`}
               >
                 <span className="relative flex w-full items-center justify-center leading-none">
