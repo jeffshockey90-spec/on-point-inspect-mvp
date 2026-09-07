@@ -1377,10 +1377,11 @@ export default async function PublicSharePage({
         .from("photos")
         .select("*")
         .in("finding_id", findingIds)
-        // NOTE: the photos table has no sort_order column. Ordering by it makes
-        // PostgREST 400 and return ZERO rows, which silently drops every photo
-        // and video from the client report (findings fall back to their single
-        // legacy image_url). Order by created_at only.
+        // Honor the inspector's manual photo order (photos.sort_order, added
+        // 2026-09). Legacy photos have NULL sort_order → nullsFirst:false keeps
+        // them after any reordered ones, then created_at as the stable tiebreak,
+        // so nothing is dropped and un-reordered findings keep their old order.
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true })
         .range(from, from + PAGE - 1);
       if (error) {

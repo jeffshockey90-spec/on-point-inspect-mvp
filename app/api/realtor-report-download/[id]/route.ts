@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-09-05-video-poster-playtriangle";
+const PDF_TEMPLATE_VERSION = "2026-09-07-photo-sort-order";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -753,8 +753,8 @@ async function loadPhotos(admin: any, inspectionId: string, findingIds: string[]
             .from("photos")
             .select("*")
             .in("finding_id", findingIds)
-            // photos has no sort_order column; ordering by it 400s and drops
-            // every photo/video from the report. Order by created_at only.
+            // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
+            .order("sort_order", { ascending: true, nullsFirst: false })
             .order("created_at", { ascending: true })
             .range(from, to),
         )

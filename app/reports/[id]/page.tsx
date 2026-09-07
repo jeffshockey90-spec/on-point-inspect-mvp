@@ -2119,6 +2119,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         .from("photos")
         .select("*")
         .in("finding_id", findingIds)
+        // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true })
         .range(from, from + PAGE - 1);
       if (error) {

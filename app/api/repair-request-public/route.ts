@@ -430,6 +430,7 @@ export async function GET(req: Request) {
             .from("photos")
             .select("*")
             .in("finding_id", findingIds)
+            .order("sort_order", { ascending: true, nullsFirst: false })
             .order("created_at", { ascending: true })
         : { data: [] as any[], error: null };
 

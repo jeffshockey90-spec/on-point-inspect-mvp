@@ -596,8 +596,8 @@ export default async function PrintableReportPage({ params }: PageProps) {
         .from("photos")
         .select("*")
         .in("finding_id", findingIds)
-        // photos has no sort_order column; ordering by it 400s and drops
-        // every photo/video from the PDF. Order by created_at only.
+        // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true })
         .range(from, from + PAGE - 1);
       photosRaw = photosRaw.concat(data || []);
