@@ -73,6 +73,22 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}) as any);
   const action = String(body.action || "").trim();
+
+  // Mark every inbound message from one contact as read (Conversations opens a
+  // whole thread at once). Email-based, so it clears the unread dot for the
+  // thread rather than one message at a time.
+  if (action === "read-thread") {
+    const email = String(body.email || "").trim().toLowerCase();
+    if (!email) return NextResponse.json({ error: "Missing email." }, { status: 400 });
+    const { error } = await admin
+      .from("inbound_replies")
+      .update({ is_read: true })
+      .ilike("from_email", email)
+      .eq("is_read", false);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
   const id = String(body.id || "").trim();
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
@@ -127,6 +143,24 @@ export async function POST(req: Request) {
       .from("inbound_replies")
       .update({ replied_at: new Date().toISOString(), is_read: true })
       .eq("id", id);
+
+    // Persist the outbound reply so the Conversations thread shows both sides.
+    // Additive + best-effort: if the table isn't created yet (migration not run)
+    // the send still succeeded, so never fail the request on this.
+    try {
+      await admin.from("conversation_outbound").insert({
+        to_email: String(original.from_email).toLowerCase(),
+        subject,
+        body: message,
+        in_reply_to: original.message_id || null,
+        resend_id: data?.id || null,
+        inbound_id: id,
+        inspection_id: original.inspection_id || null,
+        sent_by: ownerEmail,
+      });
+    } catch (e: any) {
+      console.error("conversation_outbound insert failed (send still ok):", e?.message || e);
+    }
 
     return NextResponse.json({ ok: true, resendId: data?.id || null });
   }

@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import OwnerMailComposer from "./OwnerMailComposer";
-import InboxReplies from "./InboxReplies";
+import Conversations, { type Thread, type ConvoMessage } from "./Conversations";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -68,6 +68,91 @@ function fmt(value: any) {
   return formatAppValue(d, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+function snippetOf(text: any, max = 120) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
+}
+
+// Merge inbound_replies (received) + conversation_outbound (sent) into one
+// per-contact thread keyed by the contact's lowercased email. Each thread's
+// messages are sorted oldest→newest so the expanded view reads like a chat.
+function buildThreads(replies: any[], outbound: any[]): Thread[] {
+  const byKey = new Map<string, Thread>();
+
+  function ensure(email: string): Thread {
+    const key = email.toLowerCase();
+    let t = byKey.get(key);
+    if (!t) {
+      t = {
+        key,
+        email,
+        name: null,
+        unread: 0,
+        lastAt: null,
+        lastSnippet: "",
+        lastDirection: "in",
+        inspectionId: null,
+        matchedName: null,
+        latestInboundId: null,
+        messages: [],
+      };
+      byKey.set(key, t);
+    }
+    return t;
+  }
+
+  // Inbound
+  for (const r of replies) {
+    const email = String(r?.from_email || "").trim();
+    if (!email) continue;
+    const t = ensure(email);
+    if (!t.name && r?.from_name) t.name = r.from_name;
+    if (!r?.is_read) t.unread += 1;
+    if (!t.inspectionId && r?.inspection_id) t.inspectionId = String(r.inspection_id);
+    if (!t.matchedName && r?.matched_name) t.matchedName = r.matched_name;
+    t.messages.push({
+      id: String(r.id),
+      direction: "in",
+      body: String(r?.body_text || r?.snippet || ""),
+      subject: r?.subject || null,
+      at: r?.received_at || r?.created_at || null,
+      isRead: Boolean(r?.is_read),
+    });
+  }
+
+  // Outbound
+  for (const o of outbound) {
+    const email = String(o?.to_email || "").trim();
+    if (!email) continue;
+    const t = ensure(email);
+    if (!t.inspectionId && o?.inspection_id) t.inspectionId = String(o.inspection_id);
+    t.messages.push({
+      id: `out-${o.id}`,
+      direction: "out",
+      body: String(o?.body || ""),
+      subject: o?.subject || null,
+      at: o?.sent_at || o?.created_at || null,
+      isRead: true,
+    });
+  }
+
+  const at = (m: ConvoMessage) => (m.at ? new Date(m.at).getTime() : 0);
+
+  const threads = [...byKey.values()].map((t) => {
+    t.messages.sort((a, b) => at(a) - at(b));
+    const last = t.messages[t.messages.length - 1];
+    const latestInbound = [...t.messages].reverse().find((m) => m.direction === "in");
+    t.latestInboundId = latestInbound ? latestInbound.id : null;
+    t.lastAt = last?.at || null;
+    t.lastSnippet = snippetOf(last?.body);
+    t.lastDirection = last?.direction || "in";
+    return t;
+  });
+
+  threads.sort((a, b) => (b.lastAt ? new Date(b.lastAt).getTime() : 0) - (a.lastAt ? new Date(a.lastAt).getTime() : 0));
+  return threads;
+}
+
 function OwnerNav({ unread = 0 }: { unread?: number }) {
   const links = [
     ["/dashboard/owner", "Owner"],
@@ -116,17 +201,21 @@ export default async function OwnerMailPage() {
   const admin = createAdminClient();
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000);
 
-  const [profiles, inspectorProfiles, companyUsers, inspections, deviceEvents, messages, replies] = await Promise.all([
+  const [profiles, inspectorProfiles, companyUsers, inspections, deviceEvents, messages, replies, outbound] = await Promise.all([
     safeSelect(admin.from("profiles").select("*")),
     safeSelect(admin.from("inspector_profiles").select("*")),
     safeSelect(admin.from("company_users").select("*")),
     safeSelect(admin.from("inspections").select("inspector_id,user_id,created_at,inspection_date,is_demo")),
     safeSelect(admin.from("app_device_events").select("user_email,user_id,created_at").order("created_at", { ascending: false }).limit(2000)),
     safeSelect(admin.from("owner_inspector_messages").select("*").order("sent_at", { ascending: false }).limit(100)),
-    safeSelect(admin.from("inbound_replies").select("*").order("received_at", { ascending: false }).limit(100)),
+    safeSelect(admin.from("inbound_replies").select("*").order("received_at", { ascending: false }).limit(200)),
+    // Owner's sent replies (Conversations stage 1). Table may not exist until the
+    // migration is run — safeSelect swallows that and threads just show inbound.
+    safeSelect(admin.from("conversation_outbound").select("*").order("sent_at", { ascending: false }).limit(400)),
   ]);
 
   const unreadReplies = replies.filter((r: any) => !r.is_read).length;
+  const threads = buildThreads(replies, outbound);
 
   const users = new Map<string, any>();
   [...profiles, ...companyUsers].forEach((row: any) => {
@@ -177,18 +266,19 @@ export default async function OwnerMailPage() {
         <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-xl sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-3 text-2xl font-semibold text-[var(--fl-accent-text)]">
-              Inbox — replies
+              Conversations
               {unreadReplies > 0 && (
                 <span className="rounded-full bg-teal-500 px-2.5 py-0.5 text-sm font-semibold text-slate-950">
                   {unreadReplies} new
                 </span>
               )}
             </h2>
+            <span className="text-xs text-[var(--fl-faint)]">{threads.length} {threads.length === 1 ? "thread" : "threads"}</span>
           </div>
           <p className="mt-1 text-sm text-[var(--fl-muted)]">
-            Replies to your FLOW emails land here and buzz your phone. Reply right from FLOW — it sends from support@flowinspect.app.
+            Every client, agent, and inspector reply — grouped into one thread per person, with the full back-and-forth. Reply right from FLOW; it sends from support@flowinspect.app.
           </p>
-          <InboxReplies replies={replies as any} />
+          <Conversations threads={threads} />
         </section>
 
         <OwnerMailComposer inspectors={inspectors} />
