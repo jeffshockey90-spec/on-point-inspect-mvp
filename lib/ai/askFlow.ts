@@ -37,8 +37,13 @@ const INSPECTION_COLUMNS = [
   "zip",
   "client_name",
   "client_email",
+  "client_phone",
   "realtor_name",
+  "realtor_email",
+  "realtor_phone",
   "agent_name",
+  "agent_email",
+  "agent_phone",
   "inspection_date",
   "inspection_time",
   "report_status",
@@ -238,7 +243,7 @@ export const ASK_FLOW_TOOLS: any[] = [
     function: {
       name: "get_inspection_detail",
       description:
-        "Deep detail on ONE inspection: contacts, payment/balance, agreement status, report status, and a breakdown of findings by severity. Identify it by id, or by an address/client query (best match).",
+        "Deep detail on ONE inspection: full contact info (client + agent name, EMAIL, and PHONE), payment/balance, agreement status, report status, and the top findings. Use this for contact-lookup questions too ('what's Jordan Anderson's phone number', 'the client's email at 12 Oak'). Identify it by id, or by an address/client/agent-name query (best match).",
       parameters: {
         type: "object",
         properties: {
@@ -501,7 +506,18 @@ async function getInspectionDetail(ctx: AskFlowContext, args: any) {
   return {
     found: true,
     ...shape(inspection),
-    email: inspection?.client_email || null,
+    contacts: {
+      client: {
+        name: inspection?.client_name || null,
+        email: inspection?.client_email || null,
+        phone: inspection?.client_phone || null,
+      },
+      agent: {
+        name: inspection?.realtor_name || inspection?.agent_name || null,
+        email: inspection?.realtor_email || inspection?.agent_email || null,
+        phone: inspection?.realtor_phone || inspection?.agent_phone || null,
+      },
+    },
     agreement_signed: signed.has(id),
     findings_total: findingsTotal,
     findings_by_severity: bySeverity,
