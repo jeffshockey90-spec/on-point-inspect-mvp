@@ -300,6 +300,28 @@ export const ASK_FLOW_TOOLS: any[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "propose_action",
+      description:
+        "PREPARE an action for the user to CONFIRM. This does NOT execute anything — it stages the action and the user must tap a Confirm button. Use only when the user asks to DO something. Supported: send an agreement reminder, send a payment reminder, reschedule an inspection (internal only — does not email the client), or add an internal note. First resolve the EXACT inspection with the read tools so you pass a specific inspection_id. If it's ambiguous which inspection or recipient is meant, ASK the user instead of proposing. You cannot mark paid, publish, delete, refund, or edit findings — say so if asked.",
+      parameters: {
+        type: "object",
+        properties: {
+          kind: {
+            type: "string",
+            enum: ["send_agreement_reminder", "send_payment_reminder", "reschedule", "add_note"],
+          },
+          inspection_id: { type: "string", description: "The specific inspection id to act on (required)." },
+          date: { type: "string", description: "reschedule only: new date YYYY-MM-DD." },
+          time: { type: "string", description: "reschedule only: new time (optional), e.g. '3:00 PM'." },
+          note: { type: "string", description: "add_note only: the internal note text." },
+        },
+        required: ["kind", "inspection_id"],
+      },
+    },
+  },
 ];
 
 // Least -> most serious, for ranking "biggest issues".
@@ -331,6 +353,8 @@ export async function runAskFlowTool(name: string, args: any, ctx: AskFlowContex
       return getDefectTrends(ctx, args || {});
     case "get_report_turnaround":
       return getReportTurnaround(ctx, args || {});
+    case "propose_action":
+      return proposeAction(ctx, args || {});
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -701,6 +725,71 @@ async function getReportTurnaround(ctx: AskFlowContext, args: any) {
     },
     note: "Turnaround-to-publish (inspection date → published) is the most reliable 'time to publish' metric. Lead with median; averages skew high from a few slow reports.",
   };
+}
+
+// ---------------------------------------------------------------------
+// propose_action — validates + resolves a Tier-2 action against the user's
+// scoped data and returns a CONFIRMABLE proposal. NEVER executes. The route
+// surfaces this to the UI as a pendingAction; execution happens only after the
+// user confirms (existing reminder routes, or /api/ask-flow/act for
+// reschedule/note), which re-authenticate and re-scope independently.
+// ---------------------------------------------------------------------
+const ACTION_KINDS = ["send_agreement_reminder", "send_payment_reminder", "reschedule", "add_note"];
+
+async function proposeAction(ctx: AskFlowContext, args: any) {
+  const kind = String(args.kind || "").trim();
+  if (!ACTION_KINDS.includes(kind)) {
+    return { error: "That action isn't supported. I can send an agreement or payment reminder, reschedule, or add an internal note." };
+  }
+  const inspectionId = String(args.inspection_id || "").trim();
+  if (!inspectionId) return { error: "Which inspection? Look it up first, then propose with its id." };
+
+  const { data: insp } = await ctx.admin
+    .from("inspections")
+    .select("id, property_address, city, state, client_name, client_email, inspection_date, inspection_time, invoice_amount, price, amount_paid, balance_due, payment_status, agreement_waived")
+    .eq("id", inspectionId)
+    .eq(ctx.filter.column, ctx.filter.value)
+    .maybeSingle();
+  if (!insp) return { error: "No matching inspection you can act on." };
+
+  const address = addressOf(insp);
+  const base: any = { proposal: true, kind, inspection_id: String(insp.id), address, client_name: insp.client_name || null };
+
+  if (kind === "send_agreement_reminder") {
+    if (insp.agreement_waived === true) return { ...base, blocked: "The agreement requirement is waived on this inspection, so there's nothing to remind." };
+    const signed = await loadSignedAgreementSet(ctx, [String(insp.id)]);
+    return {
+      ...base,
+      already_signed: signed.has(String(insp.id)),
+      human_summary: `Send an agreement reminder to the client for ${address}${signed.has(String(insp.id)) ? " (note: an agreement already shows signed — confirm you still want to send)" : ""}.`,
+    };
+  }
+
+  if (kind === "send_payment_reminder") {
+    const balance = getBalanceDue(insp);
+    if (balance <= 0) return { ...base, blocked: "This inspection has no balance due, so there's nothing to remind about." };
+    return {
+      ...base,
+      params: { balance },
+      human_summary: `Email a payment reminder to ${insp.client_name || "the client"} for ${address} — balance $${balance.toLocaleString()}.`,
+    };
+  }
+
+  if (kind === "reschedule") {
+    const date = String(args.date || "").trim();
+    const time = String(args.time || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Give me a valid new date (YYYY-MM-DD) to reschedule to." };
+    return {
+      ...base,
+      params: { date, time: time || null, from_date: insp.inspection_date || null, from_time: insp.inspection_time || null },
+      human_summary: `Reschedule ${address} from ${insp.inspection_date || "?"}${insp.inspection_time ? ` ${insp.inspection_time}` : ""} to ${date}${time ? ` ${time}` : ""}. This only moves it on your schedule — it will not email the client.`,
+    };
+  }
+
+  // add_note
+  const note = String(args.note || "").trim();
+  if (!note) return { error: "What should the internal note say?" };
+  return { ...base, params: { note }, human_summary: `Add an internal note to ${address}: "${note}"` };
 }
 
 function addDays(ymd: string, days: number): string {

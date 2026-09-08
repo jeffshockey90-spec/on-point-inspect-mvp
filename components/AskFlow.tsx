@@ -2,7 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type PendingAction = {
+  kind: string;
+  inspection_id: string;
+  address?: string | null;
+  client_name?: string | null;
+  human_summary?: string;
+  params?: any;
+};
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  pendingAction?: PendingAction | null;
+  actionState?: "idle" | "busy" | "done" | "error" | "cancelled";
+  actionMsg?: string;
+};
 
 const STARTERS = [
   "How many inspections did I do this week?",
@@ -77,7 +91,15 @@ export default function AskFlow() {
       });
       const data = await res.json().catch(() => ({}) as any);
       if (res.ok && data.answer) {
-        setMessages((m) => [...m, { role: "assistant", content: data.answer }]);
+        setMessages((m) => [
+          ...m,
+          {
+            role: "assistant",
+            content: data.answer,
+            pendingAction: data.pendingAction || null,
+            actionState: data.pendingAction ? "idle" : undefined,
+          },
+        ]);
       } else {
         setError(data.error || "Something went wrong. Try again.");
       }
@@ -86,6 +108,62 @@ export default function AskFlow() {
     }
     setLoading(false);
   }
+
+  function patchMsg(index: number, patch: Partial<Msg>) {
+    setMessages((m) => m.map((msg, i) => (i === index ? { ...msg, ...patch } : msg)));
+  }
+
+  // Confirm executes the staged action. Reminders reuse the existing, tested
+  // routes; reschedule/note hit the narrow /api/ask-flow/act endpoint. Only the
+  // inspection id + validated params are sent — recipients/scope are resolved
+  // server-side, so a tampered client can't redirect a send.
+  async function confirmAction(index: number, a: PendingAction) {
+    patchMsg(index, { actionState: "busy" });
+    try {
+      let res: Response;
+      if (a.kind === "send_agreement_reminder") {
+        res = await fetch("/api/send-agreement-reminder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inspectionId: a.inspection_id }),
+        });
+      } else if (a.kind === "send_payment_reminder") {
+        res = await fetch("/api/send-invoice-reminder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inspectionId: a.inspection_id }),
+        });
+      } else {
+        // reschedule | add_note
+        res = await fetch("/api/ask-flow/act", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: a.kind,
+            inspection_id: a.inspection_id,
+            date: a.params?.date,
+            time: a.params?.time,
+            note: a.params?.note,
+          }),
+        });
+      }
+      const data = await res.json().catch(() => ({}) as any);
+      if (res.ok && (data.ok || data.success)) {
+        patchMsg(index, { actionState: "done", actionMsg: data.message || "Done." });
+      } else {
+        patchMsg(index, { actionState: "error", actionMsg: data.error || "Couldn't complete that." });
+      }
+    } catch {
+      patchMsg(index, { actionState: "error", actionMsg: "Couldn't reach the server." });
+    }
+  }
+
+  const ACTION_VERB: Record<string, string> = {
+    send_agreement_reminder: "Send agreement reminder",
+    send_payment_reminder: "Send payment reminder",
+    reschedule: "Reschedule",
+    add_note: "Add note",
+  };
 
   const empty = messages.length === 0;
 
@@ -115,20 +193,66 @@ export default function AskFlow() {
           </div>
         ) : (
           messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  m.role === "user"
-                    ? "rounded-br-sm bg-teal-500 text-slate-950"
-                    : "rounded-bl-sm border border-[var(--fl-raised)] bg-[var(--fl-ground)] text-[var(--fl-text)]"
-                }`}
-              >
-                {m.role === "assistant" ? (
-                  <div className="ask-flow-md space-y-1" dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
-                ) : (
-                  m.content
-                )}
+            <div key={i} className="space-y-2">
+              <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                    m.role === "user"
+                      ? "rounded-br-sm bg-teal-500 text-slate-950"
+                      : "rounded-bl-sm border border-[var(--fl-raised)] bg-[var(--fl-ground)] text-[var(--fl-text)]"
+                  }`}
+                >
+                  {m.role === "assistant" ? (
+                    <div className="ask-flow-md space-y-1" dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
+                  ) : (
+                    m.content
+                  )}
+                </div>
               </div>
+
+              {m.pendingAction && (
+                <div className="flex justify-start">
+                  <div className="w-full max-w-[85%] rounded-2xl border border-teal-500/40 bg-teal-500/5 p-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
+                      <span>⚡ Confirm action</span>
+                      <span className="rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[10px] text-[var(--fl-muted)]">
+                        {ACTION_VERB[m.pendingAction.kind] || m.pendingAction.kind}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-[var(--fl-text)]">{m.pendingAction.human_summary}</p>
+
+                    {m.actionState === "done" ? (
+                      <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">✓ {m.actionMsg}</p>
+                    ) : m.actionState === "cancelled" ? (
+                      <p className="mt-3 text-sm font-semibold text-[var(--fl-muted)]">Cancelled.</p>
+                    ) : (
+                      <>
+                        <div className="mt-3 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => confirmAction(i, m.pendingAction!)}
+                            disabled={m.actionState === "busy"}
+                            className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-60"
+                          >
+                            {m.actionState === "busy" ? "Working…" : "Confirm"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => patchMsg(i, { actionState: "cancelled" })}
+                            disabled={m.actionState === "busy"}
+                            className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-muted)] hover:border-slate-400 disabled:opacity-60"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {m.actionState === "error" && (
+                          <p className="mt-2 text-sm font-bold text-[var(--fl-crit-text)]">{m.actionMsg}</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))
         )}

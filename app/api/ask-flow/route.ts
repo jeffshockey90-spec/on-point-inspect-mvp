@@ -29,9 +29,14 @@ Answer style:
 - For lists, use short bullets. For counts/money, give the number first, details after.
 - For any question about how long a component will last or when it will fail, only speak in TYPICAL service-life ranges and note that maintenance changes actual lifespan — never predict a hard failure or deadline.
 
+Taking actions (always confirmed by the user):
+- You can PREPARE four actions with propose_action: send an agreement reminder, send a payment reminder, reschedule an inspection (internal only — it does NOT email the client), or add an internal note. propose_action does NOT execute — it stages the action and the user taps a Confirm button.
+- Before proposing, resolve the EXACT inspection with the read tools and pass its id. If it's unclear which inspection or recipient is meant (e.g. two clients with the same name, "tomorrow's" when there are two), ASK a clarifying question instead of proposing — never guess on an action.
+- After you propose, tell the user what you've staged and that they can confirm below. NEVER say it's already done — it isn't until they confirm.
+- You CANNOT mark invoices paid, publish reports, delete/void anything, issue refunds, or edit findings. If asked, say that's not something you can do (yet) and, where useful, point them to where they can do it.
+
 Scope & limits:
-- Everything you can see is already limited to this user's own business. Never mention other companies or inspectors outside their team.
-- You are READ-ONLY right now. If asked to send, reschedule, change, mark paid, or otherwise take an action, explain you can look it up but can't make changes yet (that's coming soon), then give the relevant info so they can act.`;
+- Everything you can see is already limited to this user's own business. Never mention other companies or inspectors outside their team.`;
 }
 
 export async function POST(request: Request) {
@@ -77,6 +82,7 @@ export async function POST(request: Request) {
     ];
 
     const toolTrace: { name: string; args: any }[] = [];
+    let pendingAction: any = null; // first staged, confirmable action (if any)
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
       const completion = await openai.chat.completions.create({
@@ -95,6 +101,7 @@ export async function POST(request: Request) {
       if (toolCalls.length === 0) {
         return NextResponse.json({
           answer: choice.content || "I couldn't find an answer to that.",
+          pendingAction,
           tools: toolTrace,
         });
       }
@@ -115,6 +122,16 @@ export async function POST(request: Request) {
         } catch (e: any) {
           result = { error: e?.message || "Tool failed." };
         }
+        // Capture the first valid staged action to hand back to the UI.
+        if (
+          call.function?.name === "propose_action" &&
+          result?.proposal === true &&
+          !result?.error &&
+          !result?.blocked &&
+          !pendingAction
+        ) {
+          pendingAction = result;
+        }
         messages.push({
           role: "tool",
           tool_call_id: call.id,
@@ -132,6 +149,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({
       answer: final.choices[0]?.message?.content || "I couldn't complete that. Try rephrasing.",
+      pendingAction,
       tools: toolTrace,
     });
   } catch (error: any) {
