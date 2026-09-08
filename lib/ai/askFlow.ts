@@ -285,6 +285,21 @@ export const ASK_FLOW_TOOLS: any[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_report_turnaround",
+      description:
+        "How long reports take: average and median turnaround from the inspection date to when the report was published, and from report creation to publish. Also reports active edit-time from the tracker when available. Use for 'what's my average time to publish a report', 'how fast do I turn reports around', 'how long do reports take me'.",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Only inspections on/after this date YYYY-MM-DD." },
+          to: { type: "string", description: "Only inspections on/before this date YYYY-MM-DD." },
+        },
+      },
+    },
+  },
 ];
 
 // Least -> most serious, for ranking "biggest issues".
@@ -314,6 +329,8 @@ export async function runAskFlowTool(name: string, args: any, ctx: AskFlowContex
       return getSchedule(ctx, args || {});
     case "get_defect_trends":
       return getDefectTrends(ctx, args || {});
+    case "get_report_turnaround":
+      return getReportTurnaround(ctx, args || {});
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -623,6 +640,66 @@ async function getDefectTrends(ctx: AskFlowContext, args: any) {
     top_sections: rank(bySection, 8),
     most_common_findings: rank(byTitle, 12),
     note: "Counts are across all analyzed inspections. Titles are grouped by exact match.",
+  };
+}
+
+function avgOf(a: number[]): number | null {
+  return a.length ? Math.round((a.reduce((x, y) => x + y, 0) / a.length) * 10) / 10 : null;
+}
+function medianOf(a: number[]): number | null {
+  if (!a.length) return null;
+  const s = [...a].sort((x, y) => x - y);
+  const m = Math.floor(s.length / 2);
+  const v = s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  return Math.round(v * 10) / 10;
+}
+
+async function getReportTurnaround(ctx: AskFlowContext, args: any) {
+  let q = ctx.admin
+    .from("inspections")
+    .select("id, inspection_date, created_at, published, is_published, report_status, published_at, report_edit_seconds, is_demo")
+    .eq(ctx.filter.column, ctx.filter.value)
+    .limit(1000);
+  if (args.from) q = q.gte("inspection_date", args.from);
+  if (args.to) q = q.lte("inspection_date", args.to);
+
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  const rows = (data || []).filter((r: any) => r?.is_demo !== true);
+  const published = rows.filter((r: any) => isPublished(r) && r?.published_at);
+
+  const days: number[] = [];
+  const hours: number[] = [];
+  for (const r of published) {
+    if (r.inspection_date) {
+      const d = (new Date(r.published_at).getTime() - new Date(`${r.inspection_date}T00:00:00`).getTime()) / 8.64e7;
+      if (Number.isFinite(d) && d >= 0) days.push(d);
+    }
+    if (r.created_at) {
+      const h = (new Date(r.published_at).getTime() - new Date(r.created_at).getTime()) / 3.6e6;
+      if (Number.isFinite(h) && h >= 0) hours.push(h);
+    }
+  }
+  const editMinutes = rows
+    .map((r: any) => Number(r?.report_edit_seconds || 0))
+    .filter((s: number) => s > 0)
+    .map((s: number) => s / 60);
+
+  return {
+    range: { from: args.from || "all-time (recent)", to: args.to || ctx.today },
+    published_reports: published.length,
+    turnaround_inspection_to_publish_days: { avg: avgOf(days), median: medianOf(days), based_on: days.length },
+    turnaround_created_to_publish_hours: { avg: avgOf(hours), median: medianOf(hours), based_on: hours.length },
+    active_edit_minutes: {
+      avg: avgOf(editMinutes),
+      median: medianOf(editMinutes),
+      based_on: editMinutes.length,
+      note:
+        editMinutes.length < 5
+          ? "The active edit-time tracker is new and has very few data points — mention it's a small/early sample and don't over-rely on it."
+          : "Active time spent editing the report (from the edit-time tracker).",
+    },
+    note: "Turnaround-to-publish (inspection date → published) is the most reliable 'time to publish' metric. Lead with median; averages skew high from a few slow reports.",
   };
 }
 
