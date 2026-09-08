@@ -48,7 +48,7 @@ const INSPECTION_COLUMNS = [
   "payment_status",
   "invoice_status",
   "invoice_amount",
-  "total_price",
+  "price",
   "amount_paid",
   "balance_due",
   "paid_at",
@@ -121,6 +121,13 @@ function addressOf(i: any): string {
   return parts.join(", ") || "(no address)";
 }
 
+// Billed amount for an inspection — the shared helper reads invoice_amount;
+// fall back to the booked `price` so revenue isn't undercounted when only the
+// price is set. (The live table has `price`, not `total_price`.)
+function billedAmount(i: any): number {
+  return getInvoiceAmount(i) || Number(i?.price || 0) || 0;
+}
+
 function shape(i: any) {
   return {
     id: i.id,
@@ -132,7 +139,7 @@ function shape(i: any) {
     service: i?.service_type || i?.inspection_type || null,
     published: isPublished(i),
     paid: isPaymentComplete(i),
-    invoice_total: getInvoiceAmount(i) || null,
+    invoice_total: billedAmount(i) || null,
     balance_due: getBalanceDue(i) || 0,
     link: `/reports/${i.id}`,
   };
@@ -297,7 +304,7 @@ async function getBusinessSummary(ctx: AskFlowContext, args: any) {
   let unsigned = 0;
 
   for (const i of rows) {
-    billed += getInvoiceAmount(i) || 0;
+    billed += billedAmount(i);
     collected += Number(i?.amount_paid || 0) || 0;
     if (!isPaymentComplete(i)) {
       unpaid += 1;
