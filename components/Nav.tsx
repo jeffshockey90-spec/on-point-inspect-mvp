@@ -31,6 +31,7 @@ import {
   Settings,
   Crown,
   LogOut,
+  MessagesSquare,
 } from "lucide-react";
 
 
@@ -41,6 +42,7 @@ import {
 // when the group changes).
 const baseNavItems = [
   { title: "Dashboard", href: "/", icon: Home, mobileLabel: "Home" },
+  { title: "Ask FLOW", href: "/ask-flow", icon: MessagesSquare, mobileLabel: "Ask" },
   // Inspect
   { title: "New Inspection", href: "/inspections/new", icon: Plus, mobileLabel: "New", group: "Inspect" },
   { title: "Schedule", href: "/schedule", icon: CalendarDays, mobileLabel: "Schedule", group: "Inspect" },
