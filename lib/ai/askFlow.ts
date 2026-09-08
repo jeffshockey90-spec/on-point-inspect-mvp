@@ -263,7 +263,34 @@ export const ASK_FLOW_TOOLS: any[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_defect_trends",
+      description:
+        "Aggregate analysis of findings ACROSS the user's inspections over a date range: total findings, breakdown by severity, the systems/sections that generate the most findings, and the most common finding titles. Use for 'what are my most common defects', 'which systems do I write up most', 'how many safety concerns this quarter', 'what do I flag most on roofs'.",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Only inspections on/after this date YYYY-MM-DD." },
+          to: { type: "string", description: "Only inspections on/before this date YYYY-MM-DD." },
+          section: { type: "string", description: "Limit the analysis to one section/system (e.g. Roof, Electrical)." },
+          severity: { type: "string", description: "Limit to one severity level." },
+        },
+      },
+    },
+  },
 ];
+
+// Least -> most serious, for ranking "biggest issues".
+const SEVERITY_RANK: Record<string, number> = {
+  Informational: 0,
+  Monitor: 1,
+  Maintenance: 2,
+  "Recommended Repair": 3,
+  "Safety Concern": 4,
+  "Major Concern": 5,
+};
 
 // ---------------------------------------------------------------------
 // Executor dispatch.
@@ -280,6 +307,8 @@ export async function runAskFlowTool(name: string, args: any, ctx: AskFlowContex
       return getInspectionDetail(ctx, args || {});
     case "get_schedule":
       return getSchedule(ctx, args || {});
+    case "get_defect_trends":
+      return getDefectTrends(ctx, args || {});
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -440,13 +469,31 @@ async function getInspectionDetail(ctx: AskFlowContext, args: any) {
 
   const bySeverity: Record<string, number> = {};
   let findingsTotal = 0;
+  let topIssues: any[] = [];
   try {
-    const { data: fRows } = await ctx.admin.from("findings").select("severity").in("inspection_id", [id]).limit(1000);
-    (fRows || []).forEach((f: any) => {
+    const { data: fRows } = await ctx.admin
+      .from("findings")
+      .select("title, severity, section, location")
+      .in("inspection_id", [id])
+      .limit(1000);
+    const rows = fRows || [];
+    rows.forEach((f: any) => {
       findingsTotal += 1;
       const s = f?.severity || "Unspecified";
       bySeverity[s] = (bySeverity[s] || 0) + 1;
     });
+    // The actual headline issues — most serious first — so the model can
+    // summarize the house, not just count.
+    topIssues = rows
+      .slice()
+      .sort((a: any, b: any) => (SEVERITY_RANK[b?.severity] ?? -1) - (SEVERITY_RANK[a?.severity] ?? -1))
+      .slice(0, 12)
+      .map((f: any) => ({
+        title: f?.title || "(untitled)",
+        severity: f?.severity || null,
+        section: f?.section || null,
+        location: f?.location || null,
+      }));
   } catch {
     /* findings optional */
   }
@@ -458,6 +505,7 @@ async function getInspectionDetail(ctx: AskFlowContext, args: any) {
     agreement_signed: signed.has(id),
     findings_total: findingsTotal,
     findings_by_severity: bySeverity,
+    top_issues: topIssues,
   };
 }
 
@@ -515,6 +563,50 @@ async function getSchedule(ctx: AskFlowContext, args: any) {
     scheduled: booked,
     pending_requests: pending,
     note: "Compare default_time_slots on each working day against 'scheduled' to find open slots. Days in blocked_dates are off.",
+  };
+}
+
+async function getDefectTrends(ctx: AskFlowContext, args: any) {
+  // Scope findings to the user's inspections in range.
+  const inspRows = await fetchScopedInspections(ctx, { from: args.from, to: args.to });
+  const ids = inspRows.map((i: any) => String(i.id));
+  if (ids.length === 0) return { inspections_analyzed: 0, total_findings: 0, note: "No inspections in that range." };
+
+  let q = ctx.admin.from("findings").select("section, title, severity").in("inspection_id", ids).limit(5000);
+  if (args.section) q = q.ilike("section", `%${args.section}%`);
+  if (args.severity) q = q.eq("severity", args.severity);
+
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  const findings = data || [];
+
+  const bySeverity: Record<string, number> = {};
+  const bySection: Record<string, number> = {};
+  const byTitle: Record<string, number> = {};
+  for (const f of findings) {
+    const sev = f?.severity || "Unspecified";
+    bySeverity[sev] = (bySeverity[sev] || 0) + 1;
+    const sec = f?.section || "Unspecified";
+    bySection[sec] = (bySection[sec] || 0) + 1;
+    const t = String(f?.title || "").trim();
+    if (t) byTitle[t] = (byTitle[t] || 0) + 1;
+  }
+
+  const rank = (obj: Record<string, number>, n: number) =>
+    Object.entries(obj)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([name, count]) => ({ name, count }));
+
+  return {
+    range: { from: args.from || "all-time (recent)", to: args.to || ctx.today },
+    inspections_analyzed: ids.length,
+    total_findings: findings.length,
+    avg_findings_per_inspection: Math.round((findings.length / ids.length) * 10) / 10,
+    by_severity: bySeverity,
+    top_sections: rank(bySection, 8),
+    most_common_findings: rank(byTitle, 12),
+    note: "Counts are across all analyzed inspections. Titles are grouped by exact match.",
   };
 }
 
