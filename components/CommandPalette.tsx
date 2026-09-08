@@ -12,6 +12,7 @@ type Command = {
 };
 
 const COMMANDS: Command[] = [
+  { label: "Ask FLOW", href: "/ask-flow", icon: "💬", group: "Actions", keywords: "assistant ai chat question business how many unpaid schedule" },
   { label: "New Inspection", href: "/inspections/new", icon: "➕", group: "Actions", keywords: "create add job" },
   { label: "Field Tool", href: "/field", icon: "📱", group: "Actions", keywords: "capture onsite" },
   { label: "Import Report", href: "/import-report", icon: "📄", group: "Actions", keywords: "spectora migrate" },
