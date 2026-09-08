@@ -89,6 +89,42 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  // Start a fresh conversation (or reply inside a thread that has no inbound
+  // message to thread onto). Sends a new email + records it as outbound so the
+  // thread appears/continues, keyed by the recipient's email.
+  if (action === "compose") {
+    const to = String(body.to || "").trim().toLowerCase();
+    const message = String(body.message || "").trim();
+    let subject = String(body.subject || "").trim();
+    if (!EMAIL_RE.test(to)) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+    if (!message) return NextResponse.json({ error: "Message is required." }, { status: 400 });
+    if (!subject) subject = "A message from FLOW";
+
+    const { data, error } = await resend.emails.send({
+      from: "FLOW Support <support@flowinspect.app>",
+      to,
+      replyTo: "FLOW Support <support@flowinspect.app>",
+      subject,
+      html: wrapHtml(message),
+      text: message,
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    try {
+      await admin.from("conversation_outbound").insert({
+        to_email: to,
+        subject,
+        body: message,
+        resend_id: data?.id || null,
+        sent_by: ownerEmail,
+      });
+    } catch (e: any) {
+      console.error("conversation_outbound insert failed (send still ok):", e?.message || e);
+    }
+
+    return NextResponse.json({ ok: true, resendId: data?.id || null });
+  }
+
   const id = String(body.id || "").trim();
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
