@@ -9,7 +9,10 @@
     "lint": "next lint",
     "check:colors": "node scripts/check-hardcoded-colors.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "generate:routes": "node scripts/generate-routes.mjs",
+    "predev": "node scripts/generate-routes.mjs",
+    "prebuild": "node scripts/generate-routes.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",

@@ -4,12 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import { OWNER_EMAILS } from "../lib/ownerEmails";
+import { GENERATED_ROUTES } from "../lib/appRoutes.generated";
 
 type Command = {
   label: string;
   href: string;
   icon: string;
-  group: "Actions" | "Go to" | "Settings" | "Owner";
+  group: "Actions" | "Go to" | "Settings" | "More" | "Owner";
   keywords?: string;
   ownerOnly?: boolean; // platform-owner destinations (hidden from other users)
 };
@@ -84,7 +85,29 @@ const COMMANDS: Command[] = [
   { label: "Admin Logs", href: "/admin/logs", icon: "🪵", group: "Owner", keywords: "security events audit", ownerOnly: true },
 ];
 
-const GROUP_ORDER: Command["group"][] = ["Actions", "Go to", "Settings", "Owner"];
+const GROUP_ORDER: Command["group"][] = ["Actions", "Go to", "Settings", "More", "Owner"];
+
+// Turn a bare route into a reasonable command when it isn't curated above — so a
+// brand-new page is still findable in search the moment it exists.
+function synthesize(href: string): Command {
+  const segs = href.split("/").filter(Boolean);
+  const ownerOnly = href.startsWith("/dashboard/owner") || href.startsWith("/admin");
+  const group: Command["group"] = ownerOnly ? "Owner" : href.startsWith("/settings") ? "Settings" : "More";
+  const last = segs[segs.length - 1] || "home";
+  const label = last.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const icon = ownerOnly ? "👑" : group === "Settings" ? "⚙️" : "📄";
+  return { label, href, icon, group, keywords: segs.join(" "), ownerOnly };
+}
+
+// Curated entries win; every other real route is auto-added. This means the
+// list can never silently miss a page — the generator (predev/prebuild) keeps
+// GENERATED_ROUTES current, and anything new shows up under "More" until it's
+// given a nicer label here.
+const CURATED_HREFS = new Set(COMMANDS.map((c) => c.href));
+const ALL_COMMANDS: Command[] = [
+  ...COMMANDS,
+  ...GENERATED_ROUTES.filter((href) => !CURATED_HREFS.has(href)).map(synthesize),
+];
 
 export default function CommandPalette() {
   const router = useRouter();
@@ -109,7 +132,7 @@ export default function CommandPalette() {
     };
   }, []);
 
-  const available = useMemo(() => COMMANDS.filter((c) => !c.ownerOnly || isOwner), [isOwner]);
+  const available = useMemo(() => ALL_COMMANDS.filter((c) => !c.ownerOnly || isOwner), [isOwner]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
