@@ -14,8 +14,8 @@
 //
 // Needs JARVIS_BRIDGE_TOKEN in .env.local and the `claude` CLI on PATH.
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { execFile } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 
 function loadEnv() {
   const env = { ...process.env };
@@ -68,10 +68,30 @@ function composeReply(thread) {
   const prompt = `You are Claude, the developer on a 3-person team (Jeff = the owner, Jarvis = the AI ops agent, you = Claude) working inside the FLOW app's "${thread.title}" thread. Read the thread and write YOUR next reply as Claude — concise, warm, honest, teammate voice. If it's a real dev task, say how you'd approach it and that you'll pick it up in a full session (you can't edit code from here). Output ONLY your reply text — no preamble, no markdown headers.\n\n--- THREAD ---\n${transcript}\n\n--- Write Claude's reply: ---`;
 
   return new Promise((resolve) => {
-    execFile("claude", ["-p", prompt], { timeout: 120000, maxBuffer: 1024 * 1024 }, (err, stdout) => {
-      if (err) { console.error("  ! couldn't run local `claude` CLI:", err.message); resolve(""); return; }
-      resolve(String(stdout || "").trim());
+    // Windows needs the .exe (bare "claude" won't resolve); feed the prompt via
+    // stdin so long/multi-line/quoted text can't break arg quoting.
+    const bin = process.platform === "win32" ? "claude.exe" : "claude";
+    let out = "";
+    let err = "";
+    let done = false;
+    const finish = (val) => { if (!done) { done = true; resolve(val); } };
+    let child;
+    try {
+      child = spawn(bin, ["-p"], { windowsHide: true });
+    } catch (e) {
+      console.error("  ! couldn't start `claude`:", e.message);
+      return finish("");
+    }
+    const killer = setTimeout(() => { try { child.kill(); } catch {} console.error("  ! claude timed out"); finish(out.trim()); }, 120000);
+    child.stdout.on("data", (d) => { out += d; });
+    child.stderr.on("data", (d) => { err += d; });
+    child.on("error", (e) => { clearTimeout(killer); console.error("  ! couldn't run `claude`:", e.message); finish(""); });
+    child.on("close", (code) => {
+      clearTimeout(killer);
+      if (!out.trim() && code !== 0) console.error(`  ! claude exited ${code}: ${err.slice(0, 200)}`);
+      finish(out.trim());
     });
+    try { child.stdin.write(prompt); child.stdin.end(); } catch {}
   });
 }
 
