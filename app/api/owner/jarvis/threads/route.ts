@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../../utils/supabase/server";
 import { getAdminClient } from "../../../../../lib/apiAuth";
 import { OWNER_EMAILS } from "../../../../../lib/ownerEmails";
-import { createThread, addMessage, setStatus, listThreads, triggerGpt } from "../../../../../lib/jarvis/threads";
+import { createThread, addMessage, setStatus, listThreads, triggerGpt, stripLabel } from "../../../../../lib/jarvis/threads";
 import { jarvisRespond } from "../../../../../lib/jarvis/agent";
 import { DEFAULT_TIME_ZONE } from "../../../../../lib/app-time";
 
@@ -40,9 +40,10 @@ async function triggerJarvisReply(admin: any, threadId: string) {
   const today = new Date().toISOString().slice(0, 10);
   const text = await jarvisRespond({
     admin, today, timeZone: DEFAULT_TIME_ZONE, history,
-    extraSystem: `You are posting inside a work thread titled "${thread?.title || "(untitled)"}". Teammates: Jeff (owner) and Claude (developer). Talk to them directly.`,
+    extraSystem: `You are posting inside a work thread titled "${thread?.title || "(untitled)"}". Teammates: Jeff (owner), Claude (developer), GPT (strategist). Talk to them directly. Output ONLY your reply — do not prefix it with your name or a bracket label like [Jarvis].`,
   });
-  if (text) await addMessage(admin, { threadId, author: "jarvis", body: text });
+  const clean = stripLabel(text);
+  if (clean) await addMessage(admin, { threadId, author: "jarvis", body: clean });
 }
 
 export async function GET() {

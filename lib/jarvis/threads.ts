@@ -14,6 +14,12 @@ function authorLabel(a: string) {
   return a === "claude" ? "Claude" : a === "gpt" ? "GPT" : a === "jarvis" ? "Jarvis" : "Jeff";
 }
 
+// AI teammates sometimes echo the transcript's "[Name] " labeling into their own
+// reply — strip a leading self-label so posts read clean.
+export function stripLabel(text: string): string {
+  return String(text || "").replace(/^\s*\[?(GPT|ChatGPT|Jarvis|Claude|Jeff)\]?:?\s*/i, "").trim();
+}
+
 // Push the owner whenever a teammate (Jarvis/Claude/GPT) posts (never for the
 // owner's own messages). Best-effort — never blocks or throws.
 async function notifyOwner(author: ThreadAuthor, title: string, text: string) {
@@ -54,9 +60,10 @@ export async function triggerGpt(admin: any, threadId: string) {
     const today = new Date().toISOString().slice(0, 10);
     const text = await gptRespond({
       admin, today, timeZone: "America/New_York", history,
-      extraSystem: `You are posting inside a work thread titled "${thread?.title || "(untitled)"}". Teammates: Jeff (owner), Jarvis (ops), Claude (dev).`,
+      extraSystem: `You are posting inside a work thread titled "${thread?.title || "(untitled)"}". Teammates: Jeff (owner), Jarvis (ops), Claude (dev). Output ONLY your reply — do not prefix it with your name or a bracket label like [GPT].`,
     });
-    if (text) await addMessage(admin, { threadId, author: "gpt", body: text });
+    const clean = stripLabel(text);
+    if (clean) await addMessage(admin, { threadId, author: "gpt", body: clean });
   } catch (e: any) {
     console.error("GPT trigger failed:", e?.message || e);
   }
