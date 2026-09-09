@@ -67,16 +67,19 @@ export async function POST(req: Request) {
     const r = await addMessage(admin, { threadId, author: "owner", body: text || "(shared a file)", meta, status: body.status });
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 });
 
-    // Routing: a direct @tag talks to just that teammate; an untagged post lets
-    // BOTH Jarvis and GPT drop in (each from their own lane), in parallel.
-    // (@gpt is also auto-handled inside addMessage; @claude is the watcher.)
+    // Routing: a direct @tag talks to just that teammate; @team (or an untagged
+    // post) brings everyone in. @gpt is auto-handled inside addMessage; @claude
+    // and @team wake Claude via the watcher.
+    const team = /@team\b/i.test(text);
     const hasGpt = /@gpt\b/i.test(text);
     const hasClaude = /@claude\b/i.test(text);
     const hasJarvis = /@jarvis\b/i.test(text);
     const directed = hasGpt || hasClaude || hasJarvis;
+    const wantJarvis = team || hasJarvis || !directed;
+    const wantGpt = (team || !directed) && !hasGpt; // @gpt already covered in addMessage
     const jobs: Promise<any>[] = [];
-    if (!directed || hasJarvis) jobs.push(triggerJarvisReply(admin, threadId));
-    if (!directed) jobs.push(triggerGpt(admin, threadId)); // @gpt case already covered in addMessage
+    if (wantJarvis) jobs.push(triggerJarvisReply(admin, threadId));
+    if (wantGpt) jobs.push(triggerGpt(admin, threadId));
     if (jobs.length) await Promise.all(jobs);
     return NextResponse.json({ ok: true });
   }

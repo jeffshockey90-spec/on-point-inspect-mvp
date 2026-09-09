@@ -102,7 +102,7 @@ function shouldAnswer(thread, state) {
   const last = msgs[msgs.length - 1];
   if (last.author === "claude") return null;             // don't answer ourselves
   if (state[thread.id] === last.created_at) return null; // already handled this message
-  if (mode === "tag" && !/@claude/i.test(String(last.body || ""))) return null;
+  if (mode === "tag" && !/@(claude|team)\b/i.test(String(last.body || ""))) return null;
   return last;
 }
 
