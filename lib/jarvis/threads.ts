@@ -91,6 +91,43 @@ async function maybeTriggerGpt(admin: any, threadId: string, author: ThreadAutho
   await triggerGpt(admin, threadId);
 }
 
+// Cloud Claude — the conversational dev teammate, via the Anthropic API (like
+// Jarvis/GPT use OpenAI). Always-on, no local watcher/CLI. Discusses, analyzes,
+// and plans; the ACTUAL code changes happen in a real Claude Code session (with
+// the repo) where Jeff confirms. No-ops if ANTHROPIC_API_KEY isn't set.
+export async function triggerClaude(admin: any, threadId: string) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!threadId || !key) return;
+  try {
+    const { data: thread } = await admin.from("jarvis_threads").select("title, status").eq("id", threadId).maybeSingle();
+    if (thread?.status === "closed") return;
+    const { data: msgs } = await admin.from("jarvis_messages").select("author, body, meta").eq("thread_id", threadId).order("created_at", { ascending: true });
+    const transcript = (msgs || [])
+      .map((m: any) => {
+        const files = Array.isArray(m?.meta?.attachments) ? m.meta.attachments.map((a: any) => a.name).filter(Boolean) : [];
+        return `${authorLabel(m.author)}: ${m.body}${files.length ? ` [attached: ${files.join(", ")}]` : ""}`;
+      })
+      .join("\n\n");
+    const system = `You are Claude, the developer on FLOW's private team — Jeff (owner), Jarvis (ops/health), GPT (strategist), and you (Claude, the builder). This is a work thread titled "${thread?.title || "(untitled)"}". Reply as a teammate: concise, warm, honest, in your dev lane. You discuss, analyze, and plan here; when something actually needs to be coded or shipped, say clearly what you'd do — the real change happens in a Claude Code session with the repo where Jeff confirms. Never claim you've edited code from this thread. Output only your reply, no name prefix.`;
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
+        max_tokens: 1000,
+        system,
+        messages: [{ role: "user", content: `The thread so far:\n\n${transcript}\n\nWrite your next reply as Claude to the latest message.` }],
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { console.error("Claude API:", data?.error?.message || res.status); return; }
+    const text = stripLabel(data?.content?.[0]?.text || "");
+    if (text) await addMessage(admin, { threadId, author: "claude", body: text });
+  } catch (e: any) {
+    console.error("triggerClaude failed:", e?.message || e);
+  }
+}
+
 export async function createThread(
   admin: any,
   input: { title: string; severity?: string; origin?: "jarvis" | "owner"; author: ThreadAuthor; body: string; meta?: any },

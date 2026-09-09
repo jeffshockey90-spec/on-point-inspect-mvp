@@ -277,6 +277,9 @@ export default function JarvisThreads() {
                           <button type="button" onClick={() => post({ action: "gpt_reply", thread_id: t.id })} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/50 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-[var(--fl-good-text)] hover:bg-emerald-500/20 disabled:opacity-60">
                             💡 Ask GPT
                           </button>
+                          <button type="button" onClick={() => post({ action: "claude_reply", thread_id: t.id })} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-400/50 bg-violet-500/10 px-3 py-2 text-sm font-semibold text-[var(--fl-purple-text)] hover:bg-violet-500/20 disabled:opacity-60">
+                            ⚡ Ask Claude
+                          </button>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {(["open", "in_progress", "shipped", "closed"] as const).map((s) => (

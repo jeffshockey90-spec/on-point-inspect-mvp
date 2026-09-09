@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../../utils/supabase/server";
 import { getAdminClient } from "../../../../../lib/apiAuth";
 import { OWNER_EMAILS } from "../../../../../lib/ownerEmails";
-import { createThread, addMessage, setStatus, listThreads, triggerGpt, stripLabel, buildThreadHistory } from "../../../../../lib/jarvis/threads";
+import { createThread, addMessage, setStatus, listThreads, triggerGpt, triggerClaude, stripLabel, buildThreadHistory } from "../../../../../lib/jarvis/threads";
 import { jarvisRespond } from "../../../../../lib/jarvis/agent";
 import { DEFAULT_TIME_ZONE } from "../../../../../lib/app-time";
 
@@ -77,9 +77,11 @@ export async function POST(req: Request) {
     const directed = hasGpt || hasClaude || hasJarvis;
     const wantJarvis = team || hasJarvis || !directed;
     const wantGpt = (team || !directed) && !hasGpt; // @gpt already covered in addMessage
+    const wantClaude = team || hasClaude; // cloud Claude (Anthropic API), always-on
     const jobs: Promise<any>[] = [];
     if (wantJarvis) jobs.push(triggerJarvisReply(admin, threadId));
     if (wantGpt) jobs.push(triggerGpt(admin, threadId));
+    if (wantClaude) jobs.push(triggerClaude(admin, threadId));
     if (jobs.length) await Promise.all(jobs);
     return NextResponse.json({ ok: true });
   }
@@ -89,6 +91,14 @@ export async function POST(req: Request) {
     const threadId = String(body.thread_id || "").trim();
     if (!threadId) return NextResponse.json({ error: "Missing thread id." }, { status: 400 });
     await triggerGpt(admin, threadId);
+    return NextResponse.json({ ok: true });
+  }
+
+  // "Ask Claude" button — bring cloud Claude (dev teammate) into the thread.
+  if (action === "claude_reply") {
+    const threadId = String(body.thread_id || "").trim();
+    if (!threadId) return NextResponse.json({ error: "Missing thread id." }, { status: 400 });
+    await triggerClaude(admin, threadId);
     return NextResponse.json({ ok: true });
   }
 
