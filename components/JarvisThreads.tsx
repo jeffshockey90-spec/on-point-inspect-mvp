@@ -41,6 +41,13 @@ export default function JarvisThreads() {
   const [composing, setComposing] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
+  const [thinkingId, setThinkingId] = useState<string | null>(null);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+
+  // Keep the open thread pinned to the newest message.
+  useEffect(() => {
+    scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "smooth" });
+  }, [threads, openId, thinkingId]);
 
   const load = useCallback(async () => {
     try {
@@ -76,9 +83,16 @@ export default function JarvisThreads() {
   }
 
   async function reply(t: Thread) {
-    if (!draft.trim()) return;
-    await post({ action: "reply", thread_id: t.id, body: draft });
+    const text = draft.trim();
+    if (!text || busy) return;
+    // Show my message instantly (optimistic), then let the request bring back
+    // the canonical thread + Jarvis's auto-reply.
+    const optimistic: Message = { id: `tmp-${Date.now()}`, author: "owner", body: text, meta: null, created_at: new Date().toISOString() };
+    setThreads((prev) => prev.map((x) => (x.id === t.id ? { ...x, messages: [...x.messages, optimistic] } : x)));
     setDraft("");
+    setThinkingId(t.id);
+    await post({ action: "reply", thread_id: t.id, body: text });
+    setThinkingId(null);
   }
 
   async function createThread() {
@@ -110,8 +124,8 @@ export default function JarvisThreads() {
 
       {composing && (
         <div className="mt-4 space-y-2 rounded-2xl border border-teal-500/30 bg-[var(--fl-ground)] p-4">
-          <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="What's this about?" className={inputCls} />
-          <textarea value={newBody} onChange={(e) => setNewBody(e.target.value)} rows={3} placeholder="Describe it…" className={inputCls} />
+          <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); createThread(); } }} placeholder="What's this about?" className={inputCls} />
+          <textarea value={newBody} onChange={(e) => setNewBody(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); createThread(); } }} rows={3} placeholder="Describe it…  (Enter to open, Shift+Enter for a new line)" className={inputCls} />
           <button type="button" onClick={createThread} disabled={busy || !newTitle.trim() || !newBody.trim()} className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-60">
             Open thread
           </button>
@@ -142,7 +156,7 @@ export default function JarvisThreads() {
 
                 {open && (
                   <div className="border-t border-[var(--fl-raised)] p-4">
-                    <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
+                    <div ref={scrollerRef} className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
                       {t.messages.map((m) => {
                         const au = AUTHOR[m.author] || AUTHOR.jarvis;
                         return (
@@ -161,11 +175,31 @@ export default function JarvisThreads() {
                           </div>
                         );
                       })}
+                      {thinkingId === t.id && (
+                        <div className="flex items-center gap-2.5">
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-teal-300 via-teal-500 to-cyan-700 text-xs">🤖</span>
+                          <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-teal-500/20 bg-[var(--fl-ground)] px-3 py-2 text-xs text-[var(--fl-muted)]">
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400 [animation-delay:-0.3s]" />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400 [animation-delay:-0.15s]" />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400" />
+                            <span className="ml-1">Jarvis is replying…</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Owner reply + status */}
                     <div className="mt-3 space-y-2 border-t border-[var(--fl-raised)] pt-3">
-                      <textarea value={openId === t.id ? draft : ""} onChange={(e) => setDraft(e.target.value)} rows={2} placeholder="Reply…" className={inputCls} />
+                      <textarea
+                        value={openId === t.id ? draft : ""}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); reply(t); }
+                        }}
+                        rows={2}
+                        placeholder="Reply…  (Enter to send, Shift+Enter for a new line)"
+                        className={inputCls}
+                      />
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <button type="button" onClick={() => reply(t)} disabled={busy || !draft.trim()} className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-60">
