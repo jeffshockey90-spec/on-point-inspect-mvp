@@ -10,8 +10,9 @@ type Command = {
   label: string;
   href: string;
   icon: string;
-  group: "Actions" | "Go to" | "Settings" | "More" | "Owner";
+  group: "Reports" | "Actions" | "Go to" | "Settings" | "More" | "Owner";
   keywords?: string;
+  sublabel?: string; // second line (used by live inspection results)
   ownerOnly?: boolean; // platform-owner destinations (hidden from other users)
 };
 
@@ -85,7 +86,7 @@ const COMMANDS: Command[] = [
   { label: "Admin Logs", href: "/admin/logs", icon: "🪵", group: "Owner", keywords: "security events audit", ownerOnly: true },
 ];
 
-const GROUP_ORDER: Command["group"][] = ["Actions", "Go to", "Settings", "More", "Owner"];
+const GROUP_ORDER: Command["group"][] = ["Reports", "Actions", "Go to", "Settings", "More", "Owner"];
 
 // Turn a bare route into a reasonable command when it isn't curated above — so a
 // brand-new page is still findable in search the moment it exists.
@@ -115,6 +116,7 @@ export default function CommandPalette() {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const [isOwner, setIsOwner] = useState(false);
+  const [liveResults, setLiveResults] = useState<Command[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Resolve platform-owner once so owner/admin destinations only show for them.
@@ -134,6 +136,42 @@ export default function CommandPalette() {
 
   const available = useMemo(() => ALL_COMMANDS.filter((c) => !c.ownerOnly || isOwner), [isOwner]);
 
+  // Live "jump to a report" search — hits the scoped inspections endpoint as the
+  // user types (debounced), so typing an address lands them on that report.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setLiveResults([]);
+      return;
+    }
+    const controller = new AbortController();
+    const id = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/inspections/search?q=${encodeURIComponent(q)}`, {
+          signal: controller.signal,
+        });
+        const data = await res.json().catch(() => ({}) as any);
+        if (Array.isArray(data.results)) {
+          setLiveResults(
+            data.results.map((r: any) => ({
+              label: r.label,
+              href: r.href,
+              sublabel: r.sublabel,
+              icon: "📋",
+              group: "Reports" as const,
+            })),
+          );
+        }
+      } catch {
+        /* aborted or failed — leave prior results */
+      }
+    }, 200);
+    return () => {
+      controller.abort();
+      window.clearTimeout(id);
+    };
+  }, [query]);
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     const matched = !q
@@ -141,11 +179,11 @@ export default function CommandPalette() {
       : available.filter((command) =>
           `${command.label} ${command.keywords || ""} ${command.group}`.toLowerCase().includes(q),
         );
-    // Keep a stable, grouped order.
-    return [...matched].sort(
+    // Live report hits first, then the static destinations — all grouped.
+    return [...liveResults, ...matched].sort(
       (a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group),
     );
-  }, [query, available]);
+  }, [query, available, liveResults]);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -258,7 +296,12 @@ export default function CommandPalette() {
                     }`}
                   >
                     <span className="text-lg">{command.icon}</span>
-                    <span className="flex-1 text-sm font-bold text-[var(--fl-text)]">{command.label}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-[var(--fl-text)]">{command.label}</span>
+                      {command.sublabel && (
+                        <span className="block truncate text-xs text-[var(--fl-muted)]">{command.sublabel}</span>
+                      )}
+                    </span>
                   </button>
                 </div>
               );
