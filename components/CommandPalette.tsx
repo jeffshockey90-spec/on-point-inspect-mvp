@@ -69,6 +69,7 @@ const COMMANDS: Command[] = [
   { label: "Marketing Images", href: "/settings/marketing-images", icon: "🖼️", group: "Settings", keywords: "social share graphics" },
 
   // Owner / admin (platform owner only)
+  { label: "Jarvis", href: "/dashboard/owner/jarvis", icon: "🤖", group: "Owner", keywords: "ops agent health monitor errors security ai assistant", ownerOnly: true },
   { label: "Owner Dashboard", href: "/dashboard/owner", icon: "👑", group: "Owner", keywords: "admin", ownerOnly: true },
   { label: "Mail & Conversations", href: "/dashboard/owner/mail", icon: "📨", group: "Owner", keywords: "inbox replies threads", ownerOnly: true },
   { label: "Inspectors", href: "/dashboard/owner/inspectors", icon: "🧑", group: "Owner", keywords: "team", ownerOnly: true },

@@ -1034,6 +1034,13 @@ export default async function OwnerDashboardPage() {
               </FastLinkButton>
 
               <FastLinkButton
+                href="/dashboard/owner/jarvis"
+                className="rounded-xl border border-teal-400 bg-teal-500/10 px-5 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
+              >
+                🤖 Jarvis
+              </FastLinkButton>
+
+              <FastLinkButton
                 href="/dashboard"
                 className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
               >

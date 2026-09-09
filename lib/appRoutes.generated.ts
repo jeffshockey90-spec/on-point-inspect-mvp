@@ -14,6 +14,7 @@ export const GENERATED_ROUTES: string[] = [
   "/dashboard/owner/companies",
   "/dashboard/owner/devices",
   "/dashboard/owner/inspectors",
+  "/dashboard/owner/jarvis",
   "/dashboard/owner/live",
   "/dashboard/owner/mail",
   "/dashboard/owner/push",
