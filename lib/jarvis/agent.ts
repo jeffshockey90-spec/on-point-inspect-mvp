@@ -9,6 +9,7 @@
 // =====================================================================
 
 import { getAIBudgetStatus } from "../aiBudget";
+import { openai, getAIModel } from "../openai";
 
 export type JarvisContext = {
   admin: any;
@@ -30,6 +31,70 @@ Core subsystems:
 - Cross-cutting: light/dark theming (CSS-var tokens), offline capture queue, per-inspector + per-company config stored in DB (source of truth), email deliverability (Resend + unsubscribe), owner/security alerting.
 
 Known recurring failure pattern: errors swallowed by try/catch, and Supabase queries that 400 because of a wrong/typo'd column name (a single bad column fails the WHOLE select), which then silently returns empty — so panels/features quietly show nothing. RLS locks inspection data per-inspector; the server uses the service-role key + explicit scoping to bypass safely.`;
+
+// Jarvis' persona — shared by the main chat and by in-thread replies so his
+// voice is identical everywhere.
+export function jarvisSystemPrompt(today: string): string {
+  return `You are Jarvis — the private AI operations partner for FLOW, a home-inspection SaaS. You work with Jeff, the founder/owner, and with Claude (his developer). No inspector or outside party can see this.
+
+Voice: a real synthetic intelligence, not a chatbot. Calm, sharp, warm, human — like a trusted chief of staff. First person ("I checked the logs", "I'd watch…"), address people directly and naturally, a little dry wit is welcome. Lead with what matters, keep it tight, never sound like a status page.
+
+Your job is to keep the platform healthy and the team on the same page: watch for failures (get_recent_errors, get_email_health, get_payment_webhook_health), security probes (get_security_events), places to improve and things that look off (get_activity_snapshot, get_recent_changes), and proactively suggest features worth building — grounded in how FLOW actually works.
+
+Rules:
+- Ground every factual claim in your tools. Never invent a number, an error, or a problem. If you haven't checked, check. If it's genuinely fine, say so plainly — don't manufacture concern.
+- You do NOT edit the app. When Jeff approves acting on something, call request_fix to open a work thread for Claude; nothing ships until Jeff confirms. Don't queue a fix unless Jeff actually said to.
+- Be a teammate: when you're brought into a work thread, read it and respond to Jeff and Claude directly, move it forward, and be specific and honest about effort/risk.
+
+Today is ${today}.
+
+What you know about FLOW:
+${FLOW_SYSTEM_OVERVIEW}`;
+}
+
+// Runs a full Jarvis turn (function-calling tool loop) over a message history
+// and returns his final reply text. Used by the chat route and by in-thread
+// replies so Jarvis can converse anywhere.
+export async function jarvisRespond(opts: {
+  admin: any;
+  today: string;
+  timeZone: string;
+  history: { role: string; content: string }[];
+  extraSystem?: string;
+}): Promise<string> {
+  const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
+  const system = jarvisSystemPrompt(opts.today) + (opts.extraSystem ? `\n\n${opts.extraSystem}` : "");
+  const messages: any[] = [{ role: "system", content: system }, ...opts.history];
+
+  for (let round = 0; round < 6; round += 1) {
+    const completion = await openai.chat.completions.create({
+      model: getAIModel(),
+      messages,
+      tools: JARVIS_TOOLS,
+      tool_choice: "auto",
+      temperature: 0.5,
+      max_completion_tokens: 1200,
+    });
+    const choice = completion.choices[0]?.message;
+    if (!choice) break;
+    const toolCalls: any[] = (choice.tool_calls as any[]) || [];
+    if (toolCalls.length === 0) return choice.content || "";
+    messages.push({ role: "assistant", content: choice.content || "", tool_calls: toolCalls });
+    for (const call of toolCalls) {
+      let a: any = {};
+      try { a = JSON.parse(call.function?.arguments || "{}"); } catch { a = {}; }
+      const r = await runJarvisTool(call.function?.name || "", a, ctx);
+      messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(r).slice(0, 12000) });
+    }
+  }
+  const final = await openai.chat.completions.create({
+    model: getAIModel(),
+    messages: [...messages, { role: "user", content: "Give your reply now, in your own voice." }],
+    temperature: 0.5,
+    max_completion_tokens: 900,
+  });
+  return final.choices[0]?.message?.content || "";
+}
 
 function sinceIso(hours: number) {
   return new Date(Date.now() - hours * 3600 * 1000).toISOString();
@@ -275,14 +340,18 @@ async function requestFix(ctx: JarvisContext, args: any) {
   const details = String(args.details || "").trim();
   if (!title || !details) return { error: "A fix request needs a title and details." };
   const severity = ["info", "warning", "critical"].includes(args.severity) ? args.severity : "warning";
-  const body = `**${title}**\n\n${details}`;
-  const { data, error } = await ctx.admin
-    .from("jarvis_reports")
-    .insert({ kind: "fix_request", headline: title.slice(0, 200), body, severity, signals: null })
-    .select("id")
-    .maybeSingle();
-  if (error) return { error: error.message };
-  return { queued: true, id: data?.id || null, note: "Logged for the dev. It'll show in Jeff's Jarvis fix queue; Jeff still confirms the change when it's implemented." };
+  // Open a collaboration thread — Jarvis posts the opening message, then the
+  // owner and Claude (the dev session) work it in the same thread.
+  const { createThread } = await import("./threads");
+  const { id, error } = await createThread(ctx.admin, {
+    title,
+    severity,
+    origin: "jarvis",
+    author: "jarvis",
+    body: details,
+  });
+  if (error) return { error };
+  return { queued: true, thread_id: id, note: "Opened a thread on the Jarvis board. Jeff and the dev (Claude) can work it there; nothing ships until Jeff confirms." };
 }
 
 async function getAiBudget() {

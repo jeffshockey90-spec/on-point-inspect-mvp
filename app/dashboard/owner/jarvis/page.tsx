@@ -6,6 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
 import { formatAppValue } from "../../../../lib/app-time";
 import JarvisChat from "../../../../components/JarvisChat";
+import JarvisThreads from "../../../../components/JarvisThreads";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -78,7 +79,6 @@ export default async function JarvisPage() {
     reports = [];
   }
 
-  const fixRequests = reports.filter((r) => r.kind === "fix_request");
   const digests = reports.filter((r) => r.kind !== "fix_request");
 
   return (
@@ -112,24 +112,7 @@ export default async function JarvisPage() {
 
         <JarvisChat />
 
-        {fixRequests.length > 0 && (
-          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-xl sm:p-6">
-            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Fix queue</h2>
-            <p className="mt-1 text-sm text-[var(--fl-muted)]">Work Jarvis staged for your dev. Nothing ships until you confirm the change.</p>
-            <ul className="mt-4 space-y-3">
-              {fixRequests.map((r) => (
-                <li key={r.id} className={`rounded-2xl border border-l-4 border-[var(--fl-raised)] bg-[var(--fl-ground)] p-4 ${STRIPE[r.severity] || STRIPE.info}`}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-bold text-[var(--fl-text)]">{r.headline}</span>
-                    <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase ${SEV[r.severity] || SEV.info}`}>{r.severity}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-[var(--fl-faint)]">{fmt(r.created_at)}</p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--fl-muted)]">{r.body}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <JarvisThreads />
 
         <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-xl sm:p-6">
           <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Health digests</h2>
