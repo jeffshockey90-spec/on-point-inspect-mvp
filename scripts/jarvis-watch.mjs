@@ -52,6 +52,15 @@ async function fetchQueue() {
   return data.threads || [];
 }
 
+async function heartbeat() {
+  // Tells FLOW "Claude is online/watching" so presence in threads is honest.
+  try {
+    await fetch(`${base}/api/jarvis/bridge`, {
+      method: "POST", headers, body: JSON.stringify({ action: "heartbeat", source: "watcher" }),
+    });
+  } catch { /* best-effort */ }
+}
+
 async function postReply(threadId, body) {
   const res = await fetch(`${base}/api/jarvis/bridge`, {
     method: "POST", headers, body: JSON.stringify({ thread_id: threadId, body }),
@@ -124,6 +133,7 @@ async function tick() {
   if (running) return;
   running = true;
   try {
+    await heartbeat();
     const threads = await fetchQueue();
     const state = loadState();
     for (const t of threads) {

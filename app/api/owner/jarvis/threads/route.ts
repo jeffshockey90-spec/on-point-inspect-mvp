@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../../utils/supabase/server";
 import { getAdminClient } from "../../../../../lib/apiAuth";
 import { OWNER_EMAILS } from "../../../../../lib/ownerEmails";
-import { createThread, addMessage, setStatus, listThreads, triggerGpt, triggerClaude, stripLabel, buildThreadHistory } from "../../../../../lib/jarvis/threads";
+import { createThread, addMessage, setStatus, listThreads, triggerGpt, triggerClaude, stripLabel, buildThreadHistory, getPresence, postSystem } from "../../../../../lib/jarvis/threads";
 import { jarvisRespond } from "../../../../../lib/jarvis/agent";
 import { DEFAULT_TIME_ZONE } from "../../../../../lib/app-time";
 
@@ -49,7 +49,8 @@ export async function GET() {
   const admin = getAdminClient();
   const { threads, error } = await listThreads(admin, { limit: 50 });
   if (error) return NextResponse.json({ error, threads: [] }, { status: 500 });
-  return NextResponse.json({ threads });
+  const presence = await getPresence(admin);
+  return NextResponse.json({ threads, presence });
 }
 
 export async function POST(req: Request) {
@@ -81,7 +82,15 @@ export async function POST(req: Request) {
     const jobs: Promise<any>[] = [];
     if (wantJarvis) jobs.push(triggerJarvisReply(admin, threadId));
     if (wantGpt) jobs.push(triggerGpt(admin, threadId));
-    if (wantClaude) jobs.push(triggerClaude(admin, threadId));
+    if (wantClaude) {
+      jobs.push(triggerClaude(admin, threadId)); // cloud path (no-op without ANTHROPIC_API_KEY)
+      // Honest fallback: if Claude is unreachable (watcher offline AND no cloud
+      // key), say so instead of leaving the tag hanging.
+      const pres = await getPresence(admin);
+      if (!pres.claude.online) {
+        jobs.push(postSystem(admin, threadId, "⚡ Claude isn't watching right now (his watcher is offline), so he won't auto-reply here. He'll pick this up in his next dev session — or start the watcher to bring him online."));
+      }
+    }
     if (jobs.length) await Promise.all(jobs);
     return NextResponse.json({ ok: true });
   }

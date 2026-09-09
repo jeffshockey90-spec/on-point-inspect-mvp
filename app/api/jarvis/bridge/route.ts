@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminClient } from "../../../../lib/apiAuth";
-import { addMessage, setStatus, listThreads } from "../../../../lib/jarvis/threads";
+import { addMessage, setStatus, listThreads, recordHeartbeat } from "../../../../lib/jarvis/threads";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +33,13 @@ export async function POST(req: Request) {
   if (!authed(req)) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   const body = await req.json().catch(() => ({}) as any);
   const admin = getAdminClient();
+
+  // Watcher heartbeat — keeps "Claude online" honest.
+  if (body.action === "heartbeat") {
+    await recordHeartbeat(admin, String(body.source || "watcher"));
+    return NextResponse.json({ ok: true });
+  }
+
   const threadId = String(body.thread_id || "").trim();
 
   if (body.action === "status") {

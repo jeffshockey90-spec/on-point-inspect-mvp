@@ -5,13 +5,51 @@
 import { sendPushNotification } from "../push";
 import { OWNER_EMAILS } from "../ownerEmails";
 
-export type ThreadAuthor = "jarvis" | "owner" | "claude" | "gpt";
+export type ThreadAuthor = "jarvis" | "owner" | "claude" | "gpt" | "system";
 export type ThreadStatus = "open" | "in_progress" | "shipped" | "closed";
 
 const STATUSES: ThreadStatus[] = ["open", "in_progress", "shipped", "closed"];
+const CLAUDE_PRESENCE_WINDOW_MS = 90 * 1000; // watcher heartbeats each ~30s poll
 
 function authorLabel(a: string) {
-  return a === "claude" ? "Claude" : a === "gpt" ? "GPT" : a === "jarvis" ? "Jarvis" : "Jeff";
+  return a === "claude" ? "Claude" : a === "gpt" ? "GPT" : a === "jarvis" ? "Jarvis" : a === "system" ? "System" : "Jeff";
+}
+
+// The watcher calls this each poll so "Claude online" reflects it actually
+// running. Jarvis/GPT are cloud-always-on and don't heartbeat.
+export async function recordHeartbeat(admin: any, source = "watcher") {
+  try {
+    await admin.from("jarvis_presence").upsert(
+      { participant: "claude", last_seen: new Date().toISOString(), source, updated_at: new Date().toISOString() },
+      { onConflict: "participant" },
+    );
+  } catch { /* best-effort */ }
+}
+
+// Honest availability. Claude = online only while the watcher heartbeat is
+// fresh; Jarvis/GPT answer server-side whenever tagged, so they're always on.
+export async function getPresence(admin: any) {
+  let claudeSeen: string | null = null;
+  try {
+    const { data } = await admin.from("jarvis_presence").select("last_seen").eq("participant", "claude").maybeSingle();
+    claudeSeen = data?.last_seen || null;
+  } catch { /* table may not exist yet */ }
+  const watcherFresh = claudeSeen ? Date.now() - new Date(claudeSeen).getTime() < CLAUDE_PRESENCE_WINDOW_MS : false;
+  const cloudClaude = Boolean(process.env.ANTHROPIC_API_KEY); // always-on cloud path
+  return {
+    jarvis: { online: true, cloud: true },
+    gpt: { online: true, cloud: true },
+    claude: { online: watcherFresh || cloudClaude, cloud: cloudClaude, watcher: watcherFresh, lastSeen: claudeSeen },
+  };
+}
+
+// A system-authored status note (not any teammate pretending). Inserted raw so
+// it doesn't push the owner or trigger other teammates.
+export async function postSystem(admin: any, threadId: string, body: string) {
+  try {
+    await admin.from("jarvis_messages").insert({ thread_id: threadId, author: "system", body });
+    await admin.from("jarvis_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
+  } catch { /* best-effort */ }
 }
 
 // AI teammates sometimes echo the transcript's "[Name] " labeling into their own
@@ -41,7 +79,7 @@ export function buildThreadHistory(msgs: any[], selfAuthor: string): { role: str
 // Push the owner whenever a teammate (Jarvis/Claude/GPT) posts (never for the
 // owner's own messages). Best-effort — never blocks or throws.
 async function notifyOwner(author: ThreadAuthor, title: string, text: string) {
-  if (author === "owner") return;
+  if (author === "owner" || author === "system") return;
   const who = author === "claude" ? "⚡ Claude" : author === "gpt" ? "💡 ChatGPT" : "🤖 Jarvis";
   const body = `${title ? `${title} — ` : ""}${String(text || "").replace(/\s+/g, " ").trim()}`.slice(0, 140);
   for (const email of OWNER_EMAILS) {

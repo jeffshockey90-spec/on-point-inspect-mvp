@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Message = { id: string; author: "jarvis" | "owner" | "claude" | "gpt"; body: string; meta: any; created_at: string };
+type Message = { id: string; author: "jarvis" | "owner" | "claude" | "gpt" | "system"; body: string; meta: any; created_at: string };
 type Thread = {
   id: string;
   title: string;
@@ -33,6 +33,28 @@ function fmt(v: string) {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+function Dot({ on }: { on: boolean }) {
+  return (
+    <span className="relative flex h-2 w-2">
+      {on && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />}
+      <span className={`relative inline-flex h-2 w-2 rounded-full ${on ? "bg-emerald-400" : "bg-[var(--fl-faint)]"}`} />
+    </span>
+  );
+}
+
+function Presence({ p }: { p: any }) {
+  if (!p) return null;
+  const claudeLabel = p.claude?.online ? (p.claude?.cloud ? "Online · cloud" : "Online · watching") : "Offline";
+  const chip = "inline-flex items-center gap-1.5 rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-2.5 py-1 text-xs";
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={chip}><Dot on={!!p.jarvis?.online} /> 🤖 Jarvis <span className="text-[var(--fl-faint)]">Online</span></span>
+      <span className={chip}><Dot on={!!p.gpt?.online} /> 💡 GPT <span className="text-[var(--fl-faint)]">Online</span></span>
+      <span className={chip}><Dot on={!!p.claude?.online} /> ⚡ Claude <span className="text-[var(--fl-faint)]">{claudeLabel}</span></span>
+    </div>
+  );
+}
+
 function Attachments({ atts }: { atts: any[] }) {
   if (!atts?.length) return null;
   return (
@@ -54,6 +76,7 @@ function Attachments({ atts }: { atts: any[] }) {
 
 export default function JarvisThreads() {
   const [threads, setThreads] = useState<Thread[]>([]);
+  const [presence, setPresence] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -76,6 +99,7 @@ export default function JarvisThreads() {
       const res = await fetch("/api/owner/jarvis/threads", { cache: "no-store" });
       const data = await res.json().catch(() => ({}) as any);
       if (Array.isArray(data.threads)) setThreads(data.threads);
+      if (data.presence) setPresence(data.presence);
     } catch {
       /* ignore */
     }
@@ -167,6 +191,8 @@ export default function JarvisThreads() {
         </button>
       </div>
 
+      <div className="mt-3"><Presence p={presence} /></div>
+
       {composing && (
         <div className="mt-4 space-y-2 rounded-2xl border border-teal-500/30 bg-[var(--fl-ground)] p-4">
           <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); createThread(); } }} placeholder="What's this about?" className={inputCls} />
@@ -203,6 +229,13 @@ export default function JarvisThreads() {
                   <div className="border-t border-[var(--fl-raised)] p-4">
                     <div ref={scrollerRef} className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
                       {t.messages.map((m) => {
+                        if (m.author === "system") {
+                          return (
+                            <div key={m.id} className="my-1 text-center">
+                              <span className="inline-block rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-1 text-xs text-[var(--fl-muted)]">{m.body}</span>
+                            </div>
+                          );
+                        }
                         const au = AUTHOR[m.author] || AUTHOR.jarvis;
                         return (
                           <div key={m.id} className="flex items-start gap-2.5">
