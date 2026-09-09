@@ -91,8 +91,14 @@ function composeReply(thread) {
     child.on("error", (e) => { clearTimeout(killer); console.error("  ! couldn't run `claude`:", e.message); finish(""); });
     child.on("close", (code) => {
       clearTimeout(killer);
-      if (!out.trim() && code !== 0) console.error(`  ! claude exited ${code}: ${err.slice(0, 200)}`);
-      finish(out.trim());
+      const text = out.trim();
+      // Don't post CLI errors as if they were Claude's reply.
+      if (/failed to authenticate|oauth|not authenticated|invalid api key|usage limit|please run .*login/i.test(text)) {
+        console.error(`  ! claude auth/CLI error (not posting): ${text.slice(0, 160)}`);
+        return finish("");
+      }
+      if (!text && code !== 0) console.error(`  ! claude exited ${code}: ${err.slice(0, 200)}`);
+      finish(text);
     });
   });
 }
