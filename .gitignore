@@ -11,3 +11,5 @@ on-point-inspect-audit.zip
 # Auto-generated build artifacts (regenerated on every build)
 tsconfig.tsbuildinfo
 next-env.d.ts
+
+.jarvis-watch-state.json
