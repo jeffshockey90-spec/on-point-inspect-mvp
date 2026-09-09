@@ -68,9 +68,18 @@ export async function POST(req: Request) {
     const text = String(body.body || "");
     const r = await addMessage(admin, { threadId, author: "owner", body: text, status: body.status });
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 });
-    // Directed message? @gpt is handled in addMessage, @claude by the watcher.
-    // Only pull in Jarvis when you're NOT specifically talking to someone else.
-    if (!/@(gpt|claude)\b/i.test(text)) await triggerJarvisReply(admin, threadId);
+
+    // Routing: a direct @tag talks to just that teammate; an untagged post lets
+    // BOTH Jarvis and GPT drop in (each from their own lane), in parallel.
+    // (@gpt is also auto-handled inside addMessage; @claude is the watcher.)
+    const hasGpt = /@gpt\b/i.test(text);
+    const hasClaude = /@claude\b/i.test(text);
+    const hasJarvis = /@jarvis\b/i.test(text);
+    const directed = hasGpt || hasClaude || hasJarvis;
+    const jobs: Promise<any>[] = [];
+    if (!directed || hasJarvis) jobs.push(triggerJarvisReply(admin, threadId));
+    if (!directed) jobs.push(triggerGpt(admin, threadId)); // @gpt case already covered in addMessage
+    if (jobs.length) await Promise.all(jobs);
     return NextResponse.json({ ok: true });
   }
 
