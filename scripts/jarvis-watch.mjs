@@ -80,7 +80,11 @@ function composeReply(thread) {
     try {
       // Pass the prompt as an argument (spawn handles quoting with no shell, so
       // multi-line/quoted text is safe). Close stdin so the CLI doesn't wait on it.
-      child = spawn(bin, ["-p", prompt], { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+      // Pass a long-lived headless token (from `claude setup-token`) if present,
+      // so the unattended CLI can auth with a Max/Pro subscription (no API key).
+      const childEnv = { ...process.env };
+      if (env.CLAUDE_CODE_OAUTH_TOKEN) childEnv.CLAUDE_CODE_OAUTH_TOKEN = env.CLAUDE_CODE_OAUTH_TOKEN;
+      child = spawn(bin, ["-p", prompt], { windowsHide: true, stdio: ["ignore", "pipe", "pipe"], env: childEnv });
     } catch (e) {
       console.error("  ! couldn't start `claude`:", e.message);
       return finish("");
