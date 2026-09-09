@@ -88,11 +88,25 @@ export default function JarvisThreads() {
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const atBottomRef = useRef(true);
 
-  // Keep the open thread pinned to the newest message.
+  function onScroll() {
+    const el = scrollerRef.current;
+    if (el) atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  }
+
+  // Follow new content ONLY if you're already at the bottom — never yank you
+  // down while you've scrolled up to read (e.g. on the 15s poll refresh).
   useEffect(() => {
-    scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "smooth" });
-  }, [threads, openId, thinkingId]);
+    if (atBottomRef.current) scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "smooth" });
+  }, [threads, thinkingId]);
+
+  // Opening a thread jumps to the latest message.
+  useEffect(() => {
+    if (!openId) return;
+    atBottomRef.current = true;
+    requestAnimationFrame(() => scrollerRef.current?.scrollTo({ top: scrollerRef.current!.scrollHeight }));
+  }, [openId]);
 
   const load = useCallback(async () => {
     try {
@@ -227,7 +241,7 @@ export default function JarvisThreads() {
 
                 {open && (
                   <div className="border-t border-[var(--fl-raised)] p-4">
-                    <div ref={scrollerRef} className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
+                    <div ref={scrollerRef} onScroll={onScroll} className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
                       {t.messages.map((m) => {
                         if (m.author === "system") {
                           return (
