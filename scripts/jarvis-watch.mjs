@@ -78,7 +78,9 @@ function composeReply(thread) {
     const finish = (val) => { if (!done) { done = true; resolve(val); } };
     let child;
     try {
-      child = spawn(bin, ["-p"], { windowsHide: true });
+      // Pass the prompt as an argument (spawn handles quoting with no shell, so
+      // multi-line/quoted text is safe). Close stdin so the CLI doesn't wait on it.
+      child = spawn(bin, ["-p", prompt], { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
     } catch (e) {
       console.error("  ! couldn't start `claude`:", e.message);
       return finish("");
@@ -92,7 +94,6 @@ function composeReply(thread) {
       if (!out.trim() && code !== 0) console.error(`  ! claude exited ${code}: ${err.slice(0, 200)}`);
       finish(out.trim());
     });
-    try { child.stdin.write(prompt); child.stdin.end(); } catch {}
   });
 }
 
