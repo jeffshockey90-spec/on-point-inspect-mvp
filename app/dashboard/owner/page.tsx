@@ -406,7 +406,7 @@ export default async function OwnerDashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 7);
   const thirtyDaysAgo = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
 
-  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts, aiLogs, companies, stripeLogs, stripeAuditLogs, clientPortalEvents] = await Promise.all([
+  const [profiles, inspectorProfiles, companyUsers, inspections, events, pushSubscriptions, nativePushTokens, deviceEvents, findings, photos, agreements, invoices, templates, inspectionContacts, aiLogs, companies, stripeLogs, stripeAuditLogs, clientPortalEvents, dedupedViewsRes] = await Promise.all([
     safeSelect(admin.from("profiles").select("*"), "profiles"),
     safeSelect(admin.from("inspector_profiles").select("*"), "inspector_profiles"),
     safeSelect(admin.from("company_users").select("*"), "company_users"),
@@ -418,8 +418,8 @@ export default async function OwnerDashboardPage() {
     // Project only the columns the dashboard actually reads — these are the two
     // largest tables (across ALL companies) and select("*") pulled every wide
     // column (photo URLs/metadata, finding text) just to produce counts.
-    safeSelect(admin.from("findings").select("id, inspection_id, report_id, section, severity"), "findings"),
-    safeSelect(admin.from("photos").select("id, inspection_id, report_id"), "photos"),
+    safeSelect(admin.from("findings").select("id, inspection_id, section, severity"), "findings"),
+    safeSelect(admin.from("photos").select("id, inspection_id"), "photos"),
     safeSelect(admin.from("inspection_agreements").select("*"), "inspection_agreements"),
     Promise.resolve([]),
     safeSelect(admin.from("finding_templates").select("*"), "finding_templates"),
@@ -430,6 +430,13 @@ export default async function OwnerDashboardPage() {
     safeSelect(admin.from("audit_logs").select("action,resource_id,metadata,created_at").in("action", ["stripe_payment_completed", "stripe_charge_refunded", "stripe_charge_disputed"]).order("created_at", { ascending: false }).limit(50), "audit_logs"),
     // Signed agreements are logged here (NOT inspection_view_events).
     safeSelect(admin.from("client_portal_events").select("event_type,created_at").order("created_at", { ascending: false }).limit(2000), "client_portal_events"),
+    // Deduped report-view count runs over a large table (~2.5s). Keep it INSIDE
+    // this parallel batch so it overlaps the other queries instead of adding its
+    // full cost serially after them.
+    Promise.resolve(admin.rpc("count_report_views_deduped")).then(
+      (r: any) => r,
+      () => ({ data: null, error: true }),
+    ),
   ]);
 
   function roleLooksLikeRealtorPreview(value: unknown) {
@@ -562,9 +569,8 @@ export default async function OwnerDashboardPage() {
   // don't inflate the number. Uses a DB function (supabase/report-views-
   // deduped.sql); if it isn't applied yet, fall back to the raw exact count.
   let reportViewedCount = 0;
-  const { data: dedupedViews, error: dedupedError } = await admin.rpc(
-    "count_report_views_deduped"
-  );
+  const dedupedViews = (dedupedViewsRes as any)?.data;
+  const dedupedError = (dedupedViewsRes as any)?.error;
   if (!dedupedError && typeof dedupedViews === "number") {
     reportViewedCount = dedupedViews;
   } else {
