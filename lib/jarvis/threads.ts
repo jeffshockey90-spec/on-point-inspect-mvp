@@ -5,16 +5,20 @@
 import { sendPushNotification } from "../push";
 import { OWNER_EMAILS } from "../ownerEmails";
 
-export type ThreadAuthor = "jarvis" | "owner" | "claude";
+export type ThreadAuthor = "jarvis" | "owner" | "claude" | "gpt";
 export type ThreadStatus = "open" | "in_progress" | "shipped" | "closed";
 
 const STATUSES: ThreadStatus[] = ["open", "in_progress", "shipped", "closed"];
 
-// Push the owner whenever Jarvis or Claude posts (never for the owner's own
-// messages). Best-effort — never blocks or throws.
+function authorLabel(a: string) {
+  return a === "claude" ? "Claude" : a === "gpt" ? "GPT" : a === "jarvis" ? "Jarvis" : "Jeff";
+}
+
+// Push the owner whenever a teammate (Jarvis/Claude/GPT) posts (never for the
+// owner's own messages). Best-effort — never blocks or throws.
 async function notifyOwner(author: ThreadAuthor, title: string, text: string) {
   if (author === "owner") return;
-  const who = author === "claude" ? "⚡ Claude" : "🤖 Jarvis";
+  const who = author === "claude" ? "⚡ Claude" : author === "gpt" ? "💡 ChatGPT" : "🤖 Jarvis";
   const body = `${title ? `${title} — ` : ""}${String(text || "").replace(/\s+/g, " ").trim()}`.slice(0, 140);
   for (const email of OWNER_EMAILS) {
     try {
@@ -31,6 +35,38 @@ async function notifyOwner(author: ThreadAuthor, title: string, text: string) {
       /* best-effort */
     }
   }
+}
+
+// ChatGPT replies in a thread (read-only teammate). Unconditional — used by the
+// "Ask GPT" button and by the @gpt auto-trigger below.
+export async function triggerGpt(admin: any, threadId: string) {
+  if (!threadId || !process.env.OPENAI_API_KEY) return;
+  try {
+    const { gptRespond } = await import("./agent");
+    const { data: thread } = await admin.from("jarvis_threads").select("title, status").eq("id", threadId).maybeSingle();
+    if (thread?.status === "closed") return;
+    const { data: msgs } = await admin.from("jarvis_messages").select("author, body").eq("thread_id", threadId).order("created_at", { ascending: true });
+    const history = (msgs || []).map((m: any) => ({
+      role: m.author === "gpt" ? "assistant" : "user",
+      content: m.author === "gpt" ? String(m.body) : `[${authorLabel(m.author)}] ${m.body}`,
+    }));
+    history.push({ role: "user", content: "Respond in this thread as GPT — the strategist teammate. Read the whole thread and reply to the latest message. Stay in your lane (ideas, strategy, framing, second opinions), ground anything factual in your read-only tools, and talk to Jeff, Jarvis, and Claude directly. Keep it tight." });
+    const today = new Date().toISOString().slice(0, 10);
+    const text = await gptRespond({
+      admin, today, timeZone: "America/New_York", history,
+      extraSystem: `You are posting inside a work thread titled "${thread?.title || "(untitled)"}". Teammates: Jeff (owner), Jarvis (ops), Claude (dev).`,
+    });
+    if (text) await addMessage(admin, { threadId, author: "gpt", body: text });
+  } catch (e: any) {
+    console.error("GPT trigger failed:", e?.message || e);
+  }
+}
+
+// Auto-summon GPT when a message @gpt-tags it (from anyone but GPT itself).
+async function maybeTriggerGpt(admin: any, threadId: string, author: ThreadAuthor, body: string) {
+  if (author === "gpt") return;
+  if (!/@gpt\b/i.test(String(body || ""))) return;
+  await triggerGpt(admin, threadId);
 }
 
 export async function createThread(
@@ -53,6 +89,7 @@ export async function createThread(
   if (id) {
     await admin.from("jarvis_messages").insert({ thread_id: id, author: input.author, body, meta: input.meta || null });
     await notifyOwner(input.author, title, body);
+    await maybeTriggerGpt(admin, id, input.author, body);
   }
   return { id: id || null };
 }
@@ -74,6 +111,7 @@ export async function addMessage(
   if (input.status && STATUSES.includes(input.status as ThreadStatus)) patch.status = input.status;
   await admin.from("jarvis_threads").update(patch).eq("id", threadId);
   await notifyOwner(input.author, "", body);
+  await maybeTriggerGpt(admin, threadId, input.author, body);
   return { ok: true };
 }
 

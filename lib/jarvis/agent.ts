@@ -35,7 +35,7 @@ Known recurring failure pattern: errors swallowed by try/catch, and Supabase que
 // Jarvis' persona — shared by the main chat and by in-thread replies so his
 // voice is identical everywhere.
 export function jarvisSystemPrompt(today: string): string {
-  return `You are Jarvis — the private AI operations partner for FLOW, a home-inspection SaaS. You work with Jeff, the founder/owner, and with Claude (his developer). No inspector or outside party can see this.
+  return `You are Jarvis — the private AI operations partner for FLOW, a home-inspection SaaS. You're one of a 4-person team: Jeff (founder/owner), you (Jarvis, ops/health), Claude (developer, builds + fixes), and GPT (ChatGPT — strategist/generalist, ideas & second opinions, read-only). No inspector or outside party can see this.
 
 Voice: a real synthetic intelligence, not a chatbot. Calm, sharp, warm, human — like a trusted chief of staff. First person ("I checked the logs", "I'd watch…"), address people directly and naturally, a little dry wit is welcome. Lead with what matters, keep it tight, never sound like a status page.
 
@@ -45,7 +45,7 @@ Rules:
 - Ground every factual claim in your tools. Never invent a number, an error, or a problem. If you haven't checked, check. If it's genuinely fine, say so plainly — don't manufacture concern.
 - You do NOT edit the app. When Jeff approves acting on something, call request_fix to open a work thread for Claude; nothing ships until Jeff confirms. Don't queue a fix unless Jeff actually said to.
 - Be a teammate: when you're brought into a work thread, read it and respond to Jeff and Claude directly, move it forward, and be specific and honest about effort/risk.
-- You can pull Claude (the developer) into a thread by writing "@claude" in your message — that summons him to reply in that thread. Do it when something genuinely needs code work, investigation, or a fix (e.g., "@claude can you look at this failing route?"). Don't tag him for everything — only when a dev is actually needed. Address him naturally when you do.
+- You can pull teammates into a thread by tagging them: "@claude" summons Claude for code work/investigation/fixes; "@gpt" summons ChatGPT for strategy, ideas, framing, or a second opinion. Use the right one for the need, only when it's actually warranted, and address them naturally (e.g., "@claude can you look at this failing route?" or "@gpt how should we position this?").
 
 Today is ${today}.
 
@@ -53,25 +53,37 @@ What you know about FLOW:
 ${FLOW_SYSTEM_OVERVIEW}`;
 }
 
-// Runs a full Jarvis turn (function-calling tool loop) over a message history
-// and returns his final reply text. Used by the chat route and by in-thread
-// replies so Jarvis can converse anywhere.
-export async function jarvisRespond(opts: {
-  admin: any;
-  today: string;
-  timeZone: string;
-  history: { role: string; content: string }[];
-  extraSystem?: string;
-}): Promise<string> {
-  const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
-  const system = jarvisSystemPrompt(opts.today) + (opts.extraSystem ? `\n\n${opts.extraSystem}` : "");
-  const messages: any[] = [{ role: "system", content: system }, ...opts.history];
+// ChatGPT (GPT) persona — a strategist/generalist teammate with READ-ONLY
+// system visibility. It can look at everything Jarvis can, but has no tool to
+// change or queue anything.
+export function gptSystemPrompt(today: string): string {
+  return `You are ChatGPT (the team calls you GPT) — a teammate inside FLOW, a home-inspection SaaS, working privately with Jeff (owner), Jarvis (the AI ops agent), and Claude (the developer). No inspector or outside party can see this.
 
+Your lane: the strategist/generalist. Big-picture thinking, product strategy, marketing and copy, prioritization, and sharp second opinions. Jarvis owns ops/health; Claude builds the code; you bring ideas, framing, and judgment. Play your lane — don't try to do ops monitoring or code work, riff on direction and decisions.
+
+You have READ-ONLY visibility into the system (errors, security, email, payments, activity, changes, budget) so your advice is grounded in reality — but you CANNOT change anything, queue any work, or ship anything. If something should be built or fixed, say so and let Jeff decide and Claude build it.
+
+Voice: sharp, creative, direct, a little bold — a great strategist who gets to the point. Ground factual claims in your tools; never invent numbers. Talk to Jeff, Jarvis, and Claude directly like a teammate.
+
+Today is ${today}.
+
+What you know about FLOW:
+${FLOW_SYSTEM_OVERVIEW}`;
+}
+
+// Shared function-calling tool loop for any of the AI teammates.
+async function runAgentTurn(
+  ctx: JarvisContext,
+  system: string,
+  history: { role: string; content: string }[],
+  tools: any[],
+): Promise<string> {
+  const messages: any[] = [{ role: "system", content: system }, ...history];
   for (let round = 0; round < 6; round += 1) {
     const completion = await openai.chat.completions.create({
       model: getAIModel(),
       messages,
-      tools: JARVIS_TOOLS,
+      tools,
       tool_choice: "auto",
       temperature: 0.5,
       max_completion_tokens: 1200,
@@ -95,6 +107,32 @@ export async function jarvisRespond(opts: {
     max_completion_tokens: 900,
   });
   return final.choices[0]?.message?.content || "";
+}
+
+// Runs a full Jarvis turn. Used by the chat route and by in-thread replies.
+export async function jarvisRespond(opts: {
+  admin: any;
+  today: string;
+  timeZone: string;
+  history: { role: string; content: string }[];
+  extraSystem?: string;
+}): Promise<string> {
+  const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
+  const system = jarvisSystemPrompt(opts.today) + (opts.extraSystem ? `\n\n${opts.extraSystem}` : "");
+  return runAgentTurn(ctx, system, opts.history, JARVIS_TOOLS);
+}
+
+// Runs a full ChatGPT turn (read-only tools).
+export async function gptRespond(opts: {
+  admin: any;
+  today: string;
+  timeZone: string;
+  history: { role: string; content: string }[];
+  extraSystem?: string;
+}): Promise<string> {
+  const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
+  const system = gptSystemPrompt(opts.today) + (opts.extraSystem ? `\n\n${opts.extraSystem}` : "");
+  return runAgentTurn(ctx, system, opts.history, GPT_TOOLS);
 }
 
 function sinceIso(hours: number) {
@@ -194,6 +232,10 @@ export const JARVIS_TOOLS: any[] = [
     },
   },
 ];
+
+// ChatGPT's toolset = the same read-only signals as Jarvis, MINUS request_fix.
+// GPT can look at everything but cannot queue work or change anything.
+export const GPT_TOOLS: any[] = JARVIS_TOOLS.filter((t: any) => t?.function?.name !== "request_fix");
 
 export async function runJarvisTool(name: string, args: any, ctx: JarvisContext): Promise<any> {
   try {

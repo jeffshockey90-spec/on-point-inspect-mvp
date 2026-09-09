@@ -62,10 +62,11 @@ async function postReply(threadId, body) {
 // Ask the LOCAL claude CLI to compose Claude's reply (text only — no tools, so
 // it never hangs on a permission prompt). Returns the reply string.
 function composeReply(thread) {
+  const label = (a) => (a === "claude" ? "Claude" : a === "jarvis" ? "Jarvis" : a === "gpt" ? "GPT" : "Jeff");
   const transcript = (thread.messages || [])
-    .map((m) => `${m.author === "claude" ? "Claude" : m.author === "jarvis" ? "Jarvis" : "Jeff"}: ${m.body}`)
+    .map((m) => `${label(m.author)}: ${m.body}`)
     .join("\n\n");
-  const prompt = `You are Claude, the developer on a 3-person team (Jeff = the owner, Jarvis = the AI ops agent, you = Claude) working inside the FLOW app's "${thread.title}" thread. Read the thread and write YOUR next reply as Claude — concise, warm, honest, teammate voice. If it's a real dev task, say how you'd approach it and that you'll pick it up in a full session (you can't edit code from here). Output ONLY your reply text — no preamble, no markdown headers.\n\n--- THREAD ---\n${transcript}\n\n--- Write Claude's reply: ---`;
+  const prompt = `You are Claude, the developer on a 4-person team (Jeff = the owner, Jarvis = the AI ops agent, GPT = the strategist, you = Claude) working inside the FLOW app's "${thread.title}" thread. Read the thread and write YOUR next reply as Claude — concise, warm, honest, teammate voice. If it's a real dev task, say how you'd approach it and that you'll pick it up in a full session (you can't edit code from here). Output ONLY your reply text — no preamble, no markdown headers.\n\n--- THREAD ---\n${transcript}\n\n--- Write Claude's reply: ---`;
 
   return new Promise((resolve) => {
     // Windows needs the .exe (bare "claude" won't resolve); feed the prompt via

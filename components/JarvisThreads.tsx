@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Message = { id: string; author: "jarvis" | "owner" | "claude"; body: string; meta: any; created_at: string };
+type Message = { id: string; author: "jarvis" | "owner" | "claude" | "gpt"; body: string; meta: any; created_at: string };
 type Thread = {
   id: string;
   title: string;
@@ -25,6 +25,7 @@ const AUTHOR: Record<string, { name: string; icon: string; ring: string; chip: s
   jarvis: { name: "Jarvis", icon: "🤖", ring: "from-teal-300 via-teal-500 to-cyan-700", chip: "text-[var(--fl-accent-text)]" },
   owner: { name: "You", icon: "👤", ring: "from-slate-400 to-slate-600", chip: "text-[var(--fl-text)]" },
   claude: { name: "Claude", icon: "⚡", ring: "from-violet-400 via-purple-500 to-fuchsia-600", chip: "text-[var(--fl-purple-text)]" },
+  gpt: { name: "ChatGPT", icon: "💡", ring: "from-emerald-300 via-green-500 to-teal-600", chip: "text-[var(--fl-good-text)]" },
 };
 
 function fmt(v: string) {
@@ -207,6 +208,9 @@ export default function JarvisThreads() {
                           </button>
                           <button type="button" onClick={() => post({ action: "jarvis_reply", thread_id: t.id })} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl border border-teal-400/50 bg-teal-500/10 px-3 py-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/20 disabled:opacity-60">
                             🤖 Ask Jarvis
+                          </button>
+                          <button type="button" onClick={() => post({ action: "gpt_reply", thread_id: t.id })} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/50 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-[var(--fl-good-text)] hover:bg-emerald-500/20 disabled:opacity-60">
+                            💡 Ask GPT
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-1.5">

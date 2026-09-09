@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../../utils/supabase/server";
 import { getAdminClient } from "../../../../../lib/apiAuth";
 import { OWNER_EMAILS } from "../../../../../lib/ownerEmails";
-import { createThread, addMessage, setStatus, listThreads } from "../../../../../lib/jarvis/threads";
+import { createThread, addMessage, setStatus, listThreads, triggerGpt } from "../../../../../lib/jarvis/threads";
 import { jarvisRespond } from "../../../../../lib/jarvis/agent";
 import { DEFAULT_TIME_ZONE } from "../../../../../lib/app-time";
 
@@ -64,9 +64,20 @@ export async function POST(req: Request) {
 
   if (action === "reply") {
     const threadId = String(body.thread_id || "");
-    const r = await addMessage(admin, { threadId, author: "owner", body: String(body.body || ""), status: body.status });
+    const text = String(body.body || "");
+    const r = await addMessage(admin, { threadId, author: "owner", body: text, status: body.status });
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 });
-    await triggerJarvisReply(admin, threadId); // auto-Jarvis: he answers your post
+    // Directed message? @gpt is handled in addMessage, @claude by the watcher.
+    // Only pull in Jarvis when you're NOT specifically talking to someone else.
+    if (!/@(gpt|claude)\b/i.test(text)) await triggerJarvisReply(admin, threadId);
+    return NextResponse.json({ ok: true });
+  }
+
+  // "Ask GPT" button — bring ChatGPT (read-only strategist) into the thread.
+  if (action === "gpt_reply") {
+    const threadId = String(body.thread_id || "").trim();
+    if (!threadId) return NextResponse.json({ error: "Missing thread id." }, { status: 400 });
+    await triggerGpt(admin, threadId);
     return NextResponse.json({ ok: true });
   }
 
