@@ -96,9 +96,11 @@ function composeReply(thread) {
     child.on("close", (code) => {
       clearTimeout(killer);
       const text = out.trim();
-      // Don't post CLI errors as if they were Claude's reply.
-      if (/failed to authenticate|oauth|not authenticated|invalid api key|usage limit|please run .*login/i.test(text)) {
-        console.error(`  ! claude auth/CLI error (not posting): ${text.slice(0, 160)}`);
+      // Don't post a CLI error as if it were Claude's reply — but only match at
+      // the START of the output, so a real reply that merely *discusses* auth/
+      // OAuth isn't blocked.
+      if (/^\s*(failed to authenticate|invalid api key|not authenticated|credit balance|usage limit reached|please run\b.*\blogin\b|error:)/i.test(text)) {
+        console.error(`  ! claude CLI error (not posting): ${text.slice(0, 160)}`);
         return finish("");
       }
       if (!text && code !== 0) console.error(`  ! claude exited ${code}: ${err.slice(0, 200)}`);
