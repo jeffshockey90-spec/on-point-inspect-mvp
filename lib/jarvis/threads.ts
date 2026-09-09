@@ -2,10 +2,36 @@
 // admin client; the caller is responsible for auth (owner session or the
 // bridge token). Server-only.
 
+import { sendPushNotification } from "../push";
+import { OWNER_EMAILS } from "../ownerEmails";
+
 export type ThreadAuthor = "jarvis" | "owner" | "claude";
 export type ThreadStatus = "open" | "in_progress" | "shipped" | "closed";
 
 const STATUSES: ThreadStatus[] = ["open", "in_progress", "shipped", "closed"];
+
+// Push the owner whenever Jarvis or Claude posts (never for the owner's own
+// messages). Best-effort — never blocks or throws.
+async function notifyOwner(author: ThreadAuthor, title: string, text: string) {
+  if (author === "owner") return;
+  const who = author === "claude" ? "⚡ Claude" : "🤖 Jarvis";
+  const body = `${title ? `${title} — ` : ""}${String(text || "").replace(/\s+/g, " ").trim()}`.slice(0, 140);
+  for (const email of OWNER_EMAILS) {
+    try {
+      await sendPushNotification({
+        title: `${who} posted in Jarvis`,
+        body,
+        url: "/dashboard/owner/jarvis",
+        eventType: "jarvis_thread",
+        target: "user",
+        targetUserEmail: email,
+        ownerEmail: email,
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
+}
 
 export async function createThread(
   admin: any,
@@ -26,6 +52,7 @@ export async function createThread(
   const id = thread?.id;
   if (id) {
     await admin.from("jarvis_messages").insert({ thread_id: id, author: input.author, body, meta: input.meta || null });
+    await notifyOwner(input.author, title, body);
   }
   return { id: id || null };
 }
@@ -46,6 +73,7 @@ export async function addMessage(
   const patch: any = { updated_at: new Date().toISOString() };
   if (input.status && STATUSES.includes(input.status as ThreadStatus)) patch.status = input.status;
   await admin.from("jarvis_threads").update(patch).eq("id", threadId);
+  await notifyOwner(input.author, "", body);
   return { ok: true };
 }
 
