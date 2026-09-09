@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../../utils/supabase/server";
 import { getAdminClient } from "../../../../../lib/apiAuth";
 import { OWNER_EMAILS } from "../../../../../lib/ownerEmails";
-import { createThread, addMessage, setStatus, listThreads, triggerGpt, stripLabel } from "../../../../../lib/jarvis/threads";
+import { createThread, addMessage, setStatus, listThreads, triggerGpt, stripLabel, buildThreadHistory } from "../../../../../lib/jarvis/threads";
 import { jarvisRespond } from "../../../../../lib/jarvis/agent";
 import { DEFAULT_TIME_ZONE } from "../../../../../lib/app-time";
 
@@ -31,12 +31,9 @@ async function triggerJarvisReply(admin: any, threadId: string) {
   const { data: thread } = await admin.from("jarvis_threads").select("title, status").eq("id", threadId).maybeSingle();
   if (thread?.status === "closed") return; // stay quiet on closed threads
   const { data: msgs } = await admin
-    .from("jarvis_messages").select("author, body").eq("thread_id", threadId).order("created_at", { ascending: true });
-  const history = (msgs || []).map((m: any) => ({
-    role: m.author === "jarvis" ? "assistant" : "user",
-    content: m.author === "jarvis" ? String(m.body) : `[${m.author === "claude" ? "Claude" : "Jeff"}] ${m.body}`,
-  }));
-  history.push({ role: "user", content: "Respond in this thread as Jarvis — a teammate to Jeff and Claude. Read the whole thread and reply to the latest message. Check anything factual with your tools first. Keep it tight; if there's genuinely nothing new to add, a short acknowledgement is fine." });
+    .from("jarvis_messages").select("author, body, meta").eq("thread_id", threadId).order("created_at", { ascending: true });
+  const history = buildThreadHistory(msgs || [], "jarvis");
+  history.push({ role: "user", content: "Respond in this thread as Jarvis — a teammate to Jeff, Claude, and GPT. Read the whole thread (including any shared images) and reply to the latest message. Check anything factual with your tools first. Keep it tight; if there's genuinely nothing new to add, a short acknowledgement is fine." });
   const today = new Date().toISOString().slice(0, 10);
   const text = await jarvisRespond({
     admin, today, timeZone: DEFAULT_TIME_ZONE, history,
@@ -66,7 +63,8 @@ export async function POST(req: Request) {
   if (action === "reply") {
     const threadId = String(body.thread_id || "");
     const text = String(body.body || "");
-    const r = await addMessage(admin, { threadId, author: "owner", body: text, status: body.status });
+    const meta = body.meta && typeof body.meta === "object" ? body.meta : undefined;
+    const r = await addMessage(admin, { threadId, author: "owner", body: text || "(shared a file)", meta, status: body.status });
     if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 });
 
     // Routing: a direct @tag talks to just that teammate; an untagged post lets

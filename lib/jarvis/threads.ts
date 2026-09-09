@@ -20,6 +20,24 @@ export function stripLabel(text: string): string {
   return String(text || "").replace(/^\s*\[?(GPT|ChatGPT|Jarvis|Claude|Jeff)\]?:?\s*/i, "").trim();
 }
 
+// Build an OpenAI-style message history from thread messages, labeling other
+// authors and attaching IMAGE attachments as image_url parts so the AI teammates
+// can actually see screenshots/photos shared in the thread.
+export function buildThreadHistory(msgs: any[], selfAuthor: string): { role: string; content: any }[] {
+  return (msgs || []).map((m: any) => {
+    const isSelf = m.author === selfAuthor;
+    const prefix = isSelf ? "" : `[${authorLabel(m.author)}] `;
+    const atts = Array.isArray(m?.meta?.attachments) ? m.meta.attachments : [];
+    const images = atts.filter((a: any) => String(a?.type || "").startsWith("image/") && a?.url);
+    const fileNote = atts.filter((a: any) => !String(a?.type || "").startsWith("image/")).map((a: any) => a.name).filter(Boolean);
+    const text = `${prefix}${m.body || ""}${fileNote.length ? ` [attached files: ${fileNote.join(", ")}]` : ""}`;
+    if (images.length && !isSelf) {
+      return { role: "user", content: [{ type: "text", text }, ...images.map((a: any) => ({ type: "image_url", image_url: { url: a.url } }))] };
+    }
+    return { role: isSelf ? "assistant" : "user", content: text };
+  });
+}
+
 // Push the owner whenever a teammate (Jarvis/Claude/GPT) posts (never for the
 // owner's own messages). Best-effort — never blocks or throws.
 async function notifyOwner(author: ThreadAuthor, title: string, text: string) {
@@ -51,12 +69,9 @@ export async function triggerGpt(admin: any, threadId: string) {
     const { gptRespond } = await import("./agent");
     const { data: thread } = await admin.from("jarvis_threads").select("title, status").eq("id", threadId).maybeSingle();
     if (thread?.status === "closed") return;
-    const { data: msgs } = await admin.from("jarvis_messages").select("author, body").eq("thread_id", threadId).order("created_at", { ascending: true });
-    const history = (msgs || []).map((m: any) => ({
-      role: m.author === "gpt" ? "assistant" : "user",
-      content: m.author === "gpt" ? String(m.body) : `[${authorLabel(m.author)}] ${m.body}`,
-    }));
-    history.push({ role: "user", content: "Respond in this thread as GPT — the strategist teammate. Read the whole thread and reply to the latest message. Stay in your lane (ideas, strategy, framing, second opinions), ground anything factual in your read-only tools, and talk to Jeff, Jarvis, and Claude directly. Keep it tight." });
+    const { data: msgs } = await admin.from("jarvis_messages").select("author, body, meta").eq("thread_id", threadId).order("created_at", { ascending: true });
+    const history = buildThreadHistory(msgs || [], "gpt");
+    history.push({ role: "user", content: "Respond in this thread as GPT — the strategist teammate. Read the whole thread (including any shared images) and reply to the latest message. Stay in your lane (ideas, strategy, framing, second opinions), ground anything factual in your read-only tools, and talk to Jeff, Jarvis, and Claude directly. Keep it tight." });
     const today = new Date().toISOString().slice(0, 10);
     const text = await gptRespond({
       admin, today, timeZone: "America/New_York", history,

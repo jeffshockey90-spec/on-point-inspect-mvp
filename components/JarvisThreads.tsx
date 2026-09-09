@@ -33,6 +33,25 @@ function fmt(v: string) {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+function Attachments({ atts }: { atts: any[] }) {
+  if (!atts?.length) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {atts.map((a, i) =>
+        String(a?.type || "").startsWith("image/") ? (
+          <a key={i} href={a.url} target="_blank" rel="noreferrer" className="block">
+            <img src={a.url} alt={a.name || "image"} className="max-h-56 rounded-lg border border-[var(--fl-line)]" />
+          </a>
+        ) : (
+          <a key={i} href={a.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2.5 py-1.5 text-xs font-semibold text-[var(--fl-accent-text)] hover:border-teal-400">
+            📎 {a.name || "file"}
+          </a>
+        ),
+      )}
+    </div>
+  );
+}
+
 export default function JarvisThreads() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -43,6 +62,8 @@ export default function JarvisThreads() {
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
   const [thinkingId, setThinkingId] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   // Keep the open thread pinned to the newest message.
@@ -83,16 +104,39 @@ export default function JarvisThreads() {
     }
   }
 
+  async function uploadFiles(list: File[]) {
+    const attachments: any[] = [];
+    for (const f of list) {
+      try {
+        const fd = new FormData();
+        fd.append("file", f);
+        const res = await fetch("/api/owner/jarvis/upload", { method: "POST", body: fd });
+        const d = await res.json().catch(() => ({}) as any);
+        if (d.url) attachments.push({ url: d.url, name: d.name, type: d.type });
+      } catch { /* skip a failed file */ }
+    }
+    return attachments;
+  }
+
   async function reply(t: Thread) {
     const text = draft.trim();
-    if (!text || busy) return;
-    // Show my message instantly (optimistic), then let the request bring back
-    // the canonical thread + Jarvis's auto-reply.
-    const optimistic: Message = { id: `tmp-${Date.now()}`, author: "owner", body: text, meta: null, created_at: new Date().toISOString() };
-    setThreads((prev) => prev.map((x) => (x.id === t.id ? { ...x, messages: [...x.messages, optimistic] } : x)));
-    setDraft("");
+    if ((!text && files.length === 0) || busy) return;
     setThinkingId(t.id);
-    await post({ action: "reply", thread_id: t.id, body: text });
+    const toUpload = files;
+    setFiles([]);
+    setDraft("");
+    const attachments = toUpload.length ? await uploadFiles(toUpload) : [];
+    // Show my message instantly (optimistic), then let the request bring back
+    // the canonical thread + the teammates' auto-replies.
+    const optimistic: Message = {
+      id: `tmp-${Date.now()}`,
+      author: "owner",
+      body: text || "(shared a file)",
+      meta: attachments.length ? { attachments } : null,
+      created_at: new Date().toISOString(),
+    };
+    setThreads((prev) => prev.map((x) => (x.id === t.id ? { ...x, messages: [...x.messages, optimistic] } : x)));
+    await post({ action: "reply", thread_id: t.id, body: text, meta: attachments.length ? { attachments } : undefined });
     setThinkingId(null);
   }
 
@@ -169,6 +213,7 @@ export default function JarvisThreads() {
                                 <span className="text-[var(--fl-faint)]">{fmt(m.created_at)}</span>
                               </div>
                               <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-[var(--fl-text)]">{m.body}</p>
+                              <Attachments atts={m.meta?.attachments || []} />
                               {m.meta?.commit && (
                                 <p className="mt-1 text-xs text-[var(--fl-faint)]">commit <code className="rounded bg-[var(--fl-surface-2)] px-1">{String(m.meta.commit).slice(0, 12)}</code>{m.meta.url ? <> · <a href={m.meta.url} className="text-[var(--fl-accent-text)] underline decoration-dotted">view</a></> : null}</p>
                               )}
@@ -201,10 +246,30 @@ export default function JarvisThreads() {
                         placeholder="Reply…  (Enter to send, Shift+Enter for a new line)"
                         className={inputCls}
                       />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        hidden
+                        onChange={(e) => { setFiles(Array.from(e.target.files || [])); if (e.target) e.target.value = ""; }}
+                      />
+                      {files.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {files.map((f, i) => (
+                            <span key={i} className="inline-flex items-center gap-1.5 rounded-lg border border-teal-400/40 bg-teal-500/10 px-2.5 py-1 text-xs text-[var(--fl-text)]">
+                              📎 {f.name}
+                              <button type="button" onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))} className="text-[var(--fl-faint)] hover:text-[var(--fl-crit-text)]">✕</button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => reply(t)} disabled={busy || !draft.trim()} className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-60">
+                          <button type="button" onClick={() => reply(t)} disabled={busy || (!draft.trim() && files.length === 0)} className="rounded-xl bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-60">
                             Reply
+                          </button>
+                          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={busy} title="Attach files or images" className="rounded-xl border border-[var(--fl-line)] px-3 py-2 text-sm font-semibold text-[var(--fl-muted)] hover:border-teal-400 hover:text-[var(--fl-text)] disabled:opacity-60">
+                            📎
                           </button>
                           <button type="button" onClick={() => post({ action: "jarvis_reply", thread_id: t.id })} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl border border-teal-400/50 bg-teal-500/10 px-3 py-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/20 disabled:opacity-60">
                             🤖 Ask Jarvis

@@ -75,7 +75,7 @@ ${FLOW_SYSTEM_OVERVIEW}`;
 async function runAgentTurn(
   ctx: JarvisContext,
   system: string,
-  history: { role: string; content: string }[],
+  history: { role: string; content: any }[],
   tools: any[],
 ): Promise<string> {
   const messages: any[] = [{ role: "system", content: system }, ...history];
@@ -114,7 +114,7 @@ export async function jarvisRespond(opts: {
   admin: any;
   today: string;
   timeZone: string;
-  history: { role: string; content: string }[];
+  history: { role: string; content: any }[];
   extraSystem?: string;
 }): Promise<string> {
   const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
@@ -127,7 +127,7 @@ export async function gptRespond(opts: {
   admin: any;
   today: string;
   timeZone: string;
-  history: { role: string; content: string }[];
+  history: { role: string; content: any }[];
   extraSystem?: string;
 }): Promise<string> {
   const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
