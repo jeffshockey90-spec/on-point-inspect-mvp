@@ -1490,13 +1490,14 @@ export default function AILiveInspectionCamera({
         >
           {/* Category selector, always in reach and never in the way. Replaces
               the full-screen "what are you capturing?" gate that used to stand
-              between opening the camera and taking a picture. The active chip
-              carries its category colour; the rest stay quiet glass so the
-              viewfinder reads clearly. */}
+              between opening the camera and taking a picture. Equal quarters so
+              all four names fit a phone-width viewfinder without clipping; the
+              active one carries its category colour, the rest stay quiet glass
+              so the viewfinder reads clearly. */}
           <div
             role="radiogroup"
             aria-label="Capture category"
-            className="mx-auto mb-3 flex max-w-[520px] items-center justify-center gap-1.5 overflow-x-auto rounded-full border border-white/15 bg-black/35 p-1.5 backdrop-blur-md [scrollbar-width:none]"
+            className="mx-auto mb-3 grid max-w-[520px] grid-cols-4 gap-1 rounded-full border border-white/15 bg-black/35 p-1 backdrop-blur-md"
           >
             {CATEGORIES.map((cat) => {
               const active = cat.key === category;
@@ -1509,21 +1510,13 @@ export default function AILiveInspectionCamera({
                   onClick={() => {
                     if (!active) selectCategory(cat.key);
                   }}
-                  title={cat.label}
-                  className={`flex h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full text-xs font-semibold transition active:scale-[0.97] ${
+                  className={`flex h-10 items-center justify-center rounded-full px-1 text-[11px] font-semibold leading-none transition active:scale-[0.97] ${
                     active
-                      ? `${cat.activeClass} px-4 shadow-lg`
-                      : "w-11 text-white/70 hover:bg-white/10 hover:text-white"
+                      ? `${cat.activeClass} shadow-lg`
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  <span aria-hidden className="text-base leading-none">
-                    {cat.icon}
-                  </span>
-                  {/* Only the active category is named. Four full labels
-                      overflow a phone-width viewfinder, and the icons carry the
-                      rest -- the label is on the button for screen readers and
-                      as a long-press tooltip. */}
-                  {active ? cat.label : <span className="sr-only">{cat.label}</span>}
+                  {cat.label}
                 </button>
               );
             })}
