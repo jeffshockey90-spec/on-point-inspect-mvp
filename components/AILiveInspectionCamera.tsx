@@ -166,6 +166,10 @@ export default function AILiveInspectionCamera({
   const [locSide, setLocSide] = useState("");
   const [locLevel, setLocLevel] = useState("");
   const [locRoom, setLocRoom] = useState("");
+  // Location starts collapsed so the viewfinder keeps the screen. The compass
+  // fills Side on its own, so most captures never need it opened; once opened
+  // it stays open for the rest of the session.
+  const [locationOpen, setLocationOpen] = useState(false);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState("");
   const [capturedIsVideo, setCapturedIsVideo] = useState(false);
@@ -1528,21 +1532,32 @@ export default function AILiveInspectionCamera({
               placeholder={
                 activeCategoryMeta.key === "reference"
                   ? "Optional caption (add after capture too)"
-                  : "Optional note for AI — leave blank and AI will describe what it sees"
+                  : "Tell the AI what to look at…"
               }
               className="min-h-16 w-full resize-none rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
             />
 
             {activeCategoryMeta.key !== "reference" && (
               <div className="mt-2 rounded-lg border border-white/10 bg-black/25 p-2">
-                <div className="mb-1.5 flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--fl-muted)]">
-                    Location — given to AI as fact
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLocationOpen((open) => !open)}
+                    aria-expanded={locationOpen}
+                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-xs font-semibold text-[var(--fl-text)]"
+                  >
+                    <span aria-hidden>📍</span>
+                    <span className="truncate">
+                      {composedLocation() || "Add level, room"}
+                    </span>
+                    <span aria-hidden className="text-[var(--fl-muted)]">
+                      {locationOpen ? "⌃" : "⌄"}
+                    </span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => void compass.start()}
-                    className="flex items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-[11px] font-semibold text-cyan-300"
+                    className="flex shrink-0 items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-[11px] font-semibold text-cyan-300"
                   >
                     🧭{" "}
                     {compass.cardinal
@@ -1552,7 +1567,7 @@ export default function AILiveInspectionCamera({
                         : "…"}
                   </button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div hidden={!locationOpen} className="mt-2 grid grid-cols-3 gap-2">
                   <select
                     value={locSide}
                     onChange={(event) => setLocSide(event.target.value)}
@@ -1588,15 +1603,16 @@ export default function AILiveInspectionCamera({
             )}
           </div>
 
-          {activeCategoryMeta.supportsVideo && (
-            <div className="mx-auto mb-2 grid max-w-[220px] grid-cols-2 rounded-full border border-white/15 bg-[var(--fl-surface-2)] p-1 shadow-xl backdrop-blur">
+          <div className="grid grid-cols-3 items-center">
+            {activeCategoryMeta.supportsVideo ? (
+              <div className="grid grid-cols-2 justify-self-start rounded-full border border-white/15 bg-black/35 p-1 backdrop-blur-md">
               <button
                 type="button"
                 onClick={() => {
                   if (!recordingVideo) setCaptureMode("photo");
                 }}
                 disabled={recordingVideo}
-                className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition ${
                   captureMode === "photo" ? "bg-white text-black" : "text-[var(--fl-text)]"
                 } disabled:opacity-40`}
               >
@@ -1605,17 +1621,16 @@ export default function AILiveInspectionCamera({
               <button
                 type="button"
                 onClick={() => setCaptureMode("video")}
-                className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition ${
                   captureMode === "video" ? "bg-red-500 text-white" : "text-white"
                 }`}
               >
                 VIDEO
               </button>
-            </div>
-          )}
-
-          <div className="flex items-center justify-center gap-6">
-            {captureMode === "video" && <div className="h-12 w-12" />}
+              </div>
+            ) : (
+              <div />
+            )}
 
             <button
               type="button"
@@ -1628,7 +1643,7 @@ export default function AILiveInspectionCamera({
                     : "Start recording"
                   : "Take photo"
               }
-              className={`mb-1 h-[82px] w-[82px] shrink-0 rounded-full border-[5px] shadow-2xl active:scale-95 disabled:opacity-50 ${
+              className={`mb-1 h-[82px] w-[82px] shrink-0 justify-self-center rounded-full border-[5px] shadow-2xl active:scale-95 disabled:opacity-50 ${
                 captureMode === "video"
                   ? recordingVideo
                     ? "border-white bg-red-600 ring-4 ring-red-400 animate-pulse"
@@ -1641,19 +1656,21 @@ export default function AILiveInspectionCamera({
               )}
             </button>
 
-            {captureMode === "video" && (
+            {captureMode === "video" ? (
               <button
                 type="button"
                 onClick={() => setMuteAudio((current) => !current)}
                 disabled={recordingVideo}
                 aria-label={muteAudio ? "Unmute microphone" : "Mute microphone"}
                 title={muteAudio ? "Sound off — recording video only" : "Sound on"}
-                className={`flex h-12 w-12 items-center justify-center rounded-full text-xl backdrop-blur disabled:opacity-40 ${
+                className={`flex h-12 w-12 items-center justify-center justify-self-end rounded-full text-xl backdrop-blur disabled:opacity-40 ${
                   muteAudio ? "bg-red-600/80 text-[var(--fl-text)]" : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
                 }`}
               >
                 {muteAudio ? "🔇" : "🎤"}
               </button>
+            ) : (
+              <div />
             )}
           </div>
         </div>
