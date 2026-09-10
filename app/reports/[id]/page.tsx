@@ -3021,42 +3021,100 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
-                Capture Tools
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <FastLinkButton
-                  href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-                  loadingText="Opening Field Tool..."
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                >
-                  Field Tool
-                </FastLinkButton>
-
-                <FastLinkButton
-                  href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-                  loadingText="Opening AI Capture..."
-                  className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
-                >
-                  Open Full AI Capture
-                </FastLinkButton>
-
-                <FastLinkButton
-                  href={`/reports/${inspection.id}/bulk-ai-capture`}
-                  loadingText="Opening Bulk AI..."
-                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                >
-                  <Camera className="h-4 w-4" strokeWidth={2.25} /> Bulk AI Capture
-                </FastLinkButton>
-
-                <FastLinkButton
-                  href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-                  loadingText="Opening Equipment Analyzer..."
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                >
-                  Equipment Analyzer
-                </FastLinkButton>
+              {/* Where you are: Capture -> Review -> Report -> Publish */}
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                {(() => {
+                  const captured = findings.length > 0 || photosWithUrls.length > 0;
+                  const steps = [
+                    { label: "Capture", done: captured },
+                    { label: "Review", done: findings.length > 0 },
+                    { label: "Report", done: findings.length > 0 && agreementComplete && !paymentNeedsAttention },
+                    { label: "Publish", done: reportIsPublished },
+                  ];
+                  const current = steps.findIndex((s) => !s.done);
+                  return steps.map((s, i) => (
+                    <span key={s.label} className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                          s.done
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                            : i === current
+                              ? "border-teal-400 bg-teal-500/10 text-[var(--fl-accent-text)]"
+                              : "border-[var(--fl-line)] text-[var(--fl-faint)]"
+                        }`}
+                      >
+                        <span>{s.done ? "✓" : i + 1}</span> {s.label}
+                      </span>
+                      {i < steps.length - 1 && <span className="text-[var(--fl-faint)]">→</span>}
+                    </span>
+                  ));
+                })()}
               </div>
+
+              {/* One obvious primary action. Everything (Live Camera, equipment
+                  scan, multi-photo AI) lives inside the Field Tool. */}
+              {findings.length > 0 || photosWithUrls.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <a
+                    href="#report-findings"
+                    className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-6 py-3.5 text-base font-bold text-slate-950 transition hover:bg-teal-400"
+                  >
+                    Continue Report →
+                  </a>
+                  <FastLinkButton
+                    href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+                    loadingText="Opening Field Tool..."
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                  >
+                    📷 Capture more — Field Tool
+                  </FastLinkButton>
+                </div>
+              ) : (
+                <div>
+                  <p className="mb-3 text-sm text-[var(--fl-muted)]">
+                    No findings captured yet — head into the field to start. Everything you need (Live Camera, equipment scan, multi-photo AI) is inside the Field Tool.
+                  </p>
+                  <FastLinkButton
+                    href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+                    loadingText="Opening Field Tool..."
+                    className="inline-flex items-center gap-2 rounded-2xl bg-teal-500 px-7 py-4 text-lg font-bold text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-[0.98]"
+                  >
+                    📷 Start Capturing — Field Tool
+                  </FastLinkButton>
+                </div>
+              )}
+
+              {/* The old standalone buttons — all redundant with the Field Tool,
+                  tucked away rather than removed. */}
+              <details className="group mt-4">
+                <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)] hover:text-[var(--fl-text)]">
+                  <span className="group-open:hidden">▸ More capture tools</span>
+                  <span className="hidden group-open:inline">▾ More capture tools</span>
+                </summary>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <FastLinkButton
+                    href={`/ai-capture?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+                    loadingText="Opening AI Capture..."
+                    className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                  >
+                    Full AI Capture
+                  </FastLinkButton>
+                  <FastLinkButton
+                    href={`/reports/${inspection.id}/bulk-ai-capture`}
+                    loadingText="Opening Bulk AI..."
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                  >
+                    <Camera className="h-4 w-4" strokeWidth={2.25} /> Bulk AI Capture
+                  </FastLinkButton>
+                  <FastLinkButton
+                    href={`/equipment-analyzer?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+                    loadingText="Opening Equipment Analyzer..."
+                    className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                  >
+                    Equipment Analyzer
+                  </FastLinkButton>
+                </div>
+              </details>
             </div>
           </div>
 
