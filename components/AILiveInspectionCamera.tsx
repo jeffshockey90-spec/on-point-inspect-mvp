@@ -653,9 +653,9 @@ export default function AILiveInspectionCamera({
   function selectCategory(cat: CaptureCategory) {
     setCategory(cat);
     setNoteText("");
-    setLocSide("");
-    setLocLevel("");
-    setLocRoom("");
+    // Side / level / room deliberately survive a category switch -- you are
+    // still standing in the same room, and the chips make switching casual
+    // enough that re-typing the location every time would be the new friction.
     setCaptureMode("photo");
     setStage("note_entry");
     // Tapping a category is a user gesture — the moment iOS will allow the
@@ -1277,8 +1277,12 @@ export default function AILiveInspectionCamera({
         type="button"
         onClick={() => {
           setOpen(true);
-          setStage("idle");
-          setCategory(null);
+          // Open straight to a live shutter instead of asking "what are you
+          // capturing?" first. Nearly every capture is a finding, so the
+          // question cost a tap on every photo to serve the rare case; the
+          // category chips in the frame switch it without leaving the camera.
+          setCategory("finding");
+          setStage("note_entry");
           window.setTimeout(() => void startCamera(facingMode), 50);
         }}
         className="mt-4 min-h-[48px] w-full rounded-xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-black transition active:scale-[0.98] hover:bg-cyan-300 [touch-action:manipulation]"
@@ -1345,7 +1349,7 @@ export default function AILiveInspectionCamera({
           )}
         </div>
 
-        {activeCategoryMeta && (
+        {activeCategoryMeta && stage !== "note_entry" && (
           <span
             className={`rounded-full border px-4 py-2 text-xs font-semibold ${activeCategoryMeta.idleClass} bg-[var(--fl-surface-2)] backdrop-blur`}
           >
@@ -1479,35 +1483,51 @@ export default function AILiveInspectionCamera({
         </div>
       )}
 
-      {stage === "idle" && (
-        <div
-          className="absolute inset-x-0 bottom-0 z-20 px-4"
-          style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
-        >
-          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-[var(--fl-text)]">
-            What are you capturing?
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => selectCategory(cat.key)}
-                className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl border-2 text-sm font-semibold shadow-xl backdrop-blur active:scale-[0.97] ${cat.idleClass} bg-[var(--fl-surface-2)]`}
-              >
-                <span className="text-2xl leading-none">{cat.icon}</span>
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {stage === "note_entry" && activeCategoryMeta && (
         <div
           className="absolute inset-x-0 bottom-0 z-20 px-4"
           style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
         >
+          {/* Category selector, always in reach and never in the way. Replaces
+              the full-screen "what are you capturing?" gate that used to stand
+              between opening the camera and taking a picture. The active chip
+              carries its category colour; the rest stay quiet glass so the
+              viewfinder reads clearly. */}
+          <div
+            role="radiogroup"
+            aria-label="Capture category"
+            className="mx-auto mb-3 flex max-w-[520px] items-center justify-center gap-1.5 overflow-x-auto rounded-full border border-white/15 bg-black/35 p-1.5 backdrop-blur-md [scrollbar-width:none]"
+          >
+            {CATEGORIES.map((cat) => {
+              const active = cat.key === category;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => {
+                    if (!active) selectCategory(cat.key);
+                  }}
+                  title={cat.label}
+                  className={`flex h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full text-xs font-semibold transition active:scale-[0.97] ${
+                    active
+                      ? `${cat.activeClass} px-4 shadow-lg`
+                      : "w-11 text-white/70 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <span aria-hidden className="text-base leading-none">
+                    {cat.icon}
+                  </span>
+                  {/* Only the active category is named. Four full labels
+                      overflow a phone-width viewfinder, and the icons carry the
+                      rest -- the label is on the button for screen readers and
+                      as a long-press tooltip. */}
+                  {active ? cat.label : <span className="sr-only">{cat.label}</span>}
+                </button>
+              );
+            })}
+          </div>
           <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-[var(--fl-surface-2)] p-3 backdrop-blur">
             <textarea
               value={noteText}
@@ -1573,17 +1593,6 @@ export default function AILiveInspectionCamera({
                 </div>
               </div>
             )}
-
-            <button
-              type="button"
-              onClick={() => {
-                setCategory(null);
-                setStage("idle");
-              }}
-              className="mt-2 text-xs font-bold text-[var(--fl-text)]"
-            >
-              ← Change category
-            </button>
           </div>
 
           {activeCategoryMeta.supportsVideo && (
