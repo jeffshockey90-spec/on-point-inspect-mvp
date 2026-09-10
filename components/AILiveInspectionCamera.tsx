@@ -11,7 +11,7 @@ import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
 const PhotoMarkupEditor = dynamic(() => import("./PhotoMarkupEditor"), {
   ssr: false,
   loading: () => (
-    <div className="rounded-xl border border-purple-700 bg-purple-500/10 p-4 text-sm font-bold text-[var(--fl-purple-text)]">
+    <div className="rounded-xl border border-purple-700 bg-purple-500/10 p-4 text-sm font-bold text-purple-300">
       Loading photo markup…
     </div>
   ),
@@ -64,7 +64,7 @@ const CATEGORIES: {
     key: "finding",
     label: "Findings",
     activeClass: "bg-red-500 text-white",
-    idleClass: "border-red-400/60 text-[var(--fl-crit-text)]",
+    idleClass: "border-red-400/60 text-red-300",
     icon: "🛠️",
     supportsVideo: true,
   },
@@ -72,7 +72,7 @@ const CATEGORIES: {
     key: "limitation",
     label: "Limitations",
     activeClass: "bg-amber-400 text-black",
-    idleClass: "border-amber-400/60 text-[var(--fl-warn-text)]",
+    idleClass: "border-amber-400/60 text-amber-300",
     icon: "🚧",
     supportsVideo: false,
   },
@@ -80,7 +80,7 @@ const CATEGORIES: {
     key: "equipment",
     label: "Equipment",
     activeClass: "bg-blue-500 text-white",
-    idleClass: "border-blue-400/60 text-[var(--fl-info-text)]",
+    idleClass: "border-blue-400/60 text-cyan-300",
     icon: "🔧",
     supportsVideo: false,
   },
@@ -88,7 +88,7 @@ const CATEGORIES: {
     key: "reference",
     label: "Reference",
     activeClass: "bg-teal-400 text-black",
-    idleClass: "border-teal-400/60 text-[var(--fl-accent-text)]",
+    idleClass: "border-teal-400/60 text-teal-300",
     icon: "📎",
     supportsVideo: false,
   },
@@ -1268,12 +1268,12 @@ export default function AILiveInspectionCamera({
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === category) || null;
 
   const cameraUi = !open ? (
-    <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-[var(--fl-text)]">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
+    <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
         AI Capture Camera
       </p>
       <h2 className="mt-1 text-xl font-semibold">Findings · Limitations · Equipment · Reference</h2>
-      <p className="mt-1 text-sm text-[var(--fl-muted)]">
+      <p className="mt-1 text-sm text-white/60">
         Pick a category, capture a photo or video, and AI drafts it for your
         approval. Nothing saves until you accept it.
       </p>
@@ -1295,7 +1295,7 @@ export default function AILiveInspectionCamera({
       </button>
     </div>
   ) : (
-    <div className="fixed inset-0 z-[2147483647] h-[100dvh] w-screen overflow-hidden bg-black text-[var(--fl-text)]">
+    <div className="fixed inset-0 z-[2147483647] h-[100dvh] w-screen overflow-hidden bg-black text-white">
       <video
         ref={videoRef}
         autoPlay
@@ -1327,7 +1327,7 @@ export default function AILiveInspectionCamera({
       )}
 
       {focusMessage && (
-        <div className="pointer-events-none absolute left-1/2 top-[38%] z-[22] -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)] px-4 py-2 text-xs font-semibold text-[var(--fl-warn-text)] backdrop-blur">
+        <div className="pointer-events-none absolute left-1/2 top-[38%] z-[22] -translate-x-1/2 rounded-full bg-neutral-900/85 px-4 py-2 text-xs font-semibold text-amber-300 backdrop-blur">
           {focusMessage}
         </div>
       )}
@@ -1343,7 +1343,7 @@ export default function AILiveInspectionCamera({
             type="button"
             onClick={handleClose}
             aria-label="Close camera"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-[var(--fl-surface-2)] text-3xl font-light text-[var(--fl-text)] shadow-2xl backdrop-blur active:scale-95"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-neutral-900/85 text-3xl font-light text-white shadow-2xl backdrop-blur active:scale-95"
           >
             ×
           </button>
@@ -1355,7 +1355,7 @@ export default function AILiveInspectionCamera({
 
         {activeCategoryMeta && stage !== "note_entry" && (
           <span
-            className={`rounded-full border px-4 py-2 text-xs font-semibold ${activeCategoryMeta.idleClass} bg-[var(--fl-surface-2)] backdrop-blur`}
+            className={`rounded-full border px-4 py-2 text-xs font-semibold ${activeCategoryMeta.idleClass} bg-neutral-900/85 backdrop-blur`}
           >
             {activeCategoryMeta.icon} {activeCategoryMeta.label}
           </span>
@@ -1367,8 +1367,8 @@ export default function AILiveInspectionCamera({
             onClick={toggleTorch}
             className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg shadow-2xl backdrop-blur active:scale-95 ${
               torchOn
-                ? "border-yellow-300 bg-yellow-400/30 text-[var(--fl-warn-text)]"
-                : "border-white/15 bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
+                ? "border-yellow-300 bg-yellow-400/30 text-amber-300"
+                : "border-white/15 bg-neutral-900/85 text-white"
             }`}
             aria-label="Toggle flash"
           >
@@ -1377,7 +1377,7 @@ export default function AILiveInspectionCamera({
           <button
             type="button"
             onClick={toggleFacingCamera}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[var(--fl-surface-2)] text-lg text-[var(--fl-text)] shadow-2xl backdrop-blur active:scale-95"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-neutral-900/85 text-lg text-white shadow-2xl backdrop-blur active:scale-95"
             aria-label="Flip camera"
           >
             🔄
@@ -1435,13 +1435,13 @@ export default function AILiveInspectionCamera({
                   type="button"
                   onClick={() => setZoomOpen((o) => !o)}
                   aria-label="Zoom controls"
-                  className="flex h-10 min-w-[3.5rem] items-center justify-center gap-1 rounded-full border border-white/20 bg-[var(--fl-surface-2)] px-3 text-xs font-semibold text-[var(--fl-text)] backdrop-blur active:scale-95"
+                  className="flex h-10 min-w-[3.5rem] items-center justify-center gap-1 rounded-full border border-white/20 bg-neutral-900/85 px-3 text-xs font-semibold text-white backdrop-blur active:scale-95"
                 >
                   {displayZoom.toFixed(1)}× 🔍
                 </button>
 
                 {zoomOpen && (
-                  <div className="flex flex-col items-center gap-2 rounded-2xl border border-white/15 bg-[var(--fl-surface-2)] p-2.5 backdrop-blur">
+                  <div className="flex flex-col items-center gap-2 rounded-2xl border border-white/15 bg-neutral-900/85 p-2.5 backdrop-blur">
                     {unique.length >= 2 && (
                       <div className="flex items-center gap-1">
                         {unique.map((v) => {
@@ -1453,7 +1453,7 @@ export default function AILiveInspectionCamera({
                               onClick={() => applyStop(v)}
                               aria-label={`${fmt(v)}x zoom`}
                               className={`flex h-9 min-w-[2.25rem] items-center justify-center rounded-full px-2 text-xs font-semibold active:scale-95 ${
-                                active ? "bg-white text-black" : "text-[var(--fl-text)]"
+                                active ? "bg-white text-black" : "text-white"
                               }`}
                             >
                               {active ? `${fmt(v)}×` : fmt(v)}
@@ -1482,7 +1482,7 @@ export default function AILiveInspectionCamera({
         })()}
 
       {cameraError && (
-        <div className="absolute left-1/2 top-1/2 z-20 w-[90%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/50 bg-red-500/10 p-4 text-center text-sm font-bold text-[var(--fl-crit-text)]">
+        <div className="absolute left-1/2 top-1/2 z-20 w-[90%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/50 bg-red-500/10 p-4 text-center text-sm font-bold text-red-300">
           {cameraError}
         </div>
       )}
@@ -1525,7 +1525,7 @@ export default function AILiveInspectionCamera({
               );
             })}
           </div>
-          <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-[var(--fl-surface-2)] p-3 backdrop-blur">
+          <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-neutral-900/85 p-3 backdrop-blur">
             <textarea
               value={noteText}
               onChange={(event) => setNoteText(event.target.value)}
@@ -1534,7 +1534,7 @@ export default function AILiveInspectionCamera({
                   ? "Optional caption (add after capture too)"
                   : "Tell the AI what to look at…"
               }
-              className="min-h-16 w-full resize-none rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
+              className="min-h-16 w-full resize-none rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
             />
 
             {activeCategoryMeta.key !== "reference" && (
@@ -1544,13 +1544,13 @@ export default function AILiveInspectionCamera({
                     type="button"
                     onClick={() => setLocationOpen((open) => !open)}
                     aria-expanded={locationOpen}
-                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-xs font-semibold text-[var(--fl-text)]"
+                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-xs font-semibold text-white"
                   >
                     <span aria-hidden>📍</span>
                     <span className="truncate">
                       {composedLocation() || "Add level, room"}
                     </span>
-                    <span aria-hidden className="text-[var(--fl-muted)]">
+                    <span aria-hidden className="text-white/60">
                       {locationOpen ? "⌃" : "⌄"}
                     </span>
                   </button>
@@ -1571,7 +1571,7 @@ export default function AILiveInspectionCamera({
                   <select
                     value={locSide}
                     onChange={(event) => setLocSide(event.target.value)}
-                    className="rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-2 py-2 text-xs text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                    className="rounded-lg border border-white/15 bg-neutral-900/85 px-2 py-2 text-xs text-white outline-none focus:border-cyan-400"
                   >
                     <option value="">{compass.cardinal ? `Side · ${compass.cardinal}?` : "Side"}</option>
                     {["N", "NE", "E", "SE", "S", "SW", "W", "NW"].map((dir) => (
@@ -1583,7 +1583,7 @@ export default function AILiveInspectionCamera({
                   <select
                     value={locLevel}
                     onChange={(event) => setLocLevel(event.target.value)}
-                    className="rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-2 py-2 text-xs text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                    className="rounded-lg border border-white/15 bg-neutral-900/85 px-2 py-2 text-xs text-white outline-none focus:border-cyan-400"
                   >
                     <option value="">Level</option>
                     {["Exterior", "Basement", "Crawlspace", "Main Level", "Upper Level", "Attic", "Garage"].map((lvl) => (
@@ -1596,7 +1596,7 @@ export default function AILiveInspectionCamera({
                     value={locRoom}
                     onChange={(event) => setLocRoom(event.target.value)}
                     placeholder="Room / area"
-                    className="min-w-0 rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-2 py-2 text-xs text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                    className="min-w-0 rounded-lg border border-white/15 bg-neutral-900/85 px-2 py-2 text-xs text-white outline-none focus:border-cyan-400"
                   />
                 </div>
               </div>
@@ -1613,7 +1613,7 @@ export default function AILiveInspectionCamera({
                 }}
                 disabled={recordingVideo}
                 className={`rounded-full px-2.5 py-1.5 text-[11px] font-semibold transition ${
-                  captureMode === "photo" ? "bg-white text-black" : "text-[var(--fl-text)]"
+                  captureMode === "photo" ? "bg-white text-black" : "text-white"
                 } disabled:opacity-40`}
               >
                 PHOTO
@@ -1664,7 +1664,7 @@ export default function AILiveInspectionCamera({
                 aria-label={muteAudio ? "Unmute microphone" : "Mute microphone"}
                 title={muteAudio ? "Sound off — recording video only" : "Sound on"}
                 className={`flex h-12 w-12 items-center justify-center justify-self-end rounded-full text-xl backdrop-blur disabled:opacity-40 ${
-                  muteAudio ? "bg-red-600/80 text-[var(--fl-text)]" : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
+                  muteAudio ? "bg-red-600/80 text-white" : "bg-neutral-900/85 text-white"
                 }`}
               >
                 {muteAudio ? "🔇" : "🎤"}
@@ -1679,7 +1679,7 @@ export default function AILiveInspectionCamera({
       {stage === "drafting" && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/80 backdrop-blur-sm">
           <span className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
-          <p className="text-sm font-semibold text-[var(--fl-info-text)]">
+          <p className="text-sm font-semibold text-cyan-300">
             AI is drafting your {activeCategoryMeta?.label.toLowerCase()}…
           </p>
         </div>
@@ -1687,13 +1687,13 @@ export default function AILiveInspectionCamera({
 
       {stage === "capture_error" && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/85 px-6 text-center backdrop-blur-sm">
-          <p className="text-sm font-bold text-[var(--fl-crit-text)]">{draftError}</p>
-          <p className="text-xs text-[var(--fl-muted)]">
+          <p className="text-sm font-bold text-red-300">{draftError}</p>
+          <p className="text-xs text-white/60">
             Your {capturedIsVideo ? "video" : "photo"} is safe — save it to the report now
             and finish the write-up later, or try the AI again.
           </p>
           {saveError && (
-            <p className="text-xs font-bold text-[var(--fl-crit-text)]">{saveError}</p>
+            <p className="text-xs font-bold text-red-300">{saveError}</p>
           )}
           <button
             type="button"
@@ -1710,7 +1710,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={handleRetake}
               disabled={saving}
-              className="rounded-xl border border-[var(--fl-faint)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] disabled:opacity-60"
+              className="rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
             >
               Retake
             </button>
@@ -1729,7 +1729,7 @@ export default function AILiveInspectionCamera({
       {stage === "collecting" && (
         <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
               {shots.length} shot{shots.length === 1 ? "" : "s"} ·{" "}
               {category === "finding"
                 ? "same defect"
@@ -1750,12 +1750,12 @@ export default function AILiveInspectionCamera({
                       className="h-24 w-full rounded-lg border border-white/15 object-cover"
                     />
                   ) : (
-                    <div className="flex h-24 w-full items-center justify-center rounded-lg border border-white/15 bg-[var(--fl-surface-2)] text-2xl">
+                    <div className="flex h-24 w-full items-center justify-center rounded-lg border border-white/15 bg-neutral-900/85 text-2xl">
                       🎥
                     </div>
                   )}
                   {s.isVideo && (
-                    <span className="absolute bottom-1 right-1 rounded bg-[var(--fl-surface-2)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--fl-text)]">
+                    <span className="absolute bottom-1 right-1 rounded bg-neutral-900/85 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                       ▶ VIDEO
                     </span>
                   )}
@@ -1764,18 +1764,18 @@ export default function AILiveInspectionCamera({
             </div>
             {category === "reference" ? (
               <>
-                <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">
+                <p className="mt-3 text-sm leading-6 text-white/60">
                   Add as many reference photos of this area as you want, then save them all to
                   the section.
                 </p>
-                <div className="mt-3 rounded-xl border border-white/15 bg-[var(--fl-surface-2)] p-3">
-                  <label className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+                <div className="mt-3 rounded-xl border border-white/15 bg-neutral-900/85 p-3">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
                     Section
                   </label>
                   <select
                     value={referenceSection}
                     onChange={(event) => setReferenceSection(event.target.value)}
-                    className="mt-1 w-full rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                    className="mt-1 w-full rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
                   >
                     {sections.map((s) => (
                       <option key={s} value={s}>
@@ -1787,23 +1787,23 @@ export default function AILiveInspectionCamera({
               </>
             ) : (
               <>
-                <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">
+                <p className="mt-3 text-sm leading-6 text-white/60">
                   Add as many angles of the{" "}
-                  <b className="text-[var(--fl-text)]">
+                  <b className="text-white">
                     same {category === "limitation" ? "limitation" : "defect"}
                   </b>{" "}
                   as you want. The AI reads them all into one{" "}
                   {category === "limitation" ? "limitation" : "finding"}.
                 </p>
-                <div className="mt-3 rounded-xl border border-white/15 bg-[var(--fl-surface-2)] p-3">
-                  <label className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+                <div className="mt-3 rounded-xl border border-white/15 bg-neutral-900/85 p-3">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
                     Note for AI (optional)
                   </label>
                   <textarea
                     value={noteText}
                     onChange={(event) => setNoteText(event.target.value)}
                     placeholder="e.g. 'cracked heat exchanger — call it a safety concern', or leave blank and AI describes what it sees"
-                    className="mt-1 min-h-16 w-full resize-none rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                    className="mt-1 min-h-16 w-full resize-none rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
                   />
                 </div>
               </>
@@ -1814,7 +1814,7 @@ export default function AILiveInspectionCamera({
             <button
               type="button"
               onClick={() => setStage("note_entry")}
-              className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] [touch-action:manipulation]"
+              className="w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-300 [touch-action:manipulation]"
             >
               ＋ Take another photo{category === "finding" ? " or video" : ""}
             </button>
@@ -1844,15 +1844,15 @@ export default function AILiveInspectionCamera({
             {category === "finding" &&
               onAttachToExisting &&
               (existingFindings?.length || 0) > 0 && (
-                <div className="rounded-xl border border-white/15 bg-[var(--fl-surface-2)] p-3">
-                  <label className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+                <div className="rounded-xl border border-white/15 bg-neutral-900/85 p-3">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
                     Or attach to a previous defect (no AI)
                   </label>
                   <div className="mt-2 flex gap-2">
                     <select
                       value={attachTargetId}
                       onChange={(event) => setAttachTargetId(event.target.value)}
-                      className="min-w-0 flex-1 rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                      className="min-w-0 flex-1 rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
                     >
                       <option value="">Select a defect…</option>
                       {existingFindings!.map((f) => (
@@ -1866,7 +1866,7 @@ export default function AILiveInspectionCamera({
                       type="button"
                       disabled={saving || !attachTargetId}
                       onClick={() => void attachTrayToExisting(attachTargetId)}
-                      className="rounded-lg border border-cyan-400/60 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-info-text)] disabled:opacity-50 [touch-action:manipulation]"
+                      className="rounded-lg border border-cyan-400/60 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-300 disabled:opacity-50 [touch-action:manipulation]"
                     >
                       Attach
                     </button>
@@ -1880,7 +1880,7 @@ export default function AILiveInspectionCamera({
                 resetCaptureState();
                 setStage("note_entry");
               }}
-              className="w-full rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-xs font-semibold text-[var(--fl-muted)] [touch-action:manipulation]"
+              className="w-full rounded-xl border border-white/15 px-4 py-2.5 text-xs font-semibold text-white/60 [touch-action:manipulation]"
             >
               Discard &amp; start over
             </button>
@@ -1914,7 +1914,7 @@ export default function AILiveInspectionCamera({
       {stage === "ref_preview" && (
         <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
           <div className="flex-1 overflow-y-auto px-4 py-3">
-            <div className="overflow-hidden rounded-xl border border-white/10 bg-[var(--fl-surface-2)]">
+            <div className="overflow-hidden rounded-xl border border-white/10 bg-neutral-900/85">
               <img
                 src={capturedPreviewUrl}
                 alt="Reference photo"
@@ -1926,17 +1926,17 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={openMarkup}
               disabled={saving}
-              className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-info-text)] disabled:opacity-50"
+              className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-300 disabled:opacity-50"
             >
               🖊 Markup Photo (optional)
             </button>
 
             <div className="mt-4">
-              <label className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
                 Section
               </label>
               <select
-                className="mt-1 w-full rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                className="mt-1 w-full rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
                 value={referenceSection}
                 onChange={(event) => setReferenceSection(event.target.value)}
               >
@@ -1949,18 +1949,18 @@ export default function AILiveInspectionCamera({
             </div>
 
             <div className="mt-4">
-              <label className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
                 Caption (optional)
               </label>
               <input
-                className="mt-1 w-full rounded-lg border border-white/15 bg-[var(--fl-surface-2)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                className="mt-1 w-full rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
                 value={referenceCaption}
                 onChange={(event) => setReferenceCaption(event.target.value)}
                 placeholder="What does this photo show?"
               />
             </div>
             {saveError && (
-              <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-[var(--fl-crit-text)]">
+              <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-300">
                 {saveError}
               </div>
             )}
@@ -1973,7 +1973,7 @@ export default function AILiveInspectionCamera({
               type="button"
               onClick={handleRetake}
               disabled={saving}
-              className="min-h-12 rounded-xl border border-[var(--fl-faint)] px-2 py-3 text-sm font-semibold text-[var(--fl-text)] disabled:opacity-50"
+              className="min-h-12 rounded-xl border border-white/15 px-2 py-3 text-sm font-semibold text-white disabled:opacity-50"
             >
               Retake
             </button>
@@ -1998,7 +1998,7 @@ export default function AILiveInspectionCamera({
       )}
 
       {!online && (
-        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-[var(--fl-surface-2)] px-3 py-1 text-[10px] font-semibold text-[var(--fl-warn-text)]">
+        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-neutral-900/85 px-3 py-1 text-[10px] font-semibold text-amber-300">
           Offline — AI drafting needs a connection
         </div>
       )}
