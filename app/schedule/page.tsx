@@ -307,6 +307,27 @@ export default async function SchedulePage({
   const widgetFallbackLng = firstUpcoming?.property_longitude ?? null;
   const widgetFallbackAddress = firstUpcoming ? getAddress(firstUpcoming) : null;
 
+  // Your personal activity — how many of YOUR inspections fall in this week /
+  // month / year (by inspection date), regardless of the My/Team view.
+  const myRows = rows.filter(
+    (r: any) => (String(r.inspector_id || "") === user.id || String(r.user_id || "") === user.id) && r.is_demo !== true,
+  );
+  const todayLocal = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const yearPrefix = todayLocal.slice(0, 4);
+  const monthPrefix = todayLocal.slice(0, 7);
+  const noon = new Date(`${todayLocal}T12:00:00Z`);
+  const wsD = new Date(noon); wsD.setUTCDate(noon.getUTCDate() - noon.getUTCDay());
+  const weD = new Date(wsD); weD.setUTCDate(wsD.getUTCDate() + 6);
+  const weekStart = wsD.toISOString().slice(0, 10);
+  const weekEnd = weD.toISOString().slice(0, 10);
+  const dOf = (r: any) => String(getInspectionDate(r) || "").slice(0, 10);
+  const myStats = {
+    week: myRows.filter((r: any) => { const d = dOf(r); return d >= weekStart && d <= weekEnd; }).length,
+    month: myRows.filter((r: any) => dOf(r).startsWith(monthPrefix)).length,
+    year: myRows.filter((r: any) => dOf(r).startsWith(yearPrefix)).length,
+    all: myRows.length,
+  };
+
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] sm:p-6">
       <div className="mx-auto max-w-[96rem]">
@@ -355,6 +376,23 @@ export default async function SchedulePage({
             >
               + New Inspection
             </Link>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Your inspections</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: "This week", value: myStats.week },
+              { label: "This month", value: myStats.month },
+              { label: "This year", value: myStats.year },
+              { label: "All time", value: myStats.all },
+            ].map((s) => (
+              <div key={s.label} className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
+                <p className="text-3xl font-bold text-[var(--fl-accent-text)]">{s.value}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">{s.label}</p>
+              </div>
+            ))}
           </div>
         </div>
 
