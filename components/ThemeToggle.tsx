@@ -7,9 +7,9 @@ const STORAGE_KEY = "flow-theme";
 type Theme = "light" | "dark";
 
 function currentTheme(): Theme {
-  // Default is light: only an explicit data-theme="dark" is dark.
-  if (typeof document === "undefined") return "light";
-  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  // Default is DARK (FLOW's signature look): only an explicit data-theme="light" is light.
+  if (typeof document === "undefined") return "dark";
+  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
 }
 
 function applyTheme(theme: Theme) {
@@ -31,7 +31,7 @@ export default function ThemeToggle({
   variant?: "full" | "compact" | "mobile";
 }) {
   const mode = variant || (compact ? "compact" : "full");
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
     setTheme(currentTheme());
