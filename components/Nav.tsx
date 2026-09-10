@@ -8,7 +8,7 @@ import { supabase } from "../lib/supabaseClient";
 import SupportUnreadBadge from "./SupportUnreadBadge";
 import WhatsNewBadge from "./WhatsNewBadge";
 import ThemeToggle from "./ThemeToggle";
-import { isPortalRoute } from "../lib/navVisibility";
+import { hidesNavShell, isPortalRoute } from "../lib/navVisibility";
 import {
   Home,
   Plus,
@@ -102,7 +102,7 @@ const baseMobileItems = [
   { title: "Settings", href: "/settings", icon: Settings, mobileLabel: "Settings" },
 ];
 
-export default function Navbar() {
+export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
   const pathname = usePathname() || "";
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -458,7 +458,12 @@ export default function Navbar() {
   // feels delayed" problem. We start with the sensible default (inspector) nav
   // and refine it (owner item, realtor portal collapse) the moment routing
   // resolves. Public/portal surfaces (login, signup, share, ...) still hide it.
-  if (isPortalRoute(pathname)) {
+  // Portal routes are always bare. Marketing routes ("/", /pricing, ...) are
+  // bare only for signed-out visitors -- app/page.tsx serves the marketing
+  // homepage at "/" when there's no session, and wrapping that in the
+  // inspector shell showed every first-time visitor an app they hadn't
+  // signed into, down to a "Signed in" chip.
+  if (hidesNavShell(pathname, signedIn)) {
     return null;
   }
 

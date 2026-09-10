@@ -4,6 +4,7 @@ import { Manrope, JetBrains_Mono } from "next/font/google";
 import Navbar from "../components/Nav";
 import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
 import PageShell from "../components/PageShell";
+import { hasSessionCookie } from "../lib/sessionCookie";
 import DeferredGlobals from "../components/DeferredGlobals";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
 
@@ -62,11 +63,15 @@ export const viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Resolved once here so the nav shell is decided during the server render.
+  // Presence-only (see lib/sessionCookie) -- this picks chrome, not access.
+  const signedIn = await hasSessionCookie();
+
   return (
     <html
       lang="en"
@@ -88,13 +93,13 @@ export default function RootLayout({
 
         <ServiceWorkerRegister />
 
-        <Navbar />
+        <Navbar signedIn={signedIn} />
 
         <TimeLocationEngine />
 
         <DeferredGlobals />
 
-        <PageShell>{children}</PageShell>
+        <PageShell signedIn={signedIn}>{children}</PageShell>
       </body>
     </html>
   );

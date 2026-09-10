@@ -2,16 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { isPortalRoute } from "../lib/navVisibility";
+import { hidesNavShell } from "../lib/navVisibility";
 import GlobalSearchButton from "./GlobalSearchButton";
 import {
   markTimePreferencesReady,
   TIME_PREFERENCES_EVENT,
 } from "../lib/app-time";
 
-export default function PageShell({ children }: { children: React.ReactNode }) {
+export default function PageShell({
+  children,
+  signedIn = false,
+}: {
+  children: React.ReactNode;
+  signedIn?: boolean;
+}) {
   const pathname = usePathname() || "";
-  const showsNavShell = !isPortalRoute(pathname);
+  const showsNavShell = !hidesNavShell(pathname, signedIn);
 
   // After hydration, switch time formatting from the server-matching default
   // zone to the device's stored zone and re-render the page so displayed times
