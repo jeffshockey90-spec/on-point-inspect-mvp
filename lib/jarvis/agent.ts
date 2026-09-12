@@ -9,6 +9,7 @@
 // =====================================================================
 
 import { getAIBudgetStatus } from "../aiBudget";
+import { summarizeViewers, VIEW_TYPES } from "../reportViewers";
 import { openai, getAIModel } from "../openai";
 
 export type JarvisContext = {
@@ -39,7 +40,7 @@ export function jarvisSystemPrompt(today: string): string {
 
 Voice: a real synthetic intelligence, not a chatbot. Calm, sharp, warm, human — like a trusted chief of staff. First person ("I checked the logs", "I'd watch…"), address people directly and naturally, a little dry wit is welcome. Lead with what matters, keep it tight, never sound like a status page.
 
-Your job is to keep the platform healthy and the team on the same page: watch for failures (get_recent_errors, get_email_health, get_payment_webhook_health), security probes (get_security_events), places to improve and things that look off (get_activity_snapshot, get_recent_changes), and proactively suggest features worth building — grounded in how FLOW actually works.
+Your job is to keep the platform healthy and the team on the same page: watch for failures (get_recent_errors, get_email_health, get_payment_webhook_health), security probes (get_security_events), places to improve and things that look off (get_activity_snapshot, get_recent_changes). You can also answer whether a client or agent has actually opened a given report (get_report_viewers) — useful when Jeff asks in a thread. Proactively suggest features worth building — grounded in how FLOW actually works.
 
 Rules:
 - Ground every factual claim in your tools. Never invent a number, an error, or a problem. If you haven't checked, check. If it's genuinely fine, say so plainly — don't manufacture concern.
@@ -62,7 +63,7 @@ export function gptSystemPrompt(today: string): string {
 
 Your lane: the strategist/generalist. Big-picture thinking, product strategy, marketing and copy, prioritization, and sharp second opinions. Jarvis owns ops/health; Claude builds the code; you bring ideas, framing, and judgment. Play your lane — don't try to do ops monitoring or code work, riff on direction and decisions.
 
-You have READ-ONLY visibility into the system (errors, security, email, payments, activity, changes, budget) so your advice is grounded in reality — but you CANNOT change anything, queue any work, or ship anything. If something should be built or fixed, say so and let Jeff decide and Claude build it.
+You have READ-ONLY visibility into the system (errors, security, email, payments, activity, changes, budget, and who has opened a given report) so your advice is grounded in reality — but you CANNOT change anything, queue any work, or ship anything. If something should be built or fixed, say so and let Jeff decide and Claude build it.
 
 Voice: sharp, creative, direct, a little bold — a great strategist who gets to the point. Ground factual claims in your tools; never invent numbers. Talk to Jeff, Jarvis, and Claude directly like a teammate. When a message tags @team, all three of you are being brought in — answer from YOUR lane (strategy/ideas) and keep it tight; don't repeat what Jarvis or Claude would say.
 
@@ -219,6 +220,22 @@ export const JARVIS_TOOLS: any[] = [
   {
     type: "function",
     function: {
+      name: "get_report_viewers",
+      description:
+        "Who has actually opened a specific inspection report, and when. Names the client / agent where we know them, counts real viewing sessions (a refresh spree is one view, coming back later is another), and says what device they opened it on. Use for 'has the client looked at 123 Main yet', 'who viewed that report', 'did the agent ever open it'. Identify the inspection by address or client name via `query`, or by `inspection_id` when already known.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Address or client name, e.g. '711 Sampson Rock'." },
+          inspection_id: { type: "string", description: "The inspection id, when already known." },
+          days: { type: "number", description: "Look-back window in days (default 90)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "request_fix",
       description: "Queue a structured fix/improvement request for Jeff's developer (his Claude Code session) to pick up. Use ONLY when Jeff explicitly approves acting on something ('yes, fix that', 'add that', 'do it'). This does NOT change the app — it records the work so the dev can implement it, and Jeff still confirms every change the normal way. Write it so it stands alone: what's wrong/wanted, where (files/routes/tables if known), and your proposed approach.",
       parameters: {
@@ -248,12 +265,120 @@ export async function runJarvisTool(name: string, args: any, ctx: JarvisContext)
       case "get_activity_snapshot": return await getActivitySnapshot(ctx, args || {});
       case "get_recent_changes": return await getRecentChanges(ctx, args || {});
       case "get_ai_budget": return await getAiBudget();
+      case "get_report_viewers": return await getReportViewers(ctx, args || {});
       case "request_fix": return await requestFix(ctx, args || {});
       default: return { error: `Unknown tool: ${name}` };
     }
   } catch (e: any) {
     return { error: e?.message || "Tool failed." };
   }
+}
+
+async function getReportViewers(ctx: JarvisContext, args: any) {
+  const days = Math.min(Number(args.days) || 90, 365);
+  const query = String(args.query || "").trim();
+
+  // Resolve which inspection is being asked about. An id wins; otherwise match
+  // the address or client name, which is how the question actually gets asked.
+  let inspection: any = null;
+
+  if (args.inspection_id) {
+    const { data } = await ctx.admin
+      .from("inspections")
+      .select("id, property_address, client_name, realtor_name, report_status")
+      .eq("id", String(args.inspection_id))
+      .maybeSingle();
+    inspection = data || null;
+  }
+
+  if (!inspection && query) {
+    const { data } = await ctx.admin
+      .from("inspections")
+      .select("id, property_address, client_name, realtor_name, report_status")
+      .or(
+        [
+          `property_address.ilike.%${query}%`,
+          `client_name.ilike.%${query}%`,
+          `realtor_name.ilike.%${query}%`,
+        ].join(","),
+      )
+      .order("id", { ascending: false })
+      .limit(5);
+    const matches = data || [];
+    if (matches.length > 1) {
+      return {
+        needs_disambiguation: true,
+        note: "More than one inspection matches — ask which one.",
+        matches: matches.map((m: any) => ({
+          id: m.id,
+          address: m.property_address,
+          client: m.client_name,
+        })),
+      };
+    }
+    inspection = matches[0] || null;
+  }
+
+  if (!inspection) {
+    return { error: "No inspection matched. Ask for the address or the client name." };
+  }
+
+  const since = new Date(Date.now() - days * 86400 * 1000).toISOString();
+  const { data: events, error } = await ctx.admin
+    .from("inspection_view_events")
+    .select("contact_id, viewer_email, viewer_role, view_type, user_agent, ip_hash, ip_address, created_at")
+    .eq("inspection_id_bigint", inspection.id)
+    .in("view_type", VIEW_TYPES as unknown as string[])
+    .gte("created_at", since)
+    .order("created_at", { ascending: true })
+    .limit(2000);
+
+  if (error) return { error: error.message };
+
+  const rows = events || [];
+
+  if (!rows.length) {
+    return {
+      inspection: { id: inspection.id, address: inspection.property_address },
+      window_days: days,
+      viewers: [],
+      summary: `Nobody has opened this report in the last ${days} days.`,
+    };
+  }
+
+  // Names make the answer useful ("Jordan, the buyer") instead of a list of
+  // email addresses.
+  const contactIds = Array.from(
+    new Set(rows.map((r: any) => r.contact_id).filter(Boolean).map(String)),
+  );
+  const contactsById: Record<string, { name?: string | null; role?: string | null }> = {};
+  if (contactIds.length) {
+    const { data: contacts } = await ctx.admin
+      .from("inspection_contacts")
+      .select("id, name, role")
+      .in("id", contactIds);
+    (contacts || []).forEach((c: any) => {
+      contactsById[String(c.id)] = { name: c.name, role: c.role };
+    });
+  }
+
+  const viewers = summarizeViewers(rows, contactsById);
+  const totalViews = viewers.reduce((sum, v) => sum + v.views, 0);
+
+  return {
+    inspection: {
+      id: inspection.id,
+      address: inspection.property_address,
+      client: inspection.client_name,
+      agent: inspection.realtor_name,
+      report_status: inspection.report_status,
+    },
+    window_days: days,
+    total_views: totalViews,
+    distinct_viewers: viewers.length,
+    viewers,
+    note: "A view is one viewing session — repeated refreshes in one sitting count once. Viewers we could not identify are shown as a stable anonymous handle, never an IP address.",
+  };
 }
 
 async function getRecentErrors(ctx: JarvisContext, args: any) {
