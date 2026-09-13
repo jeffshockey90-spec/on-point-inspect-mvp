@@ -34,6 +34,31 @@ function getNativePlatform() {
   }
 }
 
+// Persists the device's APNs token to the backend. Registration itself now
+// lives in lib/nativePush (which emits PUSH_TOKEN_EVENT); this screen saves it.
+async function saveNativeToken(deviceToken: string) {
+  const res = await fetch("/api/push/native-subscribe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      token: deviceToken,
+      platform: getNativePlatform(),
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to save native push token.");
+  }
+
+  return data;
+}
+
 export default function NativePushSetup() {
 
   const [status, setStatus] = useState<NativePushStatus>("checking");
