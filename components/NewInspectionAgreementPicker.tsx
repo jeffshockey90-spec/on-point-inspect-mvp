@@ -59,16 +59,14 @@ export default function NewInspectionAgreementPicker({
   onChange: (state: string, templateIds: string[]) => void;
 }) {
   const defaultState = (propertyState || "MD").toUpperCase();
-  const hasServices = Array.isArray(services) && services.length > 0;
-  const servicesKey = (services || []).slice().sort().join(",");
 
   const [agreementState, setAgreementState] = useState(defaultState);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [templates, setTemplates] = useState<AgreementTemplate[]>([]);
   const [expanded, setExpanded] = useState(false);
-  // The last service set we auto-applied. null forces a re-apply (e.g. after the
-  // state changes and a fresh template list loads).
-  const lastAppliedServicesKey = useRef<string | null>(null);
+  // The state we've already auto-applied the residential default for. Auto-select
+  // runs once per state, so manual check/uncheck edits within a state stick.
+  const lastAppliedStateRef = useRef<string | null>(null);
 
   useEffect(() => {
     loadTemplates(agreementState);
@@ -80,62 +78,48 @@ export default function NewInspectionAgreementPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agreementState, selectedTemplateIds]);
 
-  // Auto-select the agreements matching the inspection's services. Re-applies
-  // when the service set changes or a new state's templates load; leaves manual
-  // check/uncheck edits alone until then.
+  // Keep the agreement's state in lockstep with the property's state, so the
+  // auto-selected agreement is always the residential one for where the home is.
   useEffect(() => {
-    if (!hasServices || templates.length === 0) return;
-    if (lastAppliedServicesKey.current === servicesKey) return;
+    const next = String(propertyState || "").toUpperCase();
+    if (!next) return;
+    setAgreementState((prev) => (prev === next ? prev : next));
+  }, [propertyState]);
 
-    const matched = templates
-      .filter((template) =>
-        (services || []).some((category) => templateMatchesService(template, category)),
-      )
-      .map((template) => template.id);
+  // Auto-select ONLY the state's default residential (home) agreement. Radon,
+  // mold, and any other service agreements are never auto-attached — the
+  // inspector adds those by hand. Runs once per state (after that state's
+  // templates load), so manual edits within a state are left alone.
+  useEffect(() => {
+    if (templates.length === 0) return;
+    // Ignore the brief window after a state change before the new list loads.
+    const templatesState = String(templates[0]?.state || "").toUpperCase();
+    if (templatesState && templatesState !== agreementState) return;
+    if (lastAppliedStateRef.current === agreementState) return;
 
-    // If no per-service template exists yet (e.g. no radon agreement created),
-    // fall back to the state default so at least the primary agreement applies.
-    let nextIds = matched;
-    if (nextIds.length === 0) {
-      const defaults = templates
-        .filter((template) => template.is_default)
-        .map((template) => template.id);
-      nextIds = defaults.length > 0 ? defaults : templates[0]?.id ? [templates[0].id] : [];
-    }
+    const residential = templates.filter((t) => templateMatchesService(t, "home"));
+    const pick =
+      residential.find((t) => t.is_default) ||
+      residential[0] ||
+      templates.find((t) => t.is_default) ||
+      templates[0];
 
-    lastAppliedServicesKey.current = servicesKey;
-    setSelectedTemplateIds(nextIds);
+    lastAppliedStateRef.current = agreementState;
+    setSelectedTemplateIds(pick?.id ? [pick.id] : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templates, servicesKey]);
+  }, [templates, agreementState]);
 
   async function loadTemplates(state: string) {
     const res = await fetch(`/api/agreement-templates?state=${state}&activeOnly=true`);
     const data = await res.json();
-    const loadedTemplates = data.templates || [];
-
-    setTemplates(loadedTemplates);
-
-    // When services drive the selection, let the auto-select effect handle it.
-    if (hasServices) return;
-
-    setSelectedTemplateIds((current) => {
-      if (current.length > 0) return current;
-
-      const defaultTemplates = loadedTemplates.filter((template: any) => template.is_default);
-
-      if (defaultTemplates.length > 0) {
-        return defaultTemplates.map((template: any) => template.id);
-      }
-
-      return loadedTemplates[0]?.id ? [loadedTemplates[0].id] : [];
-    });
+    setTemplates(data.templates || []);
   }
 
   function handleStateChange(nextState: string) {
     setAgreementState(nextState);
     setSelectedTemplateIds([]);
-    // Force the service auto-select to re-run against the new state's templates.
-    lastAppliedServicesKey.current = null;
+    // A new state gets its own residential default re-applied.
+    lastAppliedStateRef.current = null;
   }
 
   function toggleTemplate(templateId: string) {
