@@ -13,12 +13,18 @@ const GlobalLiveActivity = dynamic(() => import("./GlobalLiveActivity"), {
 const CommandPalette = dynamic(() => import("./CommandPalette"), {
   ssr: false,
 });
+// Push taps and universal links need a listener attached wherever the user is,
+// including on a cold start. This renders nothing; it just has to be mounted.
+const NativeDeepLinks = dynamic(() => import("./NativeDeepLinks"), {
+  ssr: false,
+});
 
 export default function DeferredGlobals() {
   return (
     <>
       <GlobalLiveActivity />
       <CommandPalette />
+      <NativeDeepLinks />
     </>
   );
 }

@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ensureNativePushListeners,
+  PUSH_ERROR_EVENT,
+  PUSH_TOKEN_EVENT,
+} from "../lib/nativePush";
 
 type NativePushStatus =
   | "checking"
@@ -30,59 +34,7 @@ function getNativePlatform() {
   }
 }
 
-function normalizeDeepLink(rawUrl: any) {
-  if (!rawUrl || typeof rawUrl !== "string") return "";
-
-  const appBase =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://app.flowinspect.app";
-
-  try {
-    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
-      const parsed = new URL(rawUrl);
-      const base = new URL(appBase);
-
-      if (parsed.host === base.host) {
-        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-      }
-
-      return rawUrl;
-    }
-
-    if (rawUrl.startsWith("/")) return rawUrl;
-
-    return `/${rawUrl}`;
-  } catch {
-    return rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
-  }
-}
-
-function getPushUrl(event: any) {
-  const notification = event?.notification || event || {};
-  const data = notification?.data || {};
-  const extra = notification?.extra || {};
-
-  return (
-    data?.url ||
-    data?.link ||
-    data?.deepLink ||
-    data?.deep_link ||
-    data?.route ||
-    extra?.url ||
-    extra?.link ||
-    extra?.deepLink ||
-    extra?.deep_link ||
-    extra?.route ||
-    notification?.url ||
-    notification?.link ||
-    ""
-  );
-}
-
 export default function NativePushSetup() {
-  const router = useRouter();
-  const listenersReadyRef = useRef(false);
 
   const [status, setStatus] = useState<NativePushStatus>("checking");
   const [busy, setBusy] = useState(false);
@@ -92,130 +44,42 @@ export default function NativePushSetup() {
 
   const nativeApp = useMemo(() => isNativeCapacitorApp(), []);
 
-  function openDeepLink(rawUrl: any) {
-    const route = normalizeDeepLink(rawUrl);
-    if (!route || typeof window === "undefined") return;
-
-    if (route.startsWith("/")) {
-      router.push(route);
-      setTimeout(() => {
-        window.dispatchEvent(
-          new CustomEvent("onpoint:native-deeplink", {
-            detail: { url: route },
-          })
-        );
-      }, 250);
-      return;
+  // Token + error arrive as events now that registration lives in
+  // lib/nativePush, so this screen still reports what happened without
+  // owning a listener.
+  useEffect(() => {
+    function onToken(event: Event) {
+      const value = (event as CustomEvent)?.detail?.token || "";
+      setToken(value);
+      saveNativeToken(value)
+        .then(() => {
+          setStatus("registered");
+          setMessage("Native Apple push notifications are enabled for this device.");
+        })
+        .catch((error: any) => {
+          setStatus("failed");
+          setMessage(error?.message || "Token received, but failed to save.");
+        })
+        .finally(() => setBusy(false));
     }
 
-    window.location.href = route;
-  }
+    function onError(event: Event) {
+      setStatus("failed");
+      setMessage((event as CustomEvent)?.detail?.error || "Native push registration failed.");
+      setBusy(false);
+    }
+
+    window.addEventListener(PUSH_TOKEN_EVENT, onToken as EventListener);
+    window.addEventListener(PUSH_ERROR_EVENT, onError as EventListener);
+    return () => {
+      window.removeEventListener(PUSH_TOKEN_EVENT, onToken as EventListener);
+      window.removeEventListener(PUSH_ERROR_EVENT, onError as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
-    if (!nativeApp) {
-      setStatus("not_native");
-      return;
-    }
-
-    setStatus("ready");
-
-    let appListener: any;
-
-    async function setupAppLinkListener() {
-      try {
-        const appModule = await import("@capacitor/app");
-        const { App } = appModule;
-
-        appListener = await App.addListener("appUrlOpen", (event: any) => {
-          openDeepLink(event?.url);
-        });
-
-        const launchUrl = await App.getLaunchUrl().catch(() => null);
-        if (launchUrl?.url) {
-          openDeepLink(launchUrl.url);
-        }
-      } catch (error) {
-        console.warn("Capacitor App link listener unavailable:", error);
-      }
-    }
-
-    setupAppLinkListener();
-
-    return () => {
-      listenersReadyRef.current = false;
-
-      try {
-        appListener?.remove?.();
-      } catch {}
-    };
+    setStatus(nativeApp ? "ready" : "not_native");
   }, [nativeApp]);
-
-  async function saveNativeToken(deviceToken: string) {
-    const res = await fetch("/api/push/native-subscribe", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        token: deviceToken,
-        platform: getNativePlatform(),
-        userAgent: navigator.userAgent,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to save native push token.");
-    }
-
-    return data;
-  }
-
-  async function setupListeners(PushNotifications: any) {
-    if (listenersReadyRef.current) return;
-
-    listenersReadyRef.current = true;
-
-    await PushNotifications.removeAllListeners();
-
-    await PushNotifications.addListener("registration", async (registration: any) => {
-      const deviceToken = registration.value;
-
-      setToken(deviceToken);
-
-      try {
-        await saveNativeToken(deviceToken);
-        setStatus("registered");
-        setMessage("Native Apple push notifications are enabled for this device.");
-      } catch (error: any) {
-        setStatus("failed");
-        setMessage(error?.message || "Token received, but failed to save.");
-      } finally {
-        setBusy(false);
-      }
-    });
-
-    await PushNotifications.addListener("registrationError", (error: any) => {
-      console.error("Native push registration error:", error);
-      setStatus("failed");
-      setMessage(error?.error || "Native push registration failed.");
-      setBusy(false);
-    });
-
-    await PushNotifications.addListener("pushNotificationReceived", (notification: any) => {
-      console.log("Push received:", notification);
-    });
-
-    await PushNotifications.addListener("pushNotificationActionPerformed", (event: any) => {
-      console.log("Push action performed:", event);
-      const notification = event?.notification || {};
-      const data = notification?.data || notification?.extra || {};
-      window.dispatchEvent(new CustomEvent("onpoint:push-action", { detail: { ...data, actionId: event?.actionId || "tap" } }));
-      openDeepLink(getPushUrl(event));
-    });
-  }
 
   async function enableNativePush() {
     if (busy) return;
@@ -233,7 +97,10 @@ export default function NativePushSetup() {
       const pushModule = await import("@capacitor/push-notifications");
       const { PushNotifications } = pushModule;
 
-      await setupListeners(PushNotifications);
+      // Listeners are owned by lib/nativePush and already attached at boot;
+      // this is a no-op when they are. Registering a second set here would
+      // mean two navigations per tap.
+      await ensureNativePushListeners();
 
       const currentPermissions = await PushNotifications.checkPermissions();
 
