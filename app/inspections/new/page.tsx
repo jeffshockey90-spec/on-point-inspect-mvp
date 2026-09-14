@@ -17,6 +17,7 @@ import {
 } from "../../../lib/inspectorPricing";
 import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
+import AirspaceBadge from "../../../components/AirspaceBadge";
 import { isAppleActive } from "../../../lib/entitlements";
 
 declare global {
@@ -1553,6 +1554,13 @@ function NewInspectionPageContent() {
                 {propertyLookupStatus}
               </p>
             )}
+
+            <AirspaceBadge
+              address={propertyAddress}
+              city={city}
+              state={stateValue}
+              zip={zip}
+            />
 
             <div
               onDrop={handlePropertyPhotoDrop}
