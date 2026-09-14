@@ -351,8 +351,12 @@ function ReportDisclaimers({
           .eq("inspection_id", inspectionId)
           .order("created_at", { ascending: true }),
         supabase
+          // Only `year_built` exists on inspections. Selecting the other
+          // variants (built_year/construction_year/property_year_built) 400s the
+          // whole PostgREST request (column does not exist), which silently
+          // broke the age-based disclaimer suggestions.
           .from("inspections")
-          .select("year_built, built_year, construction_year, property_year_built")
+          .select("year_built")
           .eq("id", inspectionId)
           .maybeSingle(),
         supabase
@@ -369,14 +373,7 @@ function ReportDisclaimers({
       setRows(data || []);
 
       if (!inspectionResult.error) {
-        setInspectionYear(
-          parseYearBuilt(
-            inspectionResult.data?.year_built ||
-              inspectionResult.data?.built_year ||
-              inspectionResult.data?.construction_year ||
-              inspectionResult.data?.property_year_built
-          )
-        );
+        setInspectionYear(parseYearBuilt(inspectionResult.data?.year_built));
       }
 
       if (!findingsResult.error) {
