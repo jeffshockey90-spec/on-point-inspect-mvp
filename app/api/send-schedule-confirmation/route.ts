@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "../../../lib/jarvis/logError";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { listUnsubscribeHeaders } from "../../../lib/emailUnsubscribe";
@@ -384,6 +385,12 @@ ${branding.name}`;
     return NextResponse.json({ success: true, sent, failed });
   } catch (error: any) {
     console.error("Send schedule confirmation error:", error);
+    await logError({
+      source: "api/send-schedule-confirmation",
+      message: String(error?.message || error),
+      severity: "warning",
+      detail: { stack: error?.stack },
+    });
 
     return NextResponse.json(
       { error: error?.message || "Failed to send schedule confirmation." },

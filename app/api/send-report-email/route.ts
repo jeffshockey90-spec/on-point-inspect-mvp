@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "../../../lib/jarvis/logError";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -795,6 +796,12 @@ export async function POST(req: Request) {
       radonReportUrl,
     });
   } catch (error: any) {
+    await logError({
+      source: "api/send-report-email",
+      message: String(error?.message || error),
+      severity: "error",
+      detail: { stack: error?.stack },
+    });
     return NextResponse.json(
       { error: error?.message || "Email failed to send." },
       { status: 500 }

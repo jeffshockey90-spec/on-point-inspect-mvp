@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "../../../lib/jarvis/logError";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -410,6 +411,12 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Stripe checkout error:", error);
+    await logError({
+      source: "api/create-checkout-session",
+      message: String(error?.message || error),
+      severity: "critical",
+      detail: { stack: error?.stack },
+    });
 
     return NextResponse.json(
       { error: error?.message || "Failed to create checkout session." },

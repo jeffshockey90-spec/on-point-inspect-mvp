@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "../../../lib/jarvis/logError";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
@@ -1446,6 +1447,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true });
   } catch (error: any) {
     console.error("Stripe webhook handler error:", error);
+    await logError({
+      source: "api/stripe-webhook",
+      message: String(error?.message || error),
+      severity: "critical",
+      detail: { stack: error?.stack },
+    });
 
     return NextResponse.json(
       { error: error?.message || "Webhook handler failed." },

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "../../../lib/jarvis/logError";
 import { headers } from "next/headers";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -422,6 +423,12 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Agreement signing error:", error);
+    await logError({
+      source: "api/sign-agreement",
+      message: String(error?.message || error),
+      severity: "error",
+      detail: { stack: error?.stack },
+    });
 
     return NextResponse.json(
       { error: error.message || "Failed to sign agreement." },

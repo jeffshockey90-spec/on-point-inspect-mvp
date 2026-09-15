@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "../../../../lib/jarvis/logError";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import http2 from "http2";
@@ -1085,6 +1086,12 @@ export async function GET(req: Request) {
     });
   } catch (error: any) {
     console.error("Schedule reminder cron error:", error);
+    await logError({
+      source: "api/cron/schedule-reminders",
+      message: String(error?.message || error),
+      severity: "warning",
+      detail: { stack: error?.stack },
+    });
 
     return NextResponse.json(
       {

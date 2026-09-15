@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logError } from "../../../../lib/jarvis/logError";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { sendPushNotification, type PushTarget } from "../../../../lib/push";
@@ -90,6 +91,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, ...result });
   } catch (error: any) {
     console.error("Push send route error:", error);
+    await logError({
+      source: "api/push/send",
+      message: String(error?.message || error),
+      severity: "warning",
+      detail: { stack: error?.stack },
+    });
 
     return NextResponse.json(
       { error: error?.message || "Failed to send push notification." },
