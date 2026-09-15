@@ -58,6 +58,7 @@ import CreateReinspectionButton from "../../../components/CreateReinspectionButt
 import ReinspectionChecklist from "../../../components/ReinspectionChecklist";
 import HouseRelationshipPanel from "../../../components/HouseRelationshipPanel";
 import LiveInspectionTimelinePanel from "../../../components/LiveInspectionTimelinePanel";
+import ReportViewersPanel from "../../../components/ReportViewersPanel";
 import AIPublishGuardPanel from "../../../components/AIPublishGuardPanel";
 import ReportDisclaimers from "../../../components/ReportDisclaimers";
 import PropertyPhotoUploader from "../../../components/PropertyPhotoUploader";
@@ -4039,6 +4040,15 @@ Service-life information is a general industry estimate only. Actual service lif
             helper="Live activity log. Open when you need to audit what changed during the inspection."
           >
             <LiveInspectionTimelinePanel inspectionId={String(inspection.id)} />
+          </AttentionPanel>
+
+          <AttentionPanel
+            title="Who Viewed This Report"
+            category="activity"
+            badge="Report access"
+            helper="Exactly who opened the report, how they accessed it (portal, shared/emailed/texted/QR link), device, and reading time."
+          >
+            <ReportViewersPanel inspectionId={String(inspection.id)} />
           </AttentionPanel>
 
           <div id="publish-guard" data-command-target="publish-guard">

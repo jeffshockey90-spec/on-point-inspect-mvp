@@ -87,6 +87,7 @@ async function recordInspectionView({
   sharePathId,
   userAgent,
   ipHash,
+  accessSource,
 }: {
   inspectionId: string | number;
   viewType: string;
@@ -97,6 +98,7 @@ async function recordInspectionView({
   sharePathId?: string | null;
   userAgent?: string | null;
   ipHash?: string | null;
+  accessSource?: string | null;
 }) {
   try {
     const numericInspectionId = Number(inspectionId);
@@ -113,6 +115,7 @@ async function recordInspectionView({
       metadata: {
         source: "public_share_page",
         ...(viewerName ? { viewer_name: viewerName } : {}),
+        ...(accessSource ? { access_source: accessSource } : {}),
       },
     };
 
@@ -1132,10 +1135,13 @@ export default async function PublicSharePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ defect_filter?: string; contact?: string; role?: string; email?: string; v?: string; viewer?: string; lang?: string }>;
+  searchParams?: Promise<{ defect_filter?: string; contact?: string; role?: string; email?: string; v?: string; viewer?: string; lang?: string; src?: string }>;
 }) {
   const resolvedParams = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  // How they arrived (from the link's ?src=email|sms|qr) — recorded on the view
+  // event so the Who-Viewed panel can say "opened from the email/text/QR".
+  const accessSource = String(resolvedSearchParams?.src || "").trim().toLowerCase().slice(0, 24) || null;
   const shareLookup = resolvedParams.id;
   let inspectionId = shareLookup;
 
@@ -1320,6 +1326,7 @@ export default async function PublicSharePage({
       sharePathId,
       userAgent: requestUserAgent,
       ipHash: requestIpHash,
+      accessSource,
     }).catch(() => {});
   }
 

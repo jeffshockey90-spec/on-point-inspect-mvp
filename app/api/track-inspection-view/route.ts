@@ -57,6 +57,12 @@ export async function POST(req: Request) {
     const viewerRole = String(body.viewer_role || body.viewerRole || "").trim();
     const viewerEmail = String(body.viewer_email || body.viewerEmail || "").trim();
     const path = String(body.path || "").trim();
+    // How the viewer got here: email / sms / qr / direct (from the link's ?src=).
+    // Powers the "how accessed" detail on the Who-Viewed panel.
+    const accessSource = String(body.src || body.access_source || body.accessSource || "")
+      .trim()
+      .toLowerCase()
+      .slice(0, 24);
 
     const numericInspectionId = Number(inspectionId);
 
@@ -87,6 +93,7 @@ export async function POST(req: Request) {
         ip_address: getClientIp(req) || null,
         metadata: {
           source: "client_tracking_api",
+          ...(accessSource ? { access_source: accessSource } : {}),
         },
       });
 

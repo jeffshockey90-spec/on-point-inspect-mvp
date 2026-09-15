@@ -650,7 +650,7 @@ export async function POST(req: Request) {
       const shareUrlWithViewer =
         `${finalShareUrl}?role=${encodeURIComponent(
           recipientRoleForTracking
-        )}&email=${encodeURIComponent(recipient.email)}`;
+        )}&email=${encodeURIComponent(recipient.email)}&src=email`;
 
       const trackedShareUrl =
         `${appUrl}/api/email-click?inspection_id=${encodeURIComponent(
@@ -720,7 +720,7 @@ export async function POST(req: Request) {
 
         const link = `${finalShareUrl}?role=${encodeURIComponent(
           recipient.recipientType
-        )}`;
+        )}&src=sms`;
 
         const body =
           recipient.recipientType === "realtor"

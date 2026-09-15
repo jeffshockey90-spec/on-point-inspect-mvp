@@ -2317,9 +2317,13 @@ export async function GET(req: Request, { params }: RouteProps) {
     const secureOnlineReportUrl = onlineReportUrlForInspection(inspection);
 
     const brandingPromise = loadCompanyBranding(admin, inspection, userEmail);
+    // Tag the QR so a scan is recorded as "QR Code" on the Who-Viewed panel.
+    const qrReportUrl = secureOnlineReportUrl
+      ? `${secureOnlineReportUrl}${secureOnlineReportUrl.includes("?") ? "&" : "?"}src=qr`
+      : secureOnlineReportUrl;
     const qrCodePromise =
       reportMode === "full" && secureOnlineReportUrl
-        ? QRCode.toDataURL(secureOnlineReportUrl, {
+        ? QRCode.toDataURL(qrReportUrl, {
             errorCorrectionLevel: "H",
             margin: 1,
             width: 420,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deviceLabel, summarizeViewers } from "./reportViewers";
+import { buildViewerReport, deviceLabel, summarizeViewers } from "./reportViewers";
 
 const at = (minutes: number) =>
   new Date(Date.UTC(2026, 8, 1, 12, 0, 0) + minutes * 60_000).toISOString();
@@ -84,5 +84,61 @@ describe("deviceLabel", () => {
   it("returns null when the user-agent tells us nothing", () => {
     expect(deviceLabel("")).toBeNull();
     expect(deviceLabel(null)).toBeNull();
+  });
+});
+
+describe("buildViewerReport", () => {
+  it("resolves access method from the ?src= tag", () => {
+    const report = buildViewerReport([
+      { viewer_email: "buyer@example.com", view_type: "report_share", created_at: at(0), metadata: { access_source: "email" } },
+      { viewer_email: "agent@example.com", view_type: "report_share", created_at: at(5), metadata: { access_source: "sms" } },
+      { viewer_email: "scan@example.com", view_type: "report_share", created_at: at(6), metadata: { access_source: "qr" } },
+      { viewer_email: "portal@example.com", view_type: "client_portal", created_at: at(7) },
+    ]);
+    const methods = Object.fromEntries(report.viewers.map((v) => [v.email, v.methods]));
+    expect(methods["buyer@example.com"]).toEqual(["email_link"]);
+    expect(methods["agent@example.com"]).toEqual(["text_link"]);
+    expect(methods["scan@example.com"]).toEqual(["qr_code"]);
+    expect(methods["portal@example.com"]).toEqual(["client_portal"]);
+  });
+
+  it("collapses a refresh spree into one session but keeps a later return as two", () => {
+    const report = buildViewerReport([
+      { viewer_email: "j@example.com", view_type: "report_share", created_at: at(0) },
+      { viewer_email: "j@example.com", view_type: "report_share", created_at: at(2) },
+      { viewer_email: "j@example.com", view_type: "report_share", created_at: at(200) },
+    ]);
+    expect(report.viewers[0].sessions).toBe(2);
+    expect(report.viewers[0].opens).toBe(3);
+  });
+
+  it("tags an emailed viewer even when the open itself has no src", () => {
+    const report = buildViewerReport([
+      { viewer_email: "c@example.com", view_type: "email_click", created_at: at(0) },
+      { viewer_email: "c@example.com", view_type: "report_share", created_at: at(1) },
+    ]);
+    expect(report.viewers[0].methods).toEqual(["email_link"]);
+  });
+
+  it("answers whether the client and realtor have opened it", () => {
+    const report = buildViewerReport(
+      [
+        { viewer_email: "agent@realty.com", view_type: "report_share", created_at: at(0) },
+        { viewer_email: "buyer@example.com", view_type: "client_portal", created_at: at(30) },
+      ],
+      { clientEmail: "buyer@example.com", realtorEmails: ["agent@realty.com"] },
+    );
+    expect(report.summary.clientOpened.opened).toBe(true);
+    expect(report.summary.realtorOpened.opened).toBe(true);
+    expect(report.summary.realtorBeforeClient).toBe(true);
+  });
+
+  it("ignores non-open events (time pings, email opens) as viewers", () => {
+    const report = buildViewerReport([
+      { viewer_email: "x@example.com", view_type: "report_time_checkpoint", created_at: at(0), metadata: { duration_seconds: 45 } },
+      { viewer_email: "x@example.com", view_type: "email_open", created_at: at(1) },
+    ]);
+    expect(report.viewers).toHaveLength(0);
+    expect(report.summary.totalViewers).toBe(0);
   });
 });
