@@ -87,24 +87,24 @@ export async function GET(req: Request) {
     .select("id")
     .maybeSingle();
 
-  // Push the owner on anything urgent.
+  // Push the owner EVERY day with the digest — Jeff wants the daily read to
+  // land in his notifications, not just sit in the cockpit. Urgent days get a
+  // louder title + the alert eventType; quiet days get a calm daily-brief push.
   let pushed = false;
-  if (urgent) {
-    for (const email of OWNER_EMAILS) {
-      try {
-        await sendPushNotification({
-          title: "🤖 Jarvis: needs your eyes",
-          body: headline.slice(0, 140),
-          url: "/dashboard/owner/jarvis",
-          eventType: "jarvis_alert",
-          target: "user",
-          targetUserEmail: email,
-          ownerEmail: email,
-        });
-        pushed = true;
-      } catch {
-        /* best-effort */
-      }
+  for (const email of OWNER_EMAILS) {
+    try {
+      await sendPushNotification({
+        title: urgent ? "🤖 Jarvis: needs your eyes" : "🤖 Jarvis Daily Brief",
+        body: headline.slice(0, 140),
+        url: "/dashboard/owner/jarvis",
+        eventType: urgent ? "jarvis_alert" : "jarvis_digest",
+        target: "user",
+        targetUserEmail: email,
+        ownerEmail: email,
+      });
+      pushed = true;
+    } catch {
+      /* best-effort */
     }
   }
 
