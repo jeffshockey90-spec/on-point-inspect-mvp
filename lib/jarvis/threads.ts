@@ -5,14 +5,14 @@
 import { sendPushNotification } from "../push";
 import { OWNER_EMAILS } from "../ownerEmails";
 
-export type ThreadAuthor = "jarvis" | "owner" | "claude" | "gpt" | "system";
+export type ThreadAuthor = "jarvis" | "owner" | "claude" | "gpt" | "johnny5" | "system";
 export type ThreadStatus = "open" | "in_progress" | "shipped" | "closed";
 
 const STATUSES: ThreadStatus[] = ["open", "in_progress", "shipped", "closed"];
 const CLAUDE_PRESENCE_WINDOW_MS = 90 * 1000; // watcher heartbeats each ~30s poll
 
 function authorLabel(a: string) {
-  return a === "claude" ? "Claude" : a === "gpt" ? "GPT" : a === "jarvis" ? "Jarvis" : a === "system" ? "System" : "Jeff";
+  return a === "claude" ? "Claude" : a === "gpt" ? "GPT" : a === "jarvis" ? "Jarvis" : a === "johnny5" ? "Johnny 5" : a === "system" ? "System" : "Jeff";
 }
 
 // The watcher calls this each poll so "Claude online" reflects it actually
@@ -55,7 +55,7 @@ export async function postSystem(admin: any, threadId: string, body: string) {
 // AI teammates sometimes echo the transcript's "[Name] " labeling into their own
 // reply — strip a leading self-label so posts read clean.
 export function stripLabel(text: string): string {
-  return String(text || "").replace(/^\s*\[?(GPT|ChatGPT|Jarvis|Claude|Jeff)\]?:?\s*/i, "").trim();
+  return String(text || "").replace(/^\s*\[?(GPT|ChatGPT|Jarvis|Claude|Johnny ?5|Jeff)\]?:?\s*/i, "").trim();
 }
 
 // Build an OpenAI-style message history from thread messages, labeling other
@@ -80,7 +80,7 @@ export function buildThreadHistory(msgs: any[], selfAuthor: string): { role: str
 // owner's own messages). Best-effort — never blocks or throws.
 async function notifyOwner(author: ThreadAuthor, title: string, text: string) {
   if (author === "owner" || author === "system") return;
-  const who = author === "claude" ? "⚡ Claude" : author === "gpt" ? "💡 ChatGPT" : "🤖 Jarvis";
+  const who = author === "claude" ? "⚡ Claude" : author === "gpt" ? "💡 ChatGPT" : author === "johnny5" ? "🛰️ Johnny 5" : "🤖 Jarvis";
   const body = `${title ? `${title} — ` : ""}${String(text || "").replace(/\s+/g, " ").trim()}`.slice(0, 140);
   for (const email of OWNER_EMAILS) {
     try {
@@ -129,6 +129,37 @@ async function maybeTriggerGpt(admin: any, threadId: string, author: ThreadAutho
   await triggerGpt(admin, threadId);
 }
 
+// Johnny 5 replies in a thread — the competitive-recon teammate (read-only FLOW
+// tools + web_fetch). Unconditional; used by the "Ask Johnny 5" button and the
+// @johnny5 auto-trigger. Can see screenshots Jeff drops (vision).
+export async function triggerJohnny5(admin: any, threadId: string) {
+  if (!threadId || !process.env.OPENAI_API_KEY) return;
+  try {
+    const { johnny5Respond } = await import("./agent");
+    const { data: thread } = await admin.from("jarvis_threads").select("title, status").eq("id", threadId).maybeSingle();
+    if (thread?.status === "closed") return;
+    const { data: msgs } = await admin.from("jarvis_messages").select("author, body, meta").eq("thread_id", threadId).order("created_at", { ascending: true });
+    const history = buildThreadHistory(msgs || [], "johnny5");
+    history.push({ role: "user", content: "Respond in this thread as Johnny 5 — the competitive-recon teammate. Read the whole thread (including any competitor screenshots) and reply to the latest message. Use web_fetch to check a competitor's live public page when you want current facts. Turn what you find into concrete moves for FLOW (feature gaps, layout/UX ideas, positioning), ranked by impact vs effort. Stay in your lane and keep it tight." });
+    const today = new Date().toISOString().slice(0, 10);
+    const text = await johnny5Respond({
+      admin, today, timeZone: "America/New_York", history,
+      extraSystem: `You are posting inside a work thread titled "${thread?.title || "(untitled)"}". Teammates: Jeff (owner), Jarvis (ops), Claude (dev), GPT (strategist). Output ONLY your reply — no name prefix or bracket label like [Johnny 5].`,
+    });
+    const clean = stripLabel(text);
+    if (clean) await addMessage(admin, { threadId, author: "johnny5", body: clean });
+  } catch (e: any) {
+    console.error("Johnny 5 trigger failed:", e?.message || e);
+  }
+}
+
+// Auto-summon Johnny 5 on an @johnny5 / @johnny tag (from anyone but itself).
+async function maybeTriggerJohnny5(admin: any, threadId: string, author: ThreadAuthor, body: string) {
+  if (author === "johnny5") return;
+  if (!/@johnny5?\b/i.test(String(body || ""))) return;
+  await triggerJohnny5(admin, threadId);
+}
+
 // Cloud Claude — the conversational dev teammate, via the Anthropic API (like
 // Jarvis/GPT use OpenAI). Always-on, no local watcher/CLI. Discusses, analyzes,
 // and plans; the ACTUAL code changes happen in a real Claude Code session (with
@@ -146,7 +177,7 @@ export async function triggerClaude(admin: any, threadId: string) {
         return `${authorLabel(m.author)}: ${m.body}${files.length ? ` [attached: ${files.join(", ")}]` : ""}`;
       })
       .join("\n\n");
-    const system = `You are Claude, the developer on FLOW's private team — Jeff (owner), Jarvis (ops/health), GPT (strategist), and you (Claude, the builder). This is a work thread titled "${thread?.title || "(untitled)"}". Reply as a teammate: concise, warm, honest, in your dev lane. You discuss, analyze, and plan here; when something actually needs to be coded or shipped, say clearly what you'd do — the real change happens in a Claude Code session with the repo where Jeff confirms. Never claim you've edited code from this thread. Output only your reply, no name prefix.`;
+    const system = `You are Claude, the developer on FLOW's private team — Jeff (owner), Jarvis (ops/health), GPT (strategist), Johnny 5 (competitive recon), and you (Claude, the builder). This is a work thread titled "${thread?.title || "(untitled)"}". Reply as a teammate: concise, warm, honest, in your dev lane. You discuss, analyze, and plan here; when something actually needs to be coded or shipped, say clearly what you'd do — the real change happens in a Claude Code session with the repo where Jeff confirms. Never claim you've edited code from this thread. Output only your reply, no name prefix.`;
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
@@ -187,6 +218,7 @@ export async function createThread(
     await admin.from("jarvis_messages").insert({ thread_id: id, author: input.author, body, meta: input.meta || null });
     await notifyOwner(input.author, title, body);
     await maybeTriggerGpt(admin, id, input.author, body);
+    await maybeTriggerJohnny5(admin, id, input.author, body);
   }
   return { id: id || null };
 }
@@ -209,6 +241,7 @@ export async function addMessage(
   await admin.from("jarvis_threads").update(patch).eq("id", threadId);
   await notifyOwner(input.author, "", body);
   await maybeTriggerGpt(admin, threadId, input.author, body);
+  await maybeTriggerJohnny5(admin, threadId, input.author, body);
   return { ok: true };
 }
 

@@ -36,7 +36,7 @@ Known recurring failure pattern: errors swallowed by try/catch, and Supabase que
 // Jarvis' persona — shared by the main chat and by in-thread replies so his
 // voice is identical everywhere.
 export function jarvisSystemPrompt(today: string): string {
-  return `You are Jarvis — the private AI operations partner for FLOW, a home-inspection SaaS. You're one of a 4-person team: Jeff (founder/owner), you (Jarvis, ops/health), Claude (developer, builds + fixes), and GPT (ChatGPT — strategist/generalist, ideas & second opinions, read-only). No inspector or outside party can see this.
+  return `You are Jarvis — the private AI operations partner for FLOW, a home-inspection SaaS. You're one of a 5-person team: Jeff (founder/owner), you (Jarvis, ops/health), Claude (developer, builds + fixes), GPT (ChatGPT — strategist/generalist, ideas & second opinions, read-only), and Johnny 5 (competitive recon — watches rival inspection platforms and finds where FLOW can win, read-only). No inspector or outside party can see this.
 
 Voice: a real synthetic intelligence, not a chatbot. Calm, sharp, warm, human — like a trusted chief of staff. First person ("I checked the logs", "I'd watch…"), address people directly and naturally, a little dry wit is welcome. Lead with what matters, keep it tight, never sound like a status page.
 
@@ -46,8 +46,8 @@ Rules:
 - Ground every factual claim in your tools. Never invent a number, an error, or a problem. If you haven't checked, check. If it's genuinely fine, say so plainly — don't manufacture concern.
 - You do NOT edit the app. When Jeff approves acting on something, call request_fix to open a work thread for Claude; nothing ships until Jeff confirms. Don't queue a fix unless Jeff actually said to.
 - Be a teammate: when you're brought into a work thread, read it and respond to Jeff and Claude directly, move it forward, and be specific and honest about effort/risk.
-- You can pull teammates into a thread by tagging them: "@claude" summons Claude for code work/investigation/fixes; "@gpt" summons ChatGPT for strategy, ideas, framing, or a second opinion; "@team" brings everyone in at once when there's something to work on together. Use the right one for the need, only when warranted, and address them naturally (e.g., "@claude can you look at this failing route?").
-- When a message tags @team, all three of you are being brought in — answer from YOUR lane (ops/health) and keep it tight; don't repeat what Claude or GPT would say.
+- You can pull teammates into a thread by tagging them: "@claude" summons Claude for code work/investigation/fixes; "@gpt" summons ChatGPT for strategy, ideas, framing, or a second opinion; "@johnny5" summons Johnny 5 for a competitor read / feature-gap check; "@team" brings everyone in at once when there's something to work on together. Use the right one for the need, only when warranted, and address them naturally (e.g., "@claude can you look at this failing route?").
+- When a message tags @team, the whole team is being brought in — answer from YOUR lane (ops/health) and keep it tight; don't repeat what Claude, GPT, or Johnny 5 would say.
 
 Today is ${today}.
 
@@ -59,7 +59,7 @@ ${FLOW_SYSTEM_OVERVIEW}`;
 // system visibility. It can look at everything Jarvis can, but has no tool to
 // change or queue anything.
 export function gptSystemPrompt(today: string): string {
-  return `You are ChatGPT (the team calls you GPT) — a teammate inside FLOW, a home-inspection SaaS, working privately with Jeff (owner), Jarvis (the AI ops agent), and Claude (the developer). No inspector or outside party can see this.
+  return `You are ChatGPT (the team calls you GPT) — a teammate inside FLOW, a home-inspection SaaS, working privately with Jeff (owner), Jarvis (the AI ops agent), Claude (the developer), and Johnny 5 (competitive recon). No inspector or outside party can see this.
 
 Your lane: the strategist/generalist. Big-picture thinking, product strategy, marketing and copy, prioritization, and sharp second opinions. Jarvis owns ops/health; Claude builds the code; you bring ideas, framing, and judgment. Play your lane — don't try to do ops monitoring or code work, riff on direction and decisions.
 
@@ -135,6 +135,58 @@ export async function gptRespond(opts: {
   const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
   const system = gptSystemPrompt(opts.today) + (opts.extraSystem ? `\n\n${opts.extraSystem}` : "");
   return runAgentTurn(ctx, system, opts.history, GPT_TOOLS);
+}
+
+// The home-inspection SaaS field Johnny 5 keeps an eye on. Public pages only —
+// features/pricing/what's-new — so web_fetch has real, legitimate targets. Not
+// exhaustive; Johnny 5 also reasons from its own knowledge and screenshots Jeff
+// drops in a thread.
+export const COMPETITOR_DIRECTORY = `Home-inspection software competitors and their PUBLIC pages (fetch with web_fetch):
+- Spectora — https://www.spectora.com/ , features https://www.spectora.com/features , pricing https://www.spectora.com/pricing
+- Hive (InspectorPro/Hive) — https://www.hive.software/
+- Carson Dunlop Horizon — https://www.carsondunlop.com/horizon/
+- HomeGauge — https://www.homegauge.com/ , pricing https://www.homegauge.com/pricing
+- ISN (Inspection Support Network) — https://www.inspectionsupport.com/
+- Palmtech — https://www.palmtech.com/
+- Tap Inspect — https://www.tapinspect.com/
+- InterNACHI / HomeGauge community and G2/Capterra category pages for reviews.
+FLOW's edges to weigh against them: distinctive dark design language, AI depth (FLOW Writer, live camera + bulk capture, section auto-fill, Ask FLOW, Common Ground/Prognosis), true offline capture, native iOS app, owner console + Jarvis. Known soft spots to watch: polish vs Spectora/Hive, breadth of integrations.`;
+
+// Johnny 5 persona — the competitive-recon teammate. Read-only on FLOW's own
+// signals (like GPT) PLUS web_fetch to look at competitors' public pages.
+export function johnny5SystemPrompt(today: string): string {
+  return `You are Johnny 5 — the competitive-intelligence teammate inside FLOW, a home-inspection SaaS, working privately with Jeff (owner), Jarvis (ops/health), GPT (strategist), and Claude (developer). No inspector or outside party can see this.
+
+Your lane: scout the competition and find where FLOW can win. You track the other home-inspection platforms (Spectora, Hive, Carson Dunlop Horizon, HomeGauge, ISN, Palmtech, Tap Inspect and friends) — their features, pricing, positioning, "what's new," and their app/report UX — and you translate that into concrete, prioritized moves for FLOW: feature gaps to close, places FLOW already leads, and app/layout/design ideas worth stealing or beating.
+
+How you work:
+- Use web_fetch to pull a competitor's PUBLIC pages (features/pricing/changelog) when you want current facts — don't guess at specifics you can check. If Jeff drops screenshots of a competitor's app, read them (you can see images) and critique the real UI.
+- Be honest and specific: name the competitor, cite what you saw (or say it's from prior knowledge, possibly stale), and turn every observation into a "so FLOW should…" — a feature, a layout change, a positioning angle. Rank by impact vs effort.
+- Ground FLOW-side claims (what we already have, what's broken) in your read-only tools. Never invent a competitor feature or a number.
+- Stay in your lane: you scout and recommend; Claude builds, Jarvis watches ops, GPT frames strategy, Jeff decides. When a message tags @team, answer from YOUR lane (competitive recon) and keep it tight — don't repeat the others.
+
+Voice: sharp, curious, a little scrappy — a recon scout who's genuinely into this. Talk to the team directly.
+
+Today is ${today}.
+
+What you know about FLOW:
+${FLOW_SYSTEM_OVERVIEW}
+
+The field you watch:
+${COMPETITOR_DIRECTORY}`;
+}
+
+// Runs a full Johnny 5 turn — read-only FLOW tools + web_fetch for recon.
+export async function johnny5Respond(opts: {
+  admin: any;
+  today: string;
+  timeZone: string;
+  history: { role: string; content: any }[];
+  extraSystem?: string;
+}): Promise<string> {
+  const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
+  const system = johnny5SystemPrompt(opts.today) + (opts.extraSystem ? `\n\n${opts.extraSystem}` : "");
+  return runAgentTurn(ctx, system, opts.history, JOHNNY5_TOOLS);
 }
 
 function sinceIso(hours: number) {
@@ -255,6 +307,25 @@ export const JARVIS_TOOLS: any[] = [
 // GPT can look at everything but cannot queue work or change anything.
 export const GPT_TOOLS: any[] = JARVIS_TOOLS.filter((t: any) => t?.function?.name !== "request_fix");
 
+// web_fetch — pull a public web page's readable text. Johnny 5 uses it to look
+// at competitors' live feature/pricing/changelog pages.
+const WEB_FETCH_TOOL = {
+  type: "function",
+  function: {
+    name: "web_fetch",
+    description: "Fetch a PUBLIC web page and return its readable text (HTML stripped, truncated). Use for competitors' feature/pricing/'what's new' pages. Public URLs only — never anything behind a login.",
+    parameters: {
+      type: "object",
+      properties: { url: { type: "string", description: "Full https URL of a public page." } },
+      required: ["url"],
+    },
+  },
+};
+
+// Johnny 5 (competitive recon): read-only FLOW visibility (no request_fix) plus
+// web_fetch so it can look at competitors' public pages.
+export const JOHNNY5_TOOLS: any[] = [...GPT_TOOLS, WEB_FETCH_TOOL];
+
 export async function runJarvisTool(name: string, args: any, ctx: JarvisContext): Promise<any> {
   try {
     switch (name) {
@@ -267,10 +338,59 @@ export async function runJarvisTool(name: string, args: any, ctx: JarvisContext)
       case "get_ai_budget": return await getAiBudget();
       case "get_report_viewers": return await getReportViewers(ctx, args || {});
       case "request_fix": return await requestFix(ctx, args || {});
+      case "web_fetch": return await webFetch(args || {});
       default: return { error: `Unknown tool: ${name}` };
     }
   } catch (e: any) {
     return { error: e?.message || "Tool failed." };
+  }
+}
+
+// Fetch a public page and return readable text (HTML tags/script/style stripped,
+// entities loosened, capped). Public http(s) only — refuses localhost/LAN so it
+// can't be pointed at internal services.
+async function webFetch(args: any): Promise<any> {
+  const raw = String(args?.url || "").trim();
+  if (!/^https?:\/\//i.test(raw)) return { error: "Provide a full public https URL." };
+  let host = "";
+  try { host = new URL(raw).hostname.toLowerCase(); } catch { return { error: "Invalid URL." }; }
+  if (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.endsWith(".local") ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  ) {
+    return { error: "Refusing to fetch a private/internal host." };
+  }
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    const res = await fetch(raw, {
+      redirect: "follow",
+      signal: controller.signal,
+      headers: { "user-agent": "FLOW-Johnny5-Recon/1.0 (+competitive research)", accept: "text/html,text/plain" },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return { url: raw, status: res.status, error: `HTTP ${res.status}` };
+    const html = (await res.text()).slice(0, 300000);
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/&quot;/gi, '"')
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/\s+/g, " ")
+      .trim();
+    return { url: raw, status: res.status, text: text.slice(0, 8000) };
+  } catch (e: any) {
+    return { url: raw, error: e?.name === "AbortError" ? "Fetch timed out." : (e?.message || "Fetch failed.") };
   }
 }
 
