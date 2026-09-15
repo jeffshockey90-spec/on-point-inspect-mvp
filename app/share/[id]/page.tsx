@@ -1174,8 +1174,15 @@ export default async function PublicSharePage({
 
   let inspection = inspectionByToken;
   let inspectionError = tokenLookupError;
+  // Did this request present the real, unguessable share token? A raw numeric
+  // id never does. This gates public access below so a delivered report can't
+  // be reached by guessing sequential ids.
+  const resolvedByToken = Boolean(inspectionByToken);
 
   if (!inspection && /^\d+$/.test(shareLookup)) {
+    // Raw-id lookup loads the row ONLY so the owning inspector can preview it
+    // and so demo/sample detection works — it grants no public view on its own
+    // (see the delivery gate: a real report needs the token or owner auth).
     const fallbackResult = await supabase
       .from("inspections")
       .select("*")
@@ -1243,7 +1250,11 @@ export default async function PublicSharePage({
   if (!allowShareView) {
     const delivery = await getReportDeliveryState(supabase, inspection as any);
 
-    if (delivery.deliverable) {
+    // A delivered report is public ONLY through its unguessable share token.
+    // Reached by a guessed numeric id (no token match), it still requires the
+    // owning inspector/owner to be signed in — this is what blocks someone from
+    // enumerating sequential ids to read reports that aren't theirs.
+    if (delivery.deliverable && resolvedByToken) {
       allowShareView = true;
     } else {
       const viewer = await getSessionUser();

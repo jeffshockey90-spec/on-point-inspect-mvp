@@ -571,7 +571,10 @@ export default async function RealtorPortalPage({
 
                       <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[460px]">
                         <FastLinkButton
-                          href={`/share/${id}?role=realtor&email=${encodeURIComponent(lookupEmail)}`}
+                          // Link by the unguessable share token, never the raw
+                          // numeric id — /share only grants public access via the
+                          // token now (raw-id enumeration is blocked).
+                          href={`/share/${downloadId}?role=realtor&email=${encodeURIComponent(lookupEmail)}`}
                           loadingText="Opening Report..."
                           className="rounded-xl border border-teal-500 px-4 py-3 text-center font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
                         >
