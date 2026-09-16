@@ -15,8 +15,46 @@
 -- removing an original never cascades into deleting re-inspection history, and
 -- a re-inspection finding is never silently destroyed by activity on the
 -- original.
-alter table public.findings
-  add column if not exists source_finding_id uuid;
+-- Column type is derived from findings.id rather than hardcoded: findings.id is
+-- bigint in the live database while supabase/schema.sql still describes it as
+-- uuid, and a mismatch makes the foreign key below fail outright (42804).
+do $$
+declare
+  id_type text;
+  existing_type text;
+begin
+  select format_type(a.atttypid, a.atttypmod)
+    into id_type
+    from pg_attribute a
+   where a.attrelid = 'public.findings'::regclass
+     and a.attname = 'id'
+     and a.attnum > 0 and not a.attisdropped;
+
+  select format_type(a.atttypid, a.atttypmod)
+    into existing_type
+    from pg_attribute a
+   where a.attrelid = 'public.findings'::regclass
+     and a.attname = 'source_finding_id'
+     and a.attnum > 0 and not a.attisdropped;
+
+  if existing_type is null then
+    execute format('alter table public.findings add column source_finding_id %s', id_type);
+
+  elsif existing_type is distinct from id_type then
+    -- Left behind by an earlier run of this script that hardcoded the wrong
+    -- type. Replacing it is only safe while nothing has been written through
+    -- it; if it holds data, stop rather than destroy a reference.
+    if exists (select 1 from public.findings where source_finding_id is not null) then
+      raise exception
+        'source_finding_id is % but findings.id is %, and the column already holds data - migrate it by hand',
+        existing_type, id_type
+        using errcode = 'check_violation';
+    end if;
+
+    execute 'alter table public.findings drop column source_finding_id';
+    execute format('alter table public.findings add column source_finding_id %s', id_type);
+  end if;
+end $$;
 
 do $$
 begin
