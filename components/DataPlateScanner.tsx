@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { supabase } from "../lib/supabaseClient";
 
 const SEVERITIES = [
@@ -148,7 +149,7 @@ Do not guess if information is not visible.
       setEquipmentType("HVAC");
       setSeverity("Maintenance");
 
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       alert(error.message || "Failed to save data plate finding");
     } finally {

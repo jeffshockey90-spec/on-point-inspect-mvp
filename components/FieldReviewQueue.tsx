@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 
 const SECTIONS = [
   "Inspection Details",
@@ -116,7 +117,7 @@ export default function FieldReviewQueue({
         return;
       }
 
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (err: any) {
       setItems(previous);
       setError(err?.message || "Failed to approve all findings.");
@@ -129,7 +130,7 @@ export default function FieldReviewQueue({
     setItems((current) =>
       current.filter((finding) => String(finding.id) !== String(findingId)),
     );
-    router.refresh();
+    refreshKeepScroll(router);
   }
 
   function handleRepolished(findingId: string, updated: any) {
@@ -140,7 +141,7 @@ export default function FieldReviewQueue({
           : finding,
       ),
     );
-    router.refresh();
+    refreshKeepScroll(router);
   }
 
   return (

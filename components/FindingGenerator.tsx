@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { supabase } from "../lib/supabaseClient";
 
 const SECTIONS = [
@@ -189,7 +190,7 @@ ${imageUrl || "No photo uploaded."}
       setPreviewUrl("");
       setUploadedImageUrl("");
 
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       setErrorMessage(error.message || "Failed to save finding.");
     } finally {

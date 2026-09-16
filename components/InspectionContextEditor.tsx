@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 
@@ -38,7 +39,7 @@ export default function InspectionContextEditor({
       if (error) throw error;
       setSaved(true);
       setEditing(false);
-      startTransition(() => router.refresh());
+      startTransition(() => refreshKeepScroll(router));
     } catch (err: any) {
       setError(err?.message || "Failed to save context.");
     } finally {

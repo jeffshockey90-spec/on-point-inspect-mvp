@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
 type FindingTemplate = Record<string, any>;
@@ -149,7 +150,7 @@ export default function InsertFavoriteFindingButton({
       );
 
       startTransition(() => {
-        router.refresh();
+        refreshKeepScroll(router);
       });
 
       window.setTimeout(() => {

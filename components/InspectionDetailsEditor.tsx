@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 
 export default function InspectionDetailsEditor({
   inspection,
@@ -62,7 +63,7 @@ export default function InspectionDetailsEditor({
       setEditing(false);
 
       startTransition(() => {
-        router.refresh();
+        refreshKeepScroll(router);
       });
     } catch (error: any) {
       alert(error?.message || "Failed to save inspection details.");

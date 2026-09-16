@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { useState, useTransition } from "react";
 
 export default function GenerateSummaryButton({
@@ -51,7 +52,7 @@ export default function GenerateSummaryButton({
       setGenerated(true);
 
       startTransition(() => {
-        router.refresh();
+        refreshKeepScroll(router);
       });
     } catch (error: any) {
       const message = error?.message || "Failed to generate executive summary.";

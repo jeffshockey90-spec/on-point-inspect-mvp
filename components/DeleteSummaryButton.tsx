@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { useState, useTransition } from "react";
 
 export default function DeleteSummaryButton({
@@ -53,7 +54,7 @@ export default function DeleteSummaryButton({
       setDeleted(true);
 
       startTransition(() => {
-        router.refresh();
+        refreshKeepScroll(router);
       });
     } catch (error: any) {
       alert(error?.message || "Failed to delete summary.");

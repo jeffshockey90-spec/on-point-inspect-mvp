@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { useRef, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 import AITemplateSuggestions from "./AITemplateSuggestions";
@@ -335,7 +336,7 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
       }
 
       startTransition(() => {
-        router.refresh();
+        refreshKeepScroll(router);
       });
 
       window.setTimeout(() => {

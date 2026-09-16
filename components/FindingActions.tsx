@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { supabase } from "../lib/supabaseClient";
 
 const SEVERITIES = [
@@ -53,7 +54,7 @@ export default function FindingActions({ finding }: { finding: any }) {
       }
 
       setEditing(false);
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       alert(error.message || "Failed to save changes");
     } finally {
@@ -78,7 +79,7 @@ export default function FindingActions({ finding }: { finding: any }) {
         throw new Error(error.message);
       }
 
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       alert(error.message || "Failed to delete finding");
     }
@@ -120,7 +121,7 @@ export default function FindingActions({ finding }: { finding: any }) {
         });
       }
 
-      router.refresh();
+      refreshKeepScroll(router);
     } catch (error: any) {
       alert(error.message || "Failed to upload photos");
     } finally {
