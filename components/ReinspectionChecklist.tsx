@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, RotateCcw, Sparkles } from "lucide-react";
+import { Camera, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 
 type Photo = {
@@ -53,7 +53,39 @@ export default function ReinspectionChecklist({ inspectionId }: { inspectionId: 
   const [busy, setBusy] = useState<number | null>(null);
   const [drafting, setDrafting] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [discarding, setDiscarding] = useState(false);
   const fileInputs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  // Creating a re-inspection makes a real report the moment the button is
+  // tapped, so a mis-tap leaves one sitting in the inspector's list. This
+  // discards it -- and only it: the endpoint is scoped to the re-inspection's
+  // own rows and refuses an original outright.
+  async function discard() {
+    if (
+      !confirm(
+        "Discard this re-inspection? It deletes this re-inspection and its photos only. The original report is not affected.",
+      )
+    ) {
+      return;
+    }
+    setDiscarding(true);
+    setError("");
+    try {
+      const res = await fetch("/api/inspections/reinspection", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId: Number(inspectionId) }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Could not discard that.");
+      }
+      window.location.href = "/reports";
+    } catch (e: any) {
+      setError(e?.message || "Could not discard that.");
+      setDiscarding(false);
+    }
+  }
 
   async function load() {
     try {
@@ -198,6 +230,16 @@ export default function ReinspectionChecklist({ inspectionId }: { inspectionId: 
             review. The original report is not changed by anything on this page.
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={discard}
+          disabled={discarding}
+          className="ml-auto inline-flex items-center gap-1.5 self-start rounded-lg border border-[var(--fl-line)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-[var(--fl-crit-text)] disabled:opacity-50"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          {discarding ? "Discarding…" : "Discard"}
+        </button>
       </div>
 
       {error ? (

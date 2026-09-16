@@ -337,7 +337,12 @@ export async function GET(req: Request) {
       if (originalDoc) relatedDocuments.push(originalDoc);
       for (const row of siblingRows || []) {
         const doc = await describe(row, "reinspection");
-        if (doc) relatedDocuments.push(doc);
+        // A re-inspection the client cannot open yet is not a document from
+        // their side -- it is an inspector-side draft, and one created by a
+        // mis-tapped button looks identical to a real one. Listing it would
+        // promise a report that may never exist, so an undeliverable
+        // re-inspection is omitted entirely rather than shown as pending.
+        if (doc && (doc.deliverable || doc.isCurrent)) relatedDocuments.push(doc);
       }
     } catch (relatedError) {
       console.error("Client portal related documents load error:", relatedError);
