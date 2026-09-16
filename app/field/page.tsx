@@ -3517,89 +3517,122 @@ function FieldPageContent() {
   async function saveOrganizedMediaGroups() {
     if (savingOrganizedMedia || organizingMedia) return;
 
-    const approvedGroups = mediaGroups.filter(
-      (group) =>
-        group.classification === "finding" &&
-        group.photoIndexes.length > 0,
+    // Every group the inspector left in a real category gets saved to its proper
+    // home — not just findings. Findings -> findings, Reference -> section
+    // reference photos, Limitation -> limitations. (Equipment needs data-plate
+    // fields the organizer doesn't collect, so it's captured via the equipment
+    // analyzer flow, not here; Unassigned is intentionally dropped.)
+    const findingGroups = mediaGroups.filter(
+      (group) => group.classification === "finding" && group.photoIndexes.length > 0,
+    );
+    const referenceGroups = mediaGroups.filter(
+      (group) => group.classification === "reference" && group.photoIndexes.length > 0,
+    );
+    const limitationGroups = mediaGroups.filter(
+      (group) => group.classification === "limitation" && group.photoIndexes.length > 0,
     );
 
-    if (!approvedGroups.length) {
+    if (!findingGroups.length && !referenceGroups.length && !limitationGroups.length) {
       setMessage(
-        "No finding groups are ready. Change at least one group to Finding.",
+        "Nothing to save yet. Set at least one group to Finding, Reference, or Limitation.",
       );
       return;
     }
 
     setSavingOrganizedMedia(true);
-    setMessage("Saving AI-organized findings...");
+    setMessage("Saving AI-organized items...");
 
     try {
-      // Upload every group's files concurrently (each group keeps photo order
-      // via Promise.all over its own files), so a multi-photo batch saves in
-      // roughly the time of the slowest single upload instead of the sum.
-      const preparedGroups = await Promise.all(
-        approvedGroups.map(async (group) => {
-          const groupFiles = group.photoIndexes
-            .map((index) => photos[index])
-            .filter(Boolean);
+      let savedCount = 0;
+      const usedIndexes = new Set<number>();
+      const groupFilesFor = (group: AIMediaGroup) =>
+        group.photoIndexes.map((index) => photos[index]).filter(Boolean);
 
-          const uploaded: UploadedPhoto[] = await Promise.all(
-            groupFiles.map((file) => uploadPhotoFile(file, "field-media")),
-          );
+      // Findings — one batch insert for speed (each group keeps photo order).
+      if (findingGroups.length) {
+        const preparedGroups = await Promise.all(
+          findingGroups.map(async (group) => {
+            const uploaded: UploadedPhoto[] = await Promise.all(
+              groupFilesFor(group).map((file) => uploadPhotoFile(file, "field-media")),
+            );
+            return { group, uploaded };
+          }),
+        );
 
-          return { group, uploaded };
-        }),
-      );
-
-      // Batch the finding-row inserts: one insert for all groups. PostgREST
-      // returns the inserted rows in the same order they were provided, so we
-      // can map each returned finding back to its uploaded media by index.
-      const findingRows = preparedGroups.map(({ group, uploaded }) => ({
-        inspection_id: selectedReport,
-        title: group.title || group.label || "Inspection Finding",
-        section: group.section,
-        severity: group.severity,
-        observation: group.observation,
-        implication: group.implication,
-        recommendation: group.recommendation,
-        image_url: uploaded.find((item) => !item.isVideo)?.publicUrl || null,
-      }));
-
-      const { data: insertedFindings, error } = await supabase
-        .from("findings")
-        .insert(findingRows)
-        .select();
-
-      if (error) throw error;
-
-      const photoRows = preparedGroups.flatMap(({ uploaded }, groupIndex) => {
-        const finding = insertedFindings?.[groupIndex];
-        if (!finding || !uploaded.length) return [];
-        return uploaded.map((item) => ({
+        const findingRows = preparedGroups.map(({ group, uploaded }) => ({
           inspection_id: selectedReport,
-          finding_id: finding.id,
-          public_url: item.publicUrl,
-          file_path: item.filePath,
-          is_video: Boolean(item.isVideo),
-          mime_type: item.mimeType || null,
-          thumbnail_url: item.thumbnailUrl || null,
-          thumbnail_path: item.thumbnailPath || null,
+          title: group.title || group.label || "Inspection Finding",
+          section: group.section,
+          severity: group.severity,
+          observation: group.observation,
+          implication: group.implication,
+          recommendation: group.recommendation,
+          image_url: uploaded.find((item) => !item.isVideo)?.publicUrl || null,
         }));
-      });
 
-      if (photoRows.length) {
-        const { error: photoError } = await supabase
-          .from("photos")
-          .insert(photoRows);
+        const { data: insertedFindings, error } = await supabase
+          .from("findings")
+          .insert(findingRows)
+          .select();
+        if (error) throw error;
 
-        if (photoError) throw photoError;
+        const photoRows = preparedGroups.flatMap(({ uploaded }, groupIndex) => {
+          const finding = insertedFindings?.[groupIndex];
+          if (!finding || !uploaded.length) return [];
+          return uploaded.map((item) => ({
+            inspection_id: selectedReport,
+            finding_id: finding.id,
+            public_url: item.publicUrl,
+            file_path: item.filePath,
+            is_video: Boolean(item.isVideo),
+            mime_type: item.mimeType || null,
+            thumbnail_url: item.thumbnailUrl || null,
+            thumbnail_path: item.thumbnailPath || null,
+          }));
+        });
+        if (photoRows.length) {
+          const { error: photoError } = await supabase.from("photos").insert(photoRows);
+          if (photoError) throw photoError;
+        }
+
+        findingGroups.forEach((group) => group.photoIndexes.forEach((i) => usedIndexes.add(i)));
+        savedCount += preparedGroups.length;
       }
 
-      const savedCount = preparedGroups.length;
+      // Reference photos — into section_reference_photos (images only).
+      for (const group of referenceGroups) {
+        const files = groupFilesFor(group).filter((f) => f.type.startsWith("image/"));
+        if (!files.length) continue;
+        await saveReferencePhotosOnline({
+          photos: files,
+          section: group.section,
+          note: group.observation,
+          title: group.title || group.label,
+        });
+        group.photoIndexes.forEach((i) => usedIndexes.add(i));
+        savedCount += 1;
+      }
 
-      const usedIndexes = new Set(
-        approvedGroups.flatMap((group) => group.photoIndexes),
-      );
+      // Limitations — saved as limitations (images only; needs wording).
+      for (const group of limitationGroups) {
+        const files = groupFilesFor(group).filter((f) => f.type.startsWith("image/"));
+        if (!files.length) continue;
+        const note =
+          (group.observation || "").trim() ||
+          (group.title || "").trim() ||
+          group.label ||
+          "Limitation";
+        await saveLimitationWithPhotoOnline({
+          photos: files,
+          title: group.title || group.label,
+          note,
+          section: group.section,
+          recommendation: group.recommendation,
+        });
+        group.photoIndexes.forEach((i) => usedIndexes.add(i));
+        savedCount += 1;
+      }
+
       setPhotos((current) =>
         current.filter((_file, index) => !usedIndexes.has(index)),
       );
@@ -3607,7 +3640,7 @@ function FieldPageContent() {
       setMediaOrganizerOpen(false);
       setOrganizeNote("");
       setMessage(
-        `${savedCount} AI-organized finding${savedCount === 1 ? "" : "s"} saved.`,
+        `${savedCount} AI-organized item${savedCount === 1 ? "" : "s"} saved.`,
       );
 
       window.dispatchEvent(
@@ -3620,7 +3653,7 @@ function FieldPageContent() {
       );
     } catch (error: any) {
       setMessage(
-        error?.message || "Could not save the AI-organized findings.",
+        error?.message || "Could not save the AI-organized items.",
       );
     } finally {
       setSavingOrganizedMedia(false);
@@ -5654,7 +5687,7 @@ function FieldPageContent() {
                   )}
                   {savingOrganizedMedia
                     ? "Saving Groups..."
-                    : "Accept Finding Groups and Save"}
+                    : "Accept Groups and Save"}
                 </button>
               </div>
             )}
