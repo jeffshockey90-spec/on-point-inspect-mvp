@@ -158,7 +158,7 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
     if (typeOpt) fills.push({ section: "Cooling", groupTitle: "Energy Source/Type", kind: "option", value: typeOpt, matched: true });
     const seer = er.estimatedSEER || er.seer || er.SEER;
     if (isKnown(seer)) {
-      fills.push({ section: "Cooling", groupTitle: "SEER Rating", kind: "text", value: String(seer).trim(), matched: false });
+      fills.push({ section: "Cooling", groupTitle: "SEER Rating", kind: "text", value: String(seer).trim(), matched: false, unit: "SEER" });
     }
     return fills;
   }
