@@ -818,14 +818,32 @@ export default function AgreementLibraryManager() {
             <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">Service Type</span>
             <select
               value={serviceType}
-              onChange={(e) => setServiceType(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === NEW_SERVICE_TYPE) {
+                  const name = window.prompt("Name the new service type (e.g. Pre Drywall):");
+                  const slug = slugifyServiceType(name || "");
+                  if (slug) setServiceType(slug);
+                  // Blank/cancelled → keep the previous value, never the sentinel.
+                  return;
+                }
+                setServiceType(value);
+              }}
               className="h-12 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
             >
-              {availableServiceTypes.map((item) => (
+              {Array.from(
+                new Set([
+                  ...availableServiceTypes,
+                  // Show the just-named custom type as selected even before it's
+                  // saved onto a template (which is what makes it permanent).
+                  ...(serviceType && serviceType !== NEW_SERVICE_TYPE ? [serviceType] : []),
+                ]),
+              ).map((item) => (
                 <option key={item} value={item}>
                   {serviceLabel(item)}
                 </option>
               ))}
+              <option value={NEW_SERVICE_TYPE}>+ Add a service type…</option>
             </select>
           </label>
 
