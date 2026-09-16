@@ -341,8 +341,9 @@ export async function GET(req: Request) {
         // their side -- it is an inspector-side draft, and one created by a
         // mis-tapped button looks identical to a real one. Listing it would
         // promise a report that may never exist, so an undeliverable
-        // re-inspection is omitted entirely rather than shown as pending.
-        if (doc && (doc.deliverable || doc.isCurrent)) relatedDocuments.push(doc);
+        // re-inspection is omitted entirely, with no exception for the one
+        // being viewed: "currently open" is not a reason to reveal a draft.
+        if (doc && doc.deliverable) relatedDocuments.push(doc);
       }
     } catch (relatedError) {
       console.error("Client portal related documents load error:", relatedError);
