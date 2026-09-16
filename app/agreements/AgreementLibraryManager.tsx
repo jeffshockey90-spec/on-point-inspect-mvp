@@ -57,7 +57,11 @@ const STATES = [
   { code: "GENERAL", name: "General / Any State" },
 ];
 
-const SERVICE_TYPES = [
+// The service types Flow ships with. Inspectors are not limited to these -- any
+// type saved on a template joins the list (see useAvailableServiceTypes), so a
+// company offering pre-drywall, draw or 11-month warranty inspections can name
+// its own without waiting on a release.
+const BUILT_IN_SERVICE_TYPES = [
   "home_inspection",
   "pre_listing",
   "new_construction",
@@ -88,6 +92,18 @@ const PLACEHOLDERS = [
   "{{AGREEMENT_VERSION}}",
 ];
 
+/** Turn typed text into a stable service_type key: "Pre Drywall" -> "pre_drywall". */
+/** Sentinel for the "+ Add a service type…" row; never stored on a template. */
+const NEW_SERVICE_TYPE = "__new_service_type__";
+
+function slugifyServiceType(value: string) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/(^_|_$)/g, "")
+    .slice(0, 40);
+}
+
 function serviceLabel(value: string) {
   return String(value || "home_inspection")
     .replace(/_/g, " ")
@@ -112,7 +128,9 @@ function normalizeImportedTemplate(raw: any) {
     state: String(raw?.state || raw?.state_code || "GENERAL").toUpperCase(),
     title: String(raw?.title || "Imported Agreement").trim(),
     version: String(raw?.version || "v1").trim(),
-    service_type: String(raw?.service_type || raw?.template_type || "home_inspection").trim(),
+    service_type:
+      slugifyServiceType(raw?.service_type || raw?.template_type || "") ||
+      "home_inspection",
     display_order: Number(raw?.display_order || 0),
     body: String(raw?.body || raw?.agreement_body || "").trim(),
     is_active: raw?.is_active === undefined ? true : Boolean(raw.is_active),
@@ -122,6 +140,26 @@ function normalizeImportedTemplate(raw: any) {
 
 export default function AgreementLibraryManager() {
   const [templates, setTemplates] = useState<any[]>([]);
+
+  // Built-ins first, then any custom type already saved on a template. Custom
+  // types need no table of their own: the template that uses one IS the record,
+  // so a type survives as long as something references it and quietly retires
+  // when nothing does.
+  const availableServiceTypes = useMemo(() => {
+    const seen = new Set(BUILT_IN_SERVICE_TYPES);
+    const custom: string[] = [];
+    for (const template of templates) {
+      const value = slugifyServiceType(
+        template?.service_type || template?.template_type || "",
+      );
+      if (value && !seen.has(value)) {
+        seen.add(value);
+        custom.push(value);
+      }
+    }
+    custom.sort();
+    return [...BUILT_IN_SERVICE_TYPES, ...custom];
+  }, [templates]);
   const [selected, setSelected] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -279,6 +317,10 @@ export default function AgreementLibraryManager() {
   }
 
   async function saveTemplate() {
+    if (serviceType === NEW_SERVICE_TYPE) {
+      alert("Pick a service type, or name a new one.");
+      return;
+    }
     if (!title.trim() || !body.trim()) {
       alert("Title and agreement body are required.");
       return;
@@ -620,7 +662,7 @@ export default function AgreementLibraryManager() {
             className="h-11 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
           >
             <option value="ALL">All Service Types</option>
-            {SERVICE_TYPES.map((item) => (
+            {availableServiceTypes.map((item) => (
               <option key={item} value={item}>
                 {serviceLabel(item)}
               </option>
@@ -779,7 +821,7 @@ export default function AgreementLibraryManager() {
               onChange={(e) => setServiceType(e.target.value)}
               className="h-12 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 text-[var(--fl-text)] outline-none focus:border-teal-400"
             >
-              {SERVICE_TYPES.map((item) => (
+              {availableServiceTypes.map((item) => (
                 <option key={item} value={item}>
                   {serviceLabel(item)}
                 </option>
