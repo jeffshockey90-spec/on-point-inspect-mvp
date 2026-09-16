@@ -151,6 +151,7 @@ describe("re-inspection leaves the original report untouched", () => {
     await createReinspection(db, {
       parent: inspections.find((i) => i.id === ORIGINAL_ID),
       today: "2026-09-16",
+      findingIds: ["f-original-1"],
     });
 
     expect(writesTouchingOriginal(writes, ORIGINAL_FINDING_IDS)).toEqual([]);
@@ -296,6 +297,7 @@ describe("re-inspection leaves the original report untouched", () => {
     const created = await createReinspection(db, {
       parent: inspections.find((i) => i.id === ORIGINAL_ID),
       today: "2026-09-16",
+      findingIds: ["f-original-1"],
     });
 
     // Distinct inspection id => distinct report and distinct PDF. The share
@@ -336,8 +338,8 @@ describe("re-inspection leaves the original report untouched", () => {
     const parent = inspections.find((i) => i.id === ORIGINAL_ID);
     const before = JSON.stringify(findings.filter((f) => f.inspection_id === ORIGINAL_ID));
 
-    const first = await createReinspection(db, { parent, today: "2026-09-10" });
-    const second = await createReinspection(db, { parent, today: "2026-09-16" });
+    const first = await createReinspection(db, { parent, today: "2026-09-10", findingIds: ["f-original-1"] });
+    const second = await createReinspection(db, { parent, today: "2026-09-16", findingIds: ["f-original-1"] });
 
     expect(first.id).not.toBe(second.id);
 
@@ -417,12 +419,12 @@ describe("reading the original for before/after display", () => {
     const parent = inspections.find((i) => i.id === ORIGINAL_ID);
     const before = JSON.stringify(findings.filter((f) => f.inspection_id === ORIGINAL_ID));
 
-    const first = await createReinspection(db, { parent, today: "2026-09-10" });
+    const first = await createReinspection(db, { parent, today: "2026-09-10", findingIds: ["f-original-1"] });
     await setReinspectionVerdict(db, {
       findingId: findings.find((f) => f.inspection_id === first.id)?.id,
       status: "not_corrected",
     });
-    const second = await createReinspection(db, { parent, today: "2026-09-16" });
+    const second = await createReinspection(db, { parent, today: "2026-09-16", findingIds: ["f-original-1"] });
     await setReinspectionVerdict(db, {
       findingId: findings.find((f) => f.inspection_id === second.id)?.id,
       status: "corrected",
@@ -439,5 +441,68 @@ describe("reading the original for before/after display", () => {
     expect(findings.find((f) => f.inspection_id === second.id)?.reinspection_status).toBe("corrected");
     expect(JSON.stringify(findings.filter((f) => f.inspection_id === ORIGINAL_ID))).toBe(before);
     expect(writesTouchingOriginal(writes, ORIGINAL_FINDING_IDS)).toEqual([]);
+  });
+});
+
+describe("a re-inspection covers only what was re-checked", () => {
+  it("carries just the selected findings, not the whole report", async () => {
+    const { db, inspections, findings } = fixture();
+
+    const created = await createReinspection(db, {
+      parent: inspections.find((i) => i.id === ORIGINAL_ID),
+      today: "2026-09-16",
+      findingIds: ["f-original-2"],
+    });
+
+    // The original has two findings; only the requested one comes across, so
+    // the document never lists an item that was not looked at on the visit.
+    const carried = findings.filter((f) => f.inspection_id === created.id);
+    expect(carried).toHaveLength(1);
+    expect(carried[0].source_finding_id).toBe("f-original-2");
+    expect(created.carriedFindings).toBe(1);
+  });
+
+  it("refuses to create one with nothing selected", async () => {
+    const { db, writes, inspections } = fixture();
+
+    await expect(
+      createReinspection(db, {
+        parent: inspections.find((i) => i.id === ORIGINAL_ID),
+        today: "2026-09-16",
+        findingIds: [],
+      }),
+    ).rejects.toThrow(/Select at least one finding/);
+
+    // Nothing was created, so a cancelled picker leaves no stray report.
+    expect(writes).toEqual([]);
+  });
+
+  it("ignores a finding id that belongs to another inspection", async () => {
+    const { db, inspections, findings } = fixture();
+
+    // "f-reinspect-1" is real but belongs to a different inspection. Pulling it
+    // in would put another report's finding into this client's document.
+    const created = await createReinspection(db, {
+      parent: inspections.find((i) => i.id === ORIGINAL_ID),
+      today: "2026-09-16",
+      findingIds: ["f-original-1", "f-reinspect-1"],
+    });
+
+    const carried = findings.filter((f) => f.inspection_id === created.id);
+    expect(carried.map((f) => f.source_finding_id)).toEqual(["f-original-1"]);
+  });
+
+  it("creates nothing when no selected id belongs to the report", async () => {
+    const { db, writes, inspections } = fixture();
+
+    await expect(
+      createReinspection(db, {
+        parent: inspections.find((i) => i.id === ORIGINAL_ID),
+        today: "2026-09-16",
+        findingIds: ["f-reinspect-1"],
+      }),
+    ).rejects.toThrow(/belong to this report/);
+
+    expect(writes).toEqual([]);
   });
 });

@@ -175,9 +175,37 @@ export async function setReinspectionVerdict(
  */
 export async function createReinspection(
   db: any,
-  opts: { parent: any; today: string },
+  opts: { parent: any; today: string; findingIds?: any[] },
 ) {
   const { parent, today } = opts;
+
+  // Which of the original's findings this visit actually covers.
+  //
+  // A Limited Repair Re-Inspection verifies the items the client asked to have
+  // re-checked -- normally the repair request list -- not the whole report.
+  // Carrying everything would produce a document listing findings that were
+  // never looked at on the return visit, which misrepresents what was
+  // inspected. An explicit selection is therefore required.
+  const requested = (opts.findingIds || []).map(String).filter(Boolean);
+  if (!requested.length) {
+    throw new Error("Select at least one finding to re-inspect.");
+  }
+
+  const { data: parentFindings } = await db
+    .from("findings")
+    .select("*")
+    .eq("inspection_id", parent.id)
+    .order("id", { ascending: true });
+
+  // Only findings that actually belong to THIS original may be carried. A id
+  // from another inspection would otherwise pull a stranger's finding into this
+  // client's document.
+  const selected = (parentFindings || []).filter((f: any) =>
+    requested.includes(String(f.id)),
+  );
+  if (!selected.length) {
+    throw new Error("None of the selected findings belong to this report.");
+  }
 
   const { data: created, error: createError } = await db
     .from("inspections")
@@ -189,13 +217,7 @@ export async function createReinspection(
     throw new Error(createError?.message || "Could not create re-inspection.");
   }
 
-  const { data: parentFindings } = await db
-    .from("findings")
-    .select("*")
-    .eq("inspection_id", parent.id)
-    .order("id", { ascending: true });
-
-  const rows = buildReinspectionFindingRows(parentFindings || [], created.id);
+  const rows = buildReinspectionFindingRows(selected, created.id);
   if (rows.length) {
     const { error: insertError } = await db.from("findings").insert(rows);
     if (insertError) throw new Error(insertError.message);
@@ -329,6 +351,35 @@ export async function loadReinspectionItems(db: any, reinspectionId: any) {
       : Promise.resolve({ data: [] }),
   ]);
 
+  // What the seller said they did about each item, looked up on the ORIGINAL
+  // finding id. This is the claim; the re-inspection is the verification, and
+  // showing them together is what makes the document a record of the repair
+  // rather than just a second opinion.
+  let sellerResponses: Record<string, any> = {};
+  if (sourceIds.length && inspection.parent_inspection_id) {
+    try {
+      const { data: shares } = await db
+        .from("repair_request_shares")
+        .select("id, created_at")
+        .eq("inspection_id", inspection.parent_inspection_id)
+        .order("created_at", { ascending: false });
+
+      const latest = (shares || [])[0];
+      if (latest) {
+        const { data: responses } = await db
+          .from("repair_request_responses")
+          .select("finding_id, response_status, notes, seller_credit_amount")
+          .eq("share_id", latest.id)
+          .in("finding_id", sourceIds);
+        for (const row of responses || []) {
+          if (row?.finding_id) sellerResponses[String(row.finding_id)] = row;
+        }
+      }
+    } catch {
+      // No repair request flow on this inspection.
+    }
+  }
+
   const byId = new Map((originals.data || []).map((f: any) => [String(f.id), f]));
   const group = (photos: any[]) => {
     const out = new Map<string, any[]>();
@@ -347,6 +398,9 @@ export async function loadReinspectionItems(db: any, reinspectionId: any) {
     items: rows.map((row: any) => ({
       finding: row,
       original: row.source_finding_id ? byId.get(String(row.source_finding_id)) || null : null,
+      sellerResponse: row.source_finding_id
+        ? sellerResponses[String(row.source_finding_id)] || null
+        : null,
       beforePhotos: row.source_finding_id ? before.get(String(row.source_finding_id)) || [] : [],
       afterPhotos: after.get(String(row.id)) || [],
     })),
@@ -415,4 +469,56 @@ export async function listReinspectionsOf(db: any, originalId: any) {
     .order("id", { ascending: true });
 
   return data || [];
+}
+
+/**
+ * What the inspector chooses from when starting a re-inspection. READ ONLY.
+ *
+ * Pre-selects the items from the most recent repair request on this inspection,
+ * because that list IS the scope of a limited repair re-inspection: the client
+ * asked the seller to address those items, so those are the ones being verified.
+ * The seller's own response travels with each item so the inspector can see what
+ * was claimed ("replaced the outlet", or a credit taken instead) while deciding
+ * what to re-check and, later, while verifying it.
+ *
+ * With no repair request on file nothing is pre-selected and the inspector picks
+ * by hand -- a re-inspection is still legitimate without one.
+ */
+export async function loadReinspectionCandidates(db: any, originalId: any) {
+  const { data: findings } = await db
+    .from("findings")
+    .select("id, title, section, severity, observation, recommendation")
+    .eq("inspection_id", originalId)
+    .order("id", { ascending: true });
+
+  let preselectedIds: string[] = [];
+  let sellerResponses: Record<string, any> = {};
+
+  try {
+    const { data: shares } = await db
+      .from("repair_request_shares")
+      .select("id, selected_finding_ids, created_at")
+      .eq("inspection_id", originalId)
+      .order("created_at", { ascending: false });
+
+    const latest = (shares || [])[0];
+    if (latest) {
+      preselectedIds = Array.isArray(latest.selected_finding_ids)
+        ? latest.selected_finding_ids.map(String).filter(Boolean)
+        : [];
+
+      const { data: responses } = await db
+        .from("repair_request_responses")
+        .select("finding_id, response_status, notes, seller_credit_amount")
+        .eq("share_id", latest.id);
+
+      for (const row of responses || []) {
+        if (row?.finding_id) sellerResponses[String(row.finding_id)] = row;
+      }
+    }
+  } catch {
+    // No repair request flow on this inspection - pick by hand.
+  }
+
+  return { findings: findings || [], preselectedIds, sellerResponses };
 }

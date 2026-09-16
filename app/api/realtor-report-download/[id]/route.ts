@@ -1105,6 +1105,7 @@ function buildAgentReportHtml({
       const f = item.finding || {};
       const original = item.original || {};
       const status = String(f.reinspection_status || "not_evaluated");
+      const seller = item.sellerResponse;
       const summary = String(f.reinspection_summary || f.reinspection_note || "").trim();
       return `
       <div class="ri-item">
@@ -1116,6 +1117,7 @@ function buildAgentReportHtml({
           <span class="ri-badge ${verdictClass(status)}">${escapeHtml(verdictLabel(status))}</span>
         </div>
         ${original.observation ? `<p class="ri-original"><span>Originally reported:</span> ${escapeHtml(original.observation)}</p>` : ""}
+        ${seller ? `<p class="ri-seller"><span>Seller reported:</span> ${escapeHtml(String(seller.response_status || "responded"))}${seller.notes ? ` &mdash; ${escapeHtml(String(seller.notes))}` : ""}</p>` : ""}
         ${summary ? `<p class="ri-summary">${escapeHtml(summary)}</p>` : ""}
         <div class="ri-photos">
           <div class="ri-col"><span class="ri-col-label">Before</span><div class="ri-strip">${photoStrip(item.beforePhotos, "No original photo")}</div></div>
@@ -1604,6 +1606,8 @@ function buildAgentReportHtml({
     .ri-badge.ri-none { background: #e2e8f0; color: #475569; }
     .ri-original { font-size: 11px; color: #64748b; margin: 8px 0 0; }
     .ri-original span { font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+    .ri-seller { font-size: 11px; color: #0f766e; margin: 6px 0 0; }
+    .ri-seller span { font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
     .ri-summary { font-size: 12px; color: #0f172a; margin: 6px 0 0; }
     .ri-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
     .ri-col-label { display: block; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: #475569; margin-bottom: 4px; }

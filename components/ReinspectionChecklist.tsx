@@ -24,6 +24,7 @@ type Item = {
     reinspection_summary: string | null;
   };
   original: { observation: string | null; recommendation: string | null } | null;
+  sellerResponse: { response_status: string | null; notes: string | null } | null;
   beforePhotos: Photo[];
   afterPhotos: Photo[];
 };
@@ -290,6 +291,15 @@ export default function ReinspectionChecklist({ inspectionId }: { inspectionId: 
                     })}
                   </div>
                 </div>
+
+                {item.sellerResponse ? (
+                  <p className="mt-3 rounded-lg border border-teal-500/40 bg-teal-500/10 p-2.5 text-xs text-[var(--fl-text)]">
+                    <span className="font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
+                      Seller reported: {item.sellerResponse.response_status || "responded"}
+                    </span>
+                    {item.sellerResponse.notes ? <><br />{item.sellerResponse.notes}</> : null}
+                  </p>
+                ) : null}
 
                 {item.original?.observation ? (
                   <p className="mt-3 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface)] p-2.5 text-xs text-[var(--fl-muted)]">

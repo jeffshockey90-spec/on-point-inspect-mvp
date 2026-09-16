@@ -6,6 +6,7 @@ import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess"
 import {
   createReinspection,
   deleteDraftReinspection,
+  loadReinspectionCandidates,
   loadReinspectionItems,
   OriginalReportWriteError,
   saveReinspectionDraft,
@@ -39,12 +40,30 @@ export async function GET(request: Request) {
   const { user, userClient } = await getUserAndClient();
   if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
-  const inspectionId = Number(new URL(request.url).searchParams.get("inspectionId"));
+  const params = new URL(request.url).searchParams;
+  const inspectionId = Number(params.get("inspectionId"));
   if (!Number.isFinite(inspectionId)) {
     return NextResponse.json({ error: "Missing inspection id." }, { status: 400 });
   }
 
   const db = admin();
+
+  // ?candidates=1 -- what the inspector picks from before a re-inspection
+  // exists. Pre-selected from the latest repair request, since that list is the
+  // scope of the return visit.
+  if (params.get("candidates")) {
+    const filter = await resolveInspectionAccessFilter(userClient, user.id);
+    const { data: owned } = await db
+      .from("inspections")
+      .select("id")
+      .eq("id", inspectionId)
+      .eq(filter.column, filter.value)
+      .maybeSingle();
+    if (!owned?.id) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+    const candidates = await loadReinspectionCandidates(db, inspectionId);
+    return NextResponse.json(candidates);
+  }
   const filter = await resolveInspectionAccessFilter(userClient, user.id);
   const { data: owns } = await db
     .from("inspections")
@@ -109,6 +128,7 @@ export async function POST(request: Request) {
     const result = await createReinspection(db, {
       parent,
       today: new Date().toISOString().slice(0, 10),
+      findingIds: Array.isArray(body?.findingIds) ? body.findingIds : [],
     });
     return NextResponse.json({ ok: true, id: result.id, carriedFindings: result.carriedFindings });
   } catch (error: any) {
