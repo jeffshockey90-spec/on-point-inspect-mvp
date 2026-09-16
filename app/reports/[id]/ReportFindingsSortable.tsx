@@ -234,8 +234,10 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         setCombineError(data.error || "Could not combine these defects.");
         return;
       }
-      // Reload so the merged finding + moved photos render correctly.
-      window.location.reload();
+      // Re-render from the server so the merged finding + moved photos show up,
+      // but keep the inspector's scroll position instead of a jarring full reload
+      // (matches every other mutation in this builder).
+      refreshKeepScroll(router);
     } catch {
       setCombineError("Could not combine — check your connection.");
     } finally {
