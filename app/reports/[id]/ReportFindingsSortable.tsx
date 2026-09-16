@@ -235,6 +235,11 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         setCombineError(data.error || "Could not combine these defects.");
         return;
       }
+      // Clear the selection toolbar — the full reload used to do this; the soft
+      // refresh doesn't, so dismiss it explicitly now that the combine is done.
+      setSelectedCombine(new Set());
+      setCombineOpen(false);
+      setCombineError("");
       // Re-render from the server so the merged finding + moved photos show up,
       // but keep the inspector's scroll position instead of a jarring full reload
       // (matches every other mutation in this builder).
