@@ -2670,6 +2670,57 @@ function FindingCardBase({
   const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
   const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
   const [showMarkupEditor, setShowMarkupEditor] = useState(false);
+  // Re-editable markup: the CLEAN base image the annotations are drawn on (so a
+  // saved markup can be re-opened and CHANGED, not doubled on the flattened
+  // image), plus the annotations to preload into the editor.
+  const [markupBaseUrl, setMarkupBaseUrl] = useState<string>("");
+  const [markupBasePublicUrl, setMarkupBasePublicUrl] = useState<string>("");
+  const [markupInitialItems, setMarkupInitialItems] = useState<any[]>([]);
+
+  // Open the markup editor for a photo. If it was marked up before, reload those
+  // annotations onto the CLEAN base image so they can be edited/removed — not
+  // drawn again on top of the already-flattened image.
+  async function openMarkupEditor(photo: any) {
+    setMarkupPhoto(photo);
+    setMarkupInitialItems([]);
+    let baseSigned = getPhotoUrl(photo);
+    let basePublic = photo?.public_url || photo?.publicUrl || "";
+    if (!basePublic && photo?.file_path) {
+      try {
+        basePublic = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(photo.file_path).data.publicUrl;
+      } catch {}
+    }
+    try {
+      const { data } = await supabase
+        .from("photo_annotations")
+        .select("image_url, annotation_json")
+        .eq("photo_id", String(photo?.id || ""))
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const rec = data?.[0] as any;
+      if (rec) {
+        setMarkupInitialItems(Array.isArray(rec.annotation_json) ? rec.annotation_json : []);
+        if (rec.image_url) {
+          basePublic = rec.image_url; // the clean base the annotations were drawn on
+          const path = String(rec.image_url).split("/inspection-photos/")[1]?.split("?")[0] || "";
+          if (path) {
+            const { data: signed } = await supabase.storage
+              .from(PHOTO_BUCKET)
+              .createSignedUrl(path, 60 * 60 * 24 * 7);
+            baseSigned = signed?.signedUrl || rec.image_url;
+          } else {
+            baseSigned = rec.image_url;
+          }
+        }
+      }
+    } catch {
+      /* no saved annotations — start fresh */
+    }
+    setMarkupBaseUrl(baseSigned);
+    setMarkupBasePublicUrl(basePublic);
+    setShowMarkupEditor(true);
+  }
+
   const [dragPhotoIndex, setDragPhotoIndex] = useState<number | null>(null);
   const [draggingOver, setDraggingOver] = useState(false);
   // Which photo (if any) is being moved out of this finding into a section's
@@ -3660,8 +3711,7 @@ function FindingCardBase({
                               type="button"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                setMarkupPhoto(photo);
-                                setShowMarkupEditor(true);
+                                void openMarkupEditor(photo);
                               }}
                               disabled={isBusy}
                               className="rounded-lg border border-purple-500 px-3 py-1 font-semibold text-[var(--fl-purple-text)] hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50"
@@ -3900,8 +3950,7 @@ function FindingCardBase({
                 return;
               }
 
-              setMarkupPhoto(photos[0]);
-              setShowMarkupEditor(true);
+              void openMarkupEditor(photos[0]);
             }}
             className="w-full rounded-xl border border-purple-500 px-3 py-3 text-xs font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
@@ -4089,7 +4138,8 @@ function FindingCardBase({
 
         {showMarkupEditor && markupPhoto && typeof document !== "undefined" && createPortal(
           <PhotoMarkupEditor
-            imageUrl={getPhotoUrl(markupPhoto)}
+            imageUrl={markupBaseUrl || getPhotoUrl(markupPhoto)}
+            initialItems={markupInitialItems}
             severity={displayFinding.severity}
             onCancel={() => {
               setShowMarkupEditor(false);
@@ -4208,15 +4258,21 @@ function FindingCardBase({
                 );
               }
 
-              // Save editable annotation data as a secondary record. The
-              // flattened image above is the report-visible source of truth.
+              // Save editable annotation data so the markup can be re-opened and
+              // CHANGED later. Store it against the CLEAN base image (not the
+              // flattened one) so re-editing edits these annotations instead of
+              // drawing them again on top. One record per photo (upsert).
+              await supabase
+                .from("photo_annotations")
+                .delete()
+                .eq("photo_id", photoId);
               const { error: annotationError } = await supabase
                 .from("photo_annotations")
                 .insert({
                   inspection_id: Number(inspectionId),
                   finding_id: finding.id,
                   photo_id: photoId,
-                  image_url: fullPublicData.publicUrl,
+                  image_url: markupBasePublicUrl || fullPublicData.publicUrl,
                   annotation_json: items,
                 });
 

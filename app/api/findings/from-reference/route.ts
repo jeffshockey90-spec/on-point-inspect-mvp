@@ -45,20 +45,20 @@ export async function POST(req: Request) {
 
     const { data: inspection } = await admin
       .from("inspections")
-      .select("id, inspector_id, company_id")
+      .select("id, company_id")
       .eq("id", inspectionId)
       .maybeSingle();
 
     const title = String(body.title || ref.caption || "Defect (from reference photo)").slice(0, 200);
     const severity = String(body.severity || "Maintenance").slice(0, 60);
 
-    // Create the finding in the same section. Owned by the inspection's
-    // inspector/company so it's never orphaned by RLS.
+    // Create the finding in the same section. findings has company_id (for
+    // company scoping) but NO inspector_id column — matches how the AI organizer
+    // inserts findings.
     const { data: finding, error: findErr } = await admin
       .from("findings")
       .insert({
         inspection_id: inspectionId,
-        inspector_id: inspection?.inspector_id || user.id,
         company_id: inspection?.company_id || null,
         section: ref.section,
         title,
