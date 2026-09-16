@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
+import { createVideoThumbnailForUpload } from "../../lib/videoThumbnail";
 import { buildEquipmentFills, buildMaterialFills, writeChecklistFills } from "../../lib/ai/checklistAutofill";
 import { isLikelyNetworkError } from "../../lib/networkError";
 import {
@@ -237,95 +238,8 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-async function createVideoThumbnailForUpload(file: File): Promise<File | null> {
-  if (!file.type.startsWith("video/")) return null;
-
-  return await new Promise((resolve) => {
-    const video = document.createElement("video");
-    const objectUrl = URL.createObjectURL(file);
-
-    let settled = false;
-
-    const finish = (result: File | null) => {
-      if (settled) return;
-      settled = true;
-      URL.revokeObjectURL(objectUrl);
-      resolve(result);
-    };
-
-    const timeout = window.setTimeout(() => {
-      finish(null);
-    }, 3500);
-
-    const finishWith = (result: File | null) => {
-      window.clearTimeout(timeout);
-      finish(result);
-    };
-
-    video.preload = "metadata";
-    video.muted = true;
-    video.playsInline = true;
-    video.src = objectUrl;
-
-    video.onerror = () => finishWith(null);
-
-    video.onloadedmetadata = () => {
-      try {
-        const duration = Number.isFinite(video.duration) ? video.duration : 0;
-        const targetTime = Math.min(Math.max(duration * 0.25, 0.25), 2);
-
-        if (!Number.isFinite(targetTime) || targetTime <= 0) {
-          video.currentTime = 0;
-          return;
-        }
-
-        video.currentTime = targetTime;
-      } catch {
-        finishWith(null);
-      }
-    };
-
-    video.onseeked = () => {
-      try {
-        const width = video.videoWidth || 640;
-        const height = video.videoHeight || 360;
-        const maxWidth = 640;
-        const scale = Math.min(1, maxWidth / width);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(width * scale));
-        canvas.height = Math.max(1, Math.round(height * scale));
-
-        const context = canvas.getContext("2d");
-        if (!context) {
-          finishWith(null);
-          return;
-        }
-
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              finishWith(null);
-              return;
-            }
-
-            finishWith(
-              new File([blob], `video-thumb-${Date.now()}.jpg`, {
-                type: "image/jpeg",
-                lastModified: Date.now(),
-              }),
-            );
-          },
-          "image/jpeg",
-          0.78,
-        );
-      } catch {
-        finishWith(null);
-      }
-    };
-  });
-}
+// createVideoThumbnailForUpload now lives in lib/videoPoster (shared with the
+// report builder) and picks the brightest non-dark frame.
 
 export type EquipmentResult = {
   equipmentType?: string;
