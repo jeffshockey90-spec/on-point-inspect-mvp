@@ -203,3 +203,216 @@ export async function createReinspection(
 
   return { id: created.id, carriedFindings: rows.length };
 }
+
+/**
+ * Re-inspection narrative fields the inspector (or AI) may write.
+ *
+ * Deliberately narrow. These columns exist only on re-inspection findings, so
+ * even a mistargeted write cannot overwrite an original's observation,
+ * implication or recommendation — the original narrative has no field in this
+ * list. AI drafting goes through here, which is what keeps "AI may never update
+ * the original finding" true by construction rather than by prompt.
+ */
+export const REINSPECTION_DRAFT_FIELDS = [
+  "reinspection_note",
+  "reinspection_summary",
+] as const;
+
+/**
+ * Save inspector notes / AI-drafted text against ONE re-inspection finding.
+ *
+ * Unknown keys are dropped rather than passed through: a caller that sends
+ * `observation` is trying, knowingly or not, to rewrite the narrative, and the
+ * whitelist means the worst case is a no-op instead of a lost original.
+ */
+export async function saveReinspectionDraft(
+  db: any,
+  opts: { findingId: any; fields: Record<string, any> },
+) {
+  const updates: Record<string, any> = {};
+  for (const key of REINSPECTION_DRAFT_FIELDS) {
+    if (opts.fields?.[key] !== undefined) updates[key] = opts.fields[key];
+  }
+  if (!Object.keys(updates).length) {
+    throw new Error("No re-inspection draft fields to save.");
+  }
+
+  const { data: finding } = await db
+    .from("findings")
+    .select("id, inspection_id")
+    .eq("id", opts.findingId)
+    .maybeSingle();
+
+  if (!finding?.id) {
+    throw new OriginalReportWriteError(`Finding ${opts.findingId} not found.`);
+  }
+
+  await assertIsReinspection(db, finding.inspection_id);
+
+  const { error } = await db.from("findings").update(updates).eq("id", opts.findingId);
+  if (error) throw new Error(error.message);
+
+  return { id: finding.id, fields: Object.keys(updates) };
+}
+
+/**
+ * Attach an AFTER photo to a re-inspection finding.
+ *
+ * finding_id and inspection_id are taken from the re-inspection finding we just
+ * verified, never from the caller — otherwise a client could post the original
+ * finding's id and hang new media off the historical report. The BEFORE photos
+ * are the original finding's existing rows and are never copied, moved or
+ * re-pointed; they stay exactly where they are and are read for display only.
+ */
+export async function addReinspectionAfterPhoto(
+  db: any,
+  opts: { findingId: any; photo: Record<string, any> },
+) {
+  const { data: finding } = await db
+    .from("findings")
+    .select("id, inspection_id")
+    .eq("id", opts.findingId)
+    .maybeSingle();
+
+  if (!finding?.id) {
+    throw new OriginalReportWriteError(`Finding ${opts.findingId} not found.`);
+  }
+
+  await assertIsReinspection(db, finding.inspection_id);
+
+  const row = {
+    ...pick(opts.photo, [
+      "public_url", "file_path", "thumbnail_url", "thumbnail_path",
+      "is_video", "mime_type", "caption", "sort_order",
+    ]),
+    finding_id: finding.id,
+    inspection_id: finding.inspection_id,
+  };
+
+  const { data, error } = await db.from("photos").insert(row).select("id").single();
+  if (error) throw new Error(error.message);
+
+  return { id: data?.id, finding_id: finding.id, inspection_id: finding.inspection_id };
+}
+
+/**
+ * Read one re-inspection as before/after pairs. READ ONLY — no write anywhere.
+ *
+ * BEFORE is the original finding and its existing photos, fetched through
+ * source_finding_id and handed back untouched. AFTER is the re-inspection
+ * finding and the photos attached to it. The two never mix: original photo rows
+ * keep pointing at the original finding, so displaying a "before" image is a
+ * read of history, not a copy of it.
+ */
+export async function loadReinspectionItems(db: any, reinspectionId: any) {
+  const inspection = await assertIsReinspectionReadable(db, reinspectionId);
+
+  const { data: items } = await db
+    .from("findings")
+    .select("*")
+    .eq("inspection_id", reinspectionId)
+    .order("id", { ascending: true });
+
+  const rows = items || [];
+  const sourceIds = rows.map((r: any) => r.source_finding_id).filter(Boolean);
+  const findingIds = rows.map((r: any) => r.id);
+
+  const [originals, beforePhotos, afterPhotos] = await Promise.all([
+    sourceIds.length
+      ? db.from("findings").select("*").in("id", sourceIds)
+      : Promise.resolve({ data: [] }),
+    sourceIds.length
+      ? db.from("photos").select("*").in("finding_id", sourceIds)
+      : Promise.resolve({ data: [] }),
+    findingIds.length
+      ? db.from("photos").select("*").in("finding_id", findingIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const byId = new Map((originals.data || []).map((f: any) => [String(f.id), f]));
+  const group = (photos: any[]) => {
+    const out = new Map<string, any[]>();
+    for (const p of photos || []) {
+      const key = String(p.finding_id);
+      if (!out.has(key)) out.set(key, []);
+      out.get(key)!.push(p);
+    }
+    return out;
+  };
+  const before = group(beforePhotos.data || []);
+  const after = group(afterPhotos.data || []);
+
+  return {
+    inspection,
+    items: rows.map((row: any) => ({
+      finding: row,
+      original: row.source_finding_id ? byId.get(String(row.source_finding_id)) || null : null,
+      beforePhotos: row.source_finding_id ? before.get(String(row.source_finding_id)) || [] : [],
+      afterPhotos: after.get(String(row.id)) || [],
+    })),
+  };
+}
+
+/** assertIsReinspection's read-side twin: same check, name says no write follows. */
+async function assertIsReinspectionReadable(db: any, inspectionId: any) {
+  return assertIsReinspection(db, inspectionId);
+}
+
+/**
+ * Delete a draft re-inspection and only what belongs to it.
+ *
+ * Scoped by inspection_id on the re-inspection itself, so the delete cannot
+ * reach an original finding or an original photo even if source_finding_id
+ * points at one. The AFTER photos go, the BEFORE photos stay — they were never
+ * this inspection's rows to begin with.
+ */
+export async function deleteDraftReinspection(db: any, inspectionId: any) {
+  await assertIsReinspection(db, inspectionId);
+
+  const { data: findings } = await db
+    .from("findings")
+    .select("id")
+    .eq("inspection_id", inspectionId);
+
+  const ids = (findings || []).map((f: any) => f.id);
+  if (ids.length) {
+    const { error: photoError } = await db
+      .from("photos")
+      .delete()
+      .eq("inspection_id", inspectionId)
+      .in("finding_id", ids);
+    if (photoError) throw new Error(photoError.message);
+  }
+
+  const { error: findingError } = await db
+    .from("findings")
+    .delete()
+    .eq("inspection_id", inspectionId);
+  if (findingError) throw new Error(findingError.message);
+
+  const { error: inspectionError } = await db
+    .from("inspections")
+    .delete()
+    .eq("id", inspectionId);
+  if (inspectionError) throw new Error(inspectionError.message);
+
+  return { id: inspectionId, deletedFindings: ids.length };
+}
+
+/**
+ * Every re-inspection of one original, newest first, with its verdict per item.
+ *
+ * Pure read. Powers the client portal listing the original and each
+ * re-inspection as separate documents, and the "multiple re-inspections over
+ * time" history — Sept 10 not corrected, Sept 16 corrected, the Sept 1 original
+ * unchanged throughout.
+ */
+export async function listReinspectionsOf(db: any, originalId: any) {
+  const { data } = await db
+    .from("inspections")
+    .select("id, inspection_date, created_at, status, parent_inspection_id")
+    .eq("parent_inspection_id", originalId)
+    .order("id", { ascending: true });
+
+  return data || [];
+}

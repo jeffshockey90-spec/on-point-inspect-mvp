@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  addReinspectionAfterPhoto,
   buildReinspectionFindingRows,
   buildReinspectionRow,
   createReinspection,
+  deleteDraftReinspection,
+  listReinspectionsOf,
+  loadReinspectionItems,
   OriginalReportWriteError,
+  saveReinspectionDraft,
   setReinspectionVerdict,
 } from "./reinspection";
 
@@ -22,14 +27,22 @@ const REINSPECTION_ID = 200;
 
 type Write = { table: string; op: string; payload: any; match: Record<string, any> };
 
-function makeDb(opts: { inspections: any[]; findings: any[] }) {
+function makeDb(opts: { inspections: any[]; findings: any[]; photos?: any[] }) {
   const writes: Write[] = [];
   const inspections = opts.inspections.map((row) => ({ ...row }));
   const findings = opts.findings.map((row) => ({ ...row }));
+  const photos = (opts.photos || []).map((row) => ({ ...row }));
   let nextId = 900;
 
+  // A match entry is either a scalar (eq) or { __in: [...] } (in).
+  const rowMatches = (row: any, match: Record<string, any>) =>
+    Object.entries(match).every(([k, v]) =>
+      v && typeof v === "object" && Array.isArray((v as any).__in)
+        ? (v as any).__in.map(String).includes(String(row[k]))
+        : String(row[k]) === String(v));
+
   function table(name: string) {
-    const rows = name === "inspections" ? inspections : findings;
+    const rows = name === "inspections" ? inspections : name === "photos" ? photos : findings;
     const match: Record<string, any> = {};
     let pending: { op: string; payload: any } | null = null;
 
@@ -37,13 +50,13 @@ function makeDb(opts: { inspections: any[]; findings: any[] }) {
       select() { return api; },
       order() { return api; },
       eq(column: string, value: any) { match[column] = value; return api; },
+      in(column: string, values: any[]) { match[column] = { __in: values }; return api; },
       insert(payload: any) { pending = { op: "insert", payload }; return api; },
       update(payload: any) { pending = { op: "update", payload }; return api; },
       delete() { pending = { op: "delete", payload: null }; return api; },
 
       maybeSingle() {
-        const found = rows.find((row: any) =>
-          Object.entries(match).every(([k, v]) => String(row[k]) === String(v)));
+        const found = rows.find((row: any) => rowMatches(row, match));
         return Promise.resolve({ data: found ? { ...found } : null, error: null });
       },
 
@@ -66,22 +79,24 @@ function makeDb(opts: { inspections: any[]; findings: any[] }) {
           }
           if (pending.op === "update") {
             rows.forEach((row: any) => {
-              if (Object.entries(match).every(([k, v]) => String(row[k]) === String(v))) {
-                Object.assign(row, pending!.payload);
-              }
+              if (rowMatches(row, match)) Object.assign(row, pending!.payload);
             });
+          }
+          if (pending.op === "delete") {
+            for (let i = rows.length - 1; i >= 0; i -= 1) {
+              if (rowMatches(rows[i], match)) rows.splice(i, 1);
+            }
           }
           return Promise.resolve({ data: null, error: null }).then(resolve);
         }
-        const matched = rows.filter((row: any) =>
-          Object.entries(match).every(([k, v]) => String(row[k]) === String(v)));
+        const matched = rows.filter((row: any) => rowMatches(row, match));
         return Promise.resolve({ data: matched.map((r: any) => ({ ...r })), error: null }).then(resolve);
       },
     };
     return api;
   }
 
-  return { db: { from: table }, writes, inspections, findings };
+  return { db: { from: table }, writes, inspections, findings, photos };
 }
 
 /** Every write that would have landed on the original inspection or its findings. */
@@ -96,6 +111,14 @@ function writesTouchingOriginal(writes: Write[], originalFindingIds: any[]) {
     if (String(w.match.id) === String(ORIGINAL_ID) && w.table === "inspections") return true;
     if (String(w.match.inspection_id) === String(ORIGINAL_ID)) return true;
     if (w.table === "findings" && originalFindingIds.map(String).includes(String(w.match.id))) return true;
+    // A delete/update scoped with .in(...) that sweeps in an original finding.
+    for (const value of Object.values(w.match)) {
+      if (value && typeof value === "object" && Array.isArray((value as any).__in)) {
+        if ((value as any).__in.map(String).some((id: string) => originalFindingIds.map(String).includes(id))) {
+          return true;
+        }
+      }
+    }
     return false;
   });
 }
@@ -110,6 +133,10 @@ function fixture() {
       { id: "f-original-1", inspection_id: ORIGINAL_ID, title: "Foundation wall crack", observation: "Original narrative.", recommendation: "Evaluate.", severity: "Major Concern", section: "Structure" },
       { id: "f-original-2", inspection_id: ORIGINAL_ID, title: "Loose railing", observation: "Original narrative 2.", severity: "Safety Concern", section: "Exterior" },
       { id: "f-reinspect-1", inspection_id: REINSPECTION_ID, source_finding_id: "f-original-1", title: "Foundation wall crack", reinspection_status: "not_evaluated" },
+    ],
+    photos: [
+      { id: "p-before-1", inspection_id: ORIGINAL_ID, finding_id: "f-original-1", public_url: "before-1.jpg", caption: "Original crack" },
+      { id: "p-before-2", inspection_id: ORIGINAL_ID, finding_id: "f-original-2", public_url: "before-2.jpg" },
     ],
   });
 }
@@ -145,33 +172,100 @@ describe("re-inspection leaves the original report untouched", () => {
     expect(findings.find((f) => f.id === "f-original-1")?.reinspection_status).toBeUndefined();
   });
 
-  it("3. after photos are never attached to the original finding", () => {
-    const rows = buildReinspectionFindingRows(
-      [{ id: "f-original-1", title: "Crack", photos: ["before.jpg"], photo_url: "before.jpg" }],
-      REINSPECTION_ID,
-    );
+  it("3. after photos are never attached to the original finding", async () => {
+    const { db, writes, photos } = fixture();
 
-    // Photos are not carried: originals stay on the original finding and are
-    // shown read-only as "before". New media belongs to the new finding.
-    expect(rows[0]).not.toHaveProperty("photos");
-    expect(rows[0]).not.toHaveProperty("photo_url");
-    expect(rows[0].inspection_id).toBe(REINSPECTION_ID);
-    expect(rows[0].source_finding_id).toBe("f-original-1");
+    await addReinspectionAfterPhoto(db, {
+      findingId: "f-reinspect-1",
+      photo: { public_url: "after-1.jpg", file_path: "after-1.jpg", caption: "Repaired" },
+    });
+
+    // The new row hangs off the RE-INSPECTION finding, and the original's
+    // photos are still exactly the two it started with.
+    const added = photos.find((p) => p.public_url === "after-1.jpg");
+    expect(added?.finding_id).toBe("f-reinspect-1");
+    expect(added?.inspection_id).toBe(REINSPECTION_ID);
+    expect(photos.filter((p) => p.finding_id === "f-original-1")).toHaveLength(1);
+    expect(writesTouchingOriginal(writes, ORIGINAL_FINDING_IDS)).toEqual([]);
+  });
+
+  it("3b. an after photo aimed at an original finding is refused", async () => {
+    const { db, writes, photos } = fixture();
+
+    await expect(
+      addReinspectionAfterPhoto(db, {
+        findingId: "f-original-1",
+        photo: { public_url: "sneaky.jpg" },
+      }),
+    ).rejects.toBeInstanceOf(OriginalReportWriteError);
+
+    expect(photos.some((p) => p.public_url === "sneaky.jpg")).toBe(false);
+    expect(writesTouchingOriginal(writes, ORIGINAL_FINDING_IDS)).toEqual([]);
+  });
+
+  it("3c. the finding id on the row comes from the server, not the caller", async () => {
+    const { db, photos } = fixture();
+
+    // A caller trying to redirect the media at the original by smuggling ids in
+    // the payload: both are overwritten from the verified re-inspection finding.
+    await addReinspectionAfterPhoto(db, {
+      findingId: "f-reinspect-1",
+      photo: { public_url: "after-2.jpg", finding_id: "f-original-1", inspection_id: ORIGINAL_ID },
+    });
+
+    const added = photos.find((p) => p.public_url === "after-2.jpg");
+    expect(added?.finding_id).toBe("f-reinspect-1");
+    expect(added?.inspection_id).toBe(REINSPECTION_ID);
   });
 
   it("4. AI output goes to the re-inspection copy, not the original narrative", async () => {
-    const { db, findings } = fixture();
+    const { db, writes, findings } = fixture();
     const originalBefore = JSON.stringify(findings.find((f) => f.id === "f-original-1"));
 
-    // Whatever an AI drafts is written to the re-inspection finding row; the
-    // snapshot is a copy, so editing it cannot reach the source narrative.
-    await db.from("findings")
-      .update({ observation: "AI-drafted re-inspection narrative." })
-      .eq("id", "f-reinspect-1");
+    await saveReinspectionDraft(db, {
+      findingId: "f-reinspect-1",
+      fields: {
+        reinspection_note: "Crack sealed and painted.",
+        reinspection_summary: "AI-drafted re-inspection narrative.",
+      },
+    });
 
-    expect(findings.find((f) => f.id === "f-reinspect-1")?.observation)
+    expect(findings.find((f) => f.id === "f-reinspect-1")?.reinspection_summary)
       .toBe("AI-drafted re-inspection narrative.");
     expect(JSON.stringify(findings.find((f) => f.id === "f-original-1"))).toBe(originalBefore);
+    expect(writesTouchingOriginal(writes, ORIGINAL_FINDING_IDS)).toEqual([]);
+  });
+
+  it("4b. AI drafting aimed at an original finding is refused", async () => {
+    const { db, writes, findings } = fixture();
+    const before = JSON.stringify(findings.find((f) => f.id === "f-original-1"));
+
+    await expect(
+      saveReinspectionDraft(db, {
+        findingId: "f-original-1",
+        fields: { reinspection_summary: "Rewritten history." },
+      }),
+    ).rejects.toBeInstanceOf(OriginalReportWriteError);
+
+    expect(JSON.stringify(findings.find((f) => f.id === "f-original-1"))).toBe(before);
+    expect(writesTouchingOriginal(writes, ORIGINAL_FINDING_IDS)).toEqual([]);
+  });
+
+  it("4c. drafting cannot reach the narrative fields at all", async () => {
+    const { db, findings } = fixture();
+
+    // Even on a legitimate re-inspection finding, only the re-inspection
+    // columns are writable -- `observation` is dropped rather than applied, so
+    // a mistargeted save is a no-op instead of a lost narrative.
+    await saveReinspectionDraft(db, {
+      findingId: "f-reinspect-1",
+      fields: { reinspection_note: "note", observation: "overwritten", recommendation: "overwritten" },
+    });
+
+    const row = findings.find((f) => f.id === "f-reinspect-1");
+    expect(row?.reinspection_note).toBe("note");
+    expect(row?.observation).toBeUndefined();
+    expect(row?.recommendation).toBeUndefined();
   });
 
   it("5. editing a re-inspection finding does not modify the original", async () => {
@@ -212,15 +306,29 @@ describe("re-inspection leaves the original report untouched", () => {
     expect(inspections.find((i) => i.id === ORIGINAL_ID)?.public_share_token).toBe("tok-original");
   });
 
-  it("8. deleting a draft re-inspection leaves the original findings intact", async () => {
-    const { db, findings } = fixture();
+  it("8. deleting a draft re-inspection leaves the original findings and photos intact", async () => {
+    const { db, writes, findings, photos, inspections } = fixture();
 
-    await db.from("findings").delete().eq("inspection_id", REINSPECTION_ID);
+    await deleteDraftReinspection(db, REINSPECTION_ID);
 
-    // Deletion is scoped by inspection_id, so it can only reach re-inspection
-    // rows; source_finding_id is ON DELETE SET NULL, never a cascade.
+    // The re-inspection and its rows are gone; the original keeps both findings
+    // and both photos. source_finding_id is ON DELETE SET NULL, never a cascade.
+    expect(inspections.some((i) => i.id === REINSPECTION_ID)).toBe(false);
     expect(findings.filter((f) => f.inspection_id === ORIGINAL_ID)).toHaveLength(2);
     expect(findings.find((f) => f.id === "f-original-1")?.title).toBe("Foundation wall crack");
+    expect(photos.filter((p) => p.inspection_id === ORIGINAL_ID)).toHaveLength(2);
+    expect(writesTouchingOriginal(writes, ORIGINAL_FINDING_IDS)).toEqual([]);
+  });
+
+  it("8b. deleting an ORIGINAL through the re-inspection path is refused", async () => {
+    const { db, writes, findings, inspections } = fixture();
+
+    await expect(deleteDraftReinspection(db, ORIGINAL_ID))
+      .rejects.toBeInstanceOf(OriginalReportWriteError);
+
+    expect(inspections.some((i) => i.id === ORIGINAL_ID)).toBe(true);
+    expect(findings.filter((f) => f.inspection_id === ORIGINAL_ID)).toHaveLength(2);
+    expect(writesTouchingOriginal(writes, ORIGINAL_FINDING_IDS)).toEqual([]);
   });
 
   it("9. multiple re-inspections can reference one original without modifying it", async () => {
@@ -267,5 +375,69 @@ describe("snapshot construction", () => {
     await expect(
       setReinspectionVerdict(db, { findingId: "f-reinspect-1", status: "published" }),
     ).rejects.toThrow(/Invalid re-inspection status/);
+  });
+});
+
+describe("reading the original for before/after display", () => {
+  it("pairs each re-inspection item with its original and the original's photos", async () => {
+    const { db, writes } = fixture();
+
+    const loaded = await loadReinspectionItems(db, REINSPECTION_ID);
+    const item = loaded.items[0];
+
+    expect(item.original?.observation).toBe("Original narrative.");
+    expect(item.beforePhotos.map((p: any) => p.public_url)).toEqual(["before-1.jpg"]);
+    expect(item.afterPhotos).toEqual([]);
+
+    // The whole point: reading the original for display writes nothing at all.
+    expect(writes).toEqual([]);
+  });
+
+  it("shows after photos on the re-inspection side only", async () => {
+    const { db } = fixture();
+
+    await addReinspectionAfterPhoto(db, {
+      findingId: "f-reinspect-1",
+      photo: { public_url: "after-1.jpg" },
+    });
+
+    const { items } = await loadReinspectionItems(db, REINSPECTION_ID);
+    expect(items[0].beforePhotos.map((p: any) => p.public_url)).toEqual(["before-1.jpg"]);
+    expect(items[0].afterPhotos.map((p: any) => p.public_url)).toEqual(["after-1.jpg"]);
+  });
+
+  it("refuses to read an original as if it were a re-inspection", async () => {
+    const { db } = fixture();
+    await expect(loadReinspectionItems(db, ORIGINAL_ID))
+      .rejects.toBeInstanceOf(OriginalReportWriteError);
+  });
+
+  it("lists every re-inspection of one original in order, original untouched", async () => {
+    const { db, writes, inspections, findings } = fixture();
+    const parent = inspections.find((i) => i.id === ORIGINAL_ID);
+    const before = JSON.stringify(findings.filter((f) => f.inspection_id === ORIGINAL_ID));
+
+    const first = await createReinspection(db, { parent, today: "2026-09-10" });
+    await setReinspectionVerdict(db, {
+      findingId: findings.find((f) => f.inspection_id === first.id)?.id,
+      status: "not_corrected",
+    });
+    const second = await createReinspection(db, { parent, today: "2026-09-16" });
+    await setReinspectionVerdict(db, {
+      findingId: findings.find((f) => f.inspection_id === second.id)?.id,
+      status: "corrected",
+    });
+
+    const history = await listReinspectionsOf(db, ORIGINAL_ID);
+    expect(history.map((r: any) => r.id)).toEqual(
+      expect.arrayContaining([REINSPECTION_ID, first.id, second.id]),
+    );
+
+    // Sept 10 says not corrected, Sept 16 says corrected, and the Sept 1
+    // original is byte-identical through both.
+    expect(findings.find((f) => f.inspection_id === first.id)?.reinspection_status).toBe("not_corrected");
+    expect(findings.find((f) => f.inspection_id === second.id)?.reinspection_status).toBe("corrected");
+    expect(JSON.stringify(findings.filter((f) => f.inspection_id === ORIGINAL_ID))).toBe(before);
+    expect(writesTouchingOriginal(writes, ORIGINAL_FINDING_IDS)).toEqual([]);
   });
 });

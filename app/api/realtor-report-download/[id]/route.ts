@@ -5,6 +5,7 @@ import { matchStandards } from "../../../../lib/ai/standardsReference";
 import { estimatePrognosis, deriveAgeYears } from "../../../../lib/ai/serviceLife";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { authorizeInspection } from "../../../../lib/apiAuth";
+import { loadReinspectionItems } from "../../../../lib/reinspection";
 import { loadSeverityConfigForInspection } from "../../../../lib/severity/loadSeverityConfig";
 import { resolveSeverity } from "../../../../lib/severity/severityConfig";
 import { getReportTranslations, makeTranslator, isSupportedLanguage } from "../../../../lib/translate";
@@ -27,7 +28,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-09-07-photo-sort-order";
+const PDF_TEMPLATE_VERSION = "2026-09-16-reinspection";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -1030,6 +1031,7 @@ function buildAgentReportHtml({
   disclaimers,
   equipment,
   realtorBrand,
+  reinspection,
   sevColors = { safety: "#ef4444", repair: "#f97316", maintenance: "#0f9488", info: "#2563eb" },
 }: {
   sevColors?: { safety: string; repair: string; maintenance: string; info: string };
@@ -1051,9 +1053,87 @@ function buildAgentReportHtml({
   disclaimers?: Array<{ topic: string; text: string }>;
   equipment?: Array<{ type: string; name: string; photoUrl: string; rows: Array<[string, string]>; note: string; prognosis?: string }>;
   realtorBrand?: { name: string; brokerage: string; photo: string } | null;
+  // Present only when this inspection is a re-inspection. Read-only view of the
+  // original: the PDF renders BEFORE from the original finding's own photo rows
+  // and never copies, moves or rewrites them.
+  reinspection?: {
+    items: Array<{
+      finding: any;
+      original: any;
+      beforePhotos: any[];
+      afterPhotos: any[];
+    }>;
+  } | null;
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
+
+  // ---------------------------------------------------------------------
+  // Limited Repair Re-Inspection page.
+  //
+  // A re-inspection is its own inspection row, so this is a NEW document with
+  // its own PDF and its own cache entry -- generating it cannot regenerate or
+  // replace the original's PDF. Everything on the BEFORE side is read from the
+  // original and rendered as-is.
+  // ---------------------------------------------------------------------
+  const reinspectionItems = reinspection?.items || [];
+  const isReinspection = reinspectionItems.length > 0;
+
+  const verdictLabel = (status: string) =>
+    status === "corrected" ? "Corrected"
+      : status === "not_corrected" ? "Not Corrected"
+      : "Not Evaluated";
+  const verdictClass = (status: string) =>
+    status === "corrected" ? "ri-ok"
+      : status === "not_corrected" ? "ri-bad"
+      : "ri-none";
+
+  const photoStrip = (photos: any[], emptyText: string) => {
+    const usable = (photos || [])
+      .filter((p: any) => !p?.is_video)
+      .map((p: any) => p?.thumbnail_url || p?.public_url)
+      .filter(Boolean)
+      .slice(0, 3);
+    if (!usable.length) return `<div class="ri-nophoto">${escapeHtml(emptyText)}</div>`;
+    return usable
+      .map((url: string) => `<img class="ri-photo" src="${escapeHtml(url)}" alt="" />`)
+      .join("");
+  };
+
+  const reinspectionRows = reinspectionItems
+    .map((item: any) => {
+      const f = item.finding || {};
+      const original = item.original || {};
+      const status = String(f.reinspection_status || "not_evaluated");
+      const summary = String(f.reinspection_summary || f.reinspection_note || "").trim();
+      return `
+      <div class="ri-item">
+        <div class="ri-item-head">
+          <div>
+            <strong>${escapeHtml(f.title || original.title || "Finding")}</strong>
+            <span class="ri-section">${escapeHtml(f.section || original.section || "General")}</span>
+          </div>
+          <span class="ri-badge ${verdictClass(status)}">${escapeHtml(verdictLabel(status))}</span>
+        </div>
+        ${original.observation ? `<p class="ri-original"><span>Originally reported:</span> ${escapeHtml(original.observation)}</p>` : ""}
+        ${summary ? `<p class="ri-summary">${escapeHtml(summary)}</p>` : ""}
+        <div class="ri-photos">
+          <div class="ri-col"><span class="ri-col-label">Before</span><div class="ri-strip">${photoStrip(item.beforePhotos, "No original photo")}</div></div>
+          <div class="ri-col"><span class="ri-col-label">After</span><div class="ri-strip">${photoStrip(item.afterPhotos, "No re-inspection photo")}</div></div>
+        </div>
+      </div>`;
+    })
+    .join("");
+
+  const reinspectionCounts = {
+    corrected: reinspectionItems.filter((i: any) => i.finding?.reinspection_status === "corrected").length,
+    notCorrected: reinspectionItems.filter((i: any) => i.finding?.reinspection_status === "not_corrected").length,
+    notEvaluated: reinspectionItems.filter(
+      (i: any) =>
+        i.finding?.reinspection_status !== "corrected" &&
+        i.finding?.reinspection_status !== "not_corrected",
+    ).length,
+  };
   // Standards references must NEVER change a report already delivered. Gate on
   // the publish timestamp so a PDF of a report published before this feature
   // launched renders exactly as it did (matches the share page's gate).
@@ -1506,6 +1586,30 @@ function buildAgentReportHtml({
     .header-logo-fallback { min-height: 42px; max-width: 230px; display: flex; align-items: center; color: #020617; font-size: 18px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
     .header-address { text-align: right; font-size: 10px; color: #334155; font-weight: 800; line-height: 1.35; }
 
+    .ri-intro { color: #475569; font-size: 12px; margin: 0 0 14px; }
+    .ri-counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+    .ri-count { border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px; text-align: center; }
+    .ri-count strong { display: block; font-size: 20px; font-weight: 900; }
+    .ri-count span { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #475569; }
+    .ri-count.ri-ok strong { color: #047857; }
+    .ri-count.ri-bad strong { color: #b91c1c; }
+    .ri-count.ri-none strong { color: #475569; }
+    .ri-item { border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px 12px; margin-bottom: 10px; page-break-inside: avoid; }
+    .ri-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .ri-item-head strong { font-size: 13px; }
+    .ri-section { display: block; font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: .07em; }
+    .ri-badge { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+    .ri-badge.ri-ok { background: #d1fae5; color: #047857; }
+    .ri-badge.ri-bad { background: #fee2e2; color: #b91c1c; }
+    .ri-badge.ri-none { background: #e2e8f0; color: #475569; }
+    .ri-original { font-size: 11px; color: #64748b; margin: 8px 0 0; }
+    .ri-original span { font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+    .ri-summary { font-size: 12px; color: #0f172a; margin: 6px 0 0; }
+    .ri-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    .ri-col-label { display: block; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; color: #475569; margin-bottom: 4px; }
+    .ri-strip { display: flex; gap: 5px; flex-wrap: wrap; }
+    .ri-photo { width: 84px; height: 84px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 3px; }
+    .ri-nophoto { font-size: 10px; color: #94a3b8; font-style: italic; }
     .cover-page { text-align: center; }
     .cover-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 28px; }
     .cover-logo-img { width: 210px; max-height: 92px; object-fit: contain; object-position: left center; display: block; }
@@ -1707,7 +1811,7 @@ function buildAgentReportHtml({
 
       ${coverPhotoHtml}
 
-      <p class="cover-eyebrow">${isFull ? "Residential Inspection Report" : "Agent Friendly Report"}</p>
+      <p class="cover-eyebrow">${isReinspection ? "Limited Repair Re-Inspection" : isFull ? "Residential Inspection Report" : "Agent Friendly Report"}</p>
       <h1>${escapeHtml(property)}</h1>
       <p class="cover-address">${escapeHtml(cityStateZip || "Inspection Location")}</p>
       <hr class="cover-rule" />
@@ -1717,7 +1821,7 @@ function buildAgentReportHtml({
         <div class="detail-card"><span>Client</span><strong>${escapeHtml(clientName)}</strong></div>
         <div class="detail-card"><span>Realtor</span><strong>${escapeHtml(realtorName)}</strong></div>
         <div class="detail-card"><span>Inspection Date</span><strong>${escapeHtml(inspectionDate)}</strong></div>
-        <div class="detail-card"><span>Report Type</span><strong>${isFull ? "Full Report" : "Agent Report"}</strong></div>
+        <div class="detail-card"><span>Report Type</span><strong>${isReinspection ? "Repair Re-Inspection" : isFull ? "Full Report" : "Agent Report"}</strong></div>
         <div class="detail-card"><span>Report ID</span><strong>${escapeHtml(reportId || "N/A")}</strong></div>
       </div>
 
@@ -1741,6 +1845,35 @@ function buildAgentReportHtml({
         <span>${escapeHtml(companyName)}</span>
       </footer>
     </section>
+
+    ${isReinspection ? `
+    <section class="page">
+      <header class="page-header">
+        <div class="mini-brand">${headerLogoHtml}</div>
+        <div class="header-address">${escapeHtml(property)}<br/>${escapeHtml(cityStateZip)}</div>
+      </header>
+
+      <h2 class="summary-title">Limited Repair Re-Inspection</h2>
+      <p class="ri-intro">
+        This document reports only on the items re-checked during the return
+        visit. It does not amend or replace the original inspection report,
+        which remains available in full as issued.
+      </p>
+
+      <div class="ri-counts">
+        <div class="ri-count ri-ok"><strong>${reinspectionCounts.corrected}</strong><span>Corrected</span></div>
+        <div class="ri-count ri-bad"><strong>${reinspectionCounts.notCorrected}</strong><span>Not Corrected</span></div>
+        <div class="ri-count ri-none"><strong>${reinspectionCounts.notEvaluated}</strong><span>Not Evaluated</span></div>
+      </div>
+
+      ${reinspectionRows}
+
+      <footer class="black-footer">
+        <span>Limited Repair Re-Inspection</span>
+        <span>${reinspectionItems.length} item${reinspectionItems.length === 1 ? "" : "s"} re-checked</span>
+      </footer>
+    </section>
+    ` : ""}
 
     ${isFull ? `
     <section class="page">
@@ -2253,7 +2386,10 @@ export async function GET(req: Request, { params }: RouteProps) {
       const sel = (table: string, cols: string) =>
         admin.from(table).select(cols).eq("inspection_id", inspectionId).order("created_at", { ascending: true });
       const [f, ph, eq, di, ch, rf, li, nt, rb] = await Promise.all([
-        sel("findings", "id,title,observation,implication,recommendation,severity,section,component,report_item_number,defect_type"),
+        // reinspection_* are part of the signature on purpose: without them, changing a
+        // verdict or re-drafting a re-inspection note would leave the signature
+        // identical and the download would serve the previous PDF from cache.
+        sel("findings", "id,title,observation,implication,recommendation,severity,section,component,report_item_number,defect_type,reinspection_status,reinspection_summary,source_finding_id"),
         sel("photos", "id,finding_id,file_path,thumbnail_path,thumbnail_url,caption,is_video"),
         sel("equipment_inventory", "id,equipment_type,manufacturer,model,serial,manufacture_year,estimated_age,capacity,fuel_type,condition,notes,file_path,thumbnail_path"),
         sel("report_disclaimers", "id,topic,disclaimer_text"),
@@ -2698,6 +2834,18 @@ export async function GET(req: Request, { params }: RouteProps) {
       info: resolveSeverity(severityConfig, "Informational").color,
     };
 
+    // On a re-inspection, load the BEFORE side for the PDF. Read-only, and
+    // best-effort: if it fails the document still renders as a normal report
+    // rather than failing the download.
+    let reinspection: any = null;
+    if ((inspection as any)?.parent_inspection_id) {
+      try {
+        reinspection = await loadReinspectionItems(admin, (inspection as any).id);
+      } catch {
+        reinspection = null;
+      }
+    }
+
     const html = buildAgentReportHtml({
       inspection,
       findings,
@@ -2718,6 +2866,7 @@ export async function GET(req: Request, { params }: RouteProps) {
       disclaimers,
       equipment,
       realtorBrand,
+      reinspection,
     });
     const property = getPropertyAddress(inspection);
 
