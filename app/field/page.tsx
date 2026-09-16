@@ -3707,14 +3707,37 @@ function FieldPageContent() {
     ]);
 
     if (fullUpload.error) {
-      setMediaProgress(progressId, {
-        name: uploadFile.name || photo.name || "Inspection media",
-        type: progressType,
-        stage: "Upload failed. Item can be saved to local queue",
-        progress: 0,
-        status: "error",
-      });
-      throw fullUpload.error;
+      // An upload can report an error even though the file actually LANDED: a
+      // large video whose request finished server-side after the client timed
+      // out, or a duplicate path (upsert:false) where the object already exists.
+      // Both were falsely showing "Needs Retry" for files that were really saved.
+      // So verify the object is in storage before declaring failure.
+      const errText = String(
+        (fullUpload.error as any)?.message || (fullUpload.error as any)?.error || fullUpload.error || "",
+      ).toLowerCase();
+      let landed = /exist|duplicate|already/.test(errText);
+      if (!landed) {
+        try {
+          const { data: check } = await supabase.storage
+            .from("inspection-photos")
+            .createSignedUrl(fileName, 60);
+          landed = Boolean(check?.signedUrl);
+        } catch {
+          landed = false;
+        }
+      }
+
+      if (!landed) {
+        setMediaProgress(progressId, {
+          name: uploadFile.name || photo.name || "Inspection media",
+          type: progressType,
+          stage: "Upload failed. Item can be saved to local queue",
+          progress: 0,
+          status: "error",
+        });
+        throw fullUpload.error;
+      }
+      // Otherwise the file IS in storage — treat it as a success and continue.
     }
 
     const { data: fullPublicData } = supabase.storage
