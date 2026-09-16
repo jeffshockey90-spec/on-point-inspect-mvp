@@ -3425,6 +3425,39 @@ function FieldPageContent() {
     );
   }
 
+  // Split one photo out of its group into a brand-new item of its own — for when
+  // the AI grouped two things that don't belong together (one's a finding, the
+  // other is something else). The new item inherits section/severity as a
+  // starting point but its own blank title/text; classify + describe it
+  // separately (or regenerate). If the source group empties out, it's dropped.
+  function splitPhotoToNewGroup(photoIndex: number, fromGroupId: string) {
+    setMediaGroups((current) => {
+      const from = current.find((g) => g.id === fromGroupId);
+      const newGroup: AIMediaGroup = {
+        id: `manual-${Date.now()}-${photoIndex}`,
+        label: "New item",
+        photoIndexes: [photoIndex],
+        classification: from?.classification || "finding",
+        section: from?.section || "General",
+        severity: from?.severity || "",
+        title: "",
+        observation: "",
+        implication: "",
+        recommendation: "",
+        confidence: 1,
+        aiNote: "Split out manually — separate from its original group.",
+      };
+      return current
+        .map((group) =>
+          group.id === fromGroupId
+            ? { ...group, photoIndexes: group.photoIndexes.filter((i) => i !== photoIndex) }
+            : group,
+        )
+        .filter((group) => group.photoIndexes.length > 0)
+        .concat(newGroup);
+    });
+  }
+
   // Re-draft a SINGLE group's write-up from that group's photos + its own AI note,
   // so each finding can be steered independently when they're for different things.
   async function regenerateGroupWithAI(group: AIMediaGroup) {
@@ -5476,6 +5509,10 @@ function FieldPageContent() {
                                   onChange={(event) => {
                                     const value = event.target.value;
                                     if (!value) return;
+                                    if (value === "__new__") {
+                                      splitPhotoToNewGroup(photoIndex, group.id);
+                                      return;
+                                    }
                                     movePhotoBetweenGroups(
                                       photoIndex,
                                       group.id,
@@ -5485,6 +5522,9 @@ function FieldPageContent() {
                                   className="mt-1 w-16 rounded border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-1 py-1 text-[10px] font-bold text-[var(--fl-text)]"
                                 >
                                   <option value="">Move…</option>
+                                  {group.photoIndexes.length > 1 && (
+                                    <option value="__new__">＋ New item</option>
+                                  )}
                                   {mediaGroups
                                     .filter((other) => other.id !== group.id)
                                     .map((other) => (
@@ -5504,8 +5544,9 @@ function FieldPageContent() {
                             ))}
                           </div>
                           <p className="mt-1 text-[11px] leading-4 text-[var(--fl-faint)]">
-                            Use “Move…” under a photo to send it to another finding, or Remove to
-                            leave it off.
+                            Doesn’t belong here? Use “Move…” under a photo to send it to another
+                            finding, “＋ New item” to split it into its own separate item (then
+                            classify it — finding, reference, etc.), or Remove to leave it off.
                           </p>
                         </div>
                       )}
