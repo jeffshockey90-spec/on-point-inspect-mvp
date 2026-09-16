@@ -280,10 +280,36 @@ export async function writeChecklistFills(
       if (existing && existing.length > 0) continue; // don't overwrite the inspector
     }
 
-    let row: Record<string, any>;
+    // A text fill (e.g. Water Heater Capacity) writes the number AND — when it
+    // carries a unit — ticks that unit's option box too, so a scanned capacity
+    // fills "55" AND checks "gallons", not just the number.
     if (f.kind === "text") {
-      row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: "__TEXT_VALUE__", custom_text: f.value };
-    } else if (f.matched) {
+      const { error: textError } = await supabase
+        .from("section_checklist_selections")
+        .insert({ inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: "__TEXT_VALUE__", custom_text: f.value });
+      if (!textError) written += 1;
+
+      const unitLabel = String(f.unit || "").trim();
+      if (unitLabel) {
+        const { data: unitExisting } = await supabase
+          .from("section_checklist_selections")
+          .select("id")
+          .eq("inspection_id", inspectionId)
+          .eq("section", f.section)
+          .eq("group_title", f.groupTitle)
+          .eq("value", unitLabel)
+          .limit(1);
+        if (!unitExisting || unitExisting.length === 0) {
+          await supabase
+            .from("section_checklist_selections")
+            .insert({ inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: unitLabel });
+        }
+      }
+      continue;
+    }
+
+    let row: Record<string, any>;
+    if (f.matched) {
       // Value IS a built-in option -> just check that box.
       row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: f.value };
     } else {
