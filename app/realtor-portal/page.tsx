@@ -1,4 +1,5 @@
 import { OWNER_EMAILS } from "../../lib/ownerEmails";
+import { isPublished } from "../../lib/reportDelivery";
 import { Eye, ChevronDown } from "lucide-react";
 
 import { formatAppValue } from "../../lib/app-time";
@@ -309,10 +310,19 @@ export default async function RealtorPortalPage({
       ].join(",")
     );
 
+  // A re-inspection is created the instant the inspector taps the button and
+  // carries the agent's email over from the original, so an unpublished one --
+  // including a mis-tap the inspector abandoned -- would otherwise appear here
+  // as a report the agent can see before it exists. Hide it until it is
+  // published. Original inspections are untouched by this filter: an agent
+  // still sees an inspection in progress, which is the existing behavior.
+  const visibleToAgent = (row: any) =>
+    !row?.parent_inspection_id || isPublished(row);
+
   const inspections = uniqById([
     ...inspectionsFromContacts,
     ...(inspectionsFromFieldsRaw || []),
-  ]).sort(
+  ]).filter(visibleToAgent).sort(
     (a: any, b: any) =>
       new Date(getInspectionDate(b) || 0).getTime() -
       new Date(getInspectionDate(a) || 0).getTime()

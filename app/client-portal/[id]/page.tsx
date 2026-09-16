@@ -412,6 +412,7 @@ export default function ClientPortalPage() {
   const [radonTest, setRadonTest] = useState<any>(null);
   const [checklistRows, setChecklistRows] = useState<any[]>([]);
   const [sectionNotes, setSectionNotes] = useState<Record<string, string>>({});
+  const [relatedDocuments, setRelatedDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -488,6 +489,7 @@ export default function ClientPortalPage() {
       setRadonTest(data.radonTest || null);
       setChecklistRows(data.checklistRows || []);
       setSectionNotes(data.sectionNotes || {});
+      setRelatedDocuments(data.relatedDocuments || []);
     } catch (error) {
       console.error("Client portal load error:", error);
       setInspection(null);
@@ -1118,6 +1120,49 @@ export default function ClientPortalPage() {
                 <p className="mt-1 text-sm">
                   View Report, Download PDF, and Repair Request will appear after the agreement is signed, payment is complete, and the inspector publishes the report.
                 </p>
+              </div>
+            )}
+
+            {relatedDocuments.length > 1 && (
+              <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-6 py-4 md:col-span-3">
+                <p className="text-lg font-bold text-[var(--fl-text)]">Your Documents</p>
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
+                  Each report is a separate document. A re-inspection reports only on
+                  the items re-checked; it does not change the original report.
+                </p>
+                <div className="mt-3 space-y-2">
+                  {relatedDocuments.map((doc: any) => (
+                    <div
+                      key={doc.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-[var(--fl-text)]">
+                          {doc.label}
+                          {doc.isCurrent ? (
+                            <span className="ml-2 rounded bg-teal-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
+                              Viewing
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="text-xs text-[var(--fl-muted)]">
+                          {doc.inspectionDate || "Date not set"}
+                        </p>
+                      </div>
+                      {doc.shareToken ? (
+                        <a
+                          href={`/share/${doc.shareToken}`}
+                          target="_blank"
+                          className="rounded-lg border border-teal-500 px-3 py-1.5 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
+                        >
+                          {doc.kind === "original" ? "View Original Report" : "View Re-Inspection"}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-[var(--fl-muted)]">Not yet available</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

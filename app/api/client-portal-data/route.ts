@@ -5,6 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
 import { reportSecurityEvent } from "../../../lib/securityAlerts";
+import { listReinspectionsOf } from "../../../lib/reinspection";
 
 // Resolves whether the currently signed-in user (if any) is allowed to open a
 // portal by raw inspection id: the owning inspector, a member of the owning
@@ -292,8 +293,65 @@ export async function GET(req: Request) {
       }
     }
 
+    // Every document for this property, listed separately.
+    //
+    // The original report and each Limited Repair Re-Inspection are distinct
+    // inspections with distinct PDFs, so the portal links to each rather than
+    // implying the re-inspection supersedes or replaces the original. Each entry
+    // carries its own share token, and only when that document is itself
+    // deliverable -- the re-inspection being ready does not unlock the original,
+    // and vice versa.
+    const originalId = (inspection as any).parent_inspection_id || (inspection as any).id;
+    const relatedDocuments: any[] = [];
+    try {
+      const { data: originalRow } = await supabase
+        .from("inspections")
+        .select("*")
+        .eq("id", originalId)
+        .maybeSingle();
+
+      const siblings = await listReinspectionsOf(supabase, originalId);
+      const ids = siblings.map((r: any) => r.id);
+      const { data: siblingRows } = ids.length
+        ? await supabase.from("inspections").select("*").in("id", ids)
+        : { data: [] as any[] };
+
+      const describe = async (row: any, kind: "original" | "reinspection") => {
+        if (!row?.id) return null;
+        const state = await getReportDeliveryState(supabase, row);
+        const token = state.deliverable
+          ? SHARE_TOKEN_FIELDS.map((f) => row[f]).find(Boolean) || null
+          : null;
+        return {
+          id: String(row.id),
+          kind,
+          label: kind === "original" ? "Original Home Inspection Report" : "Limited Repair Re-Inspection",
+          inspectionDate: row.inspection_date || null,
+          deliverable: state.deliverable,
+          shareToken: token,
+          isCurrent: String(row.id) === String((inspection as any).id),
+        };
+      };
+
+      const originalDoc = await describe(originalRow, "original");
+      if (originalDoc) relatedDocuments.push(originalDoc);
+      for (const row of siblingRows || []) {
+        const doc = await describe(row, "reinspection");
+        // A re-inspection the client cannot open yet is not a document from
+        // their side -- it is an inspector-side draft, and one created by a
+        // mis-tapped button looks identical to a real one. Listing it would
+        // promise a report that may never exist, so an undeliverable
+        // re-inspection is omitted entirely, with no exception for the one
+        // being viewed: "currently open" is not a reason to reveal a draft.
+        if (doc && doc.deliverable) relatedDocuments.push(doc);
+      }
+    } catch (relatedError) {
+      console.error("Client portal related documents load error:", relatedError);
+    }
+
     return NextResponse.json({
       inspection: pickedInspection,
+      relatedDocuments,
       deliverable: delivery.deliverable,
       companyBranding: branding,
       checklistRows: checklistResult.data || [],
