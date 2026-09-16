@@ -17,16 +17,18 @@ function NumberField({
   value,
   onChange,
   prefix = "$",
+  suffix,
 }: {
   label: string;
   value: number | undefined;
   onChange: (value: number) => void;
   prefix?: string;
+  suffix?: string;
 }) {
   return (
     <label className="block min-w-0">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">{label}</p>
-      <div className="flex items-center gap-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3">
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">{label}</p>
+      <div className="flex items-center gap-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 transition focus-within:border-teal-400 focus-within:ring-1 focus-within:ring-teal-400/40">
         {prefix && <span className="text-[var(--fl-faint)]">{prefix}</span>}
         <input
           type="number"
@@ -34,12 +36,28 @@ function NumberField({
           min="0"
           value={value ?? 0}
           onChange={(e) => onChange(Number(e.target.value) || 0)}
-          className="w-full min-w-0 bg-transparent p-3 pl-0 text-[var(--fl-text)] outline-none"
+          className="w-full min-w-0 bg-transparent p-3 pl-0 text-[var(--fl-text)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
         />
+        {suffix && <span className="shrink-0 text-xs font-semibold text-[var(--fl-faint)]">{suffix}</span>}
       </div>
     </label>
   );
 }
+
+// One consistent, scannable header for every price card.
+function ServiceHeader({ icon, title, hint }: { icon: string; title: string; hint: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 text-lg" aria-hidden>{icon}</span>
+      <div className="min-w-0">
+        <h2 className="text-lg font-semibold text-[var(--fl-text)]">{title}</h2>
+        <p className="mt-0.5 text-sm leading-6 text-[var(--fl-muted)]">{hint}</p>
+      </div>
+    </div>
+  );
+}
+
+const CARD = "rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5 sm:p-6";
 
 export default function PricingEditor({
   endpoint = "/api/pricing",
@@ -218,12 +236,12 @@ export default function PricingEditor({
       )}
 
       {home && (
-        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Home Inspection</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-            A base price up to a square footage limit, then a step-up amount for every block of
-            square footage over that.
-          </p>
+        <section className={CARD}>
+          <ServiceHeader
+            icon="🏠"
+            title="Home Inspection"
+            hint="A base price up to a square-footage limit, then a step-up for every block over it."
+          />
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <NumberField
@@ -232,8 +250,9 @@ export default function PricingEditor({
               onChange={(value) => updateService("home", { basePrice: value })}
             />
             <NumberField
-              label="Up To (Sqft)"
+              label="Up To"
               prefix=""
+              suffix="sqft"
               value={home.baseSqftLimit}
               onChange={(value) => updateService("home", { baseSqftLimit: value })}
             />
@@ -243,14 +262,15 @@ export default function PricingEditor({
               onChange={(value) => updateService("home", { incrementPrice: value })}
             />
             <NumberField
-              label="Per Every (Sqft)"
+              label="Per Every"
               prefix=""
+              suffix="sqft"
               value={home.incrementSqftBlock}
               onChange={(value) => updateService("home", { incrementSqftBlock: value })}
             />
           </div>
 
-          <p className="mt-4 text-xs text-[var(--fl-faint)]">
+          <p className="mt-4 rounded-lg bg-[var(--fl-ground)] px-3 py-2 text-xs leading-5 text-[var(--fl-faint)]">
             Example: ${home.basePrice || 0} for up to {home.baseSqftLimit || 0} sqft, then +$
             {home.incrementPrice || 0} for every {home.incrementSqftBlock || 0} sqft over that.
           </p>
@@ -258,12 +278,12 @@ export default function PricingEditor({
       )}
 
       {radon && (
-        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Radon Test</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-            A flat fee. You can charge less when radon testing is booked alongside a home
-            inspection.
-          </p>
+        <section className={CARD}>
+          <ServiceHeader
+            icon="🧪"
+            title="Radon Test"
+            hint="A flat fee. Charge less when it's booked alongside a home inspection."
+          />
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <NumberField
@@ -281,12 +301,12 @@ export default function PricingEditor({
       )}
 
       {mold && (
-        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Mold Testing</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-            A setup fee plus a fee per air/surface sample collected. The setup fee can be lower
-            when paired with a home inspection.
-          </p>
+        <section className={CARD}>
+          <ServiceHeader
+            icon="🦠"
+            title="Mold Testing"
+            hint="A setup fee plus a fee per sample. Setup fee can be lower when paired with an inspection."
+          />
 
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
             <NumberField
@@ -308,13 +328,12 @@ export default function PricingEditor({
         </section>
       )}
 
-      <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6">
-        <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Custom Services</h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-          Add any service beyond Home, Radon, and Mold - sewer scope, well testing, termite
-          inspection, whatever you offer. Each one can be a flat fee, a flat fee plus a per-unit
-          fee, or its own square-footage formula.
-        </p>
+      <section className={CARD}>
+        <ServiceHeader
+          icon="🧰"
+          title="Custom Services"
+          hint="Anything beyond Home, Radon, and Mold — sewer scope, well testing, termite. Flat fee, per-unit, or its own sqft formula."
+        />
 
         <div className="mt-5 space-y-5">
           {customServices.map((service) => (
@@ -327,7 +346,7 @@ export default function PricingEditor({
           ))}
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[var(--fl-raised)] pt-5">
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[var(--fl-line)] pt-5">
           <span className="text-sm font-bold text-[var(--fl-muted)]">Add a new service:</span>
           {PRICING_SERVICE_TYPE_OPTIONS.map((option) => (
             <button
@@ -342,14 +361,21 @@ export default function PricingEditor({
         </div>
       </section>
 
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full rounded-xl bg-teal-500 px-8 py-4 font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-60 sm:w-auto"
-      >
-        {saving ? "Saving..." : "Save Pricing"}
-      </button>
+      <div className="sticky bottom-0 z-10 -mx-4 mt-2 border-t border-[var(--fl-line)] bg-[var(--fl-ground)]/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--fl-ground)]/70 sm:-mx-6 sm:px-6">
+        <div className="flex items-center justify-end gap-3">
+          {saved && (
+            <span className="text-sm font-semibold text-[var(--fl-good-text)]">Saved ✓</span>
+          )}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full rounded-xl bg-teal-500 px-8 py-3.5 font-semibold text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 disabled:opacity-60 sm:w-auto"
+          >
+            {saving ? "Saving..." : "Save Pricing"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -367,7 +393,7 @@ function CustomServiceCard({
     <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <label className="min-w-0 flex-1">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
             Service Name
           </p>
           <input
@@ -395,8 +421,9 @@ function CustomServiceCard({
             onChange={(value) => onChange({ basePrice: value })}
           />
           <NumberField
-            label="Up To (Sqft)"
+            label="Up To"
             prefix=""
+            suffix="sqft"
             value={service.baseSqftLimit}
             onChange={(value) => onChange({ baseSqftLimit: value })}
           />
@@ -406,8 +433,9 @@ function CustomServiceCard({
             onChange={(value) => onChange({ incrementPrice: value })}
           />
           <NumberField
-            label="Per Every (Sqft)"
+            label="Per Every"
             prefix=""
+            suffix="sqft"
             value={service.incrementSqftBlock}
             onChange={(value) => onChange({ incrementSqftBlock: value })}
           />
