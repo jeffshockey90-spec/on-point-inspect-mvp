@@ -81,6 +81,7 @@ function SectionReferencePhotos({
   const [uploading, setUploading] = useState(false);
   const [uploadLabel, setUploadLabel] = useState("Uploading...");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [draggingOver, setDraggingOver] = useState(false);
 
@@ -258,6 +259,51 @@ function SectionReferencePhotos({
       alert(error?.message || "Failed to delete reference photo.");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  // Promote a reference photo to a real defect/finding — for when a photo got
+  // captured as a reference but is actually a defect. The server creates the
+  // finding + re-attaches this same image; the builder shows it via live sync.
+  async function convertToDefect(photo: ReferencePhoto) {
+    if (convertingId || deletingId) return;
+
+    const confirmed = window.confirm(
+      "Turn this reference photo into a defect? It moves to this section's findings, where you can set the severity and write it up.",
+    );
+    if (!confirmed) return;
+
+    setConvertingId(photo.id);
+
+    try {
+      const res = await fetch("/api/findings/from-reference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referencePhotoId: photo.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Could not convert to a defect.");
+
+      // Drop it from the reference gallery now; the new finding appears in the
+      // report builder via the realtime findings sync.
+      setPhotos((prev) => prev.filter((item) => item.id !== photo.id));
+
+      try {
+        window.dispatchEvent(
+          new CustomEvent("opi:inspection-data-changed", {
+            detail: { inspectionId, source: "reference-to-defect" },
+          }),
+        );
+        window.dispatchEvent(
+          new CustomEvent("opi:findings-changed", { detail: { inspectionId } }),
+        );
+      } catch {
+        /* event dispatch is best-effort */
+      }
+    } catch (error: any) {
+      alert(error?.message || "Could not convert to a defect.");
+    } finally {
+      setConvertingId(null);
     }
   }
 
@@ -477,6 +523,7 @@ function SectionReferencePhotos({
                   "";
                 const fullUrl = photo.signed_url || photo.public_url || previewUrl;
                 const isDeleting = deletingId === photo.id;
+                const isConverting = convertingId === photo.id;
 
                 return (
                   <div
@@ -518,8 +565,19 @@ function SectionReferencePhotos({
 
                         <button
                           type="button"
+                          onClick={() => convertToDefect(photo)}
+                          disabled={isConverting || isDeleting || uploading}
+                          title="This was actually a defect — move it to the findings list"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-yellow-500 px-3 py-2 font-semibold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                        >
+                          {isConverting && <SmallSpinner />}
+                          {isConverting ? "Converting..." : "⚠️ Make Defect"}
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => deletePhoto(photo)}
-                          disabled={isDeleting || uploading}
+                          disabled={isDeleting || isConverting || uploading}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-600 px-3 py-2 font-semibold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                         >
                           {isDeleting && <SmallSpinner />}
