@@ -3390,6 +3390,12 @@ function FieldPageContent() {
     );
   }
 
+  // Drop a whole AI-proposed group in one tap — declined, saved nowhere. The
+  // one-tap version of setting a group to "Unassigned".
+  function removeMediaGroup(groupId: string) {
+    setMediaGroups((current) => current.filter((group) => group.id !== groupId));
+  }
+
   // Move one photo from its current finding-group to another (or remove it from
   // all groups, so it won't be attached to any finding).
   function movePhotoBetweenGroups(
@@ -5380,22 +5386,33 @@ function FieldPageContent() {
                           </p>
                         </div>
 
-                        <select
-                          value={group.classification}
-                          onChange={(event) =>
-                            updateMediaGroup(group.id, {
-                              classification: event.target
-                                .value as AIMediaGroup["classification"],
-                            })
-                          }
-                          className="w-full shrink-0 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-sm font-bold text-[var(--fl-text)] sm:w-auto"
-                        >
-                          <option value="finding">Finding</option>
-                          <option value="reference">Reference</option>
-                          <option value="equipment">Equipment</option>
-                          <option value="limitation">Limitation</option>
-                          <option value="unassigned">Unassigned</option>
-                        </select>
+                        <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
+                          <select
+                            value={group.classification}
+                            onChange={(event) =>
+                              updateMediaGroup(group.id, {
+                                classification: event.target
+                                  .value as AIMediaGroup["classification"],
+                              })
+                            }
+                            className="min-w-0 flex-1 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-sm font-bold text-[var(--fl-text)] sm:flex-none"
+                          >
+                            <option value="finding">Finding</option>
+                            <option value="reference">Reference</option>
+                            <option value="equipment">Equipment</option>
+                            <option value="limitation">Limitation</option>
+                            <option value="unassigned">Unassigned</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => removeMediaGroup(group.id)}
+                            title="Remove this group — it won't be saved to the report"
+                            aria-label="Remove this group"
+                            className="shrink-0 rounded-lg border border-red-500/40 px-3 py-2 text-sm font-bold text-[var(--fl-crit-text)] transition hover:bg-red-500/10 [touch-action:manipulation]"
+                          >
+                            ✕ Remove
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
