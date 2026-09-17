@@ -3751,6 +3751,7 @@ Service-life information is a general industry estimate only. Actual service lif
                 title: f.title || "Finding",
                 severity: f.severity || "",
                 section: f.section || "",
+                itemNo: f.report_item_number ? String(f.report_item_number) : "",
               }))}
             />
 

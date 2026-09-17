@@ -2041,7 +2041,7 @@ function buildPriorityReportHtml({
           <div class="finding-head">
             <span class="rank-badge">${escapeHtml(String(finding.__rank || ""))}</span>
             <div class="finding-meta">
-              <span class="finding-ref">${escapeHtml(cleanText(finding.section))}</span>
+              <span class="finding-ref">${finding.report_item_number ? `Item #${escapeHtml(String(finding.report_item_number))} &middot; ` : ""}${escapeHtml(cleanText(finding.section))}</span>
               <h3 class="finding-title">${escapeHtml(getFindingTitle(finding))}</h3>
             </div>
             <span class="sev-pill ${severityKey(finding.severity)}">${escapeHtml(getSeverityBucket(finding.severity))}</span>
@@ -3066,7 +3066,10 @@ export async function GET(req: Request, { params }: RouteProps) {
     if (priorityMode) {
       const summary: any = (inspection as any)?.priority_summary;
       const items = summary && Array.isArray(summary.items) ? summary.items : [];
-      const byId = new Map((findings || []).map((f: any) => [String(f.id), f]));
+      // Number the findings the same way the full report does, so the priority
+      // list can show each item's report number (e.g. 6.1.1) for cross-reference.
+      const numberedForPriority = addRepairItemNumbers(findings, activeSectionOrder);
+      const byId = new Map(numberedForPriority.map((f: any) => [String(f.id), f]));
       const ordered = items
         .map((it: any, idx: number) => {
           const f = byId.get(String(it.findingId));

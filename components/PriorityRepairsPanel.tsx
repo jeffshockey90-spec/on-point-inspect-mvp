@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type SlimFinding = { id: string; title: string; severity: string; section: string };
+type SlimFinding = { id: string; title: string; severity: string; section: string; itemNo?: string };
 type PriorityItem = { findingId: string; reason: string };
 type Summary = { generatedAt?: string; items: PriorityItem[] };
 
@@ -240,6 +240,11 @@ export default function PriorityRepairsPanel({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
+                    {row.finding.itemNo && (
+                      <span className="rounded-md bg-teal-500/15 px-1.5 py-0.5 text-[10px] font-bold text-[var(--fl-accent-text)]">
+                        #{row.finding.itemNo}
+                      </span>
+                    )}
                     <span className="font-semibold text-[var(--fl-text)]">{row.finding.title}</span>
                     <span
                       className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${

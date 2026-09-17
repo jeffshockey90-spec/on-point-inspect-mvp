@@ -2551,30 +2551,54 @@ export default async function PublicSharePage({
               </a>
 
               <ol className="mt-5 space-y-3">
-                {priorityRows.map((row: any, i: number) => (
-                  <li
-                    key={row.finding.id}
-                    className="flex gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4"
-                  >
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500/15 text-sm font-bold text-[var(--fl-accent-text)]">
-                      {i + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-[var(--fl-text)]">
-                          {row.finding.title}
+                {priorityRows.map((row: any, i: number) => {
+                  const thumb =
+                    row.finding.signed_preview_image_url || row.finding.signed_image_url || "";
+                  const itemNo = row.finding.report_item_number
+                    ? String(row.finding.report_item_number)
+                    : "";
+                  return (
+                    <li key={row.finding.id}>
+                      <a
+                        href={`#finding-${row.finding.id}`}
+                        className="flex items-start gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4 transition hover:border-teal-500/60"
+                      >
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500/15 text-sm font-bold text-[var(--fl-accent-text)]">
+                          {i + 1}
                         </span>
-                        <span className="rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--fl-muted)]">
-                          {row.finding.severity}
-                        </span>
-                        <span className="text-xs text-[var(--fl-faint)]">{row.finding.section}</span>
-                      </div>
-                      {row.reason && (
-                        <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">{row.reason}</p>
-                      )}
-                    </div>
-                  </li>
-                ))}
+                        {thumb && (
+                          <img
+                            src={thumb}
+                            alt=""
+                            className="h-16 w-16 shrink-0 rounded-lg border border-[var(--fl-line)] object-cover"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {itemNo && (
+                              <span className="rounded-md bg-teal-500/15 px-2 py-0.5 text-[11px] font-bold text-[var(--fl-accent-text)]">
+                                Item #{itemNo}
+                              </span>
+                            )}
+                            <span className="font-semibold text-[var(--fl-text)]">
+                              {row.finding.title}
+                            </span>
+                            <span className="rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--fl-muted)]">
+                              {row.finding.severity}
+                            </span>
+                            <span className="text-xs text-[var(--fl-faint)]">{row.finding.section}</span>
+                          </div>
+                          {row.reason && (
+                            <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">{row.reason}</p>
+                          )}
+                          <span className="mt-1 inline-block text-xs font-semibold text-[var(--fl-accent-text)]">
+                            View finding →
+                          </span>
+                        </div>
+                      </a>
+                    </li>
+                  );
+                })}
               </ol>
             </section>
           )}
