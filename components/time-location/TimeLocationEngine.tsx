@@ -5,7 +5,7 @@ import { detectDeviceTimeZone, inspectionLocalToUtc, writeStoredTimePreferences 
 
 type Inspection = { id: string; property_address?: string; property_latitude?: number | null; property_longitude?: number | null; scheduled_start_at?: string | null; inspection_date?: string | null; inspection_time?: string | null; scheduled_date?: string | null; scheduled_time?: string | null; status?: string | null };
 type ActiveTrip = { id: string; inspection_id?: string | null; total_miles?: number } | null;
-type PresenceSession = { id: string; inspection_id: string; arrived_at?: string | null; departed_at?: string | null; geofence_radius_meters?: number; inspections?: Inspection | null } | null;
+type PresenceSession = { id: string; inspection_id: string; arrived_at?: string | null; departed_at?: string | null; departure_prompted_at?: string | null; departure_dismissed_at?: string | null; geofence_radius_meters?: number; inspections?: Inspection | null } | null;
 
 const ACTION_TYPE = "ONPOINT_DEPARTURE";
 const START_ACTION = "START_MILEAGE";
@@ -97,6 +97,16 @@ export default function TimeLocationEngine() {
 
   const promptDeparture = useCallback(async (session: NonNullable<PresenceSession>, coords: { latitude: number; longitude: number }) => {
     if (departurePrompted.current || activeTrip?.id) return;
+    // A session only prompts once, ever. Without this, an already-departed
+    // session that's still marked "active" (mileage never started) gets
+    // reloaded on every app open and re-fires the departure notification.
+    // Close it out so it stops reloading and re-arming the GPS watch too.
+    if (session.departed_at || session.departure_prompted_at || session.departure_dismissed_at) {
+      departurePrompted.current = true;
+      await fetch("/api/inspection-presence", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "close" }) }).catch(() => null);
+      setPresence(null);
+      return;
+    }
     // One settings read gates both the departure recording and the mileage offer.
     const settings = await fetch("/api/settings/schedule-reminders", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
     // "Departure detection" off: don't record a departure or prompt at all.
