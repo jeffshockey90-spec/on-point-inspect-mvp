@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type ShareTab = "summary" | "full" | "disclaimers" | "standards" | "equipment";
+type ShareTab = "summary" | "full" | "disclaimers" | "standards" | "equipment" | "priority";
 
 type Props = {
   initialTab?: ShareTab;
@@ -10,6 +10,7 @@ type Props = {
   showDisclaimers?: boolean;
   showStandards?: boolean;
   showEquipment?: boolean;
+  showPriority?: boolean;
 };
 
 const TAB_LABELS: Array<{ key: ShareTab; label: string; tone: string }> = [
@@ -18,10 +19,13 @@ const TAB_LABELS: Array<{ key: ShareTab; label: string; tone: string }> = [
   { key: "disclaimers", label: "Disclaimers", tone: "border-purple-500 text-[var(--fl-purple-text)]" },
   { key: "standards", label: "Standards", tone: "border-sky-500 text-[var(--fl-info-text)]" },
   { key: "equipment", label: "Equipment", tone: "border-emerald-500 text-[var(--fl-good-text)]" },
+  // Rightmost on purpose.
+  { key: "priority", label: "🧭 Priority Repairs", tone: "border-teal-500 text-[var(--fl-accent-text)]" },
 ];
 
 function classifyPanel(element: HTMLElement): ShareTab {
   if (element.id === "client-summary") return "summary";
+  if (element.id === "priority-repairs") return "priority";
   if (element.id === "report-disclaimers") return "disclaimers";
   if (element.id === "standards-of-practice") return "standards";
   if (element.id === "equipment-inventory") return "equipment";
@@ -34,6 +38,7 @@ export default function ShareReportTabs({
   showDisclaimers = true,
   showStandards = true,
   showEquipment = true,
+  showPriority = false,
 }: Props) {
   const [activeTab, setActiveTab] = useState<ShareTab>(initialTab);
   const navRef = useRef<HTMLDivElement | null>(null);
@@ -76,18 +81,20 @@ export default function ShareReportTabs({
       const targetTab: ShareTab | null =
         hash === "#client-summary"
           ? "summary"
-          : hash === "#report-disclaimers"
-            ? "disclaimers"
-            : hash === "#standards-of-practice"
-              ? "standards"
-              : hash === "#equipment-inventory"
-                ? "equipment"
-                : hash === "#inspection-findings" ||
-                    hash === "#report-limitations" ||
-                    hash.startsWith("#section-") ||
-                    hash.startsWith("#finding-")
-                  ? "full"
-                  : null;
+          : hash === "#priority-repairs"
+            ? "priority"
+            : hash === "#report-disclaimers"
+              ? "disclaimers"
+              : hash === "#standards-of-practice"
+                ? "standards"
+                : hash === "#equipment-inventory"
+                  ? "equipment"
+                  : hash === "#inspection-findings" ||
+                      hash === "#report-limitations" ||
+                      hash.startsWith("#section-") ||
+                      hash.startsWith("#finding-")
+                    ? "full"
+                    : null;
 
       if (!targetTab) return;
 
@@ -131,6 +138,7 @@ export default function ShareReportTabs({
     if (key === "disclaimers") return showDisclaimers;
     if (key === "standards") return showStandards;
     if (key === "equipment") return showEquipment;
+    if (key === "priority") return showPriority;
     return true;
   });
 

@@ -2340,6 +2340,7 @@ export default async function PublicSharePage({
             showDisclaimers={Boolean(reportDisclaimers?.length)}
             showStandards={showStandardsInShare}
             showEquipment={equipmentInventory.length > 0}
+            showPriority={priorityRows.length > 0}
           />
 
           {reportDisclaimers && reportDisclaimers.length > 0 && (
@@ -2458,14 +2459,6 @@ export default async function PublicSharePage({
 
               <div className="mt-6 overflow-x-auto overscroll-x-contain rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-2 print:hidden">
                 <div className="flex w-max min-w-full gap-2">
-                  {priorityRows.length > 0 && (
-                    <a
-                      href="#priority-repairs"
-                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-teal-500/60 bg-teal-500/10 px-4 py-3 text-sm font-semibold leading-none text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
-                    >
-                      <span className="text-base leading-none">🧭</span><span>Priority Repairs</span>
-                    </a>
-                  )}
                   <a
                     href="#client-summary"
                     className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-[var(--fl-raised)] px-4 py-3 text-sm font-semibold leading-none text-[var(--fl-text)] transition hover:bg-slate-600"
@@ -2520,6 +2513,14 @@ export default async function PublicSharePage({
                   >
                     <span className="text-base leading-none">📄</span><span>Full Report</span>
                   </a>
+                  {priorityRows.length > 0 && (
+                    <a
+                      href="#priority-repairs"
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-teal-500/60 bg-teal-500/10 px-4 py-3 text-sm font-semibold leading-none text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
+                    >
+                      <span className="text-base leading-none">🧭</span><span>Priority Repairs</span>
+                    </a>
+                  )}
                 </div>
               </div>
 
