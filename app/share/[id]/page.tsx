@@ -2430,57 +2430,6 @@ export default async function PublicSharePage({
           </section>
           )}
 
-          {priorityRows.length > 0 && (
-            <section
-              id="priority-repairs"
-              className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-teal-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl"
-            >
-              <p className="text-sm font-bold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
-                Priority Repairs
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
-                What to address first
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
-                Your inspector ordered the report&apos;s items by priority — the most important are at the top. This is a guide to help you plan; see the full report below for complete details.
-              </p>
-
-              <a
-                href={`/api/realtor-report-download/${encodeURIComponent(sharePathId)}?priority=1`}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-teal-500 px-4 py-2.5 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-black print:hidden"
-              >
-                🧭 Download Priority Repairs (PDF)
-              </a>
-
-              <ol className="mt-5 space-y-3">
-                {priorityRows.map((row: any, i: number) => (
-                  <li
-                    key={row.finding.id}
-                    className="flex gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4"
-                  >
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500/15 text-sm font-bold text-[var(--fl-accent-text)]">
-                      {i + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-[var(--fl-text)]">
-                          {row.finding.title}
-                        </span>
-                        <span className="rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--fl-muted)]">
-                          {row.finding.severity}
-                        </span>
-                        <span className="text-xs text-[var(--fl-faint)]">{row.finding.section}</span>
-                      </div>
-                      {row.reason && (
-                        <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">{row.reason}</p>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          )}
-
           {clientSummaryGroups.length > 0 && (
             <section
               id="client-summary"
@@ -2575,6 +2524,57 @@ export default async function PublicSharePage({
               </div>
 
               <ClientSummaryAccordion groups={clientSummaryGroups} />
+            </section>
+          )}
+
+          {priorityRows.length > 0 && (
+            <section
+              id="priority-repairs"
+              className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-teal-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl"
+            >
+              <p className="text-sm font-bold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
+                Priority Repairs
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
+                What to address first
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
+                Your inspector ordered the report&apos;s items by priority — the most important are at the top. This is a guide to help you plan; see the full report below for complete details.
+              </p>
+
+              <a
+                href={`/api/realtor-report-download/${encodeURIComponent(sharePathId)}?priority=1`}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-teal-500 px-4 py-2.5 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-black print:hidden"
+              >
+                🧭 Download Priority Repairs (PDF)
+              </a>
+
+              <ol className="mt-5 space-y-3">
+                {priorityRows.map((row: any, i: number) => (
+                  <li
+                    key={row.finding.id}
+                    className="flex gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4"
+                  >
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500/15 text-sm font-bold text-[var(--fl-accent-text)]">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-[var(--fl-text)]">
+                          {row.finding.title}
+                        </span>
+                        <span className="rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--fl-muted)]">
+                          {row.finding.severity}
+                        </span>
+                        <span className="text-xs text-[var(--fl-faint)]">{row.finding.section}</span>
+                      </div>
+                      {row.reason && (
+                        <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">{row.reason}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </section>
           )}
 
