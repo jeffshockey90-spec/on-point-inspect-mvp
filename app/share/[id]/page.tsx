@@ -1586,6 +1586,25 @@ export default async function PublicSharePage({
 
   const numberedFindings = addRepairItemNumbers(findings, activeSectionOrder);
 
+  // Priority Repairs: an optional, inspector-controlled ordering (AI-generated,
+  // manually adjustable) of every finding, shown only when the inspector turned
+  // it on for the client. Stored order is the source of truth; findings deleted
+  // since generation are dropped.
+  const prioritySummary: any = (inspection as any)?.priority_summary;
+  const priorityVisible = Boolean((inspection as any)?.priority_summary_visible);
+  const priorityFindingMap = new Map(
+    numberedFindings.map((f: any) => [String(f.id), f]),
+  );
+  const priorityRows =
+    priorityVisible && prioritySummary && Array.isArray(prioritySummary.items)
+      ? prioritySummary.items
+          .map((it: any) => ({
+            finding: priorityFindingMap.get(String(it.findingId)),
+            reason: String(it.reason || ""),
+          }))
+          .filter((r: any) => r.finding)
+      : [];
+
   // Common Ground (deal insights): classify each finding to a canonical defect
   // type, look up its prevalence (national + this state), and build the panel
   // data keyed by finding id (robust to any downstream copying of findings).
@@ -2411,6 +2430,50 @@ export default async function PublicSharePage({
           </section>
           )}
 
+          {priorityRows.length > 0 && (
+            <section
+              id="priority-repairs"
+              className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-teal-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl"
+            >
+              <p className="text-sm font-bold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
+                Priority Repairs
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
+                What to address first
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
+                Your inspector ordered the report&apos;s items by priority — the most important are at the top. This is a guide to help you plan; see the full report below for complete details.
+              </p>
+
+              <ol className="mt-5 space-y-3">
+                {priorityRows.map((row: any, i: number) => (
+                  <li
+                    key={row.finding.id}
+                    className="flex gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4"
+                  >
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-500/15 text-sm font-bold text-[var(--fl-accent-text)]">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-[var(--fl-text)]">
+                          {row.finding.title}
+                        </span>
+                        <span className="rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--fl-muted)]">
+                          {row.finding.severity}
+                        </span>
+                        <span className="text-xs text-[var(--fl-faint)]">{row.finding.section}</span>
+                      </div>
+                      {row.reason && (
+                        <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">{row.reason}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
           {clientSummaryGroups.length > 0 && (
             <section
               id="client-summary"
@@ -2439,6 +2502,14 @@ export default async function PublicSharePage({
 
               <div className="mt-6 overflow-x-auto overscroll-x-contain rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-2 print:hidden">
                 <div className="flex w-max min-w-full gap-2">
+                  {priorityRows.length > 0 && (
+                    <a
+                      href="#priority-repairs"
+                      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-teal-500/60 bg-teal-500/10 px-4 py-3 text-sm font-semibold leading-none text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
+                    >
+                      <span className="text-base leading-none">🧭</span><span>Priority Repairs</span>
+                    </a>
+                  )}
                   <a
                     href="#client-summary"
                     className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-[var(--fl-raised)] px-4 py-3 text-sm font-semibold leading-none text-[var(--fl-text)] transition hover:bg-slate-600"

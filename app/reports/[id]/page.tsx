@@ -22,6 +22,7 @@ import ReportFindingsSortable from "./ReportFindingsSortable";
 import RealtimeReportSync from "../../../components/RealtimeReportSync";
 import WorkflowStateSync from "../../../components/WorkflowStateSync";
 import ReportTemplateSwitcher from "../../../components/ReportTemplateSwitcher";
+import PriorityRepairsPanel from "../../../components/PriorityRepairsPanel";
 import ReportLiveSync from "../../../components/ReportLiveSync";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
@@ -3740,6 +3741,16 @@ Service-life information is a general industry estimate only. Actual service lif
             <ReportTemplateSwitcher
               inspectionId={String(inspection.id)}
               currentTemplateId={(inspection as any).report_template_id || null}
+            />
+
+            <PriorityRepairsPanel
+              inspectionId={String(inspection.id)}
+              findings={findingsForEditor.map((f: any) => ({
+                id: String(f.id),
+                title: f.title || "Finding",
+                severity: f.severity || "",
+                section: f.section || "",
+              }))}
             />
 
             {/* Silently clocks active report-editing time for the "finished in
