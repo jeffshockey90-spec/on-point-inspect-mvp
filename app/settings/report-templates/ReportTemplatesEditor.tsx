@@ -3,8 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { BASE_SECTION_ORDER } from "../../../lib/reportSections";
 
+// Mirror how New Inspection keys the booked service (its `serviceMode`) so a
+// template's service_key actually matches and auto-applies. Built-in
+// home/radon/mold use their fixed modes; custom services use a name-derived
+// canonical key. Keeping this in lockstep with app/inspections/new is what
+// makes auto-apply fire.
+function canonicalServiceKey(value: string) {
+  return String(value || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+function serviceModeKey(s: { id: string; name: string }) {
+  if (s.id === "home") return "home";
+  if (s.id === "radon") return "radon_only";
+  if (s.id === "mold") return "mold_only";
+  return canonicalServiceKey(s.name) || s.id;
+}
+
 type Template = { id: string; name: string; sections: string[]; service_key: string | null; updated_at?: string };
-type Service = { id: string; name: string };
+type Service = { key: string; name: string };
 type Draft = { id?: string; name: string; service_key: string; sections: string[] };
 
 const EMPTY: Draft = { name: "", service_key: "", sections: [] };
@@ -30,13 +45,22 @@ export default function ReportTemplatesEditor() {
     ]).then(([t, p]) => {
       setTemplates(Array.isArray(t?.templates) ? t.templates : []);
       const svcs = p?.config?.services || p?.services || [];
-      setServices(Array.isArray(svcs) ? svcs.filter((s: any) => s?.id && s?.name).map((s: any) => ({ id: String(s.id), name: String(s.name) })) : []);
+      const raw = Array.isArray(svcs) ? svcs.filter((s: any) => s?.id && s?.name) : [];
+      const seen = new Set<string>();
+      const mapped: Service[] = [];
+      for (const s of raw) {
+        const key = serviceModeKey({ id: String(s.id), name: String(s.name) });
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        mapped.push({ key, name: String(s.name) });
+      }
+      setServices(mapped);
       setLoading(false);
     });
   }, []);
 
   const serviceName = useMemo(() => {
-    const m = new Map(services.map((s) => [s.id, s.name]));
+    const m = new Map(services.map((s) => [s.key, s.name]));
     return (key: string | null) => (key ? m.get(key) || key : null);
   }, [services]);
 
@@ -133,7 +157,7 @@ export default function ReportTemplatesEditor() {
               <span className="fl-lbl">Auto-apply to service</span>
               <select className={`${input} mt-1`} value={draft.service_key} onChange={(e) => setDraft({ ...draft, service_key: e.target.value })}>
                 <option value="">No auto-apply (manual only)</option>
-                {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {services.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
               </select>
             </label>
           </div>
