@@ -2445,6 +2445,13 @@ export default async function PublicSharePage({
                 Your inspector ordered the report&apos;s items by priority — the most important are at the top. This is a guide to help you plan; see the full report below for complete details.
               </p>
 
+              <a
+                href={`/api/realtor-report-download/${encodeURIComponent(sharePathId)}?priority=1`}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-teal-500 px-4 py-2.5 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-black print:hidden"
+              >
+                🧭 Download Priority Repairs (PDF)
+              </a>
+
               <ol className="mt-5 space-y-3">
                 {priorityRows.map((row: any, i: number) => (
                   <li

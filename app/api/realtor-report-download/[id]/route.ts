@@ -1963,6 +1963,213 @@ function buildAgentReportHtml({
 </html>`;
 }
 
+// A SEPARATE, self-contained "Priority Repairs" document. It intentionally does
+// NOT touch buildAgentReportHtml (the perfected report PDF) — it reuses the same
+// helpers, the same finding-card look, and the same photo handling, but lays the
+// findings out FLAT in the inspector's priority order (rank + "why it's a
+// priority" reason on each). Rendered through the same chromium engine.
+function buildPriorityReportHtml({
+  inspection,
+  findings,
+  branding,
+  propertyPhotoUrl,
+  sevColors = { safety: "#ef4444", repair: "#f97316", maintenance: "#0f9488", info: "#2563eb" },
+}: {
+  inspection: any;
+  findings: any[]; // ordered; each carries __rank and __reason
+  branding: any;
+  propertyPhotoUrl?: string;
+  sevColors?: { safety: string; repair: string; maintenance: string; info: string };
+}) {
+  const property = getPropertyAddress(inspection);
+  const clientName = inspection.client_name || inspection.client || "N/A";
+  const inspectionDate = formatDate(inspection.inspection_date || inspection.scheduled_date || inspection.created_at);
+  const inspectorName = inspection.inspector_name || inspection.inspector || "Jeff Shockey";
+  const cityStateZip = [inspection.city, inspection.state, inspection.zip].filter(Boolean).join(", ");
+  const companyName = branding?.companyName || "On Point Home Inspections LLC";
+  const companyEmail = branding?.companyEmail || "";
+  const companyPhone = branding?.companyPhone || "";
+  const coverLogoHtml = buildLogoHtml(branding, "cover");
+  const headerLogoHtml = buildLogoHtml(branding, "header");
+  const onlineReportUrl = onlineReportUrlForInspection(inspection);
+  const videoExt = /\.(mp4|mov|m4v|webm|avi|quicktime)(\?|#|$)/i;
+
+  const coverPhotoHtml = propertyPhotoUrl
+    ? `<img class="cover-photo" src="${escapeHtml(propertyPhotoUrl)}" alt="Property photo" />`
+    : `<div class="cover-photo no-photo">Property photo not available</div>`;
+
+  const cardsHtml = findings
+    .map((finding: any) => {
+      const photos = (Array.isArray(finding.photos) ? finding.photos : [])
+        .filter((photo: any) => {
+          const url = cleanText(photo?.download_url);
+          if (!url) return false;
+          if (isVideoPhoto(photo)) return true;
+          return !videoExt.test(url);
+        })
+        .slice(0, 3);
+      const photoCountClass = photos.length === 1 ? "one" : photos.length === 2 ? "two" : "";
+      const renderPhoto = (photo: any) => {
+        const url = cleanText(photo.download_url);
+        if (!isVideoPhoto(photo)) return `<img src="${escapeHtml(url)}" alt="Finding photo" />`;
+        const hasPoster = url && !videoExt.test(url);
+        const inner = hasPoster
+          ? `<img src="${escapeHtml(url)}" alt="Video preview" />`
+          : `<span class="video-placeholder-inner"></span>`;
+        const overlay =
+          `<span class="video-badge"><span class="video-play"></span>` +
+          `<span class="video-label">Video</span>` +
+          `${onlineReportUrl ? `<span class="video-sub">click to view on web</span>` : ""}</span>`;
+        return onlineReportUrl
+          ? `<a class="video-media" href="${escapeHtml(onlineReportUrl)}">${inner}${overlay}</a>`
+          : `<span class="video-media">${inner}${overlay}</span>`;
+      };
+      const photoHtml = photos.length
+        ? `<div class="photos ${photoCountClass}">${photos.map(renderPhoto).join("")}</div>`
+        : "";
+
+      const note = (label: string, value: any, cls = "") => {
+        const v = cleanText(value);
+        return v ? `<p class="note ${cls}"><span class="note-k">${label}:</span> ${escapeHtml(v)}</p>` : "";
+      };
+      const reasonHtml = cleanText(finding.__reason)
+        ? `<p class="note note-rec"><span class="note-k">Why it's a priority:</span> ${escapeHtml(cleanText(finding.__reason))}</p>`
+        : "";
+
+      return `
+        <article class="finding">
+          <div class="finding-head">
+            <span class="rank-badge">${escapeHtml(String(finding.__rank || ""))}</span>
+            <div class="finding-meta">
+              <span class="finding-ref">${escapeHtml(cleanText(finding.section))}</span>
+              <h3 class="finding-title">${escapeHtml(getFindingTitle(finding))}</h3>
+            </div>
+            <span class="sev-pill ${severityKey(finding.severity)}">${escapeHtml(getSeverityBucket(finding.severity))}</span>
+          </div>
+          <div class="finding-notes">
+            ${reasonHtml}
+            ${note("Observation", finding.observation)}
+            ${note("Implication", finding.implication)}
+            ${note("Recommendation", finding.recommendation || getFindingText(finding), "note-rec")}
+          </div>
+          ${photoHtml}
+        </article>
+      `;
+    })
+    .join("");
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Priority Repairs - ${escapeHtml(property)}</title>
+  <style>
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { size: letter; margin: 0.3in 0 0 0; }
+    html, body { margin: 0; padding: 0; }
+    body { background: #0b1120; color: #263143; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 12.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    .document { width: 816px; margin: 0 auto 30px; background: #e5e7eb; }
+    .page { position: relative; width: 816px; min-height: 1056px; background: #fff; padding: 42px 46px 62px; break-after: page; page-break-after: always; border-bottom: 10px solid #0b1120; }
+    .page:last-child { break-after: auto; page-break-after: auto; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 3px solid #0f8f8f; padding-bottom: 14px; margin-bottom: 24px; }
+    .header-logo-img { width: 155px; max-height: 48px; object-fit: contain; object-position: left center; display: block; }
+    .header-logo-fallback { min-height: 42px; max-width: 230px; display: flex; align-items: center; color: #020617; font-size: 18px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
+    .header-address { text-align: right; font-size: 10px; color: #334155; font-weight: 800; line-height: 1.35; }
+    .cover-page { text-align: center; }
+    .cover-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 28px; }
+    .cover-logo-img { width: 210px; max-height: 92px; object-fit: contain; object-position: left center; display: block; }
+    .cover-logo-fallback { width: 210px; min-height: 72px; display: flex; align-items: center; color: #020617; font-size: 21px; font-weight: 900; line-height: 1.05; text-transform: uppercase; }
+    .company { text-align: right; color: #334155; font-size: 10px; line-height: 1.5; }
+    .company strong { color: #020617; font-size: 13px; }
+    .cover-photo { width: 610px; height: 330px; object-fit: cover; display: block; margin: 0 auto 28px; border: 1px solid #cbd5e1; border-radius: 4px; }
+    .cover-photo.no-photo { background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+    .cover-eyebrow { color: #0f8f8f; font-weight: 900; text-transform: uppercase; letter-spacing: .16em; margin: 0 0 8px; }
+    h1 { margin: 0; color: #020617; font-size: 34px; line-height: 1.08; text-transform: uppercase; }
+    .cover-address { margin: 8px 0 0; color: #334155; font-weight: 900; font-size: 15px; }
+    .cover-rule { width: 520px; border: 0; border-top: 3px solid #0f8f8f; margin: 28px auto 20px; }
+    .cover-intro { max-width: 560px; margin: 0 auto; color: #475569; font-size: 12.5px; line-height: 1.6; }
+    .cover-details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
+    .detail-card { border: 1px solid #cbd5e1; border-radius: 12px; background: #f8fafc; padding: 14px; min-height: 78px; text-align: left; }
+    .detail-card span { display: block; color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 900; }
+    .detail-card strong { display: block; margin-top: 8px; color: #020617; font-size: 14px; }
+    .section-head { text-align: center; margin: 4px 0 4px; }
+    .section-eyebrow { margin: 0; color: #94a3b8; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; font-weight: 600; }
+    .section-name { margin: 6px 0 6px; color: #1f2937; font-size: 28px; font-weight: 400; letter-spacing: .01em; }
+    .section-sub { text-align: center; color: #64748b; font-size: 12px; margin: 0 0 22px; }
+    .finding { break-inside: avoid; page-break-inside: avoid; padding: 0 0 20px; margin-bottom: 20px; border-bottom: 1px solid #eef2f7; }
+    .finding:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 2px; }
+    .finding-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 9px; }
+    .rank-badge { flex: none; width: 32px; height: 32px; border-radius: 999px; background: #0f8f8f; color: #fff; font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+    .finding-meta { flex: 1 1 auto; min-width: 0; }
+    .finding-ref { display: block; color: #94a3b8; font-size: 11px; font-weight: 400; margin-bottom: 3px; text-transform: uppercase; letter-spacing: .05em; }
+    .finding-title { margin: 0; color: #1f2937; font-size: 17px; font-weight: 600; line-height: 1.28; }
+    .sev-pill { flex: none; border-radius: 999px; padding: 6px 14px; color: #fff; background: ${sevColors.repair}; font-size: 10px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
+    .sev-pill.safety-major { background: ${sevColors.safety}; }
+    .sev-pill.maintenance-monitor { background: ${sevColors.maintenance}; }
+    .sev-pill.informational { background: ${sevColors.info}; }
+    .finding-notes { margin: 0; }
+    .note { margin: 0 0 8px; color: #374151; line-height: 1.62; white-space: pre-line; }
+    .note:last-child { margin-bottom: 0; }
+    .note-k { font-weight: 700; color: #111827; }
+    .note-rec .note-k { color: #0f8f8f; }
+    .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; align-items: start; }
+    .photos.two { grid-template-columns: repeat(2, 1fr); }
+    .photos.one { grid-template-columns: minmax(0, 520px); }
+    .photos img { width: 100%; height: auto; display: block; border-radius: 4px; }
+    .photos.one img { width: auto; max-width: 100%; max-height: 470px; margin: 0 auto; }
+    .video-media { position: relative; display: block; overflow: hidden; border-radius: 4px; background: #1f2937; text-decoration: none; }
+    .video-media img { display: block; width: 100%; height: auto; max-height: 470px; object-fit: cover; }
+    .photos.one .video-media img { width: 100%; height: auto; max-height: 470px; margin: 0; object-fit: cover; }
+    .video-placeholder-inner { display: block; width: 100%; padding-top: 60%; }
+    .video-badge { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: rgba(15, 23, 42, 0.30); color: #fff; }
+    .video-play { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 999px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(255, 255, 255, 0.92); }
+    .video-play::before { content: ""; width: 0; height: 0; margin-left: 3px; border-style: solid; border-width: 9px 0 9px 15px; border-color: transparent transparent transparent #ffffff; }
+    .video-label { font-size: 15px; font-weight: 800; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
+    .video-sub { font-size: 11px; font-weight: 600; opacity: 0.95; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
+    h3 { margin: 0; font-weight: 600; color: #1f2937; }
+  </style>
+</head>
+<body>
+  <div class="document">
+    <section class="page cover-page">
+      <div class="cover-top">
+        ${coverLogoHtml}
+        <div class="company">
+          <strong>${escapeHtml(companyName)}</strong><br/>
+          ${companyPhone ? `${escapeHtml(companyPhone)}<br/>` : ""}
+          ${companyEmail ? `${escapeHtml(companyEmail)}` : ""}
+        </div>
+      </div>
+      ${coverPhotoHtml}
+      <p class="cover-eyebrow">Priority Repairs</p>
+      <h1>What To Address First</h1>
+      <p class="cover-address">${escapeHtml(property)}${cityStateZip ? ` &middot; ${escapeHtml(cityStateZip)}` : ""}</p>
+      <hr class="cover-rule" />
+      <p class="cover-intro">The items below are ordered by priority — the most important first — to help you plan. This summary is a companion to the full inspection report, which remains the complete record of the inspection.</p>
+      <div class="cover-details">
+        <div class="detail-card"><span>Prepared For</span><strong>${escapeHtml(clientName)}</strong></div>
+        <div class="detail-card"><span>Inspection Date</span><strong>${escapeHtml(inspectionDate)}</strong></div>
+        <div class="detail-card"><span>Inspector</span><strong>${escapeHtml(inspectorName)}</strong></div>
+      </div>
+    </section>
+
+    <section class="page report-page">
+      <header class="page-header">
+        <div class="mini-brand">${headerLogoHtml}</div>
+        <div class="header-address">${escapeHtml(property)}</div>
+      </header>
+      <div class="section-head">
+        <p class="section-eyebrow">Priority Repairs</p>
+        <h2 class="section-name">Repairs In Priority Order</h2>
+      </div>
+      <p class="section-sub">${findings.length} item${findings.length === 1 ? "" : "s"}, most important first.</p>
+      ${cardsHtml || "<p>No priority items.</p>"}
+    </section>
+  </div>
+</body>
+</html>`;
+}
+
 
 const REMOTE_CHROMIUM_PACK_URL =
   "https://github.com/Sparticuz/chromium/releases/download/v138.0.2/chromium-v138.0.2-pack.x64.tar";
@@ -2193,6 +2400,9 @@ export async function GET(req: Request, { params }: RouteProps) {
     const lookupValue = cleanText(id);
     const url = new URL(req.url);
     const reportMode = url.searchParams.get("type") === "full" ? "full" : "agent";
+    // Separate "Priority Repairs" PDF — a distinct download that never changes
+    // the main report PDF's output (gated entirely by this flag).
+    const priorityMode = url.searchParams.get("priority") === "1";
     // Language for the PDF (#23) — same cache/translation as the web report.
     const pdfLang = String(url.searchParams.get("lang") || "").trim().toLowerCase();
     // Apple surfaces open the PDF in a new tab and need it served inline so the
@@ -2371,7 +2581,7 @@ export async function GET(req: Request, { params }: RouteProps) {
     // the report has changed, serve the stored PDF instead of rebuilding — this
     // is how a pre-generated report (e.g. Spectora) feels instant. Best-effort:
     // any failure just falls through to a normal on-demand build.
-    const pdfVariant = `${reportMode}-${pdfLang || "en"}`;
+    const pdfVariant = `${reportMode}-${pdfLang || "en"}${priorityMode ? "-priority" : ""}`;
     const pdfCachePath = `_pdf-cache/${inspectionId}/${pdfVariant}.pdf`;
 
     // Hash the actual content of every table that feeds the PDF (these tables
@@ -2848,6 +3058,51 @@ export async function GET(req: Request, { params }: RouteProps) {
       } catch {
         reinspection = null;
       }
+    }
+
+    // Priority Repairs: a separate download that reuses the same engine, photos
+    // and card styling but lays findings out flat in the inspector's priority
+    // order. Returns early so the perfected report path below is never touched.
+    if (priorityMode) {
+      const summary: any = (inspection as any)?.priority_summary;
+      const items = summary && Array.isArray(summary.items) ? summary.items : [];
+      const byId = new Map((findings || []).map((f: any) => [String(f.id), f]));
+      const ordered = items
+        .map((it: any, idx: number) => {
+          const f = byId.get(String(it.findingId));
+          return f ? { ...f, __rank: idx + 1, __reason: String(it.reason || "") } : null;
+        })
+        .filter(Boolean);
+      if (ordered.length === 0) {
+        return reportErrorResponse(
+          req,
+          "No priority list has been generated for this report yet. Open the report builder, generate the Priority Repairs list, then download.",
+          400,
+        );
+      }
+      const priorityHtml = buildPriorityReportHtml({
+        inspection,
+        findings: ordered as any[],
+        branding,
+        propertyPhotoUrl,
+        sevColors,
+      });
+      const priorityPdf = await renderHtmlToPdf(priorityHtml);
+      const priorityProperty = getPropertyAddress(inspection);
+      const prioritySlug =
+        priorityProperty
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 60) || "inspection";
+      return new NextResponse(new Uint8Array(priorityPdf), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `${disposition}; filename="${prioritySlug}-priority-repairs.pdf"`,
+          "Cache-Control": "private, max-age=20",
+        },
+      });
     }
 
     const html = buildAgentReportHtml({

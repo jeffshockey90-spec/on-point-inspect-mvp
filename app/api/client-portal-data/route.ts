@@ -253,6 +253,11 @@ export async function GET(req: Request) {
     const delivery = await getReportDeliveryState(supabase, inspection as any);
 
     const pickedInspection = pickInspectionFields(inspection);
+    // Expose whether the inspector turned on the Priority Repairs list for the
+    // client, so the portal can offer its PDF download.
+    pickedInspection.priority_summary_visible = Boolean(
+      (inspection as any).priority_summary_visible,
+    );
 
     if (!delivery.deliverable) {
       for (const field of SHARE_TOKEN_FIELDS) {

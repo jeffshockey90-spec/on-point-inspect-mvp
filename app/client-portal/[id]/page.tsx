@@ -1090,6 +1090,19 @@ export default function ClientPortalPage() {
                   </span>
                 </a>
 
+                {inspection?.priority_summary_visible && (
+                  <a
+                    href={`/api/realtor-report-download/${shareLookup}?priority=1`}
+                    target="_blank"
+                    className="rounded-xl border border-teal-500 bg-[var(--fl-surface-2)] px-6 py-4 font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
+                  >
+                    <span className="block text-lg">🧭 Priority Repairs PDF</span>
+                    <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
+                      Your repairs, ordered by priority.
+                    </span>
+                  </a>
+                )}
+
                 <a
                   href={`/repair-request?inspection_id=${inspectionId}&token=${shareLookup}`}
                   target="_blank"

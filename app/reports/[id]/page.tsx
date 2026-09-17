@@ -3745,6 +3745,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
             <PriorityRepairsPanel
               inspectionId={String(inspection.id)}
+              downloadId={reportDownloadId}
               findings={findingsForEditor.map((f: any) => ({
                 id: String(f.id),
                 title: f.title || "Finding",

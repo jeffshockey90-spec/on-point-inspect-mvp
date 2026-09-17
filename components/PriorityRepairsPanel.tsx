@@ -23,9 +23,11 @@ const SEVERITY_CHIP: Record<string, string> = {
 
 export default function PriorityRepairsPanel({
   inspectionId,
+  downloadId,
   findings,
 }: {
   inspectionId: string;
+  downloadId: string;
   findings: SlimFinding[];
 }) {
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -154,6 +156,16 @@ export default function PriorityRepairsPanel({
         >
           {generating ? "Ranking…" : hasList ? "Regenerate" : "Generate priority list"}
         </button>
+        {hasList && (
+          <a
+            href={`/api/realtor-report-download/${encodeURIComponent(downloadId)}?priority=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-sm font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
+          >
+            Download PDF
+          </a>
+        )}
         {hasList && (
           <button
             type="button"
