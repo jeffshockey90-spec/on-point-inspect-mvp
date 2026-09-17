@@ -53,13 +53,18 @@ const SEVERITY_GUIDE = `Severity ladder (choose exactly one, least -> most serio
 - Safety Concern: a condition that can injure people (shock, fall, burn, fire, gas, CO).
 - Major Concern: significant/expensive defect or a component at/near failure.`;
 
-export function buildFindingContract(): string {
+export function buildFindingContract(sections?: string[]): string {
+  // The report's ACTIVE sections when supplied (base + custom template sections),
+  // otherwise the canonical 12. Passing them lets the writer route straight into
+  // a custom section (e.g. a pre-drywall "Structural Framing") instead of being
+  // forced into a base section.
+  const sectionList = sections && sections.length ? sections : FLOW_SECTIONS;
   return `You are FLOW Writer, the report-writing engine for a professional U.S. home inspection.
 Write a single finding as clear, factual, client-readable prose in the inspector's voice.
 
 Return ONE finding as an object with these fields:
 - title: a short, specific noun phrase (the defect/observation), no severity words.
-- section: EXACTLY one of: ${FLOW_SECTIONS.join(" | ")}.
+- section: EXACTLY one of: ${sectionList.join(" | ")}. Pick the MOST SPECIFIC section that matches the component; if a specialized section is present (its name defines its scope, e.g. "Structural Framing" for studs/joists/rafters/trusses/beams/sheathing, "Fire & Draft Stopping" for firestop sealing and plate/fire-separation penetrations), prefer it over a general one.
 - severity: EXACTLY one of: ${FLOW_SEVERITIES.join(" | ")}.
 - location: where in/on the home it was observed, if known (else omit/empty).
 - observation: what was actually seen — concrete, specific, no speculation.
@@ -120,11 +125,12 @@ export type FlowWriterParts = {
   examplesBlock?: string;
   contextBlock?: string; // property + live-inspection grounding
   extra?: string; // route-specific instructions (e.g. "input is a voice transcript")
+  sections?: string[]; // the report's active sections (base + custom template)
 };
 
 export function assembleFindingSystemPrompt(parts: FlowWriterParts): string {
   return [
-    buildFindingContract(),
+    buildFindingContract(parts.sections),
     parts.extra?.trim(),
     parts.contextBlock?.trim(),
     parts.styleBlock?.trim(),
@@ -169,7 +175,9 @@ export async function loadFlowWriter(opts: {
   includeExamples?: boolean; // default true
   includeContext?: boolean; // default true
   extra?: string;
+  sections?: string[]; // the report's active sections (base + custom template)
 }): Promise<FlowWriterResult> {
+  const effectiveSections = opts.sections && opts.sections.length ? opts.sections : FLOW_SECTIONS;
   const draft = opts.draft || {};
   const subject = [
     draft.title,
@@ -249,12 +257,13 @@ export async function loadFlowWriter(opts: {
     examplesBlock,
     contextBlock,
     extra: opts.extra,
+    sections: effectiveSections,
   });
 
   return {
     systemPrompt,
     config,
-    sections: FLOW_SECTIONS,
+    sections: effectiveSections,
     severities: FLOW_SEVERITIES,
     exampleCount,
   };

@@ -125,6 +125,24 @@ export default function BulkAICapturePage() {
   const [busy, setBusy] = useState(false);
   const [proposedMerges, setProposedMerges] = useState<ProposedMerge[]>([]);
   const [showMergePreview, setShowMergePreview] = useState(false);
+  // This report's ACTIVE sections (base + custom template sections). Drives the
+  // AI section routing and the manual pickers so bulk capture files into the
+  // same sections the report actually has.
+  const [activeSections, setActiveSections] = useState<string[]>(SECTIONS);
+
+  useEffect(() => {
+    if (!inspectionId) return;
+    let cancelled = false;
+    fetch(`/api/inspection-sections?inspection_id=${encodeURIComponent(inspectionId)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && Array.isArray(d?.sections) && d.sections.length) setActiveSections(d.sections);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [inspectionId]);
 
   useEffect(() => {
     try {
@@ -239,6 +257,7 @@ export default function BulkAICapturePage() {
           image: base64,
           mode: "inspection",
           inspectorNote: combinedNote,
+          availableSections: activeSections,
         }),
       });
 
@@ -258,12 +277,13 @@ export default function BulkAICapturePage() {
           item.note,
           globalNote,
           aiMemory,
-        ].join(" ")
+        ].join(" "),
+        activeSections,
       );
 
-      const cleanSection = SECTIONS.includes(correctedSection)
+      const cleanSection = activeSections.includes(correctedSection)
         ? correctedSection
-        : "Exterior";
+        : (activeSections.includes("Exterior") ? "Exterior" : activeSections[0] || "Exterior");
 
       const cleanSeverity = SEVERITIES.includes(data.severity)
         ? data.severity
@@ -318,6 +338,7 @@ export default function BulkAICapturePage() {
         body: JSON.stringify({
           image: base64,
           mode: "inspection",
+          availableSections: activeSections,
           inspectorNote:
             "Write a short, neutral one-line caption describing what this photo shows for a section reference gallery. Do NOT describe it as a defect unless one is clearly visible.",
         }),
@@ -342,7 +363,7 @@ export default function BulkAICapturePage() {
         section:
           item.section && item.section !== "Exterior"
             ? item.section
-            : SECTIONS.includes(String(data.section))
+            : activeSections.includes(String(data.section))
               ? data.section
               : item.section,
       });
@@ -866,6 +887,7 @@ export default function BulkAICapturePage() {
                   saveOne={saveOne}
                   generateReferenceCaption={generateReferenceCaption}
                   busy={busy}
+                  sections={activeSections}
                 />
               );
             })}
@@ -1046,6 +1068,7 @@ function PhotoReviewCard({
   saveOne,
   generateReferenceCaption,
   busy,
+  sections,
 }: {
   index: number;
   item: BulkItem;
@@ -1056,6 +1079,7 @@ function PhotoReviewCard({
   saveOne: (item: BulkItem) => Promise<void>;
   generateReferenceCaption: (item: BulkItem) => Promise<void>;
   busy: boolean;
+  sections: string[];
 }) {
   const isMergedChild = !!item.mergedIntoId;
   const isVideo = item.file.type.startsWith("video/");
@@ -1251,7 +1275,7 @@ function PhotoReviewCard({
                   onChange={(e) => updateItem(item.id, { section: e.target.value })}
                   className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-amber-400"
                 >
-                  {SECTIONS.map((section) => (
+                  {sections.map((section) => (
                     <option key={section}>{section}</option>
                   ))}
                 </select>
@@ -1291,7 +1315,7 @@ function PhotoReviewCard({
               disabled={isMergedChild}
               className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60"
             >
-              {SECTIONS.map((section) => (
+              {sections.map((section) => (
                 <option key={section}>{section}</option>
               ))}
             </select>
@@ -1665,58 +1689,41 @@ function titleSimilarity(a: string, b: string) {
   return jaccard;
 }
 
-function autoCorrectSection(originalSection: string, text: string) {
+function autoCorrectSection(originalSection: string, text: string, sections: string[] = SECTIONS) {
+  // Trust a valid section the AI already chose FIRST — including custom template
+  // sections (e.g. "Structural Framing"). Only keyword-route when the AI's
+  // section is missing/invalid, and only into a section this report actually has.
+  if (sections.includes(originalSection)) return originalSection;
+
   const clean = String(text || "").toLowerCase();
 
+  let routed = "";
   if (
-    /\b(gfci|gfi|outlet|receptacle|breaker|panel|disconnect|wire|wiring|junction|open ground|reverse polarity|double tap|bonding|electrical)\b/.test(
-      clean
-    )
+    /\b(gfci|gfi|outlet|receptacle|breaker|panel|disconnect|wire|wiring|junction|open ground|reverse polarity|double tap|bonding|electrical)\b/.test(clean)
   ) {
-    return "Electrical";
-  }
-
-  if (
-    /\b(shingle|roof|flashing|ridge|valley|chimney flashing|boot|vent pipe|roof covering|gutter|downspout)\b/.test(
-      clean
-    )
+    routed = "Electrical";
+  } else if (
+    /\b(shingle|roof|flashing|ridge|valley|chimney flashing|boot|vent pipe|roof covering|gutter|downspout)\b/.test(clean)
   ) {
-    return "Roof";
-  }
-
-  if (
-    /\b(sink|toilet|tub|shower|faucet|drain|supply line|trap|leak|plumbing|water heater|hose bib|valve)\b/.test(
-      clean
-    )
+    routed = "Roof";
+  } else if (
+    /\b(sink|toilet|tub|shower|faucet|drain|supply line|trap|leak|plumbing|water heater|hose bib|valve)\b/.test(clean)
   ) {
-    return "Plumbing";
+    routed = "Plumbing";
+  } else if (/\b(furnace|boiler|heat pump|air handler|heating|flue|burner|combustion)\b/.test(clean)) {
+    routed = "Heating";
+  } else if (/\b(air conditioner|condenser|cooling|evaporator|refrigerant|ac unit|a\/c)\b/.test(clean)) {
+    routed = "Cooling";
+  } else if (/\b(dishwasher|range|oven|microwave|garbage disposal|appliance)\b/.test(clean)) {
+    routed = "Built-in Appliances";
+  } else if (/\b(attic|insulation|ventilation|soffit vent|ridge vent|bath fan duct)\b/.test(clean)) {
+    routed = "Attic, Insulation & Ventilation";
+  } else if (/\b(window|door|interior|floor|wall|ceiling|trim|cabinet|stair|handrail|guardrail)\b/.test(clean)) {
+    routed = "Doors, Windows & Interior";
+  } else if (/\b(foundation|crawlspace|basement|structure|joist|beam|girder|pier|sill plate|settlement)\b/.test(clean)) {
+    routed = "Basement, Foundation, Crawlspace & Structure";
   }
 
-  if (/\b(furnace|boiler|heat pump|air handler|heating|flue|burner|combustion)\b/.test(clean)) {
-    return "Heating";
-  }
-
-  if (/\b(air conditioner|condenser|cooling|evaporator|refrigerant|ac unit|a\/c)\b/.test(clean)) {
-    return "Cooling";
-  }
-
-  if (/\b(dishwasher|range|oven|microwave|garbage disposal|appliance)\b/.test(clean)) {
-    return "Built-in Appliances";
-  }
-
-  if (/\b(attic|insulation|ventilation|soffit vent|ridge vent|bath fan duct)\b/.test(clean)) {
-    return "Attic, Insulation & Ventilation";
-  }
-
-  if (/\b(window|door|interior|floor|wall|ceiling|trim|cabinet|stair|handrail|guardrail)\b/.test(clean)) {
-    return "Doors, Windows & Interior";
-  }
-
-  if (/\b(foundation|crawlspace|basement|structure|joist|beam|girder|pier|sill plate|settlement)\b/.test(clean)) {
-    return "Basement, Foundation, Crawlspace & Structure";
-  }
-
-  if (SECTIONS.includes(originalSection)) return originalSection;
-
-  return "Exterior";
+  if (routed && sections.includes(routed)) return routed;
+  return sections.includes("Exterior") ? "Exterior" : sections[0] || "Exterior";
 }

@@ -1984,6 +1984,7 @@ function FieldPageContent() {
           inspectionId: selectedReport,
           currentSection: section,
           currentSeverity: "Informational",
+          availableSections: activeSections,
           // The endpoint's lean, note-aware limitation path keys on focus="limitation".
           focus: "limitation",
           note: limitationHint.trim() || undefined,
@@ -2795,6 +2796,7 @@ function FieldPageContent() {
           recommendation,
           section,
           severity,
+          availableSections: activeSections,
           propertyYear:
             selectedInspection?.year_built ||
             selectedInspection?.yearBuilt ||
@@ -3405,6 +3407,7 @@ function FieldPageContent() {
           inspectionId: selectedReport,
           section: group.section,
           severity: group.severity,
+          availableSections: activeSections,
           images,
         }),
       });

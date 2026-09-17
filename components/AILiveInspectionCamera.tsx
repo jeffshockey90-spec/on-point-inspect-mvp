@@ -910,6 +910,7 @@ export default function AILiveInspectionCamera({
             note,
             inspectionId: selectedReport,
             section: currentSection,
+            availableSections: sections,
             // Confirmed location captured before generating — a stated FACT for
             // the model (which wall / level / room), not something it should infer.
             location: composedLocation(),
@@ -965,6 +966,7 @@ export default function AILiveInspectionCamera({
             inspectionId: selectedReport,
             currentSection,
             currentSeverity,
+            availableSections: sections,
             focus: "limitation",
             note,
           }),

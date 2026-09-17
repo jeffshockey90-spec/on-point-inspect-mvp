@@ -18,6 +18,22 @@ function cleanText(value: any) {
   return value.trim();
 }
 
+// The report's ACTIVE sections (base + custom template), sent by the bulk-capture
+// client so vision capture can file into custom sections. Falls back to base.
+function sanitizeSections(value: any): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of value) {
+    const s = cleanText(item);
+    if (s && !seen.has(s.toLowerCase())) {
+      seen.add(s.toLowerCase());
+      out.push(s);
+    }
+  }
+  return out.slice(0, 60);
+}
+
 function formatInspectorMemory(memories: any[]) {
   if (!Array.isArray(memories) || memories.length === 0) return "";
 
@@ -61,6 +77,8 @@ export async function POST(req: Request) {
     const inspectorNote = cleanText(
       body.inspectorNote || body.note || body.comment || ""
     );
+    const providedSections = sanitizeSections(body.availableSections);
+    const validSections = providedSections.length ? providedSections : VALID_SECTIONS;
 
     let inspectorMemoryGuidance = "";
 
@@ -109,6 +127,7 @@ export async function POST(req: Request) {
     const { systemPrompt: flowPrompt } = await loadFlowWriter({
       userId: attributedUserId,
       inspectionId,
+      sections: validSections,
       draft: { note: inspectorNote },
       extra: `INPUT: ONE inspection photo and, if provided, ONE inspector field note.
 
@@ -184,9 +203,9 @@ Create exactly ONE finding based on the inspector note when provided.
       parsed = {};
     }
 
-    const cleanSection = VALID_SECTIONS.includes(parsed.section)
+    const cleanSection = validSections.includes(parsed.section)
       ? parsed.section
-      : "Exterior";
+      : (validSections.includes("Exterior") ? "Exterior" : validSections[0] || "Exterior");
 
     const cleanSeverity = VALID_SEVERITIES.includes(parsed.severity)
       ? parsed.severity

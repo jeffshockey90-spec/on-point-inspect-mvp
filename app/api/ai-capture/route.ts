@@ -67,9 +67,27 @@ function safeJsonParse(value: string) {
   return match ? JSON.parse(match[0]) : {};
 }
 
+// Sanitize a caller-supplied section list (the inspection's ACTIVE report
+// sections, custom template sections included) so the AI classifies against the
+// sections this report actually has. Empty/invalid → fall back to base.
+function sanitizeSections(value: any): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of value) {
+    const s = cleanText(item);
+    if (s && !seen.has(s.toLowerCase())) {
+      seen.add(s.toLowerCase());
+      out.push(s);
+    }
+  }
+  return out.slice(0, 60);
+}
+
 function normalizeSection(
   value: any,
   fallback: string,
+  validSections: string[],
   context?: {
     title?: string;
     observation?: string;
@@ -79,15 +97,17 @@ function normalizeSection(
 ) {
   const clean = cleanText(value);
 
-  // Trust the AI's section when it's a valid one. With the inspector's note and
-  // the photo, the model picks the section far more reliably than keyword
-  // routing, which over-triggers on incidental words (a window finding that
-  // mentions "wall", a bath fan that mentions "wire", etc.) and used to override
-  // the correct choice.
-  if (VALID_SECTIONS.includes(clean)) return clean;
+  // Trust the AI's section when it's a valid one for THIS report. With the
+  // inspector's note and the photo, the model picks the section far more
+  // reliably than keyword routing, which over-triggers on incidental words (a
+  // window finding that mentions "wall", a bath fan that mentions "wire", etc.).
+  // Because validSections includes the report's custom template sections, the
+  // model can route straight into e.g. "Structural Framing".
+  if (validSections.includes(clean)) return clean;
 
-  // Only when the model's section is vague/invalid, fall back to routing on the
-  // full finding content, then to the inspector's current section.
+  // Only when the model's section is vague/invalid, fall back to keyword routing
+  // (base-section aware), then the inspector's current section, then the first
+  // available section. Never silently dump into a section this report doesn't have.
   const routed = routeFindingSection({
     section: clean,
     title: context?.title || "",
@@ -96,8 +116,9 @@ function normalizeSection(
     recommendation: context?.recommendation || "",
   });
 
-  if (VALID_SECTIONS.includes(routed)) return routed;
-  return VALID_SECTIONS.includes(fallback) ? fallback : "Exterior";
+  if (validSections.includes(routed)) return routed;
+  if (validSections.includes(fallback)) return fallback;
+  return validSections[0] || "Exterior";
 }
 
 function normalizeWriterSeverity(value: any, fallback: string) {
@@ -135,6 +156,12 @@ export async function POST(req: Request) {
 
     const requestedSection = cleanText(body.section);
     const requestedSeverity = cleanText(body.severity);
+    // The report's ACTIVE sections (base + custom template sections), sent by the
+    // field tool / live camera so the AI can file into whatever sections THIS
+    // report has — including custom ones from a new service or template. Falls
+    // back to the fixed base list for callers that don't send it.
+    const providedSections = sanitizeSections(body.availableSections);
+    const validSections = providedSections.length ? providedSections : VALID_SECTIONS;
     // Confirmed location captured in the field BEFORE generating (side/level/room,
     // side auto-filled from the phone compass). A stated fact, not an inference.
     const location = cleanText(body.location);
@@ -270,10 +297,18 @@ ${JSON.stringify(MATERIAL_FIELDS)}
   - Dishwasher, range/cooktop/oven, microwave, disposal, built-in appliances -> Built-in Appliances
   - Garage door, opener, auto-reverse/photo eyes, fire separation -> Garage
   - Fireplace, firebox, damper, hearth -> Fireplace
+  The mappings above are guidance for the common sections. This report may also
+  include specialized sections whose NAME tells you their scope — always assign
+  the finding to the MOST SPECIFIC section in the allowed list that matches the
+  component. Examples: studs, joists, rafters, trusses, beams, headers, sheathing,
+  blocking, framing connectors -> "Structural Framing" (if present); firestop or
+  draft-stop sealing and top/bottom-plate or fire-separation penetrations ->
+  "Fire & Draft Stopping" (if present); a rough-in / pre-drywall section for that
+  trade when one is listed. Only ever pick a section from the allowed list below.
 - No markdown and no text outside JSON.
 
-Allowed sections:
-${VALID_SECTIONS.join(", ")}.
+Allowed sections (choose exactly one, use the most specific match):
+${validSections.join(", ")}.
 
 Allowed severities:
 ${VALID_SEVERITIES.join(", ")}.
@@ -350,7 +385,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
     });
 
     const parsed = safeJsonParse(response.choices[0]?.message?.content || "{}");
-    const section = normalizeSection(parsed.section, requestedSection, {
+    const section = normalizeSection(parsed.section, requestedSection, validSections, {
       title: cleanText(parsed.title),
       observation: cleanText(parsed.observation) || existingObservation,
       implication: cleanText(parsed.implication) || existingImplication,

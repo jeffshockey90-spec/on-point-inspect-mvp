@@ -92,9 +92,27 @@ function normalizeConfidence(value: any, fallback = 0.72) {
   return Math.max(0, Math.min(1, number));
 }
 
+// Sanitize a caller-supplied section list (the report's ACTIVE sections, custom
+// template sections included) so live analysis files into whatever sections THIS
+// report has. Empty/invalid → the fixed base list.
+function sanitizeSections(value: any): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of value) {
+    const s = cleanText(item);
+    if (s && !seen.has(s.toLowerCase())) {
+      seen.add(s.toLowerCase());
+      out.push(s);
+    }
+  }
+  return out.slice(0, 60);
+}
+
 function cleanSection(
   value: any,
   fallback = "Exterior",
+  validSections: string[] = VALID_SECTIONS,
   context?: {
     title?: string;
     observation?: string;
@@ -103,9 +121,11 @@ function cleanSection(
   },
 ) {
   const clean = cleanText(value);
-  // Route on the full finding/limitation content, not just the AI's section
-  // label, so it lands in the section its actual components point to (roof,
-  // plumbing, electrical, etc.) rather than defaulting to the selected tab.
+  // Trust the AI's section first when it's valid for THIS report — this is what
+  // lets it file straight into a custom template section (e.g. "Structural
+  // Framing"). Otherwise route on the full finding content (base-section aware),
+  // then fall back to the selected section, then the first available one.
+  if (validSections.includes(clean)) return clean;
   const routed = routeFindingSection({
     section: clean,
     title: context?.title || "",
@@ -114,8 +134,9 @@ function cleanSection(
     recommendation: context?.recommendation || "",
   });
 
-  if (VALID_SECTIONS.includes(routed)) return routed;
-  return VALID_SECTIONS.includes(clean) ? clean : fallback;
+  if (validSections.includes(routed)) return routed;
+  if (validSections.includes(fallback)) return fallback;
+  return validSections[0] || "Exterior";
 }
 
 function cleanSeverity(value: any, fallback = "Recommended Repair") {
@@ -208,7 +229,7 @@ async function loadRecentInspectionMemory(inspectionId: string, section: string)
     .join("\n");
 }
 
-function cleanSuggestion(value: any, index: number) {
+function cleanSuggestion(value: any, index: number, validSections: string[] = VALID_SECTIONS) {
   const title = cleanText(value?.title) || `AI Suggestion ${index + 1}`;
   const observation =
     cleanText(value?.observation) ||
@@ -223,7 +244,7 @@ function cleanSuggestion(value: any, index: number) {
     cleanText(value?.recommendation) ||
     "Inspector should verify the condition and document as needed.";
 
-  const section = cleanSection(value?.section, "Exterior", {
+  const section = cleanSection(value?.section, "Exterior", validSections, {
     title,
     observation,
     implication,
@@ -275,13 +296,13 @@ function cleanReminder(value: any, index: number) {
   };
 }
 
-function cleanLimitation(value: any, index: number, fallbackSection: string) {
+function cleanLimitation(value: any, index: number, fallbackSection: string, validSections: string[] = VALID_SECTIONS) {
   const title = cleanText(value?.title) || "Inspection Limitation";
   const limitationText =
     cleanText(value?.limitation || value?.observation || value?.description) || "";
   const reasonText = cleanText(value?.reason || value?.cause) || "";
   const recommendationText = cleanText(value?.recommendation) || "";
-  const section = cleanSection(value?.section, fallbackSection, {
+  const section = cleanSection(value?.section, fallbackSection, validSections, {
     title,
     observation: limitationText,
     implication: reasonText,
@@ -495,6 +516,11 @@ export async function POST(req: Request) {
     const inspectionId = cleanText(body.inspectionId || body.inspection_id);
     const currentSection = cleanText(body.currentSection) || "Exterior";
     const currentSeverity = cleanText(body.currentSeverity) || "Recommended Repair";
+    // The report's ACTIVE sections (base + custom template sections), sent by the
+    // live camera so it can file into whatever sections THIS report has. Falls
+    // back to the base list for callers that don't send it.
+    const providedSections = sanitizeSections(body.availableSections);
+    const validSections = providedSections.length ? providedSections : VALID_SECTIONS;
     const mode = cleanText(body.mode) || "manual";
     const isLiveWatch = mode === "live_watch";
     const focus = cleanText(body.focus);
@@ -550,9 +576,10 @@ Rules:
 - Set "section" to the report section for the area or system the limitation affects, based on what is visible, not the section the inspector currently has selected. For example blocked attic access -> Attic, Insulation & Ventilation; stored items in front of the electrical panel -> Electrical; belongings blocking the water heater -> Plumbing; a locked or inaccessible crawlspace -> Basement, Foundation, Crawlspace & Structure.
 - Do not include markdown or any text outside JSON.
 - If inspector-specific learning memory is provided below, match this inspector's demonstrated wording and style.
+- This report may include specialized sections whose NAME defines their scope — always pick the MOST SPECIFIC section in the allowed list. Only ever return a section from the allowed list.
 
-Allowed sections:
-${VALID_SECTIONS.join(", ")}.
+Allowed sections (choose exactly one, most specific match):
+${validSections.join(", ")}.
 `;
 
       const limitationUserPrompt = `
@@ -579,7 +606,7 @@ limited access or visibility.
 
       const parsed = safeJsonParse(brainResult.text || "{}");
       const limitation = parsed?.limitation
-        ? cleanLimitation(parsed.limitation, 0, currentSection)
+        ? cleanLimitation(parsed.limitation, 0, currentSection, validSections)
         : null;
 
       return NextResponse.json({
@@ -767,9 +794,10 @@ Section routing — choose the report section for the ACTUAL component/system th
 - Garage door, opener, auto-reverse/photo eyes, garage fire-separation wall -> Garage
 - Fireplace, firebox, damper, hearth -> Fireplace
 If the visible component clearly belongs to a different section than the one selected, use the component's section.
+This report may include specialized sections whose NAME defines their scope (for example "Structural Framing" for studs/joists/rafters/trusses/beams/headers/sheathing, "Fire & Draft Stopping" for firestop sealing and plate/fire-separation penetrations, or a trade's rough-in section). Always assign the MOST SPECIFIC section from the allowed list, and only ever return a section from that list.
 
-Allowed sections:
-Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Fireplace, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage.
+Allowed sections (choose exactly one, most specific match):
+${validSections.join(", ")}.
 
 Allowed severities:
 Informational, Monitor, Maintenance, Recommended Repair, Safety Concern, Major Concern.
@@ -823,7 +851,7 @@ If mode is "live_watch":
 
     const suggestions = rawSuggestions
       .slice(0, 6)
-      .map(cleanSuggestion);
+      .map((item: any, index: number) => cleanSuggestion(item, index, validSections));
 
     let reminders = Array.isArray(parsed?.reminders)
       ? parsed.reminders
@@ -851,7 +879,7 @@ If mode is "live_watch":
           .slice(0, 6)
           .filter((item: any) => !isLiveWatch || normalizeConfidence(item?.confidence, 0) >= 0.6)
           .map((item: any, index: number) =>
-            cleanLimitation(item, index, currentSection),
+            cleanLimitation(item, index, currentSection, validSections),
           )
       : [];
 
@@ -874,6 +902,7 @@ If mode is "live_watch":
                   region: item.region,
                 },
                 index,
+                validSections,
               ),
             )
         : [];
