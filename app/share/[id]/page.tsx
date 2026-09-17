@@ -856,10 +856,23 @@ function isVideoPathOrPhoto(photo: any, pathValue: any = "") {
   );
 }
 
+// What a checklist row actually displays: a text-placeholder or "OTHER" row
+// shows its custom_text, everything else shows its value.
+function checklistRowDisplay(row: any): string {
+  const value = String(row?.value ?? "");
+  if (value === "__TEXT_VALUE__" || value.toUpperCase() === "OTHER") {
+    return String(row?.custom_text ?? "").trim();
+  }
+  return value.trim();
+}
+
 function groupChecklistRows(rows: any[]) {
   const grouped: Record<string, Record<string, any[]>> = {};
 
   (rows || []).forEach((row: any) => {
+    // Anything left blank never reaches the client report: skip rows with no
+    // display value so empty groups (and empty sections) don't render.
+    if (!checklistRowDisplay(row)) return;
     const section = normalizeSection(row.section);
     if (!grouped[section]) grouped[section] = {};
     if (!grouped[section][row.group_title]) grouped[section][row.group_title] = [];
@@ -2871,9 +2884,9 @@ export default async function PublicSharePage({
 
                               <p className="mt-1 whitespace-pre-line text-[var(--fl-text)]">
                                 {(rows || [])
-                                  .map((row: any) => row.custom_text || row.value)
-                                  .filter((value: string) => value !== "__TEXT_VALUE__")
-                                  .join(", ") || "N/A"}
+                                  .map((row: any) => checklistRowDisplay(row))
+                                  .filter(Boolean)
+                                  .join(", ")}
                               </p>
                             </div>
                           )

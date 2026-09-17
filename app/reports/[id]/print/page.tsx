@@ -200,10 +200,22 @@ function getSeverityClass(severity: string | null | undefined) {
 }
 
 
+// What a checklist row actually displays: a text-placeholder or "OTHER" row
+// shows its custom_text, everything else shows its value.
+function checklistRowDisplay(row: any): string {
+  const value = String(row?.value ?? "");
+  if (value === "__TEXT_VALUE__" || value.toUpperCase() === "OTHER") {
+    return String(row?.custom_text ?? "").trim();
+  }
+  return value.trim();
+}
+
 function groupChecklistRows(rows: any[]) {
   const grouped: Record<string, Record<string, any[]>> = {};
 
   (rows || []).forEach((row: any) => {
+    // Blank entries never render on the client report.
+    if (!checklistRowDisplay(row)) return;
     if (!grouped[row.section]) grouped[row.section] = {};
     if (!grouped[row.section][row.group_title]) grouped[row.section][row.group_title] = [];
     grouped[row.section][row.group_title].push(row);
@@ -1124,9 +1136,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
                             <p className="mt-1 text-base font-semibold text-slate-800">
                               {(rows || [])
-                                .map((row: any) => row.custom_text || row.value)
-                                .filter((value: string) => value !== "__TEXT_VALUE__")
-                                .join(", ") || "N/A"}
+                                .map((row: any) => checklistRowDisplay(row))
+                                .filter(Boolean)
+                                .join(", ")}
                             </p>
                           </div>
                         )
