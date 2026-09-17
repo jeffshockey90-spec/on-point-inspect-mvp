@@ -27,7 +27,7 @@ export default async function CompanyPricingSettingsPage() {
 
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6 md:py-10">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-6xl">
         <div className="mb-8">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--fl-warn-text)]">
             Owner Settings

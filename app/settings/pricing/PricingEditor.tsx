@@ -235,15 +235,16 @@ export default function PricingEditor({
         </div>
       )}
 
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {home && (
-        <section className={CARD}>
+        <section className={`${CARD} flex flex-col`}>
           <ServiceHeader
             icon="🏠"
             title="Home Inspection"
             hint="A base price up to a square-footage limit, then a step-up for every block over it."
           />
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="mt-5 grid gap-3">
             <NumberField
               label="Base Price"
               value={home.basePrice}
@@ -278,14 +279,14 @@ export default function PricingEditor({
       )}
 
       {radon && (
-        <section className={CARD}>
+        <section className={`${CARD} flex flex-col`}>
           <ServiceHeader
             icon="🧪"
             title="Radon Test"
             hint="A flat fee. Charge less when it's booked alongside a home inspection."
           />
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="mt-5 grid gap-3">
             <NumberField
               label="Standalone Price"
               value={radon.flatPrice}
@@ -301,14 +302,14 @@ export default function PricingEditor({
       )}
 
       {mold && (
-        <section className={CARD}>
+        <section className={`${CARD} flex flex-col`}>
           <ServiceHeader
             icon="🦠"
             title="Mold Testing"
             hint="A setup fee plus a fee per sample. Setup fee can be lower when paired with an inspection."
           />
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3">
             <NumberField
               label="Standalone Setup Fee"
               value={mold.baseFee}
@@ -327,6 +328,7 @@ export default function PricingEditor({
           </div>
         </section>
       )}
+      </div>
 
       <section className={CARD}>
         <ServiceHeader
@@ -335,7 +337,7 @@ export default function PricingEditor({
           hint="Anything beyond Home, Radon, and Mold — sewer scope, well testing, termite. Flat fee, per-unit, or its own sqft formula."
         />
 
-        <div className="mt-5 space-y-5">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {customServices.map((service) => (
             <CustomServiceCard
               key={service.id}
@@ -390,7 +392,7 @@ function CustomServiceCard({
   onRemove: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 sm:p-5">
+    <div className="flex h-full flex-col rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <label className="min-w-0 flex-1">
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
@@ -414,7 +416,7 @@ function CustomServiceCard({
       </div>
 
       {service.type === "sqft_formula" && (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid gap-3">
           <NumberField
             label="Base Price"
             value={service.basePrice}
@@ -443,7 +445,7 @@ function CustomServiceCard({
       )}
 
       {service.type === "flat" && (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid gap-3">
           <NumberField
             label="Standalone Price"
             value={service.flatPrice}
@@ -458,7 +460,7 @@ function CustomServiceCard({
       )}
 
       {service.type === "flat_plus_per_unit" && (
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <div className="mt-4 grid gap-3">
           <NumberField
             label="Standalone Setup Fee"
             value={service.baseFee}
@@ -474,8 +476,8 @@ function CustomServiceCard({
             value={service.perUnitFee}
             onChange={(value) => onChange({ perUnitFee: value })}
           />
-          <label className="block min-w-0 sm:col-span-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+          <label className="block min-w-0">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
               Unit Label (e.g. "sample", "hour")
             </p>
             <input
