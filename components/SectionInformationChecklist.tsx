@@ -1070,6 +1070,78 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
         "Sectional"
       ]
     }
+  ],
+  // --- Pre-Drywall (framing-stage) sections. These document what was PRESENT
+  // and REVIEWED at the framing stage; actual defects still become findings.
+  // The last option in the review groups ("Not Installed…"/"Not Applicable")
+  // lets an inspector record a component that isn't there yet without leaving
+  // the report ambiguous.
+  "Structural Framing": [
+    {
+      "title": "Framing Observed",
+      "options": [
+        "Wall Framing",
+        "Roof / Truss Framing",
+        "Headers / Lintels",
+        "Beams / Girders",
+        "Posts / Columns",
+        "Floor Joists",
+        "Blocking / Bracing",
+        "Connectors / Hangers",
+        "Framing Penetrations",
+        "Exterior Wall Sheathing",
+        "Subfloor / Decking"
+      ]
+    },
+    {
+      "title": "Framing Material",
+      "options": [
+        "Dimensional Lumber",
+        "Engineered Lumber (LVL / LSL / PSL)",
+        "Wood I-Joists",
+        "Floor Trusses",
+        "Roof Trusses",
+        "Steel",
+        "Not Visible"
+      ]
+    },
+    {
+      "title": "Fasteners / Connectors Observed",
+      "options": [
+        "Nails",
+        "Structural Screws",
+        "Joist Hangers",
+        "Hurricane / Seismic Ties",
+        "Anchor Bolts",
+        "Hold-downs",
+        "Not Visible"
+      ]
+    }
+  ],
+  "Fire & Draft Stopping": [
+    {
+      "title": "Penetrations Reviewed",
+      "options": [
+        "Top Plate Penetrations",
+        "Bottom Plate Penetrations",
+        "Plumbing Penetrations",
+        "Electrical Penetrations",
+        "HVAC / Mechanical Penetrations",
+        "Concealed Chases / Soffits",
+        "Garage / Dwelling Separation"
+      ]
+    },
+    {
+      "title": "Fire / Draft Stopping",
+      "options": [
+        "Present Where Observed",
+        "Fire Caulk / Sealant",
+        "Mineral Wool / Batt",
+        "Fire-rated Foam",
+        "Not Installed at Time of Inspection",
+        "Not Applicable"
+      ]
+    }
   ]
 };
 
