@@ -1,3 +1,5 @@
+import { markLocalEdit } from "./localEditSignal";
+
 // router.refresh() re-renders the (heavy) report builder from the server, which
 // loses your scroll position — editing/deleting/combining a finding then bounces
 // you away (often to the very bottom). This keeps you exactly where you were.
@@ -13,7 +15,16 @@
 //      touchmove) mean "I'm taking over, stop chasing."
 //   3. Re-apply across a longer window, because the server re-render can land
 //      hundreds of ms later.
-export function refreshKeepScroll(router: { refresh: () => void }) {
+export function refreshKeepScroll(
+  router: { refresh: () => void },
+  opts?: { skipMark?: boolean },
+) {
+  // A refresh triggered by a local edit marks the moment, so RealtimeReportSync
+  // can ignore the database echo of that same edit instead of refreshing again
+  // a beat later. Passing skipMark (RealtimeReportSync's own remote refresh)
+  // avoids self-marking.
+  if (!opts?.skipMark) markLocalEdit();
+
   if (typeof window === "undefined") {
     router.refresh();
     return;

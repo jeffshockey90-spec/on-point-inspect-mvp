@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
+import { wasRecentLocalEdit } from "../lib/localEditSignal";
 
 export default function RealtimeReportSync({ inspectionId }: { inspectionId: string }) {
   const router = useRouter();
@@ -21,9 +22,13 @@ export default function RealtimeReportSync({ inspectionId }: { inspectionId: str
     const scheduleRefresh = () => {
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => {
+        // Ignore the database echo of an edit THIS device just made — it's already
+        // on screen. A change from another device (no recent local edit here)
+        // still refreshes, so cross-device sync is unchanged.
+        if (wasRecentLocalEdit()) return;
         // Only refresh a visible tab — don't churn one sitting in the background.
         if (typeof document === "undefined" || document.visibilityState === "visible") {
-          refreshKeepScroll(router);
+          refreshKeepScroll(router, { skipMark: true });
         }
       }, 800);
     };
