@@ -1185,19 +1185,34 @@ function FieldPageContent() {
     });
   }, [selectedReport, reports]);
 
+  // Reset the picker's selection/search ONLY when the report changes — not on
+  // every queue tick, which used to wipe the inspector's chosen finding mid-capture.
+  useEffect(() => {
+    setExistingFindingId("");
+    setExistingFindingSearch("");
+  }, [selectedReport]);
+
   useEffect(() => {
     let cancelled = false;
 
     async function loadExistingFindings() {
-      setExistingFindingId("");
-      setExistingFindingSearch("");
-
-      if (!selectedReport || !isOnline()) {
+      if (!selectedReport) {
         setExistingFindings([]);
         return;
       }
+      // A transient offline blip (or a background queue tick) must NOT wipe the
+      // list — keep what we have and try again next tick.
+      if (!isOnline()) return;
 
-      setLoadingExistingFindings(true);
+      // Only show the blocking "Loading…" state on the first load for this report;
+      // background refreshes (queueTick) keep the current list on screen.
+      let firstLoad = false;
+      setExistingFindings((current) => {
+        firstLoad = current.length === 0;
+        return current;
+      });
+      if (firstLoad) setLoadingExistingFindings(true);
+
       const { data, error } = await supabase
         .from("findings")
         // observation + location are included so the capture card can spot
@@ -1208,7 +1223,8 @@ function FieldPageContent() {
         .order("created_at", { ascending: false });
 
       if (!cancelled) {
-        setExistingFindings(error ? [] : data || []);
+        // Keep the existing list on a transient error instead of blanking it.
+        if (!error) setExistingFindings(data || []);
         setLoadingExistingFindings(false);
         if (error) setMessage(`Could not load existing findings: ${error.message}`);
       }
