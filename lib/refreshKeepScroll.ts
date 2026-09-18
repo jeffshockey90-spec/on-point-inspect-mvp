@@ -15,6 +15,13 @@ import { markLocalEdit } from "./localEditSignal";
 //      touchmove) mean "I'm taking over, stop chasing."
 //   3. Re-apply across a longer window, because the server re-render can land
 //      hundreds of ms later.
+// Single-flight guard + coalescing state. Overlapping restore "dances" used to
+// fight each other (each ran 12 scrollBy attempts over 1.8s), and a burst of
+// mutations fired multiple full router.refresh() calls back-to-back — together
+// that produced the "flickers and jumps to the bottom several times" glitch.
+let activeStop: (() => void) | null = null;
+let lastRefreshAt = 0;
+
 export function refreshKeepScroll(
   router: { refresh: () => void },
   opts?: { skipMark?: boolean },
@@ -28,6 +35,13 @@ export function refreshKeepScroll(
   if (typeof window === "undefined") {
     router.refresh();
     return;
+  }
+
+  // Cancel any restore dance still in flight so two never chase the scroll at
+  // once (the main cause of the multi-jump flicker).
+  if (activeStop) {
+    activeStop();
+    activeStop = null;
   }
 
   const y = window.scrollY;
@@ -64,7 +78,9 @@ export function refreshKeepScroll(
     timers.forEach((t) => window.clearTimeout(t));
     window.removeEventListener("wheel", stop);
     window.removeEventListener("touchmove", stop);
+    if (activeStop === stop) activeStop = null;
   };
+  activeStop = stop;
 
   const restore = () => {
     if (cancelled) return;
@@ -86,7 +102,15 @@ export function refreshKeepScroll(
   window.addEventListener("wheel", stop, { passive: true });
   window.addEventListener("touchmove", stop, { passive: true });
 
-  router.refresh();
+  // Coalesce a burst of mutations into a single server re-render: if we just
+  // refreshed, a fresh refresh is redundant (the in-flight one already carries
+  // the new data) and only causes another flicker. We still run the restore
+  // attempts below so the coalesced refresh's late render keeps your position.
+  const now = Date.now();
+  if (now - lastRefreshAt > 250) {
+    lastRefreshAt = now;
+    router.refresh();
+  }
 
   requestAnimationFrame(restore);
   for (const delay of [40, 90, 160, 260, 380, 520, 700, 900, 1150, 1450, 1800]) {

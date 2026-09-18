@@ -423,13 +423,10 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         [targetSection]: false,
       }));
 
+      // Keep the inspector's scroll position — a smooth scrollIntoView here fought
+      // refreshKeepScroll's restore and yanked the page (badly on mobile). The
+      // section is un-collapsed above so the new item is there when you look.
       refreshKeepScroll(router);
-
-      window.setTimeout(() => {
-        document
-          .getElementById(`report-section-${commandSlug(targetSection)}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 350);
     }
 
     window.addEventListener(
@@ -464,15 +461,9 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         }));
       }
 
+      // Keep scroll position instead of yanking to the section (the smooth
+      // scrollIntoView fought the restore and caused the jump, worst on mobile).
       refreshKeepScroll(router);
-
-      window.setTimeout(() => {
-        if (targetSection) {
-          document
-            .getElementById(`report-section-${commandSlug(targetSection)}`)
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }, 350);
     }
 
     window.addEventListener(
