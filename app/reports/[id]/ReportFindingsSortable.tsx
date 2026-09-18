@@ -351,6 +351,25 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   // Stable handler so passing it to every FindingCard doesn't break its memo().
   const handleNeedPhotoPicker = useCallback(() => setPhotoPickerLoaded(true), []);
 
+  // Optimistic in-place finding update: patch the finding inside its group
+  // WITHOUT a server refresh, so a text/severity/repair edit updates instantly
+  // and never triggers the heavy re-render. Section changes are a cross-group
+  // move and still go through a refresh (handled in EditableFinding). The DB is
+  // still written first, so single-source-of-truth is unchanged.
+  const patchFinding = useCallback((id: any, patch: Record<string, any>) => {
+    const fid = String(id);
+    setOrderedGroups((groups) =>
+      (groups || []).map((g: any) => {
+        const list = g.findings || [];
+        const idx = list.findIndex((f: any) => String(f.id) === fid);
+        if (idx === -1) return g;
+        const nf = [...list];
+        nf[idx] = { ...nf[idx], ...patch };
+        return { ...g, findings: nf };
+      }),
+    );
+  }, []);
+
   useEffect(() => {
     const nextGroups = groupedFindings || [];
 
@@ -1334,6 +1353,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                       onStartCombine={startCombineWith}
                       relatedHint={relatedByFinding.get(String(finding.id))}
                       onCombinePair={startCombineWithPair}
+                      onFindingPatch={patchFinding}
                       router={router}
                     />
                   );
@@ -2662,6 +2682,7 @@ function FindingCardBase({
   onStartCombine,
   relatedHint,
   onCombinePair,
+  onFindingPatch,
   router,
 }: any) {
   const severityConfig = useSeverityConfig();
@@ -2749,6 +2770,17 @@ function FindingCardBase({
   useEffect(() => {
     setLocalFinding(finding);
   }, [finding]);
+
+  // Optimistic edit: update this card's displayed finding instantly, then bubble
+  // the same patch to the parent's grouped state (keeps allFindings/combine in
+  // sync). No server refresh — the DB write already happened in EditableFinding.
+  const applyFindingPatch = useCallback(
+    (id: any, patch: Record<string, any>) => {
+      setLocalFinding((prev: any) => ({ ...(prev || finding), ...patch }));
+      onFindingPatch?.(id, patch);
+    },
+    [finding, onFindingPatch],
+  );
 
   const photos = getFindingPhotos(displayFinding);
   const hiddenPhotoCount = Math.max(
@@ -4383,13 +4415,16 @@ function FindingCardBase({
           className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 sm:p-4"
         >
           <EditableFinding
+            // Key only on id + updated_at: an optimistic edit doesn't change
+            // updated_at (no refetch), so the editor no longer remounts on every
+            // save (that remount was part of the flicker). A real server refresh
+            // (section move / remote edit) bumps updated_at and re-inits it.
             key={`${String(displayFinding.id || finding.id)}-${String(
               displayFinding.updated_at || "",
-            )}-${String(displayFinding.title || "")}-${String(
-              displayFinding.observation || "",
             )}`}
             finding={displayFinding}
             availableSections={availableSections}
+            onFindingPatch={applyFindingPatch}
           />
 
           <RelatedFindingsEditor
