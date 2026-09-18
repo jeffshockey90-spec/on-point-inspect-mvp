@@ -4,7 +4,6 @@ import { memo, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
-import { markLocalEdit } from "../lib/localEditSignal";
 import { useSeverityConfig } from "../lib/severity/useSeverityConfig";
 import { severityOptions } from "../lib/severity/severityConfig";
 
@@ -27,29 +26,11 @@ const SECTIONS = [
 function EditableFinding({
   finding,
   availableSections,
-  onFindingPatch,
 }: {
   finding: any;
   availableSections?: string[];
-  onFindingPatch?: (id: any, patch: Record<string, any>) => void;
 }) {
   const router = useRouter();
-
-  // After a successful save, update the finding in place instead of forcing a
-  // full server re-render (the old refreshKeepScroll on every edit). The DB still
-  // holds the truth — this only skips the heavy refresh on the editing device.
-  // markLocalEdit() makes RealtimeReportSync ignore this save's own DB echo. A
-  // section change is a cross-group move, so it still falls back to a refresh.
-  function commitPatch(patch: Record<string, any>) {
-    const sectionChanged =
-      "section" in patch && patch.section !== finding.section;
-    if (onFindingPatch && !sectionChanged) {
-      markLocalEdit();
-      onFindingPatch(finding.id, patch);
-    } else {
-      refreshKeepScroll(router);
-    }
-  }
 
   // Built-in sections plus any custom sections on this inspection, and the
   // finding's own current section, so it can be moved into (or stay in) a
@@ -88,26 +69,6 @@ function EditableFinding({
     finding.repair_priority || "Recommended"
   );
   const [repairNotes, setRepairNotes] = useState(finding.repair_notes || "");
-
-  // The editor no longer remounts on every save (see the key change in
-  // ReportFindingsSortable). Re-sync the fields from the finding whenever it
-  // changes AND we're not mid-edit, so opening the form always shows the current
-  // values (after an optimistic save, a card-level AI rewrite, or a remote edit)
-  // without clobbering what the inspector is actively typing.
-  useEffect(() => {
-    if (editing) return;
-    setTitle(finding.title || "");
-    setSection(finding.section || "Exterior");
-    setSeverity(finding.severity || "Recommended Repair");
-    setLocation(finding.location || "");
-    setObservation(finding.observation || "");
-    setImplication(finding.implication || "");
-    setRecommendation(finding.recommendation || "");
-    setRepairRequest(finding.repair_request || false);
-    setRepairPriority(finding.repair_priority || "Recommended");
-    setRepairNotes(finding.repair_notes || "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finding, editing]);
 
   const [saving, setSaving] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
@@ -241,7 +202,7 @@ function EditableFinding({
       setSaveLabel("Saved!");
       showMessage("success", "Finding saved.");
       setEditing(false);
-      commitPatch(payload);
+      refreshKeepScroll(router);
     } catch (error: any) {
       setSaveLabel("Failed");
       showMessage("error", error?.message || "Failed to save finding.");
@@ -277,11 +238,7 @@ function EditableFinding({
 
       setRepairLabel("Saved!");
       showMessage("success", "Repair request saved.");
-      commitPatch({
-        repair_request: repairRequest,
-        repair_priority: repairPriority,
-        repair_notes: repairNotes,
-      });
+      refreshKeepScroll(router);
     } catch (error: any) {
       setRepairLabel("Failed");
       showMessage("error", error?.message || "Failed to save repair request.");
@@ -338,7 +295,7 @@ function EditableFinding({
       setRecommendation(data.rewritten);
       setRewriteLabel("Rewritten!");
       showMessage("success", "Finding rewritten.");
-      commitPatch({ recommendation: data.rewritten });
+      refreshKeepScroll(router);
     } catch (error: any) {
       setRewriteLabel("Failed");
       showMessage("error", error?.message || "Failed to rewrite finding.");
