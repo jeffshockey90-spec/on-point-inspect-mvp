@@ -355,7 +355,22 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     const nextGroups = groupedFindings || [];
 
     setOrderedGroups(nextGroups);
-    setClosedSections(getAllSectionsClosed(nextGroups));
+    // Reconcile the section open/closed map WITHOUT collapsing everything on
+    // every server refresh. The old `getAllSectionsClosed` reset closed EVERY
+    // section on each refresh — closed sections render null, so the whole page
+    // suddenly shrank, the scroll-restore clamped to the (now short) bottom,
+    // and as sections lazily re-mounted the page grew back while restore kept
+    // firing: that's the "flicker + jump to the bottom several times" on every
+    // edit. Now we keep the inspector's current open/closed choices, default a
+    // brand-new section to closed, and drop sections that no longer exist.
+    setClosedSections((prev) => {
+      const next: Record<string, boolean> = {};
+      for (const group of nextGroups) {
+        const name = group.section;
+        next[name] = name in prev ? prev[name] : true;
+      }
+      return next;
+    });
   }, [groupedFindings]);
 
   useEffect(() => {
