@@ -25,6 +25,7 @@ import ReportTemplateSwitcher from "../../../components/ReportTemplateSwitcher";
 import PriorityRepairsPanel from "../../../components/PriorityRepairsPanel";
 import ReportLiveSync from "../../../components/ReportLiveSync";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
+import { getCachedSignedUrls } from "../../../lib/signedUrlCache";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
 import InvoiceReminderButton from "../../../components/InvoiceReminderButton";
 import SendW9Button from "../../../components/SendW9Button";
@@ -345,7 +346,9 @@ async function createSignedPhotoUrl(supabase: any, photo: any) {
   return data.signedUrl;
 }
 
-async function createSignedUrlMap(supabase: any, paths: string[]) {
+// Actual batch signing (640/q72 preview transform). Used as the "sign the
+// misses" function behind the signed-URL cache below.
+async function signPreviewBatch(supabase: any, paths: string[]) {
   const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
   const signedMap: Record<string, string> = {};
 
@@ -377,7 +380,20 @@ async function createSignedUrlMap(supabase: any, paths: string[]) {
   return signedMap;
 }
 
-async function createSignedRawUrlMap(supabase: any, paths: string[]) {
+// Cache the preview signed URLs by path so a warm report re-open doesn't re-sign
+// every photo. Same files, same 640/q72 transform — only the URL string is
+// cached. Fails open to a fresh signing if the cache is unavailable.
+async function createSignedUrlMap(supabase: any, paths: string[]) {
+  return getCachedSignedUrls({
+    paths,
+    variant: "preview640q72",
+    ttlSeconds: 60 * 60 * 24 * 7,
+    sign: (missing) => signPreviewBatch(supabase, missing),
+  });
+}
+
+// Actual batch signing (raw, no transform — full quality, videos included).
+async function signRawBatch(supabase: any, paths: string[]) {
   const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
   const signedMap: Record<string, string> = {};
 
@@ -407,6 +423,17 @@ async function createSignedRawUrlMap(supabase: any, paths: string[]) {
   }
 
   return signedMap;
+}
+
+// Cache the raw (full-quality) signed URLs by path. Same files/bytes — only the
+// URL string is cached; fails open to a fresh signing.
+async function createSignedRawUrlMap(supabase: any, paths: string[]) {
+  return getCachedSignedUrls({
+    paths,
+    variant: "raw",
+    ttlSeconds: 60 * 60 * 24 * 7,
+    sign: (missing) => signRawBatch(supabase, missing),
+  });
 }
 
 function getPhotoStoragePath(photo: any) {
