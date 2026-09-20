@@ -23,7 +23,6 @@ import RealtimeReportSync from "../../../components/RealtimeReportSync";
 import WorkflowStateSync from "../../../components/WorkflowStateSync";
 import ReportTemplateSwitcher from "../../../components/ReportTemplateSwitcher";
 import PriorityRepairsPanel from "../../../components/PriorityRepairsPanel";
-import ReportLiveSync from "../../../components/ReportLiveSync";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import { getCachedSignedUrls } from "../../../lib/signedUrlCache";
 import SendReportEmailButtons from "../../../components/SendReportEmailButtons";
@@ -3755,8 +3754,6 @@ Service-life information is a general industry estimate only. Actual service lif
           </section>
 
           <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
-            <ReportLiveSync inspectionId={inspection.id} />
-
             <FieldReviewQueue
               inspectionId={String(inspection.id)}
               reviewFindings={fieldReviewFindings}

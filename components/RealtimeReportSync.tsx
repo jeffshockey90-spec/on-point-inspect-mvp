@@ -1,10 +1,15 @@
 "use client";
 
-// Live cross-device sync for an open report: subscribes to findings changes for
-// this inspection and gently refreshes the page when another device adds/edits/
-// removes a finding. Read-only and passive (a websocket, no polling) — it never
-// touches the capture/save path and adds no latency to normal use. Refreshes
-// are debounced, scroll-preserving, and bail the instant you scroll yourself.
+// Live cross-device sync for an open report: subscribes to findings AND
+// report-level (inspections row) changes for this inspection and gently
+// refreshes the page when another device adds/edits/removes a finding or edits a
+// report field. This is the ONE sync component for the builder — it replaced a
+// second component that did a hard window.location.reload() on the same events,
+// which stacked a full reload on top of this soft refresh and looked like the
+// report "refreshing several times on its own." Read-only and passive (a
+// websocket, no polling) — it never touches the capture/save path and adds no
+// latency to normal use. Refreshes are debounced, scroll-preserving, suppress
+// this device's own edit echoes, and bail the instant you scroll yourself.
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -38,6 +43,11 @@ export default function RealtimeReportSync({ inspectionId }: { inspectionId: str
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "findings", filter: `inspection_id=eq.${inspectionId}` },
+        scheduleRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "inspections", filter: `id=eq.${inspectionId}` },
         scheduleRefresh,
       )
       .subscribe();
