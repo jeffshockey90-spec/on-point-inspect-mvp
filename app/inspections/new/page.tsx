@@ -17,7 +17,7 @@ import {
 } from "../../../lib/inspectorPricing";
 import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
-import AirspaceBadge from "../../../components/AirspaceBadge";
+import DroneAirspaceCard from "../../../components/DroneAirspaceCard";
 import { isAppleActive } from "../../../lib/entitlements";
 
 declare global {
@@ -1555,7 +1555,7 @@ function NewInspectionPageContent() {
               </p>
             )}
 
-            <AirspaceBadge
+            <DroneAirspaceCard
               address={propertyAddress}
               city={city}
               state={stateValue}

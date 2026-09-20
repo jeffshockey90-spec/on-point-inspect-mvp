@@ -46,7 +46,7 @@ import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
 import ReportBuilderSectionTabs from "../../../components/ReportBuilderSectionTabs";
 import ReportEditTimer from "../../../components/ReportEditTimer";
 import InspectionRouteCard from "../../../components/InspectionRouteCard";
-import AirspaceBadge from "../../../components/AirspaceBadge";
+import DroneAirspaceCard from "../../../components/DroneAirspaceCard";
 import { getDrivingDistance } from "../../../lib/geocode";
 import FastLinkButton from "../../../components/FastLinkButton";
 import CreateDemoReportButton from "../../../components/CreateDemoReportButton";
@@ -3165,7 +3165,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           </div>
 
           <div className="mb-6">
-            <AirspaceBadge
+            <DroneAirspaceCard
               address={inspection.property_address || inspection.address || ""}
               city={inspection.city}
               state={inspection.state}
