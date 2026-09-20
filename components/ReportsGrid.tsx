@@ -194,7 +194,12 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
               <Link
                 href={`/reports/${report.id}`}
                 aria-label={`Open report for ${report.address}`}
-                className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+                // [touch-action:manipulation] removes the browser's double-tap-zoom
+                // gesture wait on this overlay — without it the first tap on the
+                // card body was swallowed and you had to tap several times. (The
+                // "Open Report" FastLinkButton already had this, which is why it
+                // opened on the first tap.)
+                className="absolute inset-0 z-10 rounded-2xl [touch-action:manipulation] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
               />
 
               {/* The image area is purely decorative — let clicks fall through to
