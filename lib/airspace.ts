@@ -86,6 +86,22 @@ const STADIUMS_URL =
   process.env.FAA_STADIUMS_URL ||
   "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/Stadiums/FeatureServer/0/query";
 
+// Special Use Airspace — we use ONLY Restricted Areas (TYPE_CODE 'R', e.g.
+// R-4808N over Area 51, R-2508 China Lake), which are genuine no-fly when
+// active. We deliberately exclude MOA/Alert/Warning, which over-flag (they
+// aren't drone no-fly). Prohibited ('P') is already covered by PROHIBITED_URL.
+const SUA_URL =
+  process.env.FAA_SUA_URL ||
+  "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/Special_Use_Airspace/FeatureServer/0/query";
+
+// Standing (permanent) FDC-NOTAM TFRs that ban drones and are NOT in any FAA
+// polygon layer. Only a few exist nationwide; each is a fixed circle (surface
+// area, radius in NM). Extend this list if the FAA adds more.
+const STANDING_TFRS: { name: string; lat: number; lng: number; radiusNm: number }[] = [
+  { name: "Walt Disney World, FL", lat: 28.4045, lng: -81.5809, radiusNm: 3 },
+  { name: "Disneyland, CA", lat: 33.8121, lng: -117.919, radiusNm: 3 },
+];
+
 // Washington DC Special Flight Rules Area (SFRA), centered on the DCA VOR. This
 // is a fixed geographic rule (no polygon layer needed, so it can never go
 // stale): inside ~15 NM is the Flight Restricted Zone (FRZ) where drone flight
@@ -287,12 +303,18 @@ export async function getAirspace(lat: number, lng: number): Promise<AirspaceRes
     // airspace grid PLUS every nationwide hard-no-fly overlay the grid doesn't
     // encode, plus nearby stadiums. This is what makes the check correct in ALL
     // areas, not just near airports.
-    const [json, prohJson, natsecJson, natdefJson, stadiumJson] = await Promise.all([
+    // Restricted-Area query: same point, but filtered to TYPE_CODE 'R' so we
+    // never pull in MOA/Alert airspace (which aren't drone no-fly).
+    const suaParams = pointParams("NAME,TYPE_CODE");
+    suaParams.set("where", "TYPE_CODE='R'");
+
+    const [json, prohJson, natsecJson, natdefJson, stadiumJson, suaJson] = await Promise.all([
       faaFetchJson(`${UASFM_URL}?${pointParams("CEILING,AIRSPACE_1,APT1_FAAID,APT1_ICAO,APT1_NAME").toString()}`),
       faaFetchJson(`${PROHIBITED_URL}?${pointParams("NAME,COMM_NAME,TYPE_CODE").toString()}`),
       faaFetchJson(`${NATSEC_URL}?${pointParams("Base,Facility,Reason").toString()}`),
       faaFetchJson(`${NATDEF_TFR_URL}?${pointParams("NAME,CITY,STATE").toString()}`),
       faaFetchJson(`${STADIUMS_URL}?${nearParams("NAME", 5556).toString()}`), // 3 NM
+      faaFetchJson(`${SUA_URL}?${suaParams.toString()}`),
     ]);
 
     // ---- Advisories: non-blocking heads-ups that ride along with ANY status
@@ -363,7 +385,43 @@ export async function getAirspace(lat: number, lng: number): Promise<AirspaceRes
       };
     }
 
-    // 3) Washington DC Flight Restricted Zone (inner ~15 NM). Drone flight needs
+    // 3) Standing (permanent) drone-ban TFR — e.g. Disney parks.
+    const standingTfr = STANDING_TFRS.find(
+      (t) => haversineNm(lat, lng, t.lat, t.lng) <= t.radiusNm,
+    );
+    if (standingTfr) {
+      const restricted: Omit<AirspaceResult, "headline" | "detail"> = {
+        ...base,
+        status: "prohibited",
+        controlled: true,
+        restrictedAreaName: `${standingTfr.name} TFR`,
+      };
+      return {
+        ...restricted,
+        headline: `No-fly zone — standing TFR (${standingTfr.name})`,
+        detail: `This location is inside the permanent ${standingTfr.name} flight-restriction TFR. Drone flights are prohibited here — do not fly.`,
+      };
+    }
+
+    // 4) Restricted Area (R-xxxx). Genuine no-fly when active; many are active
+    // only by NOTAM, so surface it red but tell the pilot to verify the schedule.
+    const suaFeat = Array.isArray(suaJson?.features) ? suaJson.features[0] : null;
+    if (suaFeat) {
+      const name = nonEmpty(suaFeat?.attributes?.NAME) || "Restricted Area";
+      const restricted: Omit<AirspaceResult, "headline" | "detail"> = {
+        ...base,
+        status: "prohibited",
+        controlled: true,
+        restrictedAreaName: name,
+      };
+      return {
+        ...restricted,
+        headline: `Restricted airspace — ${name}`,
+        detail: `This location is inside Restricted Area ${name}. Drone flight is prohibited when it's active — many are active only by NOTAM, so confirm it's cold (B4UFLY / the controlling agency) before flying, and do not fly if it's hot.`,
+      };
+    }
+
+    // 5) Washington DC Flight Restricted Zone (inner ~15 NM). Drone flight needs
     // specific FAA/TSA authorization and is effectively off-limits for a routine
     // inspection — surface it red.
     if (dcNm <= DC_FRZ_NM) {
