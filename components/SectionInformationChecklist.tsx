@@ -1918,7 +1918,7 @@ function Modal({ title, subtitle, children, onClose }: any) {
   // report editor. This is what makes it "pop up right on the screen".
   return createPortal(
     <div
-      className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-black/70 p-4"
+      className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-black/70 p-4 [touch-action:manipulation]"
       onClick={onClose}
     >
       <div

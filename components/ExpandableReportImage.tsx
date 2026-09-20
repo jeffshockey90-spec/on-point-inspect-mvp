@@ -90,7 +90,7 @@ function ExpandableReportImage({
             role="dialog"
             aria-modal="true"
             aria-label={displayAlt}
-            className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/95 p-4"
+            className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/95 p-4 [touch-action:manipulation]"
             onClick={() => setExpanded(false)}
           >
             <button

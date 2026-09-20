@@ -478,7 +478,7 @@ function CompactSummaryCard({
             role="dialog"
             aria-modal="true"
             aria-label={`${title} video player`}
-            className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 p-3 sm:p-6"
+            className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 p-3 sm:p-6 [touch-action:manipulation]"
             onClick={() => setVideoOpen(false)}
           >
             <button

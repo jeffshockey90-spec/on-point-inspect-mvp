@@ -867,7 +867,7 @@ export default function FieldCamera({
       />
 
       <div
-        className="absolute inset-0 z-[1]"
+        className="absolute inset-0 z-[1] touch-none"
         onPointerDown={handleTapFocus}
         onTouchStart={handlePinchStart}
         onTouchMove={handlePinchMove}
