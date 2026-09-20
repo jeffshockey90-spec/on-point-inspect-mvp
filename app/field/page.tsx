@@ -17,14 +17,7 @@ import CommentLibrary from "../../components/CommentLibrary";
 import FindingToneControl from "../../components/FindingToneControl";
 import OfflineSyncStatus from "../../components/OfflineSyncStatus";
 import EquipmentCard from "../../components/EquipmentCard";
-import AISecondInspector, {
-  type AISuggestion,
-} from "../../components/AISecondInspector";
-import InspectionCopilotPanel from "../../components/InspectionCopilotPanel";
-import CodeAssistantPanel from "../../components/CodeAssistantPanel";
-import OfflineReportViewer from "../../components/OfflineReportViewer";
-import AILiveInspectionCamera from "../../components/AILiveInspectionCamera";
-import FieldFindingLinker from "../../components/FieldFindingLinker";
+import type { AISuggestion } from "../../components/AISecondInspector";
 import type {
   CaptureCategory,
   CaptureDraft,
@@ -40,8 +33,56 @@ const PhotoMarkupEditor = dynamic(() => import("../../components/PhotoMarkupEdit
     </div>
   ),
 });
-import VoiceOnlyInspectionMode from "../../components/VoiceOnlyInspectionMode";
-import LiveSectionCoach from "../../components/LiveSectionCoach";
+
+// Heavy, on-demand field-tool panels — kept OUT of the mobile /field first-paint
+// bundle. Each only mounts when its assistant tab / toggle is opened, so the
+// tool starts faster. ssr:false because they use browser-only APIs (camera,
+// speech, canvas). The always-visible main FieldCamera + CommentLibrary stay
+// statically imported so they never load late.
+const fieldPanelLoading = () => (
+  <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm font-bold text-[var(--fl-muted)]">
+    Loading…
+  </div>
+);
+const AILiveInspectionCamera = dynamic(
+  () => import("../../components/AILiveInspectionCamera"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 p-6 text-center text-sm font-bold text-[var(--fl-accent-text)]">
+        Loading AI camera…
+      </div>
+    ),
+  },
+);
+const LiveSectionCoach = dynamic(() => import("../../components/LiveSectionCoach"), {
+  ssr: false,
+  loading: fieldPanelLoading,
+});
+const InspectionCopilotPanel = dynamic(
+  () => import("../../components/InspectionCopilotPanel"),
+  { ssr: false, loading: fieldPanelLoading },
+);
+const AISecondInspector = dynamic(() => import("../../components/AISecondInspector"), {
+  ssr: false,
+  loading: fieldPanelLoading,
+});
+const CodeAssistantPanel = dynamic(() => import("../../components/CodeAssistantPanel"), {
+  ssr: false,
+  loading: fieldPanelLoading,
+});
+const FieldFindingLinker = dynamic(() => import("../../components/FieldFindingLinker"), {
+  ssr: false,
+  loading: fieldPanelLoading,
+});
+const OfflineReportViewer = dynamic(() => import("../../components/OfflineReportViewer"), {
+  ssr: false,
+  loading: fieldPanelLoading,
+});
+const VoiceOnlyInspectionMode = dynamic(
+  () => import("../../components/VoiceOnlyInspectionMode"),
+  { ssr: false, loading: fieldPanelLoading },
+);
 import {
   addOfflineQueueItem,
   getOfflineQueueSummary,
