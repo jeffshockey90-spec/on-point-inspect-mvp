@@ -90,6 +90,22 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Every standard interactive element opens on the FIRST tap: touch-action
+   manipulation drops the browser's double-tap-zoom wait that used to swallow
+   the first tap (e.g. the stretched card links). Covers links, role=button
+   elements, labels, details summaries and input buttons app-wide. Custom
+   clickable divs/spans still need it added directly (no reliable selector). */
+a,
+[role="button"],
+label,
+summary,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /*
  * Baseline tap feedback for buttons that don't define their own active:
  * scale/opacity. :where() has zero specificity, so any component's own
