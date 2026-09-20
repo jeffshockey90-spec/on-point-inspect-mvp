@@ -73,6 +73,42 @@ function nonEmpty(value: any): string | null {
   return s ? s : null;
 }
 
+// Fetch + parse a FAA ArcGIS query with a hard timeout and one retry, so a
+// single transient blip or a serverless cold-start latency spike doesn't leave
+// the airspace check stranded on "could not be checked." Returns the parsed
+// JSON, or null on a genuine failure (caller decides how to fail — safe, never
+// toward "clear"). Never throws.
+async function faaFetchJson(
+  url: string,
+  { timeoutMs = 7000, retries = 1 }: { timeoutMs?: number; retries?: number } = {},
+): Promise<any | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, {
+        cache: "no-store",
+        signal: controller.signal,
+        headers: {
+          // Some ArcGIS front-ends are unhappy with a bare/empty UA from
+          // datacenter egress; identify ourselves and ask for JSON explicitly.
+          "User-Agent": "FLOW-Inspect airspace-check (+https://flowinspect.app)",
+          Accept: "application/json",
+        },
+      });
+      clearTimeout(timer);
+      if (!res.ok) continue; // retry a non-200
+      const json = await res.json().catch(() => null);
+      if (!json || json.error) continue; // retry a soft/error body
+      return json;
+    } catch {
+      clearTimeout(timer);
+      // fall through to retry / return null
+    }
+  }
+  return null;
+}
+
 // Turn a normalized result into the human-facing headline + detail copy.
 function describe(partial: Omit<AirspaceResult, "headline" | "detail">): {
   headline: string;
@@ -189,18 +225,15 @@ export async function getAirspace(lat: number, lng: number): Promise<AirspaceRes
   try {
     // Query both layers together: the controlled-airspace grid (LAANC ceiling)
     // and the prohibited-areas overlay (hard no-fly). Prohibited wins if hit.
-    const [uasfmRes, prohRes] = await Promise.all([
-      fetch(`${UASFM_URL}?${pointParams("CEILING,AIRSPACE_1,APT1_FAAID,APT1_ICAO,APT1_NAME").toString()}`, {
-        cache: "no-store",
-      }),
-      fetch(`${PROHIBITED_URL}?${pointParams("NAME,COMM_NAME,TYPE_CODE").toString()}`, {
-        cache: "no-store",
-      }).catch(() => null),
+    // Both go through the resilient fetch (timeout + retry) so a blip doesn't
+    // strand the check.
+    const [json, prohJson] = await Promise.all([
+      faaFetchJson(`${UASFM_URL}?${pointParams("CEILING,AIRSPACE_1,APT1_FAAID,APT1_ICAO,APT1_NAME").toString()}`),
+      faaFetchJson(`${PROHIBITED_URL}?${pointParams("NAME,COMM_NAME,TYPE_CODE").toString()}`),
     ]);
 
     // Hard no-fly override: inside a prohibited area (P-xx).
-    if (prohRes && prohRes.ok) {
-      const prohJson: any = await prohRes.json().catch(() => null);
+    {
       const prohFeat = Array.isArray(prohJson?.features) ? prohJson.features[0] : null;
       if (prohFeat) {
         const a = prohFeat.attributes || {};
@@ -217,10 +250,9 @@ export async function getAirspace(lat: number, lng: number): Promise<AirspaceRes
       }
     }
 
-    if (!uasfmRes.ok) return { ...base, ...describe(base) };
-
-    const json: any = await uasfmRes.json();
-    if (json?.error) return { ...base, ...describe(base) };
+    // Couldn't reach / parse the controlled-airspace grid → fail safe (unknown),
+    // never toward "clear."
+    if (!json) return { ...base, ...describe(base) };
 
     const features: any[] = Array.isArray(json?.features) ? json.features : [];
 
@@ -247,26 +279,13 @@ export async function getAirspace(lat: number, lng: number): Promise<AirspaceRes
         returnGeometry: "false",
       });
 
-      let nearbyOk = false;
-      let nearbyFeatures: any[] = [];
-      try {
-        const nearbyRes = await fetch(`${UASFM_URL}?${nearbyParams.toString()}`, {
-          cache: "no-store",
-        });
-        if (nearbyRes.ok) {
-          const nearbyJson: any = await nearbyRes.json();
-          if (!nearbyJson?.error) {
-            nearbyOk = true;
-            nearbyFeatures = Array.isArray(nearbyJson?.features) ? nearbyJson.features : [];
-          }
-        }
-      } catch {
-        /* leave nearbyOk false → fail safe below */
-      }
+      const nearbyJson = await faaFetchJson(`${UASFM_URL}?${nearbyParams.toString()}`);
 
       // Couldn't corroborate (FAA unreachable on the second call) → don't guess
       // "clear," say unknown so the pilot verifies manually.
-      if (!nearbyOk) return { ...base, ...describe(base) };
+      if (!nearbyJson) return { ...base, ...describe(base) };
+
+      const nearbyFeatures: any[] = Array.isArray(nearbyJson?.features) ? nearbyJson.features : [];
 
       const nearCell = pickConservativeCell(nearbyFeatures);
 

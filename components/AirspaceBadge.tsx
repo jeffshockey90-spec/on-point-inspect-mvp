@@ -85,6 +85,10 @@ export default function AirspaceBadge(props: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const lastQueryRef = useRef<string | null>(null);
+  // Tracks the query we've already auto-retried once, so a transient "unknown"
+  // (FAA blip / cold start) self-heals without the inspector having to notice
+  // the grey box and tap Re-check — but we never loop.
+  const autoRetriedRef = useRef<string | null>(null);
 
   const query = buildQuery(props);
 
@@ -97,7 +101,13 @@ export default function AirspaceBadge(props: Props) {
       if (!res.ok) {
         throw new Error(data?.error || "Airspace check failed.");
       }
-      setResult(data.airspace as AirspaceResult);
+      const airspace = data.airspace as AirspaceResult;
+      setResult(airspace);
+      // One silent retry if the FAA data couldn't be reached this time.
+      if (airspace?.status === "unknown" && autoRetriedRef.current !== q) {
+        autoRetriedRef.current = q;
+        setTimeout(() => void runCheck(q), 2500);
+      }
     } catch (err: any) {
       setError(err?.message || "Airspace check failed.");
       setResult(null);
