@@ -111,6 +111,49 @@ function dataUrlToFile(dataUrl: string, namePrefix = "ai-camera-frame") {
   });
 }
 
+// Downscale a captured frame to a smaller copy JUST for the AI request — a
+// smaller image uploads faster and the vision model responds faster. This never
+// touches the SAVED photo (that's the full-res File made from the original
+// frame); it only shrinks the throwaway analysis image. Fail-open: returns the
+// original on any error, and never upscales, so the AI call can't be broken by it.
+async function shrinkForAi(
+  // Matches the app's established AI-upload baseline (lib/imageCompression:
+  // 1600px / q0.72) that the field tool already uses for these same endpoints,
+  // so accuracy stays at the proven level while cutting the live camera's
+  // heavier 1920px / q0.9 frame down to a faster payload.
+  dataUrl: string,
+  maxWidth = 1600,
+  quality = 0.72,
+): Promise<string> {
+  try {
+    if (typeof document === "undefined") return dataUrl;
+    if (!dataUrl || !dataUrl.startsWith("data:image/")) return dataUrl;
+
+    const img = document.createElement("img");
+    const loaded = new Promise<HTMLImageElement>((resolve, reject) => {
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+    });
+    img.src = dataUrl;
+    await loaded;
+
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if (!w || !h || w <= maxWidth) return dataUrl; // already small enough
+
+    const scale = maxWidth / w;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(w * scale));
+    canvas.height = Math.max(1, Math.round(h * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", quality);
+  } catch {
+    return dataUrl;
+  }
+}
+
 export default function AILiveInspectionCamera({
   online,
   selectedReport,
@@ -900,6 +943,13 @@ export default function AILiveInspectionCamera({
     setDraftError("");
     const note = typeof noteOverride === "string" ? noteOverride : noteText;
 
+    // Shrink the frame(s) for the AI request only — the saved photo (file) keeps
+    // its full resolution. Speeds up the upload and the model's response.
+    const rawAiFrames =
+      allFrames && allFrames.length ? allFrames : [frameDataUrl];
+    const aiFrames = await Promise.all(rawAiFrames.map((f) => shrinkForAi(f)));
+    const aiFrame = aiFrames[0] || frameDataUrl;
+
     try {
       if (category === "finding") {
         const response = await fetch("/api/ai-capture", {
@@ -918,7 +968,7 @@ export default function AILiveInspectionCamera({
             // biasing it to the field's current value (which made everything come
             // back "Recommended Repair"). The inspector can still adjust on confirm.
             severity: "",
-            images: allFrames && allFrames.length ? allFrames : [frameDataUrl],
+            images: aiFrames,
           }),
         });
 
@@ -962,7 +1012,7 @@ export default function AILiveInspectionCamera({
           headers: { "Content-Type": "application/json" },
           cache: "no-store",
           body: JSON.stringify({
-            imageDataUrl: frameDataUrl,
+            imageDataUrl: aiFrame,
             inspectionId: selectedReport,
             currentSection,
             currentSeverity,
