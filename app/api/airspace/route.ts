@@ -50,7 +50,17 @@ export async function GET(req: Request) {
     }
 
     const airspace = await getAirspace(lat, lng);
-    return NextResponse.json({ airspace });
+    // Hard no-store so no CDN or in-app WebView cache can ever pin a stale
+    // airspace answer (a cached "clear" on controlled airspace is a safety bug).
+    return NextResponse.json(
+      { airspace },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          Pragma: "no-cache",
+        },
+      },
+    );
   } catch (error: any) {
     console.error("Airspace route error:", error);
     return NextResponse.json(

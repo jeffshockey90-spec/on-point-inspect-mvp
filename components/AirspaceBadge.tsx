@@ -96,7 +96,14 @@ export default function AirspaceBadge(props: Props) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/airspace?${q}`, { cache: "no-store" });
+      // Cache-buster: some in-app WebViews (iOS/Capacitor) have cached a prior
+      // /api/airspace response for the identical URL and keep serving it even
+      // with cache:"no-store" — which once stranded a stale "clear to fly" on a
+      // property that is actually controlled. A unique URL per call guarantees a
+      // fresh answer every time.
+      const res = await fetch(`/api/airspace?${q}&_ts=${Date.now()}`, {
+        cache: "no-store",
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data?.error || "Airspace check failed.");
