@@ -11,7 +11,9 @@
 importScripts("/push-sw.js");
 
 // Bump the version to invalidate old caches on the next activate.
-const CACHE_VERSION = "flow-sw-v1";
+// v2 (2026-09-19): flush stale cached bundles so the hardened drone-airspace
+// check reaches devices that were holding an old "clear to fly" render.
+const CACHE_VERSION = "flow-sw-v2";
 const CACHE_NAME = CACHE_VERSION;
 const OFFLINE_URL = "/offline.html";
 
