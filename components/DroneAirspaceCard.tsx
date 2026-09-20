@@ -210,6 +210,19 @@ export default function DroneAirspaceCard(props: Props) {
 
             <p className={`mt-2 text-sm leading-6 ${style.text}`}>{result.detail}</p>
 
+            {Array.isArray(result.advisories) && result.advisories.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {result.advisories.map((a, i) => (
+                  <p
+                    key={i}
+                    className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-[12px] leading-5 font-medium text-[var(--fl-warn-text)]"
+                  >
+                    ⚠ {a}
+                  </p>
+                ))}
+              </div>
+            )}
+
             {(result.status === "laanc" || result.status === "authorization") && (
               <a
                 href={

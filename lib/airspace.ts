@@ -34,8 +34,13 @@ export type AirspaceResult = {
   ceilingFt: number | null; // LAANC ceiling AGL; null when uncontrolled/unknown
   laancAvailable: boolean;
   airport: { faaId: string | null; icao: string | null; name: string | null } | null;
-  // Set when the point falls inside a prohibited area (e.g. P-40 Camp David).
+  // Set when the point falls inside a prohibited area (e.g. P-40 Camp David) or
+  // another hard no-fly overlay (national security site, defense TFR, DC FRZ).
   restrictedAreaName: string | null;
+  // Non-blocking heads-ups that don't change the fly/no-fly status but the pilot
+  // must know: inside the DC SFRA outer ring, a stadium within 3 NM, etc. A green
+  // "clear" can still carry advisories.
+  advisories: string[];
   headline: string; // short status line
   detail: string; // one-sentence plain-English guidance
   lat: number;
@@ -62,6 +67,45 @@ const PROHIBITED_FRIENDLY: Record<string, string> = {
   "P-40": "Camp David",
   "P-56": "Washington, DC",
 };
+
+// Nationwide hard no-fly overlays the UASFM grid doesn't encode, all from the
+// same free FAA ArcGIS org (no key). These make the check correct EVERYWHERE,
+// not just near airports. Verified live 2026-09.
+//  - National Security UAS Flight Restrictions: fixed security sites (military
+//    ocean terminals, etc.) where drone flight is barred.
+//  - National Defense Airspace TFR Areas: active national-defense TFRs.
+const NATSEC_URL =
+  process.env.FAA_NATSEC_URL ||
+  "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/Part_Time_National_Security_UAS_Flight_Restrictions/FeatureServer/0/query";
+const NATDEF_TFR_URL =
+  process.env.FAA_NATDEF_TFR_URL ||
+  "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/National_Defense_Airspace_TFR_Areas/FeatureServer/0/query";
+// Stadiums (points): a 3 NM / event-window TFR applies during major sporting
+// events. A nearby stadium is an ADVISORY, not a block.
+const STADIUMS_URL =
+  process.env.FAA_STADIUMS_URL ||
+  "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/Stadiums/FeatureServer/0/query";
+
+// Washington DC Special Flight Rules Area (SFRA), centered on the DCA VOR. This
+// is a fixed geographic rule (no polygon layer needed, so it can never go
+// stale): inside ~15 NM is the Flight Restricted Zone (FRZ) where drone flight
+// is barred without specific FAA authorization; 15–30 NM is the outer SFRA where
+// Part 107 flights are allowed but under special rules. Much of the DC metro
+// (Montgomery County, etc.) sits in the outer ring.
+const DCA = { lat: 38.8512, lng: -77.0402 };
+const DC_FRZ_NM = 15;
+const DC_SFRA_NM = 30;
+
+function haversineNm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 3440.065; // nautical miles
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
 
 function num(value: any): number | null {
   const n = Number(value);
@@ -201,6 +245,7 @@ export async function getAirspace(lat: number, lng: number): Promise<AirspaceRes
     laancAvailable: false,
     airport: null,
     restrictedAreaName: null,
+    advisories: [],
     lat,
     lng,
     source: "faa-uasfm",
@@ -222,36 +267,123 @@ export async function getAirspace(lat: number, lng: number): Promise<AirspaceRes
       returnGeometry: "false",
     });
 
+  // Point-with-radius query (for point layers like Stadiums, and the UASFM
+  // boundary corroboration).
+  const nearParams = (outFields: string, meters: number) =>
+    new URLSearchParams({
+      f: "json",
+      geometry: `${lng},${lat}`,
+      geometryType: "esriGeometryPoint",
+      inSR: "4326",
+      spatialRel: "esriSpatialRelIntersects",
+      distance: String(meters),
+      units: "esriSRUnit_Meter",
+      outFields,
+      returnGeometry: "false",
+    });
+
   try {
-    // Query both layers together: the controlled-airspace grid (LAANC ceiling)
-    // and the prohibited-areas overlay (hard no-fly). Prohibited wins if hit.
-    // Both go through the resilient fetch (timeout + retry) so a blip doesn't
-    // strand the check.
-    const [json, prohJson] = await Promise.all([
+    // One parallel batch (all resilient — timeout + retry): the controlled-
+    // airspace grid PLUS every nationwide hard-no-fly overlay the grid doesn't
+    // encode, plus nearby stadiums. This is what makes the check correct in ALL
+    // areas, not just near airports.
+    const [json, prohJson, natsecJson, natdefJson, stadiumJson] = await Promise.all([
       faaFetchJson(`${UASFM_URL}?${pointParams("CEILING,AIRSPACE_1,APT1_FAAID,APT1_ICAO,APT1_NAME").toString()}`),
       faaFetchJson(`${PROHIBITED_URL}?${pointParams("NAME,COMM_NAME,TYPE_CODE").toString()}`),
+      faaFetchJson(`${NATSEC_URL}?${pointParams("Base,Facility,Reason").toString()}`),
+      faaFetchJson(`${NATDEF_TFR_URL}?${pointParams("NAME,CITY,STATE").toString()}`),
+      faaFetchJson(`${STADIUMS_URL}?${nearParams("NAME", 5556).toString()}`), // 3 NM
     ]);
 
-    // Hard no-fly override: inside a prohibited area (P-xx).
-    {
-      const prohFeat = Array.isArray(prohJson?.features) ? prohJson.features[0] : null;
-      if (prohFeat) {
-        const a = prohFeat.attributes || {};
-        const code = nonEmpty(a.NAME);
-        const friendly = code ? PROHIBITED_FRIENDLY[code] : null;
-        const label = [code, friendly].filter(Boolean).join(" · ") || nonEmpty(a.COMM_NAME);
-        const prohibited: Omit<AirspaceResult, "headline" | "detail"> = {
-          ...base,
-          status: "prohibited",
-          controlled: true,
-          restrictedAreaName: label,
-        };
-        return { ...prohibited, ...describe(prohibited) };
-      }
+    // ---- Advisories: non-blocking heads-ups that ride along with ANY status
+    // (a green "clear" can still carry one).
+    const advisories: string[] = [];
+
+    // Washington DC SFRA. The outer ring (15–30 NM from DCA) is flyable under
+    // Part 107 with special rules; the inner FRZ (≤15 NM) is a hard restriction
+    // handled below. Much of the DC metro sits in this outer ring.
+    const dcNm = haversineNm(lat, lng, DCA.lat, DCA.lng);
+    if (dcNm > DC_FRZ_NM && dcNm <= DC_SFRA_NM) {
+      advisories.push(
+        `Inside the Washington DC SFRA (outer ring, ~${Math.round(dcNm)} NM from DCA). Part 107 flights are allowed, but you must be a registered operator following SFRA procedures — and must not enter the 15 NM Flight Restricted Zone.`,
+      );
     }
 
-    // Couldn't reach / parse the controlled-airspace grid → fail safe (unknown),
-    // never toward "clear."
+    // Stadium within 3 NM: a TFR bars drone flight from 1 hr before to 1 hr
+    // after a major sporting event. An event-day heads-up, not a blanket block.
+    const stadiumFeat = Array.isArray(stadiumJson?.features) ? stadiumJson.features[0] : null;
+    if (stadiumFeat) {
+      const nm = nonEmpty(stadiumFeat?.attributes?.NAME);
+      advisories.push(
+        `Stadium within 3 NM${nm ? ` (${nm})` : ""} — drone flights are barred from 1 hour before to 1 hour after a major sporting event. Check the event schedule before flying.`,
+      );
+    }
+
+    base.advisories = advisories;
+
+    // ---- Hard no-fly overrides (most restrictive wins), independent of the
+    // UASFM grid so they hold even if the grid query itself failed.
+    // 1) Prohibited area (P-xx) — e.g. P-56 Washington DC, P-40 Camp David.
+    const prohFeat = Array.isArray(prohJson?.features) ? prohJson.features[0] : null;
+    if (prohFeat) {
+      const a = prohFeat.attributes || {};
+      const code = nonEmpty(a.NAME);
+      const friendly = code ? PROHIBITED_FRIENDLY[code] : null;
+      const label = [code, friendly].filter(Boolean).join(" · ") || nonEmpty(a.COMM_NAME);
+      const prohibited: Omit<AirspaceResult, "headline" | "detail"> = {
+        ...base,
+        status: "prohibited",
+        controlled: true,
+        restrictedAreaName: label,
+      };
+      return { ...prohibited, ...describe(prohibited) };
+    }
+
+    // 2) National security site or active national-defense TFR → hard no-fly.
+    const natsecFeat = Array.isArray(natsecJson?.features) ? natsecJson.features[0] : null;
+    const natdefFeat = Array.isArray(natdefJson?.features) ? natdefJson.features[0] : null;
+    if (natsecFeat || natdefFeat) {
+      const label = natsecFeat
+        ? nonEmpty(natsecFeat?.attributes?.Base) ||
+          nonEmpty(natsecFeat?.attributes?.Facility) ||
+          "National security site"
+        : nonEmpty(natdefFeat?.attributes?.NAME) || "National defense TFR";
+      const restricted: Omit<AirspaceResult, "headline" | "detail"> = {
+        ...base,
+        status: "prohibited",
+        controlled: true,
+        restrictedAreaName: label,
+      };
+      return {
+        ...restricted,
+        headline: `No-fly zone — ${natsecFeat ? "national security area" : "national defense TFR"}`,
+        detail: `This location is inside a${
+          natsecFeat ? " national security UAS flight restriction" : "n active national defense TFR"
+        } (${label}). Drone flights are prohibited here — do not fly.`,
+      };
+    }
+
+    // 3) Washington DC Flight Restricted Zone (inner ~15 NM). Drone flight needs
+    // specific FAA/TSA authorization and is effectively off-limits for a routine
+    // inspection — surface it red.
+    if (dcNm <= DC_FRZ_NM) {
+      const frz: Omit<AirspaceResult, "headline" | "detail"> = {
+        ...base,
+        status: "authorization",
+        controlled: true,
+        restrictedAreaName: "DC Flight Restricted Zone",
+      };
+      return {
+        ...frz,
+        headline: "Restricted — Washington DC Flight Restricted Zone",
+        detail: `This address is inside the Washington DC FRZ (~${Math.round(
+          dcNm,
+        )} NM from DCA). Drone flights here require specific FAA/TSA authorization and are effectively off-limits for a routine inspection — do not fly without that authorization.`,
+      };
+    }
+
+    // ---- No hard override → classify from the UASFM controlled-airspace grid.
+    // Couldn't reach / parse it → fail safe (unknown), never toward "clear."
     if (!json) return { ...base, ...describe(base) };
 
     const features: any[] = Array.isArray(json?.features) ? json.features : [];
@@ -267,19 +399,9 @@ export async function getAirspace(lat: number, lng: number): Promise<AirspaceRes
       // ~1 mile buffer around the point. If controlled airspace is right here
       // but the exact cell came back empty, we're at the edge of the mapped
       // grid — treat it as controlled and tell the pilot to verify.
-      const nearbyParams = new URLSearchParams({
-        f: "json",
-        geometry: `${lng},${lat}`,
-        geometryType: "esriGeometryPoint",
-        inSR: "4326",
-        spatialRel: "esriSpatialRelIntersects",
-        distance: "1609",
-        units: "esriSRUnit_Meter",
-        outFields: "CEILING,AIRSPACE_1,APT1_FAAID,APT1_ICAO,APT1_NAME",
-        returnGeometry: "false",
-      });
-
-      const nearbyJson = await faaFetchJson(`${UASFM_URL}?${nearbyParams.toString()}`);
+      const nearbyJson = await faaFetchJson(
+        `${UASFM_URL}?${nearParams("CEILING,AIRSPACE_1,APT1_FAAID,APT1_ICAO,APT1_NAME", 1609).toString()}`,
+      );
 
       // Couldn't corroborate (FAA unreachable on the second call) → don't guess
       // "clear," say unknown so the pilot verifies manually.
