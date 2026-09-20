@@ -117,6 +117,41 @@ function describe(partial: Omit<AirspaceResult, "headline" | "detail">): {
   }
 }
 
+// From a set of UASFM grid features, pick the most conservative one (the lowest
+// LAANC ceiling) so we never over-promise altitude at a boundary. Returns the
+// normalized cell fields, or null if there are no usable features.
+function pickConservativeCell(features: any[]): {
+  ceiling: number | null;
+  airspaceClass: string | null;
+  airport: { faaId: string | null; icao: string | null; name: string | null };
+  hasAirport: boolean;
+} | null {
+  if (!Array.isArray(features) || features.length === 0) return null;
+  let best: any = null;
+  let bestCeiling = Number.POSITIVE_INFINITY;
+  for (const f of features) {
+    const c = num(f?.attributes?.CEILING);
+    const ceilingForCompare = c == null ? Number.POSITIVE_INFINITY : c;
+    if (ceilingForCompare < bestCeiling) {
+      bestCeiling = ceilingForCompare;
+      best = f;
+    }
+  }
+  best = best || features[0];
+  const attrs = best?.attributes || {};
+  const airport = {
+    faaId: nonEmpty(attrs.APT1_FAAID),
+    icao: nonEmpty(attrs.APT1_ICAO),
+    name: nonEmpty(attrs.APT1_NAME),
+  };
+  return {
+    ceiling: num(attrs.CEILING),
+    airspaceClass: nonEmpty(attrs.AIRSPACE_1),
+    airport,
+    hasAirport: Boolean(airport.faaId || airport.icao || airport.name),
+  };
+}
+
 /**
  * Determine the drone/Part-107 airspace situation at a coordinate.
  * Never throws — returns a "unknown" result if the FAA service is unreachable.
@@ -189,52 +224,100 @@ export async function getAirspace(lat: number, lng: number): Promise<AirspaceRes
 
     const features: any[] = Array.isArray(json?.features) ? json.features : [];
 
-    // No grid cell intersects the point → uncontrolled Class G airspace.
+    // No grid cell intersects the exact point. That is NOT automatically "clear
+    // to fly": an empty response is also what a grid gap/boundary, a slightly
+    // off geocode (common on brand-new construction), or a transient FAA hiccup
+    // produce — and near an airport that would become a confident FALSE all-
+    // clear. So we never declare Class G from a non-answer near controlled
+    // airspace. Corroborate with a small buffered query first, and fail SAFE
+    // (verify manually), never fail toward "go fly."
     if (features.length === 0) {
-      const clear: Omit<AirspaceResult, "headline" | "detail"> = {
+      // ~1 mile buffer around the point. If controlled airspace is right here
+      // but the exact cell came back empty, we're at the edge of the mapped
+      // grid — treat it as controlled and tell the pilot to verify.
+      const nearbyParams = new URLSearchParams({
+        f: "json",
+        geometry: `${lng},${lat}`,
+        geometryType: "esriGeometryPoint",
+        inSR: "4326",
+        spatialRel: "esriSpatialRelIntersects",
+        distance: "1609",
+        units: "esriSRUnit_Meter",
+        outFields: "CEILING,AIRSPACE_1,APT1_FAAID,APT1_ICAO,APT1_NAME",
+        returnGeometry: "false",
+      });
+
+      let nearbyOk = false;
+      let nearbyFeatures: any[] = [];
+      try {
+        const nearbyRes = await fetch(`${UASFM_URL}?${nearbyParams.toString()}`, {
+          cache: "no-store",
+        });
+        if (nearbyRes.ok) {
+          const nearbyJson: any = await nearbyRes.json();
+          if (!nearbyJson?.error) {
+            nearbyOk = true;
+            nearbyFeatures = Array.isArray(nearbyJson?.features) ? nearbyJson.features : [];
+          }
+        }
+      } catch {
+        /* leave nearbyOk false → fail safe below */
+      }
+
+      // Couldn't corroborate (FAA unreachable on the second call) → don't guess
+      // "clear," say unknown so the pilot verifies manually.
+      if (!nearbyOk) return { ...base, ...describe(base) };
+
+      const nearCell = pickConservativeCell(nearbyFeatures);
+
+      // Genuinely nothing controlled for a mile around → real Class G, clear.
+      if (!nearCell) {
+        const clear: Omit<AirspaceResult, "headline" | "detail"> = {
+          ...base,
+          status: "clear",
+          controlled: false,
+          airspaceClass: "G",
+          ceilingFt: null,
+          laancAvailable: false,
+        };
+        return { ...clear, ...describe(clear) };
+      }
+
+      // Controlled airspace is adjacent but the exact point fell outside the
+      // mapped grid. Err on the side of caution: report it as controlled and
+      // make clear it must be verified before flying.
+      const laancAvailable = nearCell.ceiling != null && nearCell.ceiling > 0;
+      const cls = nearCell.airspaceClass ? `Class ${nearCell.airspaceClass}` : "controlled";
+      const apt = nearCell.hasAirport && nearCell.airport.name ? ` (${nearCell.airport.name})` : "";
+      const edge: Omit<AirspaceResult, "headline" | "detail"> = {
         ...base,
-        status: "clear",
-        controlled: false,
-        airspaceClass: "G",
-        ceilingFt: null,
-        laancAvailable: false,
+        status: laancAvailable ? "laanc" : "authorization",
+        controlled: true,
+        airspaceClass: nearCell.airspaceClass,
+        ceilingFt: nearCell.ceiling,
+        laancAvailable,
+        airport: nearCell.hasAirport ? nearCell.airport : null,
       };
-      return { ...clear, ...describe(clear) };
+      return {
+        ...edge,
+        headline: `Verify before flying — near ${cls} airspace`,
+        detail:
+          `This address sits at the edge of the mapped ${cls} grid${apt}, so the FAA map didn't return a ceiling for the exact point — but controlled airspace is right here. Do NOT treat this as clear: confirm the requirement in a LAANC provider or B4UFLY, and file ${laancAvailable ? "LAANC" : "an FAA authorization (DroneZone)"} if required, before you launch. Confirm active TFRs day-of.`,
+      };
     }
 
     // A point can touch more than one grid cell at a boundary. Take the most
     // conservative (lowest LAANC ceiling) so we never over-promise altitude.
-    let best: any = null;
-    let bestCeiling = Number.POSITIVE_INFINITY;
-    for (const f of features) {
-      const c = num(f?.attributes?.CEILING);
-      const ceilingForCompare = c == null ? Number.POSITIVE_INFINITY : c;
-      if (ceilingForCompare < bestCeiling) {
-        bestCeiling = ceilingForCompare;
-        best = f;
-      }
-    }
-    best = best || features[0];
-    const attrs = best?.attributes || {};
-
-    const ceiling = num(attrs.CEILING);
-    const airspaceClass = nonEmpty(attrs.AIRSPACE_1);
-    const airport = {
-      faaId: nonEmpty(attrs.APT1_FAAID),
-      icao: nonEmpty(attrs.APT1_ICAO),
-      name: nonEmpty(attrs.APT1_NAME),
-    };
-    const hasAirport = Boolean(airport.faaId || airport.icao || airport.name);
-
-    const laancAvailable = ceiling != null && ceiling > 0;
+    const cell = pickConservativeCell(features)!;
+    const laancAvailable = cell.ceiling != null && cell.ceiling > 0;
     const controlled: Omit<AirspaceResult, "headline" | "detail"> = {
       ...base,
       status: laancAvailable ? "laanc" : "authorization",
       controlled: true,
-      airspaceClass,
-      ceilingFt: ceiling,
+      airspaceClass: cell.airspaceClass,
+      ceilingFt: cell.ceiling,
       laancAvailable,
-      airport: hasAirport ? airport : null,
+      airport: cell.hasAirport ? cell.airport : null,
     };
     return { ...controlled, ...describe(controlled) };
   } catch (error) {
