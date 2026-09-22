@@ -1111,7 +1111,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       {(orderedGroups || []).length > 1 && (
         <nav
           aria-label="Jump to inspection section"
-          className="sticky top-[calc(env(safe-area-inset-top,0px)+0.5rem)] z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-2.5 py-2 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[var(--fl-surface)] xl:hidden"
+          className="sticky top-[calc(env(safe-area-inset-top,0px)+0.5rem)] z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-2.5 py-2 shadow-lg xl:hidden"
         >
           {(orderedGroups || []).map((group: any) => (
             <button
@@ -1380,7 +1380,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         // a phone. On desktop (xl) that bottom bar is hidden, so drop back to a
         // small bottom offset.
         <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)_+_94px)] z-[110] flex justify-center px-4 xl:bottom-4">
-          <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-purple-400/50 bg-[var(--fl-surface)] px-4 py-3 shadow-2xl backdrop-blur">
+          <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-purple-400/50 bg-[var(--fl-surface)] px-4 py-3 shadow-2xl">
             <span className="text-sm font-semibold text-[var(--fl-text)]">
               {selectedCombine.size} selected
               {selectedCombine.size === 1 && (
@@ -3581,7 +3581,7 @@ function FindingCardBase({
           </div>
         )}
 
-        <div className="sticky top-2 z-20 mb-3 flex flex-wrap justify-end gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-xl backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        <div className="sticky top-2 z-20 mb-3 flex flex-wrap justify-end gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-xl sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           {isSafetyOrMajor && (
             <button
               type="button"

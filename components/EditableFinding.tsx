@@ -759,7 +759,7 @@ function EditableFinding({
         disabled={saving}
       />
 
-      <div className="sticky bottom-2 z-30 grid w-full grid-cols-2 gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-2 shadow-2xl backdrop-blur sm:static sm:flex sm:flex-row sm:flex-wrap sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+      <div className="sticky bottom-2 z-30 grid w-full grid-cols-2 gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-2 shadow-2xl sm:static sm:flex sm:flex-row sm:flex-wrap sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
         <button
           type="button"
           onClick={saveFinding}
