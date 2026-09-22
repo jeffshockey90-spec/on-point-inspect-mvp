@@ -193,6 +193,21 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
         "Street Parking",
         "Dirt"
       ]
+    },
+    {
+      "title": "Walkway Material",
+      "options": [
+        "Concrete",
+        "Stamped Concrete",
+        "Pavers",
+        "Brick",
+        "Asphalt",
+        "Gravel",
+        "Stone",
+        "Flagstone",
+        "Dirt",
+        "None"
+      ]
     }
   ],
   "Roof": [

@@ -35,6 +35,10 @@ const RANGE_BRAND = ["Amana", "Brown", "KitchenAid", "Frigidaire", "Bosch", "Jen
 const RANGE_ENERGY = ["Coal", "Gas", "Electric", "Wood"];
 const CABINETRY = ["Laminate", "Plastic", "Metal", "Wood"];
 const COUNTERTOP = ["Composite", "Concrete", "Granite", "Metal", "Quartz", "Stainless Steel", "Wood Butcher Block", "Laminate", "Corian", "Marble", "Porcelain", "Recycled Glass", "Tile"];
+// Exterior / roof materials (Roof + Exterior sections). Mirror CHECKLIST_LIBRARY.
+const ROOF_COVERING = ["Solar", "Ceramic", "Asbestos", "Tile", "Metal", "Concrete", "Fiberglass", "Slate", "Asphalt", "Wood"];
+const DRIVEWAY = ["Concrete", "Asphalt", "Cobblestone", "Pavers", "Gravel", "Brick", "Street Parking", "Dirt"];
+const WALKWAY = ["Concrete", "Stamped Concrete", "Pavers", "Brick", "Asphalt", "Gravel", "Stone", "Flagstone", "Dirt", "None"];
 
 // The heating unit type / heat-delivery method, inferred from the equipment text.
 function pickHeatType(t: string): string | null {
@@ -150,6 +154,16 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
   if (isKnown(er.cabinetMaterial)) {
     fills.push(optionFill("Doors, Windows & Interior", "Cabinetry", String(er.cabinetMaterial), CABINETRY));
   }
+  // Exterior / roof surfaces — identified from a scan even without a data plate.
+  if (isKnown(er.roofCoveringMaterial)) {
+    fills.push(optionFill("Roof", "Roof Covering Material", String(er.roofCoveringMaterial), ROOF_COVERING));
+  }
+  if (isKnown(er.drivewayMaterial)) {
+    fills.push(optionFill("Exterior", "Driveway Material", String(er.drivewayMaterial), DRIVEWAY));
+  }
+  if (isKnown(er.walkwayMaterial)) {
+    fills.push(optionFill("Exterior", "Walkway Material", String(er.walkwayMaterial), WALKWAY));
+  }
 
   // Kitchen appliances -> Built-in Appliances (brand + model, and energy source
   // for a range/oven). Checked before the HVAC/plumbing branches since a
@@ -239,6 +253,7 @@ export const MATERIAL_FIELDS: Record<string, { groupTitle: string; options: stri
     { groupTitle: "Exterior Entry Door", options: ["Wood", "Steel", "Single Pane", "Glass", "Hollow Core", "Fiberglass"] },
     { groupTitle: "Appurtenance Material", options: ["Composite", "Wood", "Concrete", "Masonry"] },
     { groupTitle: "Driveway Material", options: ["Concrete", "Asphalt", "Cobblestone", "Pavers", "Gravel", "Brick", "Street Parking", "Dirt"] },
+    { groupTitle: "Walkway Material", options: ["Concrete", "Stamped Concrete", "Pavers", "Brick", "Asphalt", "Gravel", "Stone", "Flagstone", "Dirt", "None"] },
   ],
   "Roof": [
     { groupTitle: "Roof Type/Style", options: ["Gambrel", "Combination", "Hip", "Mansard", "Shed", "Gable", "Flat"] },

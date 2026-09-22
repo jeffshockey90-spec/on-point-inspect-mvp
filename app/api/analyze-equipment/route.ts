@@ -38,6 +38,9 @@ type EquipmentAnalysis = {
   refrigerant?: string;
   countertopMaterial?: string;
   cabinetMaterial?: string;
+  roofCoveringMaterial?: string;
+  drivewayMaterial?: string;
+  walkwayMaterial?: string;
   condition?: string;
   estimatedLifeRemaining?: string;
   clientSummary?: string;
@@ -1523,6 +1526,9 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
     refrigerant: refrigerantValue,
     countertopMaterial: cleanText(parsed.countertopMaterial) || "Unknown",
     cabinetMaterial: cleanText(parsed.cabinetMaterial) || "Unknown",
+    roofCoveringMaterial: cleanText(parsed.roofCoveringMaterial) || "Unknown",
+    drivewayMaterial: cleanText(parsed.drivewayMaterial) || "Unknown",
+    walkwayMaterial: cleanText(parsed.walkwayMaterial) || "Unknown",
     condition,
     estimatedLifeRemaining: "",
     clientSummary,
@@ -1660,6 +1666,8 @@ Image-narration discipline: describe the equipment/component and its condition d
 
 Kitchen appliances & surfaces: for a dishwasher, range/oven/cooktop/stove, or refrigerator, read the BRAND (manufacturer) and the full MODEL number off the label. If the primary subject is a COUNTERTOP or CABINETRY rather than a piece of equipment, identify the material and set "countertopMaterial" and/or "cabinetMaterial" using these exact labels when they apply — countertop: Granite, Quartz, Marble, Laminate, Corian, Concrete, Tile, Stainless Steel, Porcelain, Composite, Wood Butcher Block, Recycled Glass, Metal; cabinetry: Wood, Laminate, Metal, Plastic. If the material is clearly something else, name it in plain words. Leave both "Unknown" when there is no countertop/cabinet in view or you cannot tell — never guess a material you cannot see.
 
+Exterior & roof surfaces: if the subject is a ROOF, DRIVEWAY, or WALKWAY, identify the material and set "roofCoveringMaterial", "drivewayMaterial", and/or "walkwayMaterial" using these exact labels when they apply — roof: Asphalt, Metal, Tile, Slate, Wood, Concrete, Fiberglass, Ceramic, Asbestos, Solar; driveway: Concrete, Asphalt, Pavers, Gravel, Brick, Cobblestone, Dirt; walkway: Concrete, Stamped Concrete, Pavers, Brick, Asphalt, Gravel, Stone, Flagstone, Dirt. If it's clearly something else, name it in plain words. Leave each "Unknown" when that surface isn't in view or you cannot tell — never guess a material you cannot see.
+
 Return ONLY valid JSON in this exact format (return every key):
 
 {
@@ -1689,6 +1697,9 @@ Return ONLY valid JSON in this exact format (return every key):
   "refrigerant": "",
   "countertopMaterial": "",
   "cabinetMaterial": "",
+  "roofCoveringMaterial": "",
+  "drivewayMaterial": "",
+  "walkwayMaterial": "",
   "condition": "",
   "estimatedLifeRemaining": "",
   "clientSummary": "",
@@ -1763,6 +1774,9 @@ Return ONLY valid JSON in this exact format:
   "refrigerant": "",
   "countertopMaterial": "",
   "cabinetMaterial": "",
+  "roofCoveringMaterial": "",
+  "drivewayMaterial": "",
+  "walkwayMaterial": "",
   "condition": "",
   "estimatedLifeRemaining": "",
   "clientSummary": "",
