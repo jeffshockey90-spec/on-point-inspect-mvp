@@ -1324,7 +1324,6 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                 {findings.map((finding: any) => {
                   const card = (
                     <FindingCard
-                      key={finding.id}
                       finding={finding}
                       inspectionId={inspectionId}
                       allPhotos={allPhotos}
@@ -1337,31 +1336,38 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                       router={router}
                     />
                   );
-                  if (!combineOpen) return card;
                   const cid = String(finding.id);
-                  const picked = selectedCombine.has(cid);
+                  const picked = combineOpen && selectedCombine.has(cid);
+                  // Layout containment: isolate each card so editing/repainting
+                  // one (or the realtime refresh) doesn't force the whole long
+                  // list to re-layout — cuts scroll stutter and post-edit jank on
+                  // big reports. Safe: no paint containment (nothing is clipped),
+                  // no content-visibility (no scroll drift). The combine
+                  // checkbox is only mounted while combine mode is on.
                   return (
                     <div
                       key={finding.id}
-                      className={`relative rounded-2xl transition ${
-                        picked ? "ring-2 ring-inset ring-purple-400" : ""
+                      className={`relative rounded-2xl [contain:layout] ${
+                        picked ? "ring-2 ring-inset ring-purple-400 transition" : ""
                       }`}
                     >
-                      <label
-                        className={`absolute left-2 top-2 z-40 flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold shadow-lg transition ${
-                          picked
-                            ? "border-purple-300 bg-purple-500 text-white"
-                            : "border-purple-400/70 bg-[var(--fl-surface)] text-[var(--fl-purple-text)] hover:bg-purple-500/10"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={picked}
-                          onChange={() => toggleCombineSelect(cid)}
-                          className="h-3.5 w-3.5 accent-purple-400"
-                        />
-                        {picked ? "Selected" : "Combine"}
-                      </label>
+                      {combineOpen && (
+                        <label
+                          className={`absolute left-2 top-2 z-40 flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold shadow-lg transition ${
+                            picked
+                              ? "border-purple-300 bg-purple-500 text-white"
+                              : "border-purple-400/70 bg-[var(--fl-surface)] text-[var(--fl-purple-text)] hover:bg-purple-500/10"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={picked}
+                            onChange={() => toggleCombineSelect(cid)}
+                            className="h-3.5 w-3.5 accent-purple-400"
+                          />
+                          {picked ? "Selected" : "Combine"}
+                        </label>
+                      )}
                       {card}
                     </div>
                   );
