@@ -983,6 +983,11 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
       ]
     },
     {
+      "title": "Dishwasher Model",
+      "type": "text",
+      "options": []
+    },
+    {
       "title": "Refrigerator Brand",
       "options": [
         "Frigidaire",
@@ -995,6 +1000,11 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
         "LG",
         "Maytag"
       ]
+    },
+    {
+      "title": "Refrigerator Model",
+      "type": "text",
+      "options": []
     },
     {
       "title": "Exhaust Hood Type",
@@ -1027,6 +1037,11 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
         "Unknown",
         "Whirlpool"
       ]
+    },
+    {
+      "title": "Range/Oven Model",
+      "type": "text",
+      "options": []
     },
     {
       "title": "Range/Oven Energy Source",

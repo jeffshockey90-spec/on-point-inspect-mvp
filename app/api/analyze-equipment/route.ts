@@ -36,6 +36,8 @@ type EquipmentAnalysis = {
   capacity?: string;
   fuelType?: string;
   refrigerant?: string;
+  countertopMaterial?: string;
+  cabinetMaterial?: string;
   condition?: string;
   estimatedLifeRemaining?: string;
   clientSummary?: string;
@@ -1519,6 +1521,8 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
     capacity: estimatedBTU || cleanText(parsed.capacity) || "Unknown",
     fuelType: cleanText(parsed.fuelType) || "Unknown",
     refrigerant: refrigerantValue,
+    countertopMaterial: cleanText(parsed.countertopMaterial) || "Unknown",
+    cabinetMaterial: cleanText(parsed.cabinetMaterial) || "Unknown",
     condition,
     estimatedLifeRemaining: "",
     clientSummary,
@@ -1654,6 +1658,8 @@ You are the FLOW Equipment Intelligence Engine, an expert home inspection equipm
 
 Image-narration discipline: describe the equipment/component and its condition directly, NOT the photo. Never write "in this photo", "this image shows", "pictured", or "as seen".
 
+Kitchen appliances & surfaces: for a dishwasher, range/oven/cooktop/stove, or refrigerator, read the BRAND (manufacturer) and the full MODEL number off the label. If the primary subject is a COUNTERTOP or CABINETRY rather than a piece of equipment, identify the material and set "countertopMaterial" and/or "cabinetMaterial" using these exact labels when they apply — countertop: Granite, Quartz, Marble, Laminate, Corian, Concrete, Tile, Stainless Steel, Porcelain, Composite, Wood Butcher Block, Recycled Glass, Metal; cabinetry: Wood, Laminate, Metal, Plastic. If the material is clearly something else, name it in plain words. Leave both "Unknown" when there is no countertop/cabinet in view or you cannot tell — never guess a material you cannot see.
+
 Return ONLY valid JSON in this exact format (return every key):
 
 {
@@ -1681,6 +1687,8 @@ Return ONLY valid JSON in this exact format (return every key):
   "capacity": "",
   "fuelType": "",
   "refrigerant": "",
+  "countertopMaterial": "",
+  "cabinetMaterial": "",
   "condition": "",
   "estimatedLifeRemaining": "",
   "clientSummary": "",
@@ -1753,6 +1761,8 @@ Return ONLY valid JSON in this exact format:
   "capacity": "",
   "fuelType": "",
   "refrigerant": "",
+  "countertopMaterial": "",
+  "cabinetMaterial": "",
   "condition": "",
   "estimatedLifeRemaining": "",
   "clientSummary": "",

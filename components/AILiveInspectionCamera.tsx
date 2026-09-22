@@ -729,13 +729,15 @@ export default function AILiveInspectionCamera({
     setCapturedPreviewUrl(isVideo ? URL.createObjectURL(file) : frameDataUrlForAi);
     setCapturedFrameForAi(frameDataUrlForAi);
 
-    // Findings, limitations, and reference photos all collect into a tray FIRST
-    // — capture as many as you want (photos and, for findings, videos), then
-    // finish once. Equipment stays a single capture.
+    // Findings, limitations, reference photos, AND equipment all collect into a
+    // tray FIRST — capture as many angles as you want (e.g. the unit, the data
+    // plate, and the serial/model label for one equipment record), then finish
+    // once. The analyzer reads every shot together.
     if (
       category === "finding" ||
       category === "limitation" ||
-      category === "reference"
+      category === "reference" ||
+      category === "equipment"
     ) {
       // Default the reference section to the field's current section only on the
       // FIRST photo of a batch. After that, keep whatever section the inspector
@@ -761,14 +763,15 @@ export default function AILiveInspectionCamera({
     if (!shots.length) return;
     const last = shots[shots.length - 1];
     const frames = shots.map((s) => s.frame).filter(Boolean);
+    const files = shots.map((s) => s.file);
     setStage("drafting");
-    await runDraft(last.frame, last.file, undefined, frames);
+    await runDraft(last.frame, last.file, undefined, frames, files);
   }
 
-  // Retry AI after a capture_error. Findings/limitations came through the shots
-  // tray, so re-run analyzeShots (shows the "drafting" spinner AND re-sends every
-  // shot); equipment is a single capture. Without this the old button called
-  // runDraft directly with no drafting state, so it looked like nothing happened.
+  // Retry AI after a capture_error. Findings/limitations/equipment come through
+  // the shots tray, so re-run analyzeShots (shows the "drafting" spinner AND
+  // re-sends every shot). Without this the old button called runDraft directly
+  // with no drafting state, so it looked like nothing happened.
   function retryDraft() {
     if (saving) return;
     if (shots.length) {
@@ -939,6 +942,7 @@ export default function AILiveInspectionCamera({
     file: File,
     noteOverride?: string,
     allFrames?: string[],
+    allFiles?: File[],
   ) {
     setDraftError("");
     const note = typeof noteOverride === "string" ? noteOverride : noteText;
@@ -1041,8 +1045,12 @@ export default function AILiveInspectionCamera({
 
       if (category === "equipment") {
         const formData = new FormData();
-        formData.append("images", file);
-        formData.append("image", file);
+        // Send every captured angle of this one equipment item (unit + data
+        // plate + serial/model label). The analyze route reads them as ONE
+        // record and caps at 6. Falls back to the single capture.
+        const equipmentFiles = allFiles && allFiles.length ? allFiles : [file];
+        for (const f of equipmentFiles) formData.append("images", f);
+        formData.append("image", equipmentFiles[0]);
         formData.append("inspectionId", selectedReport || "");
         formData.append("inspection_id", selectedReport || "");
         if (note.trim()) formData.append("note", note.trim());
@@ -1787,7 +1795,9 @@ export default function AILiveInspectionCamera({
                 ? "same defect"
                 : category === "limitation"
                   ? "limitation"
-                  : "reference"}
+                  : category === "equipment"
+                    ? "same equipment"
+                    : "reference"}
             </p>
           </div>
 
@@ -1842,10 +1852,20 @@ export default function AILiveInspectionCamera({
                 <p className="mt-3 text-sm leading-6 text-white/60">
                   Add as many angles of the{" "}
                   <b className="text-white">
-                    same {category === "limitation" ? "limitation" : "defect"}
+                    same{" "}
+                    {category === "limitation"
+                      ? "limitation"
+                      : category === "equipment"
+                        ? "equipment item"
+                        : "defect"}
                   </b>{" "}
-                  as you want. The AI reads them all into one{" "}
-                  {category === "limitation" ? "limitation" : "finding"}.
+                  as you want{category === "equipment" ? " (the unit, the data plate, the serial/model label)" : ""}. The AI reads them all into one{" "}
+                  {category === "limitation"
+                    ? "limitation"
+                    : category === "equipment"
+                      ? "equipment record"
+                      : "finding"}
+                  .
                 </p>
                 <div className="mt-3 rounded-xl border border-white/15 bg-neutral-900/85 p-3">
                   <label className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
@@ -1889,7 +1909,11 @@ export default function AILiveInspectionCamera({
                 className="w-full rounded-xl bg-teal-400 px-4 py-3 text-sm font-semibold text-slate-950 [touch-action:manipulation]"
               >
                 ✨ Analyze {shots.length} shot{shots.length === 1 ? "" : "s"} →{" "}
-                {category === "limitation" ? "limitation" : "finding"}
+                {category === "limitation"
+                  ? "limitation"
+                  : category === "equipment"
+                    ? "equipment"
+                    : "finding"}
               </button>
             )}
 
@@ -1959,7 +1983,9 @@ export default function AILiveInspectionCamera({
           extraPreviewUrls={
             shots.length > 1 ? shots.map((s) => s.frame).filter(Boolean) : undefined
           }
-          onAddAngle={draft.kind === "finding" ? handleAddAngle : undefined}
+          onAddAngle={
+            draft.kind === "finding" || draft.kind === "equipment" ? handleAddAngle : undefined
+          }
         />
       )}
 

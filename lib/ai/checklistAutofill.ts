@@ -27,6 +27,14 @@ const COOLING_ENERGY = ["Ceiling Fan", "Whole House Fan", "Window AC", "Heat Pum
 const HEATING_BRAND = ["Rheem", "American Standard", "York", "Trane", "Payne", "Coleman", "Carrier", "Bryant", "Lennox", "Goodman", "Amana"];
 const HEATING_TYPE = ["Radiant Heat", "Electric Baseboard", "Space Heater", "Forced Air", "Hydronic", "Electric Wall Heater", "Steam Boiler", "Heat Pump", "Gas-Fired Heat", "None"];
 const COOLING_BRAND = ["Amana", "Frigidaire", "Carrier", "Coleman", "Goodman", "Lennox", "Rheem", "York", "Trane", "Bryant", "Maytag", "General Electric", "Luxaire", "Armstrong", "Unknown"];
+// Kitchen appliances (Built-in Appliances section) + surface materials
+// (Doors, Windows & Interior). Mirror CHECKLIST_LIBRARY.
+const DISHWASHER_BRAND = ["Kenmore", "Bosch", "Electrolux", "GE", "Miele", "Unknown", "Whirlpool", "Asko", "Maytag", "Frigidaire", "KitchenAid", "Samsung", "LG"];
+const REFRIGERATOR_BRAND = ["Frigidaire", "Whirlpool", "Kenmore", "Unknown", "Samsung", "GE", "Thermador", "LG", "Maytag"];
+const RANGE_BRAND = ["Amana", "Brown", "KitchenAid", "Frigidaire", "Bosch", "Jenn-Air", "Maytag", "Thermador", "Viking", "GE", "American", "Caldera", "Caloric", "Hotpoint", "LG", "Kenmore", "Samsung", "Unknown", "Whirlpool"];
+const RANGE_ENERGY = ["Coal", "Gas", "Electric", "Wood"];
+const CABINETRY = ["Laminate", "Plastic", "Metal", "Wood"];
+const COUNTERTOP = ["Composite", "Concrete", "Granite", "Metal", "Quartz", "Stainless Steel", "Wood Butcher Block", "Laminate", "Corian", "Marble", "Porcelain", "Recycled Glass", "Tile"];
 
 // The heating unit type / heat-delivery method, inferred from the equipment text.
 function pickHeatType(t: string): string | null {
@@ -110,6 +118,15 @@ function isHeating(t: string) {
 function isCooling(t: string) {
   return t.includes("condenser") || t.includes("air conditioner") || t.includes("central air") || t.includes(" ac ") || t.includes("cooling") || t.includes("evaporative") || t.includes("swamp");
 }
+function isDishwasher(t: string) {
+  return t.includes("dishwasher") || t.includes("dish washer");
+}
+function isRefrigerator(t: string) {
+  return t.includes("refrigerator") || t.includes("fridge") || t.includes("freezer");
+}
+function isRange(t: string) {
+  return t.includes("range") || t.includes("oven") || t.includes("stove") || t.includes("cooktop") || t.includes("cook top");
+}
 
 function optionFill(section: string, groupTitle: string, raw: string, options: string[]): ChecklistFill {
   const matched = matchOption(raw, options);
@@ -122,6 +139,40 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
   if (!er || typeof er !== "object") return [];
   const t = equipText(er);
   const fills: ChecklistFill[] = [];
+
+  // Surface materials (countertop / cabinetry) — the AI can identify these even
+  // when there is no equipment data plate. They live in Doors, Windows &
+  // Interior. Added regardless of equipment type; the appliance/equipment
+  // branches below still run for the same photo when both are present.
+  if (isKnown(er.countertopMaterial)) {
+    fills.push(optionFill("Doors, Windows & Interior", "Countertop Material", String(er.countertopMaterial), COUNTERTOP));
+  }
+  if (isKnown(er.cabinetMaterial)) {
+    fills.push(optionFill("Doors, Windows & Interior", "Cabinetry", String(er.cabinetMaterial), CABINETRY));
+  }
+
+  // Kitchen appliances -> Built-in Appliances (brand + model, and energy source
+  // for a range/oven). Checked before the HVAC/plumbing branches since a
+  // dishwasher/refrigerator/range is unambiguous.
+  if (isDishwasher(t)) {
+    if (isKnown(er.manufacturer)) fills.push(optionFill("Built-in Appliances", "Dishwasher Brand", String(er.manufacturer), DISHWASHER_BRAND));
+    if (isKnown(er.model)) fills.push({ section: "Built-in Appliances", groupTitle: "Dishwasher Model", kind: "text", value: String(er.model).trim(), matched: false });
+    return fills;
+  }
+  if (isRefrigerator(t)) {
+    if (isKnown(er.manufacturer)) fills.push(optionFill("Built-in Appliances", "Refrigerator Brand", String(er.manufacturer), REFRIGERATOR_BRAND));
+    if (isKnown(er.model)) fills.push({ section: "Built-in Appliances", groupTitle: "Refrigerator Model", kind: "text", value: String(er.model).trim(), matched: false });
+    return fills;
+  }
+  if (isRange(t)) {
+    if (isKnown(er.manufacturer)) fills.push(optionFill("Built-in Appliances", "Range/Oven Brand", String(er.manufacturer), RANGE_BRAND));
+    if (isKnown(er.model)) fills.push({ section: "Built-in Appliances", groupTitle: "Range/Oven Model", kind: "text", value: String(er.model).trim(), matched: false });
+    if (isKnown(er.fuelType)) {
+      const opt = matchFuel(String(er.fuelType), RANGE_ENERGY);
+      fills.push({ section: "Built-in Appliances", groupTitle: "Range/Oven Energy Source", kind: "option", value: opt || String(er.fuelType).trim(), matched: Boolean(opt) });
+    }
+    return fills;
+  }
 
   if (isWaterHeater(t)) {
     if (isKnown(er.manufacturer)) fills.push(optionFill("Plumbing", "Water Heater Manufacturer", String(er.manufacturer), WH_MANUFACTURER));
