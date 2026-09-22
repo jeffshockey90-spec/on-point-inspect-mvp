@@ -9,6 +9,7 @@ import { severityIsCritical } from "../../../lib/severity/severityConfig";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 
@@ -1642,54 +1643,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       redirect(`/reports/${inspectionId}?publish_error=1`);
     }
 
-    // Common Ground auto-learns: classify this newly-published inspection's
-    // findings and recompute prevalence so the "% of homes" numbers adjust with
-    // the new data immediately. Service-role (national scope). Best-effort.
-    try {
-      const cgAdmin = createSupabaseStorageClient();
-      if (cgAdmin) {
-        // recomputeDealPrevalence AI-tags every still-unclassified finding on
-        // the published inspections (this one included) before rolling up
-        // prevalence, so no separate pre-classification pass is needed here.
-        await recomputeDealPrevalence(cgAdmin);
-      }
-    } catch (cgErr) {
-      console.error("Common Ground recompute on publish failed:", cgErr);
-    }
-
-    try {
-      const appUrl =
-        process.env.NEXT_PUBLIC_APP_URL ||
-        (process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : "http://localhost:3000");
-      const cookieStore = await cookies();
-      const cookieHeader = cookieStore
-        .getAll()
-        .map((cookie) => `${cookie.name}=${cookie.value}`)
-        .join("; ");
-
-      const reportEmailRes = await fetch(`${appUrl}/api/send-report-email`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: cookieHeader,
-        },
-        body: JSON.stringify({
-          inspectionId,
-          recipientType: "all",
-        }),
-        cache: "no-store",
-      });
-
-      if (!reportEmailRes.ok) {
-        const reportEmailData = await reportEmailRes.json().catch(() => ({}));
-        console.error("Publish report email send error:", reportEmailData);
-      }
-    } catch (sendError) {
-      console.error("Publish report email send failed:", sendError);
-    }
-
+    // Figure out the redirect target now (a fast single query) — everything
+    // heavy is deferred below so publishing returns instantly.
     const { data: publishInspection } = await supabase
       .from("inspections")
       .select("service_mode, inspection_type, services")
@@ -1709,6 +1664,51 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     const isStandaloneEnvironmentalReport =
       !serviceType.includes("home") &&
       (serviceType.includes("radon") || serviceType.includes("mold"));
+
+    // The heavy post-publish work — the Common Ground AI reclassify of every
+    // finding, and sending the report email — used to be AWAITED here, before
+    // the redirect. On a big/photo-heavy report the AI pass ran long enough to
+    // blow past the serverless timeout: the report published, but the redirect
+    // never landed and the app sat on a black screen. Run it AFTER the response
+    // instead (Next's after() keeps the function alive to finish it), so publish
+    // redirects instantly. Capture the cookie header now — cookies() isn't
+    // available once the response is sent.
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore
+      .getAll()
+      .map((cookie) => `${cookie.name}=${cookie.value}`)
+      .join("; ");
+
+    after(async () => {
+      // Common Ground auto-learns: AI-tag every still-unclassified finding on the
+      // published inspections (this one included) and recompute prevalence so the
+      // "% of homes" numbers adjust with the new data. Service-role, best-effort.
+      try {
+        const cgAdmin = createSupabaseStorageClient();
+        if (cgAdmin) await recomputeDealPrevalence(cgAdmin);
+      } catch (cgErr) {
+        console.error("Common Ground recompute on publish failed:", cgErr);
+      }
+
+      // Email the published report to all recipients.
+      try {
+        const reportEmailRes = await fetch(`${appUrl}/api/send-report-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Cookie: cookieHeader },
+          body: JSON.stringify({ inspectionId, recipientType: "all" }),
+          cache: "no-store",
+        });
+        if (!reportEmailRes.ok) {
+          const reportEmailData = await reportEmailRes.json().catch(() => ({}));
+          console.error("Publish report email send error:", reportEmailData);
+        }
+      } catch (sendError) {
+        console.error("Publish report email send failed:", sendError);
+      }
+    });
 
     revalidatePath(`/reports/${inspectionId}`);
     revalidatePath(`/share/${inspectionId}`);
