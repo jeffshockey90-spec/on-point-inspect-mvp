@@ -1375,7 +1375,11 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       </div>
 
       {combineOpen && (
-        <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
+        // Float above the mobile bottom nav (fixed, 78px + safe-area, z-100 in
+        // Nav.tsx) so the "Combine into one" button is never hidden behind it on
+        // a phone. On desktop (xl) that bottom bar is hidden, so drop back to a
+        // small bottom offset.
+        <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)_+_94px)] z-[110] flex justify-center px-4 xl:bottom-4">
           <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-purple-400/50 bg-[var(--fl-surface)] px-4 py-3 shadow-2xl backdrop-blur">
             <span className="text-sm font-semibold text-[var(--fl-text)]">
               {selectedCombine.size} selected
