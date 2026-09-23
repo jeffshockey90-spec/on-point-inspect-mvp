@@ -10,6 +10,13 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Never let a CDN or in-app WebView pin a weather response — a stale reading made
+// the report auto-fill show the SAME temp/conditions on every property.
+const NO_STORE: Record<string, string> = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+  Pragma: "no-cache",
+};
+
 // GET /api/weather
 //   ?mode=current|date|forecast   (default: current)
 //   &address=<street address>     OR  &lat=..&lng=..
@@ -67,7 +74,7 @@ export async function GET(req: Request) {
         );
       }
       const days = await getDailyForecast(lat, lng, startDate, endDate);
-      return NextResponse.json({ lat, lng, days });
+      return NextResponse.json({ lat, lng, days }, { headers: NO_STORE });
     }
 
     if (mode === "date") {
@@ -110,7 +117,7 @@ export async function GET(req: Request) {
           { status: 404 },
         );
       }
-      return NextResponse.json({ lat, lng, weather, isForecast });
+      return NextResponse.json({ lat, lng, weather, isForecast }, { headers: NO_STORE });
     }
 
     // default: current
@@ -121,7 +128,7 @@ export async function GET(req: Request) {
         { status: 404 },
       );
     }
-    return NextResponse.json({ lat, lng, weather });
+    return NextResponse.json({ lat, lng, weather }, { headers: NO_STORE });
   } catch (error: any) {
     console.error("Weather route error:", error);
     return NextResponse.json(

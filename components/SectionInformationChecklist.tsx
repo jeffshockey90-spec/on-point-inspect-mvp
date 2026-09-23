@@ -1236,11 +1236,17 @@ function SectionInformationChecklist({
         address: weatherAddress,
       });
       if (weatherDate) {
-        params.set("date", weatherDate);
+        // Normalize to YYYY-MM-DD (the column can come back as a full timestamp).
+        params.set("date", String(weatherDate).slice(0, 10));
         if (weatherHour != null && Number.isFinite(weatherHour)) {
           params.set("hour", String(weatherHour));
         }
       }
+      // Cache-buster: some in-app WebViews (iOS/Capacitor) serve a cached
+      // /api/weather GET for the identical URL even with cache:"no-store" — which
+      // made the auto-fill keep showing the SAME temp/conditions on every report.
+      // A unique URL per call guarantees a fresh reading.
+      params.set("_ts", String(Date.now()));
 
       const res = await fetch(`/api/weather?${params.toString()}`, { cache: "no-store" });
       const json = await res.json();
