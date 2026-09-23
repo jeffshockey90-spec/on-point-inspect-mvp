@@ -40,6 +40,53 @@ const ROOF_COVERING = ["Solar", "Ceramic", "Asbestos", "Tile", "Metal", "Concret
 const DRIVEWAY = ["Concrete", "Asphalt", "Cobblestone", "Pavers", "Gravel", "Brick", "Street Parking", "Dirt"];
 const WALKWAY = ["Concrete", "Stamped Concrete", "Pavers", "Brick", "Asphalt", "Gravel", "Stone", "Flagstone", "Dirt", "None"];
 
+// Whole-property attributes (from the New Inspection property lookup) -> the
+// Inspection Details checklist. Mirror CHECKLIST_LIBRARY.
+const STYLE_OPTIONS = ["Manufactured", "Modular", "Modern", "Bungalow", "Victorian", "Row House", "Raised Ranch", "Rambler", "Ranch", "Multi-level", "Contemporary", "Colonial", "Townhouse"];
+const BUILDING_TYPE_OPTIONS = ["Multi-Family", "Single Family", "Detached", "Attached", "Condominium / Townhouse"];
+
+// Snap a public-record building type ("Single Family Residence", "Townhome"…) to
+// the checklist's option labels; unrecognized values fall through and are added
+// as a NEW option in the right group.
+function normalizeBuildingType(t: string): string {
+  const v = t.toLowerCase();
+  if (v.includes("single") || v.includes("sfr") || v.includes("one family")) return "Single Family";
+  if (v.includes("town") || v.includes("condo") || v.includes("row")) return "Condominium / Townhouse";
+  if (v.includes("multi") || v.includes("duplex") || v.includes("triplex") || v.includes("apartment") || v.includes("two family") || v.includes("three family")) return "Multi-Family";
+  if (v.includes("detached")) return "Detached";
+  if (v.includes("attached")) return "Attached";
+  return t;
+}
+
+// Build the Style / Type of Building fills from the looked-up property data. The
+// lookup often conflates architectural style ("Ranch") and building type
+// ("Single Family Residence") into one value, so this routes each value to the
+// right field by content: a value that maps to a building type fills "Type of
+// Building"; anything else fills "Style". Pass the same value for both when only
+// one is known.
+export function buildPropertyFills(style?: string | null, type?: string | null): ChecklistFill[] {
+  const fills: ChecklistFill[] = [];
+
+  // Style — but not when the value is really a building type.
+  if (isKnown(style)) {
+    const s = String(style);
+    const looksLikeType = matchOption(normalizeBuildingType(s), BUILDING_TYPE_OPTIONS);
+    if (!looksLikeType) fills.push(optionFill("Inspection Details", "Style", s, STYLE_OPTIONS));
+  }
+
+  // Type of Building — only when it confidently maps to a real building type
+  // (never pollute it with an architectural style like "Ranch").
+  const typeSource = isKnown(type) ? String(type) : isKnown(style) ? String(style) : "";
+  if (typeSource) {
+    const matched = matchOption(normalizeBuildingType(typeSource), BUILDING_TYPE_OPTIONS);
+    if (matched) {
+      fills.push({ section: "Inspection Details", groupTitle: "Type of Building", kind: "option", value: matched, matched: true });
+    }
+  }
+
+  return fills;
+}
+
 // The heating unit type / heat-delivery method, inferred from the equipment text.
 function pickHeatType(t: string): string | null {
   if (t.includes("heat pump")) return "Heat Pump";

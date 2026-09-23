@@ -18,6 +18,7 @@ import {
 import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
 import DroneAirspaceCard from "../../../components/DroneAirspaceCard";
+import { buildPropertyFills, writeChecklistFills } from "../../../lib/ai/checklistAutofill";
 import { isAppleActive } from "../../../lib/entitlements";
 
 declare global {
@@ -1212,6 +1213,19 @@ function NewInspectionPageContent() {
           ...finding,
         })
       );
+
+      // Auto-fill the report's Inspection Details "Style" / "Type of Building"
+      // from the looked-up property data, so they're pre-filled instead of blank
+      // (snaps to the option list, adds a NEW option when unmatched, only fills
+      // empty groups). Best-effort — never blocks creating the inspection.
+      try {
+        const propertyFills = buildPropertyFills(propertyStyle, propertyStyle);
+        if (propertyFills.length) {
+          await writeChecklistFills(supabase, String(data.id), propertyFills);
+        }
+      } catch (fillErr) {
+        console.warn("Property style/type autofill skipped:", fillErr);
+      }
 
       const { error: defaultFindingsError } = await supabase
         .from("findings")
