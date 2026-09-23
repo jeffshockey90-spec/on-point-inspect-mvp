@@ -199,6 +199,42 @@ function EditableFinding({
 
       learningBaselineRef.current = updatedLearningValue;
 
+      // Auto-correct the title to match the new content — but ONLY when the body
+      // changed AND the inspector didn't type their own title (a manual title is
+      // always respected). Runs in the background so it never blocks the save;
+      // when it returns it updates the title in place. This is why a defect's
+      // wording could change while its title stayed stale.
+      const bodyChanged =
+        observation.trim() !== originalLearningValue.observation.trim() ||
+        implication.trim() !== originalLearningValue.implication.trim() ||
+        recommendation.trim() !== originalLearningValue.recommendation.trim();
+      const titleUntouched = title.trim() === originalLearningValue.title.trim();
+      if (bodyChanged && titleUntouched) {
+        void (async () => {
+          try {
+            const res = await fetch("/api/findings/retitle", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                inspectionId: finding.inspection_id,
+                findingId: finding.id,
+              }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data?.title) {
+              setTitle(data.title);
+              learningBaselineRef.current = {
+                ...learningBaselineRef.current,
+                title: data.title,
+              };
+              refreshKeepScroll(router);
+            }
+          } catch {
+            /* leave the existing title if retitle fails */
+          }
+        })();
+      }
+
       setSaveLabel("Saved!");
       showMessage("success", "Finding saved.");
       setEditing(false);

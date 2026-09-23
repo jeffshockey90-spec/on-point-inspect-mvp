@@ -90,6 +90,7 @@ export async function POST(req: Request) {
 Rules:
 - Keep every fact from BOTH the existing finding and the new observation. Do not invent, exaggerate, or drop any defect or location.
 - The combined finding MUST name every affected location/area from both.
+- REWRITE THE TITLE so it accurately names the combined defect and reflects that it affects multiple locations where relevant. Do not just reuse the existing finding's title.
 - Use the most serious severity of the two (${mergedSeverity}).
 - Keep it professional, accurate, and liability-safe.
 

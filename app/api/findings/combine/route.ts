@@ -104,6 +104,7 @@ export async function POST(req: Request) {
 Rules:
 - Keep every fact. Do not invent, exaggerate, or drop any defect or location.
 - The combined finding MUST name every affected location/area.
+- REWRITE THE TITLE so it accurately names the combined defect and reflects that it affects multiple locations where relevant (e.g. "Damaged Weather-Stripping at Multiple Exterior Doors"). Do not just reuse one input's title.
 - Use the most serious severity among the inputs (${mergedSeverity}).
 - Keep it professional, accurate, and liability-safe.
 
