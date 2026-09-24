@@ -710,6 +710,17 @@ export default function AILiveInspectionCamera({
     void compass.start();
   }
 
+  // Re-label already-captured shots as a different category WITHOUT retaking —
+  // e.g. you shot a "defect" but it should be a "limitation". The tray media is
+  // category-agnostic, so this just changes what the next step (Analyze / Save)
+  // treats them as.
+  function reassignCategory(cat: CaptureCategory) {
+    if (cat === category) return;
+    setCategory(cat);
+    setDraftError("");
+    if (cat === "reference" && !referenceSection) setReferenceSection(currentSection);
+  }
+
   // The confirmed location, composed for the AI (side auto-filled from the
   // compass when the inspector didn't override it).
   function composedLocation() {
@@ -1799,6 +1810,30 @@ export default function AILiveInspectionCamera({
                     ? "same equipment"
                     : "reference"}
             </p>
+          </div>
+
+          {/* Wrong category? Re-label the shots you already took instead of
+              retaking them. */}
+          <div className="flex flex-wrap gap-2 px-4 pt-2">
+            {([
+              ["finding", "Defect"],
+              ["limitation", "Limitation"],
+              ["equipment", "Equipment"],
+              ["reference", "Reference"],
+            ] as const).map(([cat, label]) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => reassignCategory(cat)}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold [touch-action:manipulation] ${
+                  category === cat
+                    ? "border-cyan-300 bg-cyan-500/25 text-cyan-100"
+                    : "border-white/20 bg-neutral-900/70 text-white/60 hover:border-cyan-400/60"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-3">

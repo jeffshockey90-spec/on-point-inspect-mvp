@@ -827,7 +827,7 @@ function SectionLimitations({
 
   return (
     <>
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] [contain:layout]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}

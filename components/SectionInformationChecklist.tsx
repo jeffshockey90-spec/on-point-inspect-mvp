@@ -1699,7 +1699,10 @@ function SectionInformationChecklist({
   const selectedCount = selections.filter((item) => item.value !== "__TEXT_VALUE__").length;
 
   return (
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
+    // Layout containment: a checkbox toggle re-renders this checklist; contain
+    // its layout so that re-render doesn't reflow the whole report list (the
+    // "glitchy when clicking checkboxes" jank on big reports).
+    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] [contain:layout]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
