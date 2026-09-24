@@ -1339,16 +1339,19 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                   );
                   const cid = String(finding.id);
                   const picked = combineOpen && selectedCombine.has(cid);
-                  // Layout containment: isolate each card so editing/repainting
-                  // one (or the realtime refresh) doesn't force the whole long
-                  // list to re-layout — cuts scroll stutter and post-edit jank on
-                  // big reports. Safe: no paint containment (nothing is clipped),
-                  // no content-visibility (no scroll drift). The combine
-                  // checkbox is only mounted while combine mode is on.
+                  // content-visibility: the browser SKIPS layout + paint for
+                  // cards that are off-screen, so scrolling a big photo-heavy
+                  // report doesn't render every card + thumbnail at once — the
+                  // main cause of the scroll stutter/jank on mobile. The
+                  // `contain-intrinsic-size: auto` remembers each card's real
+                  // height after it renders once, so it doesn't cause scroll
+                  // drift on re-scroll. Nothing is clipped visibly (menus are
+                  // native selects / portaled). The combine checkbox is only
+                  // mounted while combine mode is on.
                   return (
                     <div
                       key={finding.id}
-                      className={`relative rounded-2xl [contain:layout] ${
+                      className={`relative rounded-2xl [content-visibility:auto] [contain-intrinsic-size:auto_640px] ${
                         picked ? "ring-2 ring-inset ring-purple-400 transition" : ""
                       }`}
                     >
