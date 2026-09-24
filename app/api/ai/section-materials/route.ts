@@ -52,7 +52,16 @@ export async function POST(req: Request) {
     }
 
     const fieldList = groups
-      .map((g) => `- "${g.groupTitle}": one of [${g.options.join(", ")}] or "Unknown"`)
+      .map((g) => {
+        // Brand/manufacturer fields are OPEN-ENDED: read the actual brand off
+        // the logo/badge (there are far more brands than any list, and the fill
+        // engine checks an existing brand or adds a new one). Material fields
+        // stay constrained to their option list.
+        const isBrand = /brand|manufacturer/i.test(g.groupTitle);
+        return isBrand
+          ? `- "${g.groupTitle}": the exact brand name read from the appliance's logo/badge/nameplate (e.g. Bosch, Samsung, LG, Whirlpool, KitchenAid, Frigidaire, GE, Maytag), or "Unknown" if no brand is visible`
+          : `- "${g.groupTitle}": one of [${g.options.join(", ")}] or "Unknown"`;
+      })
       .join("\n");
 
     const systemPrompt = `You identify details visible in an inspection photo of the "${section}" area — building materials, and for appliances the BRAND read from a visible logo, badge, or nameplate. For each field below, choose the single best-matching option from its list based ONLY on what is clearly visible (read the brand logo for a fridge / dishwasher / range / oven). If you cannot tell, use "Unknown". Never guess a brand you cannot see. Do not invent fields.
