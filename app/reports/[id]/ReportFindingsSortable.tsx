@@ -137,7 +137,16 @@ function DeferredOpenSection({
 
     observer.observe(host);
 
-    return () => observer.disconnect();
+    // Safety net: if the observer never fires (opening a section that's far
+    // off-screen, or an iOS layout quirk), render anyway shortly after so a
+    // tapped-open section ALWAYS shows its content — no more "won't open until
+    // I close and reopen the report".
+    const fallback = window.setTimeout(() => setHasRendered(true), 350);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(fallback);
+    };
   }, [active, hasRendered]);
 
   return (
@@ -1340,18 +1349,17 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                   const cid = String(finding.id);
                   const picked = combineOpen && selectedCombine.has(cid);
                   // content-visibility: the browser SKIPS layout + paint for
-                  // cards that are off-screen, so scrolling a big photo-heavy
-                  // report doesn't render every card + thumbnail at once — the
-                  // main cause of the scroll stutter/jank on mobile. The
-                  // `contain-intrinsic-size: auto` remembers each card's real
-                  // height after it renders once, so it doesn't cause scroll
-                  // drift on re-scroll. Nothing is clipped visibly (menus are
-                  // native selects / portaled). The combine checkbox is only
-                  // mounted while combine mode is on.
+                  // cards that are off-screen, cutting scroll cost on big photo-
+                  // heavy reports. The intrinsic-size estimate MUST match a real
+                  // collapsed card (~150px) — a too-large estimate (640px) made
+                  // every card lurch upward as it scrolled in and shrank to its
+                  // real height, which read as the "jumping". `auto` then locks
+                  // in each card's true height after it renders once. Nothing is
+                  // clipped visibly (menus are native selects / portaled).
                   return (
                     <div
                       key={finding.id}
-                      className={`relative rounded-2xl [content-visibility:auto] [contain-intrinsic-size:auto_640px] ${
+                      className={`relative rounded-2xl [content-visibility:auto] [contain-intrinsic-size:auto_150px] ${
                         picked ? "ring-2 ring-inset ring-purple-400 transition" : ""
                       }`}
                     >
