@@ -2692,6 +2692,8 @@ function FindingCardBase({
   const [movingPhotoId, setMovingPhotoId] = useState<string | null>(null);
   const [markupPhoto, setMarkupPhoto] = useState<any | null>(null);
   const [showMarkupEditor, setShowMarkupEditor] = useState(false);
+  // When a finding has several photos, "Markup Photo" first asks WHICH one.
+  const [showMarkupPicker, setShowMarkupPicker] = useState(false);
   // Re-editable markup: the CLEAN base image the annotations are drawn on (so a
   // saved markup can be re-opened and CHANGED, not doubled on the flattened
   // image), plus the annotations to preload into the editor.
@@ -3967,12 +3969,18 @@ function FindingCardBase({
             onClick={(event) => {
               event.stopPropagation();
 
-              if (!photos.length) {
-                showMessage("error", "This finding has no photos.");
+              const markupable = photos.filter((p: any) => !isVideoMedia(p));
+              if (!markupable.length) {
+                showMessage("error", "This finding has no photos to mark up.");
                 return;
               }
-
-              void openMarkupEditor(photos[0]);
+              // One photo → straight to markup. Several → pick which one first
+              // (and come back to pick another to mark up multiple).
+              if (markupable.length === 1) {
+                void openMarkupEditor(markupable[0]);
+              } else {
+                setShowMarkupPicker(true);
+              }
             }}
             className="w-full rounded-xl border border-purple-500 px-3 py-3 text-xs font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
           >
@@ -4156,6 +4164,63 @@ function FindingCardBase({
               </>
             )}
           </div>
+        )}
+
+        {showMarkupPicker && typeof document !== "undefined" && createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm [touch-action:manipulation]"
+            onClick={() => setShowMarkupPicker(false)}
+          >
+            <div
+              className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4 shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-[var(--fl-text)]">
+                  Pick a photo to mark up
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowMarkupPicker(false)}
+                  className="rounded-full border border-[var(--fl-line)] px-3 py-1 text-xs font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
+                >
+                  Close ✕
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {photos
+                  .filter((p: any) => !isVideoMedia(p))
+                  .map((photo: any, i: number) => (
+                    <button
+                      key={photo.id || i}
+                      type="button"
+                      onClick={() => {
+                        setShowMarkupPicker(false);
+                        void openMarkupEditor(photo);
+                      }}
+                      className="group relative block h-32 w-full overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-left transition hover:border-purple-400 [touch-action:manipulation]"
+                      title="Mark up this photo"
+                    >
+                      <img
+                        src={getPhotoUrl(photo)}
+                        alt={`Photo ${i + 1}`}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+                      />
+                      <span className="absolute bottom-1.5 right-1.5 rounded-full border border-purple-400/60 bg-[var(--fl-surface)]/90 px-2.5 py-0.5 text-[11px] font-semibold text-[var(--fl-purple-text)]">
+                        ✏️ Markup
+                      </span>
+                    </button>
+                  ))}
+              </div>
+              <p className="mt-3 text-[11px] text-[var(--fl-faint)]">
+                Mark one up and save, then reopen to mark up another.
+              </p>
+            </div>
+          </div>,
+          document.body,
         )}
 
         {showMarkupEditor && markupPhoto && typeof document !== "undefined" && createPortal(

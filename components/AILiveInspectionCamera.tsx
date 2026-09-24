@@ -240,6 +240,7 @@ export default function AILiveInspectionCamera({
   const [referenceCaption, setReferenceCaption] = useState("");
   const [referenceSection, setReferenceSection] = useState(currentSection);
   const [showMarkup, setShowMarkup] = useState(false);
+  const [showMarkupPicker, setShowMarkupPicker] = useState(false);
   const [savingMarkup, setSavingMarkup] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -1087,7 +1088,26 @@ export default function AILiveInspectionCamera({
   }
 
   function openMarkup() {
+    // Several photos captured for this one item? Let the inspector pick which to
+    // mark up (and reopen to mark up more) instead of only the last shot.
+    const markupableShots = shots.filter((s) => !s.isVideo);
+    if (markupableShots.length > 1) {
+      setShowMarkupPicker(true);
+      return;
+    }
     if (!capturedFile || capturedIsVideo) return;
+    setShowMarkup(true);
+  }
+
+  // Point the markup editor at a specific captured shot. saveMarkup keys off
+  // capturedFile identity, so setting it here makes the save update THIS shot.
+  function markupShot(shot: { file: File; frame: string; isVideo: boolean }) {
+    setShowMarkupPicker(false);
+    if (shot.isVideo) return;
+    setCapturedFile(shot.file);
+    setCapturedPreviewUrl(shot.frame);
+    setCapturedFrameForAi(shot.frame);
+    setCapturedIsVideo(false);
     setShowMarkup(true);
   }
 
@@ -2113,6 +2133,54 @@ export default function AILiveInspectionCamera({
       {!online && (
         <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-neutral-900/85 px-3 py-1 text-[10px] font-semibold text-amber-300">
           Offline — AI drafting needs a connection
+        </div>
+      )}
+
+      {showMarkupPicker && (
+        <div
+          className="absolute inset-0 z-[55] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm [touch-action:manipulation]"
+          onClick={() => setShowMarkupPicker(false)}
+        >
+          <div
+            className="max-h-[86vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/15 bg-neutral-950 p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-white">Pick a photo to mark up</p>
+              <button
+                type="button"
+                onClick={() => setShowMarkupPicker(false)}
+                className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white/70 [touch-action:manipulation]"
+              >
+                Close ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {shots
+                .filter((s) => !s.isVideo)
+                .map((shot, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => markupShot(shot)}
+                    className="group relative block h-28 w-full overflow-hidden rounded-xl border border-white/15 bg-neutral-900 text-left transition hover:border-purple-400 [touch-action:manipulation]"
+                    title="Mark up this photo"
+                  >
+                    <img
+                      src={shot.frame}
+                      alt={`Shot ${i + 1}`}
+                      className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+                    />
+                    <span className="absolute bottom-1.5 right-1.5 rounded-full border border-purple-400/60 bg-neutral-950/90 px-2 py-0.5 text-[11px] font-semibold text-purple-200">
+                      ✏️
+                    </span>
+                  </button>
+                ))}
+            </div>
+            <p className="mt-3 text-[11px] text-white/50">
+              Mark one up and save, then reopen to mark up another.
+            </p>
+          </div>
         </div>
       )}
 
