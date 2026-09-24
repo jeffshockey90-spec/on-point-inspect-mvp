@@ -1348,18 +1348,16 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                   );
                   const cid = String(finding.id);
                   const picked = combineOpen && selectedCombine.has(cid);
-                  // content-visibility: the browser SKIPS layout + paint for
-                  // cards that are off-screen, cutting scroll cost on big photo-
-                  // heavy reports. The intrinsic-size estimate MUST match a real
-                  // collapsed card (~150px) — a too-large estimate (640px) made
-                  // every card lurch upward as it scrolled in and shrank to its
-                  // real height, which read as the "jumping". `auto` then locks
-                  // in each card's true height after it renders once. Nothing is
-                  // clipped visibly (menus are native selects / portaled).
+                  // Layout containment only: isolates each card's layout so one
+                  // card's change doesn't reflow the whole list. content-
+                  // visibility was tried here but iOS handled it poorly (render-
+                  // on-scroll flicker + jumps), and the real "glitches when
+                  // scrolling" cause was a periodic realtime refresh (see
+                  // RealtimeReportSync) — not paint cost.
                   return (
                     <div
                       key={finding.id}
-                      className={`relative rounded-2xl [content-visibility:auto] [contain-intrinsic-size:auto_150px] ${
+                      className={`relative rounded-2xl [contain:layout] ${
                         picked ? "ring-2 ring-inset ring-purple-400 transition" : ""
                       }`}
                     >
