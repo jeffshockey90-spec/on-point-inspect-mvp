@@ -815,11 +815,29 @@ export default function AILiveInspectionCamera({
   }
 
   // Save all tray photos as section reference photos (no AI).
+  // Light material recognition for reference photos (which otherwise run no AI),
+  // so the section's materials still auto-fill. The endpoint recognizes + writes
+  // the fills server-side; fire-and-forget.
+  function autofillReferenceMaterials(sectionForRef: string, frames: string[]) {
+    if (!selectedReport || !sectionForRef || !frames.length) return;
+    void fetch("/api/ai/section-materials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inspectionId: selectedReport,
+        section: sectionForRef,
+        images: frames.slice(0, 3),
+      }),
+    }).catch(() => {});
+  }
+
   async function saveReferenceShots() {
     if (!shots.length) return;
     setSaving(true);
     setSaveError("");
     try {
+      const refSection = referenceSection;
+      const refFrames = shots.map((s) => s.frame).filter(Boolean);
       for (const s of shots) {
         await uploadSectionReferencePhoto({
           inspectionId: selectedReport,
@@ -828,6 +846,11 @@ export default function AILiveInspectionCamera({
           caption: "",
         });
       }
+      // Reference photos normally run no AI. Kick off a light material-
+      // recognition pass so they STILL auto-fill this section's materials
+      // (siding, roof covering, flooring, etc.). Fire-and-forget — the values
+      // persist server-side and show when the report builder loads.
+      autofillReferenceMaterials(refSection, refFrames);
       setToast("Reference photos saved.");
       resetCaptureState();
       setStage("note_entry");
@@ -1174,6 +1197,11 @@ export default function AILiveInspectionCamera({
           file: capturedFile,
           caption: referenceCaption,
         });
+        // Auto-fill this section's materials from the reference photo too.
+        autofillReferenceMaterials(
+          referenceSection,
+          [capturedFrameForAi].filter(Boolean),
+        );
       } else {
         await onAccept(
           category,
