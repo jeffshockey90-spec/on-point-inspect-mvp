@@ -191,6 +191,32 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
   const t = equipText(er);
   const fills: ChecklistFill[] = [];
 
+  // Appliance detection uses ONLY the analyzer's TYPE fields (equipmentType /
+  // equipmentCategory), never the prose. A furnace's clientSummary often says
+  // "operating range" / "temperature range", which used to false-match
+  // Range/Oven and file HEATING brand+model under Built-in Appliances. We also
+  // respect the analyzer's own section decision: if it classified the unit as
+  // heating/cooling/plumbing/electrical, it is NOT a kitchen appliance.
+  const typeText = [er.equipmentType, er.equipmentCategory]
+    .map((v) => String(v || "").toLowerCase())
+    .join(" ");
+  const sectionText = String(er.section || "").toLowerCase();
+  // The analyzer already classified the unit. If it routed it to heating/
+  // cooling/plumbing/electrical, it is NOT a kitchen appliance — so a furnace
+  // whose summary says "operating range" never becomes a Range/Oven.
+  const routedElsewhere = /heating|cooling|plumbing|electrical|water heater/.test(sectionText);
+  // Treat it as an appliance only when the analyzer put it in Built-in
+  // Appliances OR the TYPE (not the prose) names an appliance. Once that's
+  // confirmed, the branches below use the full text to pick WHICH appliance,
+  // so a generic equipmentType still resolves via the summary — safely, because
+  // we already know it's an appliance.
+  const isAppliance =
+    sectionText.includes("appliance") ||
+    isDishwasher(typeText) ||
+    isRefrigerator(typeText) ||
+    isRange(typeText);
+  const applianceOk = !routedElsewhere && isAppliance;
+
   // Surface materials (countertop / cabinetry) — the AI can identify these even
   // when there is no equipment data plate. They live in Doors, Windows &
   // Interior. Added regardless of equipment type; the appliance/equipment
@@ -213,19 +239,19 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
   }
 
   // Kitchen appliances -> Built-in Appliances (brand + model, and energy source
-  // for a range/oven). Checked before the HVAC/plumbing branches since a
-  // dishwasher/refrigerator/range is unambiguous.
-  if (isDishwasher(t)) {
+  // for a range/oven). Detected from the TYPE only, and only when the analyzer
+  // didn't classify the unit as heating/cooling/plumbing/electrical.
+  if (applianceOk && isDishwasher(t)) {
     if (isKnown(er.manufacturer)) fills.push(optionFill("Built-in Appliances", "Dishwasher Brand", String(er.manufacturer), DISHWASHER_BRAND));
     if (isKnown(er.model)) fills.push({ section: "Built-in Appliances", groupTitle: "Dishwasher Model", kind: "text", value: String(er.model).trim(), matched: false });
     return fills;
   }
-  if (isRefrigerator(t)) {
+  if (applianceOk && isRefrigerator(t)) {
     if (isKnown(er.manufacturer)) fills.push(optionFill("Built-in Appliances", "Refrigerator Brand", String(er.manufacturer), REFRIGERATOR_BRAND));
     if (isKnown(er.model)) fills.push({ section: "Built-in Appliances", groupTitle: "Refrigerator Model", kind: "text", value: String(er.model).trim(), matched: false });
     return fills;
   }
-  if (isRange(t)) {
+  if (applianceOk && isRange(t)) {
     if (isKnown(er.manufacturer)) fills.push(optionFill("Built-in Appliances", "Range/Oven Brand", String(er.manufacturer), RANGE_BRAND));
     if (isKnown(er.model)) fills.push({ section: "Built-in Appliances", groupTitle: "Range/Oven Model", kind: "text", value: String(er.model).trim(), matched: false });
     if (isKnown(er.fuelType)) {
