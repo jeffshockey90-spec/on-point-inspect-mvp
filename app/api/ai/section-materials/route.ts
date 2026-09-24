@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       .map((g) => `- "${g.groupTitle}": one of [${g.options.join(", ")}] or "Unknown"`)
       .join("\n");
 
-    const systemPrompt = `You identify building MATERIALS visible in an inspection photo of the "${section}" area. For each field below, choose the single best-matching option from its list based ONLY on what is clearly visible. If you cannot tell, use "Unknown". Never guess. Do not invent fields.
+    const systemPrompt = `You identify details visible in an inspection photo of the "${section}" area — building materials, and for appliances the BRAND read from a visible logo, badge, or nameplate. For each field below, choose the single best-matching option from its list based ONLY on what is clearly visible (read the brand logo for a fridge / dishwasher / range / oven). If you cannot tell, use "Unknown". Never guess a brand you cannot see. Do not invent fields.
 
 Fields:
 ${fieldList}

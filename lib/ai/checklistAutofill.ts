@@ -365,6 +365,12 @@ export const MATERIAL_FIELDS: Record<string, { groupTitle: string; options: stri
     { groupTitle: "Countertop Material", options: ["Composite", "Concrete", "Granite", "Metal", "Quartz", "Stainless Steel", "Wood Butcher Block", "Laminate", "Corian", "Marble", "Porcelain", "Recycled Glass", "Tile"] },
   ],
   "Built-in Appliances": [
+    // Appliance BRANDS — so a reference photo of the fridge / dishwasher / range
+    // (not a data-plate scan) auto-fills the brand. Option lists reuse the ones
+    // already defined for the equipment path (mirror CHECKLIST_LIBRARY).
+    { groupTitle: "Dishwasher Brand", options: DISHWASHER_BRAND },
+    { groupTitle: "Refrigerator Brand", options: REFRIGERATOR_BRAND },
+    { groupTitle: "Range/Oven Brand", options: RANGE_BRAND },
     { groupTitle: "Range/Oven Energy Source", options: ["Coal", "Gas", "Electric", "Wood"] },
     { groupTitle: "Exhaust Hood Type", options: ["None", "Vented", "Re-circulate"] },
   ],
