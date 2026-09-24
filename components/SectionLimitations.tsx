@@ -182,9 +182,11 @@ async function getSharedLimitationTemplates() {
 function SectionLimitations({
   inspectionId,
   section,
+  availableSections,
 }: {
   inspectionId: string;
   section: string;
+  availableSections?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState<LimitationRow[]>([]);
@@ -532,6 +534,52 @@ function SectionLimitations({
     }
   }
 
+  // Move a limitation to a different section. The wording + any AI/custom title
+  // are auto-adjusted server-side to fit the new section; a standard checkbox
+  // limitation just moves. Photos travel with it (they key off limitation_id).
+  async function moveLimitation(item: LimitationRow, targetSection: string) {
+    if (!targetSection || targetSection === section || saving) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/limitations/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId,
+          limitationId: item.id,
+          newSection: targetSection,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Failed to move limitation.");
+
+      // It left this section — drop it locally.
+      setSaved((prev) => prev.filter((r) => r.id !== item.id));
+      setPhotosByLimitationId((prev) => {
+        const next = { ...prev };
+        delete next[item.id];
+        return next;
+      });
+      if (aiSaved.some((r) => r.id === item.id)) {
+        setAiNotes("");
+        setGeneratedComment("");
+      }
+
+      // Tell the target section's editor to reload so the moved limitation shows.
+      window.dispatchEvent(
+        new CustomEvent("opi:section-limitations-changed", {
+          detail: { inspectionId, section: targetSection },
+        }),
+      );
+      showMessage("success", `Moved to ${targetSection}.`);
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to move limitation.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function uploadLimitationPhoto(
     limitation: LimitationRow,
     file: File | undefined
@@ -833,14 +881,38 @@ function SectionLimitations({
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => removeLimitation(item.id)}
-                      className="rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/20"
-                      title="Remove limitation"
-                    >
-                      Remove
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {availableSections && availableSections.length > 1 && (
+                        <select
+                          value=""
+                          disabled={saving}
+                          onChange={(event) => {
+                            const target = event.target.value;
+                            event.currentTarget.value = "";
+                            if (target) void moveLimitation(item, target);
+                          }}
+                          title="Move this limitation to another section"
+                          className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-1 text-xs font-semibold text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:opacity-60 [touch-action:manipulation]"
+                        >
+                          <option value="">Move to…</option>
+                          {availableSections
+                            .filter((s) => s !== section)
+                            .map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                        </select>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeLimitation(item.id)}
+                        className="rounded-full border border-red-500/60 bg-red-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-crit-text)] hover:bg-red-500/20 [touch-action:manipulation]"
+                        title="Remove limitation"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
 
                   {photos.length > 0 && (

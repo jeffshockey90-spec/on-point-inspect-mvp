@@ -1300,6 +1300,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                 <SectionLimitations
                   inspectionId={inspectionId}
                   section={group.section}
+                  availableSections={availableSections}
                 />
 
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)]">
