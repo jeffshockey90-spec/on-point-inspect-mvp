@@ -48,6 +48,7 @@ import W9Section from "./W9Section";
 import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
 import SocialMediaReleaseSettings from "../../components/SocialMediaReleaseSettings";
 import TimePreferencesSettings from "../../components/time-location/TimePreferencesSettings";
+import MapsProviderSetting from "../../components/MapsProviderSetting";
 import SettingsToggle from "../../components/SettingsToggle";
 import OnlinePaymentFeeFields from "../../components/OnlinePaymentFeeFields";
 import Secure24ReferralSettings from "../../components/Secure24ReferralSettings";
@@ -1439,8 +1440,9 @@ export default async function SettingsPage({
             </div>
           </section>
 
-          <div id="time-location">
+          <div id="time-location" className="space-y-4">
             <TimePreferencesSettings />
+            <MapsProviderSetting />
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">

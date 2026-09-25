@@ -5,12 +5,22 @@
 // prefix only controls client-bundle inlining, it works fine read from
 // process.env on the server too.
 
+import { appleGeocode } from "./appleMaps";
+
 export type LatLng = { lat: number; lng: number };
 
 export async function geocodeAddress(address: string): Promise<LatLng | null> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const clean = String(address || "").trim();
-  if (!apiKey || !clean) return null;
+  if (!clean) return null;
+
+  // Prefer Apple Maps when it's configured — it's often more accurate on new-
+  // construction and rural addresses. Falls back to Google automatically when
+  // Apple isn't set up or can't resolve the address.
+  const apple = await appleGeocode(clean);
+  if (apple) return apple;
+
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (!apiKey) return null;
 
   try {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 export default function InspectionRouteCard({
   propertyAddress,
   city,
@@ -17,6 +19,19 @@ export default function InspectionRouteCard({
   distanceMiles?: number | null;
   driveMinutes?: number | null;
 }) {
+  // Which maps app opens for directions — the inspector's choice (Settings),
+  // stored per-device. "auto" uses Apple Maps on Apple devices, Google elsewhere.
+  const [useApple, setUseApple] = useState(false);
+  useEffect(() => {
+    try {
+      const pref = localStorage.getItem("flow-maps-provider"); // apple | google | auto
+      const ua = navigator.userAgent || "";
+      const isAppleDevice =
+        /iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && "ontouchend" in document);
+      setUseApple(pref === "apple" || (pref !== "google" && isAppleDevice));
+    } catch {}
+  }, []);
+
   const fullAddress = [propertyAddress, city, state, zip].filter(Boolean).join(", ");
   if (!fullAddress) return null;
 
@@ -32,9 +47,9 @@ export default function InspectionRouteCard({
           fullAddress
         )}`;
 
-  const directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-    fullAddress
-  )}`;
+  const directionsHref = useApple
+    ? `https://maps.apple.com/?daddr=${encodeURIComponent(fullAddress)}&dirflg=d`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`;
 
   const hasDistance = Boolean(distanceMiles || driveMinutes);
 
