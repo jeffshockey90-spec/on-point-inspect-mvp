@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import { saveFileToDeviceGallery } from "../../../lib/nativeGallery";
 
 type OverlayStyle = "inspected" | "just-inspected" | "under-contract" | "custom";
 
@@ -110,6 +111,21 @@ function downloadPng(canvas: HTMLCanvasElement, fileName: string) {
   a.remove();
 }
 
+function isNativeApp(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    Boolean((window as any).Capacitor?.isNativePlatform?.())
+  );
+}
+
+async function canvasToFile(canvas: HTMLCanvasElement, fileName: string): Promise<File> {
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png"),
+  );
+  if (!blob) throw new Error("Could not render the image.");
+  return new File([blob], fileName, { type: "image/png" });
+}
+
 function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -196,6 +212,7 @@ export default function MarketingImageStudio({
   const [draggingPhoto, setDraggingPhoto] = useState(false);
   const [draggingLogo, setDraggingLogo] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const activeLogo = logoOverride || savedLogo;
 
@@ -610,9 +627,23 @@ export default function MarketingImageStudio({
     try {
       setBusy(true);
       setError("");
+      setNotice("");
       const canvas = await draw(2);
       if (!canvas) return;
-      downloadPng(canvas, `${fileNameFromAddress(address)}.png`);
+      const name = `${fileNameFromAddress(address)}.png`;
+
+      // In the iOS/Android app, an <a download> click does nothing — save the
+      // image straight to the device Photos library via the native plugin.
+      if (isNativeApp()) {
+        const file = await canvasToFile(canvas, name);
+        const saved = await saveFileToDeviceGallery(file);
+        setNotice(saved ? "Saved to your Photos." : "");
+        if (!saved) setError("Couldn't save to Photos. Check the app's photo permission in Settings.");
+        return;
+      }
+
+      downloadPng(canvas, name);
+      setNotice("Image downloaded.");
     } catch (err: any) {
       setError(err?.message || "Download failed. Try another image.");
     } finally {
@@ -624,28 +655,33 @@ export default function MarketingImageStudio({
     try {
       setBusy(true);
       setError("");
+      setNotice("");
       const canvas = await draw(2);
       if (!canvas) return;
+      const name = `${fileNameFromAddress(address)}.png`;
+      const file = await canvasToFile(canvas, name);
 
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/png")
-      );
+      // Native app: the web share sheet is unreliable in a WebView (and the
+      // async draw above already dropped the user-gesture that navigator.share
+      // requires — the "not allowed by the user agent" error). Save to Photos
+      // so it can be shared/posted from there.
+      if (isNativeApp()) {
+        const saved = await saveFileToDeviceGallery(file);
+        setNotice(saved ? "Saved to your Photos — share or post it from there." : "");
+        if (!saved) setError("Couldn't save to Photos. Check the app's photo permission in Settings.");
+        return;
+      }
 
-      if (!blob) return;
-
-      const file = new File([blob], `${fileNameFromAddress(address)}.png`, {
-        type: "image/png",
-      });
-
+      // Desktop/web: native share sheet if supported, else download.
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: address || "Inspection marketing image",
-          files: [file],
-        });
+        await navigator.share({ title: address || "Inspection marketing image", files: [file] });
       } else {
-        downloadPng(canvas, `${fileNameFromAddress(address)}.png`);
+        downloadPng(canvas, name);
+        setNotice("Image downloaded.");
       }
     } catch (err: any) {
+      // A user cancelling the share sheet isn't an error worth showing.
+      if (err?.name === "AbortError") return;
       setError(err?.message || "Share was cancelled or is not supported.");
     } finally {
       setBusy(false);
@@ -848,6 +884,12 @@ export default function MarketingImageStudio({
             {error ? (
               <p className="rounded-2xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-[var(--fl-crit-text)]">
                 {error}
+              </p>
+            ) : null}
+
+            {notice ? (
+              <p className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-semibold text-[var(--fl-good-text)]">
+                {notice}
               </p>
             ) : null}
 
