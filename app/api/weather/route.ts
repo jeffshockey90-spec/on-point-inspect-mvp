@@ -17,123 +17,149 @@ const NO_STORE: Record<string, string> = {
   Pragma: "no-cache",
 };
 
-// GET /api/weather
-//   ?mode=current|date|forecast   (default: current)
-//   &address=<street address>     OR  &lat=..&lng=..
-//   &date=YYYY-MM-DD              (mode=date)
-//   &hour=0-23                    (mode=date, optional)
-//   &startDate=..&endDate=..      (mode=forecast)
-//
-// Requires a logged-in user so this isn't an open weather proxy. Uses the
-// existing Google geocoder for the address -> lat/long, then Open-Meteo (free,
-// no key) for the actual weather.
-export async function GET(req: Request) {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+type WeatherInput = {
+  mode: string;
+  lat?: string | null;
+  lng?: string | null;
+  address?: string | null;
+  date?: string | null;
+  hour?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+};
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
+// Shared core for both GET and POST. POST is what the report auto-fill uses,
+// because some in-app WebViews (iOS/Capacitor) serve a cached GET even with
+// cache:"no-store" — which was the "same weather every time" bug. A POST body
+// is never cached, so the reading is always fresh + property-specific.
+async function resolveWeather(input: WeatherInput): Promise<NextResponse> {
+  const mode = (input.mode || "current").toLowerCase();
 
-    const { searchParams } = new URL(req.url);
-    const mode = (searchParams.get("mode") || "current").toLowerCase();
+  let lat = Number(input.lat);
+  let lng = Number(input.lng);
 
-    let lat = Number(searchParams.get("lat"));
-    let lng = Number(searchParams.get("lng"));
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      const address = searchParams.get("address") || "";
-      if (!address.trim()) {
-        return NextResponse.json(
-          { error: "Provide either lat/lng or an address." },
-          { status: 400 },
-        );
-      }
-
-      const coords = await geocodeAddress(address);
-      if (!coords) {
-        return NextResponse.json(
-          { error: "Could not locate that address for weather." },
-          { status: 422 },
-        );
-      }
-      lat = coords.lat;
-      lng = coords.lng;
-    }
-
-    if (mode === "forecast") {
-      const startDate = searchParams.get("startDate") || "";
-      const endDate = searchParams.get("endDate") || startDate;
-      if (!startDate) {
-        return NextResponse.json(
-          { error: "forecast mode needs startDate." },
-          { status: 400 },
-        );
-      }
-      const days = await getDailyForecast(lat, lng, startDate, endDate);
-      return NextResponse.json({ lat, lng, days }, { headers: NO_STORE });
-    }
-
-    if (mode === "date") {
-      const date = searchParams.get("date") || "";
-      if (!date) {
-        return NextResponse.json(
-          { error: "date mode needs a date (YYYY-MM-DD)." },
-          { status: 400 },
-        );
-      }
-      const hourParam = searchParams.get("hour");
-      const hour = hourParam == null ? null : Number(hourParam);
-      const today = new Date().toISOString().slice(0, 10);
-
-      let weather = null;
-      let isForecast = false;
-
-      if (date === today) {
-        // Inspection is TODAY → pull real-time CURRENT conditions, i.e. what's
-        // actually happening during the inspection. This intentionally avoids
-        // getWeatherForDate's archive fallback: the historical/reanalysis API
-        // is a coarse (~9km) model that can falsely report light drizzle when
-        // it's clear on the ground, which is what was corrupting same-day
-        // auto-fills. Fall back to the date lookup only if "current" is down.
-        weather = await getCurrentWeather(lat, lng);
-        if (!weather) weather = await getWeatherForDate(lat, lng, date, hour, { allowArchive: false });
-      } else if (date > today) {
-        // A future date is a forecast (a prediction that changes as the day
-        // nears). Flag it so the report doesn't silently keep a stale forecast.
-        isForecast = true;
-        weather = await getWeatherForDate(lat, lng, date, hour);
-      } else {
-        // Past inspection → look up conditions for that date/hour.
-        weather = await getWeatherForDate(lat, lng, date, hour);
-      }
-
-      if (!weather) {
-        return NextResponse.json(
-          { error: "No weather data available for that date/location." },
-          { status: 404 },
-        );
-      }
-      return NextResponse.json({ lat, lng, weather, isForecast }, { headers: NO_STORE });
-    }
-
-    // default: current
-    const weather = await getCurrentWeather(lat, lng);
-    if (!weather) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    const address = String(input.address || "").trim();
+    if (!address) {
       return NextResponse.json(
-        { error: "No current weather available for that location." },
-        { status: 404 },
+        { error: "Provide either lat/lng or an address." },
+        { status: 400, headers: NO_STORE },
       );
     }
-    return NextResponse.json({ lat, lng, weather }, { headers: NO_STORE });
+    const coords = await geocodeAddress(address);
+    if (!coords) {
+      return NextResponse.json(
+        { error: "Could not locate that address for weather." },
+        { status: 422, headers: NO_STORE },
+      );
+    }
+    lat = coords.lat;
+    lng = coords.lng;
+  }
+
+  if (mode === "forecast") {
+    const startDate = String(input.startDate || "").slice(0, 10);
+    const endDate = String(input.endDate || startDate).slice(0, 10);
+    if (!startDate) {
+      return NextResponse.json({ error: "forecast mode needs startDate." }, { status: 400, headers: NO_STORE });
+    }
+    const days = await getDailyForecast(lat, lng, startDate, endDate);
+    return NextResponse.json({ lat, lng, days }, { headers: NO_STORE });
+  }
+
+  if (mode === "date") {
+    const date = String(input.date || "").slice(0, 10);
+    if (!date) {
+      return NextResponse.json({ error: "date mode needs a date (YYYY-MM-DD)." }, { status: 400, headers: NO_STORE });
+    }
+    const hourParam = input.hour;
+    const hour = hourParam == null || hourParam === "" ? null : Number(hourParam);
+    const today = new Date().toISOString().slice(0, 10);
+
+    let weather = null;
+    let isForecast = false;
+
+    if (date === today) {
+      // Inspection is TODAY → real-time current conditions. Avoids the coarse
+      // archive model that can falsely report drizzle when it's clear.
+      weather = await getCurrentWeather(lat, lng);
+      if (!weather) weather = await getWeatherForDate(lat, lng, date, hour, { allowArchive: false });
+    } else if (date > today) {
+      isForecast = true;
+      weather = await getWeatherForDate(lat, lng, date, hour);
+    } else {
+      weather = await getWeatherForDate(lat, lng, date, hour);
+    }
+
+    if (!weather) {
+      return NextResponse.json(
+        { error: "No weather data available for that date/location." },
+        { status: 404, headers: NO_STORE },
+      );
+    }
+    return NextResponse.json({ lat, lng, weather, isForecast, resolved: { lat, lng, date } }, { headers: NO_STORE });
+  }
+
+  // default: current
+  const weather = await getCurrentWeather(lat, lng);
+  if (!weather) {
+    return NextResponse.json(
+      { error: "No current weather available for that location." },
+      { status: 404, headers: NO_STORE },
+    );
+  }
+  return NextResponse.json({ lat, lng, weather, resolved: { lat, lng } }, { headers: NO_STORE });
+}
+
+async function requireUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+}
+
+export async function POST(req: Request) {
+  try {
+    if (!(await requireUser())) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401, headers: NO_STORE });
+    }
+    const body = await req.json().catch(() => ({}));
+    return await resolveWeather({
+      mode: body?.mode || "current",
+      lat: body?.lat,
+      lng: body?.lng,
+      address: body?.address,
+      date: body?.date,
+      hour: body?.hour,
+      startDate: body?.startDate,
+      endDate: body?.endDate,
+    });
   } catch (error: any) {
     console.error("Weather route error:", error);
-    return NextResponse.json(
-      { error: error?.message || "Weather lookup failed." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: error?.message || "Weather lookup failed." }, { status: 500, headers: NO_STORE });
+  }
+}
+
+// Kept for any existing callers; the report auto-fill uses POST.
+export async function GET(req: Request) {
+  try {
+    if (!(await requireUser())) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401, headers: NO_STORE });
+    }
+    const { searchParams } = new URL(req.url);
+    return await resolveWeather({
+      mode: searchParams.get("mode") || "current",
+      lat: searchParams.get("lat"),
+      lng: searchParams.get("lng"),
+      address: searchParams.get("address"),
+      date: searchParams.get("date"),
+      hour: searchParams.get("hour"),
+      startDate: searchParams.get("startDate"),
+      endDate: searchParams.get("endDate"),
+    });
+  } catch (error: any) {
+    console.error("Weather route error:", error);
+    return NextResponse.json({ error: error?.message || "Weather lookup failed." }, { status: 500, headers: NO_STORE });
   }
 }

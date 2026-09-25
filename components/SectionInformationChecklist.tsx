@@ -1231,24 +1231,29 @@ function SectionInformationChecklist({
 
     setWeatherLoading(true);
     try {
-      const params = new URLSearchParams({
+      // POST (not GET): some in-app WebViews (iOS/Capacitor) serve a cached
+      // /api/weather GET for the same URL even with cache:"no-store" and a
+      // cache-buster — which made the auto-fill show the SAME temp/conditions on
+      // every property. A POST body is never cached, so the reading is always
+      // fresh + property-specific (same fix that worked for the airspace check).
+      const body: Record<string, any> = {
         mode: weatherDate ? "date" : "current",
         address: weatherAddress,
-      });
+      };
       if (weatherDate) {
         // Normalize to YYYY-MM-DD (the column can come back as a full timestamp).
-        params.set("date", String(weatherDate).slice(0, 10));
+        body.date = String(weatherDate).slice(0, 10);
         if (weatherHour != null && Number.isFinite(weatherHour)) {
-          params.set("hour", String(weatherHour));
+          body.hour = String(weatherHour);
         }
       }
-      // Cache-buster: some in-app WebViews (iOS/Capacitor) serve a cached
-      // /api/weather GET for the identical URL even with cache:"no-store" — which
-      // made the auto-fill keep showing the SAME temp/conditions on every report.
-      // A unique URL per call guarantees a fresh reading.
-      params.set("_ts", String(Date.now()));
 
-      const res = await fetch(`/api/weather?${params.toString()}`, { cache: "no-store" });
+      const res = await fetch("/api/weather", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify(body),
+      });
       const json = await res.json();
       if (!res.ok || !json?.weather) {
         throw new Error(json?.error || "Weather lookup failed.");
