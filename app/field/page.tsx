@@ -4734,41 +4734,31 @@ function FieldPageContent() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[var(--fl-surface)] p-4 text-[var(--fl-text)]">
-      <div className="mx-auto grid min-w-0 max-w-7xl gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="min-w-0 rounded-2xl bg-[var(--fl-surface)] p-5 shadow-2xl">
-          <h1 className="mb-2 text-3xl font-bold text-[var(--fl-accent-text)]">
-            FLOW Field Workflow
-          </h1>
-
-          <p className="mb-4 text-[var(--fl-muted)]">
-            Capture findings, defect media, and section reference photos in the
-            field. If service drops, items save locally and sync when you are
-            back online.
-          </p>
-
-          <div className="mb-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm text-[var(--fl-muted)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="mx-auto grid min-w-0 max-w-7xl gap-4 lg:grid-cols-[1fr_380px]">
+        <div className="min-w-0 rounded-2xl bg-[var(--fl-surface)] p-4 shadow-2xl">
+          {/* Compact top strip — title + a small online/queue chip, so the
+              capture flow isn't pushed down by a header + intro + status card. */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-xl font-bold text-[var(--fl-accent-text)]">Field Workflow</h1>
+            <div className="flex items-center gap-2 text-xs">
               <span
-                className={`font-semibold ${online ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"}`}
+                className={`rounded-full border px-3 py-1 font-semibold ${
+                  online
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                    : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
+                }`}
               >
-                {online ? "Online" : "Offline Mode"}
+                {online ? "Online" : "Offline"}
               </span>
-              <span>
-                Queue: {offlineSummary.count} item(s),{" "}
-                {offlineSummary.referencePhotoCount} reference,{" "}
-                {offlineSummary.findingCount} finding, about{" "}
-                {offlineSummary.megabytes} MB
-              </span>
+              {offlineSummary.count > 0 && (
+                <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-1 font-semibold text-[var(--fl-muted)]">
+                  {offlineSummary.count} queued · {offlineSummary.megabytes} MB
+                </span>
+              )}
             </div>
-            <p className="mt-2 text-xs text-[var(--fl-faint)]">
-              Native iOS photo captures save a copy to your phone gallery when
-              allowed. Videos recorded or chosen from the iPhone picker remain
-              in Photos, then upload with visible progress and offline fallback
-              protection.
-            </p>
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4">
             <OfflineSyncStatus />
           </div>
 
@@ -4784,7 +4774,7 @@ function FieldPageContent() {
             </div>
           )}
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div>
               <label className="mb-2 block font-bold">Select Report</label>
               <select
@@ -4825,31 +4815,34 @@ function FieldPageContent() {
               {selectedReport && (
                 <div className="mt-3 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-xs font-bold text-[var(--fl-info-text)]">
                   {selectedOfflinePreload
-                    ? `Offline preload ready for ${selectedOfflinePreload.inspection?.label || "this inspection"} — sections, selected report info, client info, and field workflow cache are stored on this device.`
-                    : "This inspection will be cached on this device for offline use."}
+                    ? "Cached on this device for offline use."
+                    : "This inspection will be cached for offline use."}
                 </div>
               )}
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
-              <div className="overflow-x-auto border-b border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-1">
-                <div className="grid min-w-[760px] grid-cols-5 gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setAssistantTab("live")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
-                      assistantTab === "live"
-                        ? "bg-cyan-400 text-black"
-                        : "text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
-                    }`}
-                  >
-                    📹 Live Camera
-                  </button>
+              {/* Live Camera is the primary tool (prominent, full width). The
+                  other four tools sit in a compact 2-col grid below — no more
+                  760px horizontal-scroll tab strip. */}
+              <div className="border-b border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-1.5">
+                <button
+                  type="button"
+                  onClick={() => setAssistantTab("live")}
+                  className={`min-h-[46px] w-full rounded-xl px-3 py-2.5 text-sm font-bold transition [touch-action:manipulation] ${
+                    assistantTab === "live"
+                      ? "bg-cyan-400 text-black"
+                      : "border border-cyan-500/40 text-[var(--fl-accent-text)] hover:bg-[var(--fl-raised)]"
+                  }`}
+                >
+                  📹 Live Camera
+                </button>
 
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                   <button
                     type="button"
                     onClick={() => setAssistantTab("coach")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
+                    className={`min-h-[40px] rounded-xl px-2 py-2 text-xs font-semibold transition [touch-action:manipulation] ${
                       assistantTab === "coach"
                         ? "bg-emerald-400 text-black"
                         : "text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
@@ -4861,7 +4854,7 @@ function FieldPageContent() {
                   <button
                     type="button"
                     onClick={() => setAssistantTab("copilot")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
+                    className={`min-h-[40px] rounded-xl px-2 py-2 text-xs font-semibold transition [touch-action:manipulation] ${
                       assistantTab === "copilot"
                         ? "bg-indigo-400 text-black"
                         : "text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
@@ -4873,7 +4866,7 @@ function FieldPageContent() {
                   <button
                     type="button"
                     onClick={() => setAssistantTab("review")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
+                    className={`min-h-[40px] rounded-xl px-2 py-2 text-xs font-semibold transition [touch-action:manipulation] ${
                       assistantTab === "review"
                         ? "bg-purple-400 text-black"
                         : "text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
@@ -4885,7 +4878,7 @@ function FieldPageContent() {
                   <button
                     type="button"
                     onClick={() => setAssistantTab("code")}
-                    className={`min-h-[44px] rounded-xl px-3 py-2 text-sm font-semibold transition [touch-action:manipulation] ${
+                    className={`min-h-[40px] rounded-xl px-2 py-2 text-xs font-semibold transition [touch-action:manipulation] ${
                       assistantTab === "code"
                         ? "bg-teal-400 text-black"
                         : "text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
