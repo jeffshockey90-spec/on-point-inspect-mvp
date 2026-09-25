@@ -394,7 +394,8 @@ export default function MarketingImageStudio({
     drawImageTone(ctx, width, height, scale);
     await drawLogo(ctx, width, scale);
     drawStamp(ctx, scale);
-    drawAddress(ctx, width, height, scale);
+    // Address intentionally NOT drawn on the image (liability). The address is
+    // still used only for the download filename, never rendered on the photo.
 
     return canvas;
   }
