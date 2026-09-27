@@ -15,6 +15,8 @@ import FindingsSeverityFilter from "../../../components/FindingsSeverityFilter";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import ReportDownloadButton from "../../../components/ReportDownloadButton";
 import ShareReportTabs from "../../../components/ShareReportTabs";
+import ClientMaintenanceTips from "../../../components/ClientMaintenanceTips";
+import { maintenanceForSections } from "../../../lib/maintenanceTips";
 import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
 import InsuranceReferralCard from "../../../components/InsuranceReferralCard";
 import { normalizeCompanyBranding } from "../../../lib/companyBranding";
@@ -2341,7 +2343,10 @@ export default async function PublicSharePage({
             showStandards={showStandardsInShare}
             showEquipment={equipmentInventory.length > 0}
             showPriority={priorityRows.length > 0}
+            showMaintenance={maintenanceForSections(activeSectionOrder).length > 0}
           />
+
+          <ClientMaintenanceTips sections={activeSectionOrder} />
 
           {reportDisclaimers && reportDisclaimers.length > 0 && (
             <section id="report-disclaimers" className="scroll-mt-[180px] md:scroll-mt-[220px] mt-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface-2)] p-6 shadow-xl">

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type ShareTab = "summary" | "full" | "disclaimers" | "standards" | "equipment" | "priority";
+type ShareTab = "summary" | "full" | "disclaimers" | "standards" | "equipment" | "priority" | "maintenance";
 
 type Props = {
   initialTab?: ShareTab;
@@ -11,6 +11,7 @@ type Props = {
   showStandards?: boolean;
   showEquipment?: boolean;
   showPriority?: boolean;
+  showMaintenance?: boolean;
 };
 
 const TAB_LABELS: Array<{ key: ShareTab; label: string; tone: string }> = [
@@ -21,11 +22,13 @@ const TAB_LABELS: Array<{ key: ShareTab; label: string; tone: string }> = [
   { key: "equipment", label: "Equipment", tone: "border-emerald-500 text-[var(--fl-good-text)]" },
   // Rightmost on purpose.
   { key: "priority", label: "🧭 Priority Repairs", tone: "border-teal-500 text-[var(--fl-accent-text)]" },
+  { key: "maintenance", label: "🔧 Maintenance Tips", tone: "border-emerald-500 text-[var(--fl-good-text)]" },
 ];
 
 function classifyPanel(element: HTMLElement): ShareTab {
   if (element.id === "client-summary") return "summary";
   if (element.id === "priority-repairs") return "priority";
+  if (element.id === "maintenance-tips") return "maintenance";
   if (element.id === "report-disclaimers") return "disclaimers";
   if (element.id === "standards-of-practice") return "standards";
   if (element.id === "equipment-inventory") return "equipment";
@@ -39,6 +42,7 @@ export default function ShareReportTabs({
   showStandards = true,
   showEquipment = true,
   showPriority = false,
+  showMaintenance = true,
 }: Props) {
   const [activeTab, setActiveTab] = useState<ShareTab>(initialTab);
   const navRef = useRef<HTMLDivElement | null>(null);
@@ -83,6 +87,8 @@ export default function ShareReportTabs({
           ? "summary"
           : hash === "#priority-repairs"
             ? "priority"
+            : hash === "#maintenance-tips"
+              ? "maintenance"
             : hash === "#report-disclaimers"
               ? "disclaimers"
               : hash === "#standards-of-practice"
@@ -139,6 +145,7 @@ export default function ShareReportTabs({
     if (key === "standards") return showStandards;
     if (key === "equipment") return showEquipment;
     if (key === "priority") return showPriority;
+    if (key === "maintenance") return showMaintenance;
     return true;
   });
 
