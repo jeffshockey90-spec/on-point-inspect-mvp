@@ -205,7 +205,7 @@ async function logAuditEvent(
 
 export async function POST(req: Request) {
   try {
-    const { inspectionId, recipientEmail, recipientType: recipientTypeRaw } =
+    const { inspectionId, recipientEmail, recipientEmails, recipientType: recipientTypeRaw } =
       await req.json();
     const recipientType =
       String(recipientTypeRaw || "client").toLowerCase() === "realtor"
@@ -283,114 +283,121 @@ export async function POST(req: Request) {
     }
 
     const explicitEmail = String(recipientEmail || "").trim();
+    const explicitList: string[] = Array.isArray(recipientEmails)
+      ? Array.from(
+          new Set(
+            recipientEmails
+              .map((value: any) => String(value || "").trim())
+              .filter(Boolean)
+          )
+        )
+      : [];
 
     const { data: contacts } = await supabase
       .from("inspection_contacts")
       .select("email, role, name")
       .eq("inspection_id", inspectionId);
 
-    // Collect EVERY recipient, not just the first. Buyers are equal parties on
-    // the contract, so a client review request goes to all of them.
+    const contactByEmail = new Map<string, any>();
+    (contacts || []).forEach((c: any) => {
+      const key = String(c.email || "").trim().toLowerCase();
+      if (key) contactByEmail.set(key, c);
+    });
+
+    const isAgentRole = (role: any) =>
+      /realtor|agent|transaction/.test(String(role || "").toLowerCase());
+
+    // Build the recipient list. Each recipient carries its own wording type so a
+    // mixed selection (e.g. two agents + one buyer) gets the right email each.
+    type Target = { email: string; name: string; type: "client" | "realtor" };
     const seenEmails = new Set<string>();
-    const recipientEmails: string[] = [];
-    const recipientNames: string[] = [];
-    const addRecipient = (email?: any, name?: any) => {
+    const targets: Target[] = [];
+    const addTarget = (email: any, name: any, type: "client" | "realtor") => {
       const cleanEmail = String(email || "").trim();
       if (!cleanEmail) return;
       const key = cleanEmail.toLowerCase();
       if (seenEmails.has(key)) return;
       seenEmails.add(key);
-      recipientEmails.push(cleanEmail);
-      const cleanName = String(name || "").trim();
-      if (cleanName) recipientNames.push(cleanName);
+      targets.push({ email: cleanEmail, name: String(name || "").trim(), type });
     };
 
-    if (explicitEmail) {
-      // A specific recipient was chosen in the UI — honor just that one.
-      const match = (contacts || []).find(
-        (c: any) =>
-          String(c.email || "").toLowerCase() === explicitEmail.toLowerCase(),
-      );
-      addRecipient(explicitEmail, match?.name);
+    if (explicitList.length) {
+      // Explicit multi-select from the UI — send to exactly these people, with
+      // wording chosen per person from their contact role.
+      explicitList.forEach((email) => {
+        const c = contactByEmail.get(email.toLowerCase());
+        addTarget(email, c?.name, c && isAgentRole(c.role) ? "realtor" : "client");
+      });
+    } else if (explicitEmail) {
+      const c = contactByEmail.get(explicitEmail.toLowerCase());
+      addTarget(explicitEmail, c?.name, recipientType);
     } else if (recipientType === "realtor") {
       (contacts || []).forEach((c: any) => {
-        const role = String(c.role || "").toLowerCase();
-        if (/realtor|agent|transaction/.test(role)) addRecipient(c.email, c.name);
+        if (isAgentRole(c.role)) addTarget(c.email, c.name, "realtor");
       });
-      if (recipientEmails.length === 0) {
-        addRecipient(inspection.realtor_email, inspection.realtor_name);
-        addRecipient(inspection.agent_email, inspection.agent_name);
-        addRecipient(inspection.buyer_agent_email, "");
+      if (targets.length === 0) {
+        addTarget(inspection.realtor_email, inspection.realtor_name, "realtor");
+        addTarget(inspection.agent_email, inspection.agent_name, "realtor");
+        addTarget(inspection.buyer_agent_email, "", "realtor");
       }
     } else {
-      // Every buyer/client on the contract gets the request — both names.
+      // Every buyer/client on the contract gets the request.
       (contacts || []).forEach((c: any) => {
         const role = String(c.role || "").toLowerCase();
         if (["client", "co-client", "buyer", "co-buyer"].includes(role)) {
-          addRecipient(c.email, c.name);
+          addTarget(c.email, c.name, "client");
         }
       });
-      if (recipientEmails.length === 0) {
-        addRecipient(
-          inspection.client_email,
-          inspection.client_name || inspection.client,
-        );
-        addRecipient(inspection.email, inspection.client_name || inspection.client);
+      if (targets.length === 0) {
+        addTarget(inspection.client_email, inspection.client_name || inspection.client, "client");
+        addTarget(inspection.email, inspection.client_name || inspection.client, "client");
       }
     }
 
-    if (recipientEmails.length === 0) {
+    if (targets.length === 0) {
       return NextResponse.json(
-        {
-          error:
-            recipientType === "realtor"
-              ? "No agent email found for this inspection."
-              : "No client email found for this inspection.",
-        },
+        { error: "No email found for the selected recipients." },
         { status: 400 }
       );
     }
-
-    const contactEmail = recipientEmails.join(", ");
-    const recipientName =
-      recipientNames.length === 0
-        ? "there"
-        : recipientNames.length === 1
-          ? recipientNames[0]
-          : recipientNames.length === 2
-            ? `${recipientNames[0]} and ${recipientNames[1]}`
-            : `${recipientNames.slice(0, -1).join(", ")}, and ${
-                recipientNames[recipientNames.length - 1]
-              }`;
 
     const property =
       inspection.property_address ||
       inspection.address ||
       "the inspected property";
 
-    const subject =
-      recipientType === "realtor"
-        ? `Thanks for trusting ${branding.name} with your client`
-        : `Thank you for choosing ${branding.name}`;
+    const joinNames = (names: string[]) => {
+      const list = names.filter(Boolean);
+      if (list.length === 0) return "there";
+      if (list.length === 1) return list[0];
+      if (list.length === 2) return `${list[0]} and ${list[1]}`;
+      return `${list.slice(0, -1).join(", ")}, and ${list[list.length - 1]}`;
+    };
 
-    const introLine =
-      recipientType === "realtor"
-        ? `Thank you for referring your client to ${escapeHtml(
-            branding.name
-          )} for the inspection at:`
-        : `Thank you for choosing ${escapeHtml(branding.name)} for:`;
+    const buildReviewEmail = (type: "client" | "realtor", recipientName: string) => {
+      const subject =
+        type === "realtor"
+          ? `Thanks for trusting ${branding.name} with your client`
+          : `Thank you for choosing ${branding.name}`;
 
-    const askLine =
-      recipientType === "realtor"
-        ? `If your client had a great experience, a quick Google review would mean a lot &mdash; and it helps other agents find an inspector they can rely on for their deals.`
-        : `If you were happy with your inspection experience, would you mind leaving a quick Google review? Reviews help other homeowners and real estate professionals find a reliable inspector.`;
+      const introLine =
+        type === "realtor"
+          ? `Thank you for referring your client to ${escapeHtml(
+              branding.name
+            )} for the inspection at:`
+          : `Thank you for choosing ${escapeHtml(branding.name)} for:`;
 
-    const outroLine =
-      recipientType === "realtor"
-        ? `Thank you for the referral and for trusting us with your client.`
-        : `I appreciate your business and the opportunity to help protect your investment.`;
+      const askLine =
+        type === "realtor"
+          ? `If your client had a great experience, a quick Google review would mean a lot &mdash; and it helps other agents find an inspector they can rely on for their deals.`
+          : `If you were happy with your inspection experience, would you mind leaving a quick Google review? Reviews help other homeowners and real estate professionals find a reliable inspector.`;
 
-    const html = `
+      const outroLine =
+        type === "realtor"
+          ? `Thank you for the referral and for trusting us with your client.`
+          : `I appreciate your business and the opportunity to help protect your investment.`;
+
+      const html = `
       <div style="font-family: Arial, sans-serif; background:#020617; color:#f8fafc; padding:24px;">
         <div style="max-width:640px; margin:auto; background:#0f172a; border:1px solid #1e293b; border-radius:16px; padding:24px;">
           <h1 style="color:#2dd4bf; margin-top:0;">${escapeHtml(branding.name)}</h1>
@@ -431,98 +438,128 @@ export async function POST(req: Request) {
       </div>
     `;
 
+      return { subject, html };
+    };
+
     const from = buildBrandedFromHeader(
       branding,
       "On Point Home Inspections <reports@onpointhomeinspect.com>"
     );
 
-    const resendRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: recipientEmails,
-        subject,
-        html,
-      }),
-    });
+    const sentEmails: string[] = [];
+    const failedEmails: string[] = [];
+    let firstError = "";
+    let sentClient = false;
 
-    const resendData = await resendRes.json();
+    // Send one email per wording group (buyers vs agents), each to its own
+    // recipients, so mixed selections read correctly for everyone.
+    for (const type of ["client", "realtor"] as const) {
+      const group = targets.filter((t) => t.type === type);
+      if (group.length === 0) continue;
 
-    if (!resendRes.ok) {
-      await logEmailEvent(supabase, {
-        inspectionId,
-        recipient: contactEmail,
-        subject,
-        status: "failed",
-        metadata: {
-          type: "review_request",
-          error: resendData?.message || "Review request failed to send.",
-          resendData,
-        },
-      });
+      const emails = group.map((g) => g.email);
+      const emailsCsv = emails.join(", ");
+      const recipientName = joinNames(group.map((g) => g.name));
+      const { subject, html } = buildReviewEmail(type, recipientName);
 
+      try {
+        const resendRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ from, to: emails, subject, html }),
+        });
+
+        const resendData = await resendRes.json();
+
+        if (!resendRes.ok) {
+          if (!firstError) firstError = resendData?.message || "Review request failed to send.";
+          failedEmails.push(...emails);
+          await logEmailEvent(supabase, {
+            inspectionId,
+            recipient: emailsCsv,
+            subject,
+            status: "failed",
+            metadata: {
+              type: "review_request",
+              recipient_type: type,
+              error: resendData?.message || "Review request failed to send.",
+              resendData,
+            },
+          });
+          continue;
+        }
+
+        sentEmails.push(...emails);
+        if (type === "client") sentClient = true;
+
+        await logEmailEvent(supabase, {
+          inspectionId,
+          recipient: emailsCsv,
+          subject,
+          status: "sent",
+          resendId: resendData?.id || null,
+          html,
+          metadata: {
+            type: "review_request",
+            recipient_type: type,
+            googleReviewUrl,
+          },
+        });
+
+        await logAuditEvent(supabase, {
+          userId: user.id,
+          inspectionId,
+          recipient: emailsCsv,
+        });
+      } catch (error: any) {
+        if (!firstError) firstError = error?.message || "Review request failed to send.";
+        failedEmails.push(...emails);
+      }
+    }
+
+    if (sentEmails.length === 0) {
       return NextResponse.json(
-        {
-          error: resendData?.message || "Review request failed to send.",
-        },
+        { error: firstError || "Review request failed to send." },
         { status: 500 }
       );
     }
 
-    // review_status tracks the CLIENT review request; don't overwrite it when
-    // asking the agent for a review.
-    if (recipientType === "client") {
+    // review_status tracks the CLIENT review request; only set it when a buyer
+    // was actually asked (not for an agent-only send).
+    if (sentClient) {
       await supabase
         .from("inspections")
-        .update({
-          review_status: "Requested",
-        })
+        .update({ review_status: "Requested" })
         .eq("id", inspectionId)
         .eq(accessFilter.column, accessFilter.value);
     }
 
-    await logEmailEvent(supabase, {
-      inspectionId,
-      recipient: contactEmail,
-      subject,
-      status: "sent",
-      resendId: resendData?.id || null,
-      html,
-      metadata: {
-        type: "review_request",
-        recipient_type: recipientType,
-        googleReviewUrl,
-      },
-    });
-
-    await logAuditEvent(supabase, {
-      userId: user.id,
-      inspectionId,
-      recipient: contactEmail,
-    });
+    const sentCsv = sentEmails.join(", ");
 
     await sendOwnerPushNotification({
-      title: recipientType === "realtor" ? "Agent Review Request Sent" : "Review Request Sent",
-      body: `Review request sent to ${recipientEmails.length} ${recipientType === "realtor" ? "agent" : "buyer"}${recipientEmails.length === 1 ? "" : "s"} (${contactEmail}) for ${getPropertyLabel(
+      title: "Review Request Sent",
+      body: `Review request sent to ${sentEmails.length} recipient${sentEmails.length === 1 ? "" : "s"} (${sentCsv}) for ${getPropertyLabel(
         inspection
       )}.`,
       url: `/reports/${inspectionId}`,
       eventType: "review_request_sent",
       metadata: {
         inspection_id: inspectionId,
-        recipient: contactEmail,
-        recipient_type: recipientType,
+        recipient: sentCsv,
         property: getPropertyLabel(inspection),
       },
     });
 
+    const failNote = failedEmails.length ? ` (${failedEmails.length} failed)` : "";
+
     return NextResponse.json({
       success: true,
-      message: `Review request sent to ${recipientEmails.length} ${recipientType === "realtor" ? "agent" : "buyer"}${recipientEmails.length === 1 ? "" : "s"} (${contactEmail}).`,
+      sent: sentEmails,
+      failed: failedEmails,
+      message: `Review request sent to ${sentEmails.length} recipient${sentEmails.length === 1 ? "" : "s"} (${sentCsv})${failNote}.`,
     });
   } catch (error: any) {
     console.error("Send review request error:", error);
