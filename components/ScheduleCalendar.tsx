@@ -7,6 +7,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DEFAULT_TIME_ZONE, detectDeviceTimeZone, formatAppValue, toLocalDateKey } from "../lib/app-time";
+import ResendConfirmationButton from "./ResendConfirmationButton";
 
 type InspectionRow = Record<string, any>;
 
@@ -146,71 +147,86 @@ function localDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function typeColors(type: string, status: string) {
-  const lowerStatus = status.toLowerCase();
-  const lowerType = type.toLowerCase();
+type EventColor = {
+  backgroundColor: string;
+  borderColor: string;
+  textColor: string;
+};
 
-  if (lowerStatus.includes("complete") || lowerStatus.includes("done")) {
-    return {
-      backgroundColor: "#064e3b",
-      borderColor: "#34d399",
-      textColor: "#d1fae5",
-    };
+// A palette of visually distinct colors so every inspection TYPE reads at a
+// glance on the calendar. Common services get an intentional color; anything
+// else gets a stable color from the fallback pool (same type -> same color
+// every time).
+const TYPE_PALETTE: Record<string, EventColor> = {
+  teal: { backgroundColor: "#134e4a", borderColor: "#2dd4bf", textColor: "#ccfbf1" },
+  indigo: { backgroundColor: "#312e81", borderColor: "#818cf8", textColor: "#e0e7ff" },
+  purple: { backgroundColor: "#4c1d95", borderColor: "#a78bfa", textColor: "#ede9fe" },
+  amber: { backgroundColor: "#78350f", borderColor: "#fbbf24", textColor: "#fef3c7" },
+  orange: { backgroundColor: "#7c2d12", borderColor: "#fb923c", textColor: "#ffedd5" },
+  blue: { backgroundColor: "#1e3a8a", borderColor: "#60a5fa", textColor: "#dbeafe" },
+  rose: { backgroundColor: "#881337", borderColor: "#fb7185", textColor: "#ffe4e6" },
+  cyan: { backgroundColor: "#164e63", borderColor: "#22d3ee", textColor: "#cffafe" },
+  lime: { backgroundColor: "#365314", borderColor: "#a3e635", textColor: "#ecfccb" },
+  sky: { backgroundColor: "#0c4a6e", borderColor: "#38bdf8", textColor: "#e0f2fe" },
+  fuchsia: { backgroundColor: "#701a75", borderColor: "#e879f9", textColor: "#fae8ff" },
+  stone: { backgroundColor: "#44403c", borderColor: "#d6d3d1", textColor: "#f5f5f4" },
+};
+
+const CANCELLED_COLOR: EventColor = {
+  backgroundColor: "#7f1d1d",
+  borderColor: "#f87171",
+  textColor: "#fee2e2",
+};
+
+const FALLBACK_POOL: EventColor[] = [
+  TYPE_PALETTE.blue,
+  TYPE_PALETTE.cyan,
+  TYPE_PALETTE.lime,
+  TYPE_PALETTE.fuchsia,
+  TYPE_PALETTE.sky,
+  TYPE_PALETTE.stone,
+  TYPE_PALETTE.indigo,
+  TYPE_PALETTE.rose,
+  TYPE_PALETTE.amber,
+  TYPE_PALETTE.purple,
+];
+
+function hashIndex(value: string, length: number) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
   }
+  return length ? hash % length : 0;
+}
 
-  if (lowerStatus.includes("cancel")) {
-    return {
-      backgroundColor: "#7f1d1d",
-      borderColor: "#f87171",
-      textColor: "#fee2e2",
-    };
-  }
+// Resolve a color for an inspection type. `serviceMode` (e.g. "home",
+// "home_radon", "pre_drywall") is the stable key; the human label is a fallback.
+function colorForType(serviceMode: string, typeLabel: string): EventColor {
+  const key = String(serviceMode || typeLabel || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_");
 
-  if (lowerType.includes("radon")) {
-    return {
-      backgroundColor: "#4c1d95",
-      borderColor: "#a78bfa",
-      textColor: "#ede9fe",
-    };
-  }
+  if (/(pre_?drywall|predrywall)/.test(key)) return TYPE_PALETTE.amber;
+  if (/home.*radon|radon.*home/.test(key)) return TYPE_PALETTE.indigo;
+  if (/radon/.test(key)) return TYPE_PALETTE.purple;
+  if (/mold/.test(key)) return TYPE_PALETTE.orange;
+  if (/re_?inspect/.test(key)) return TYPE_PALETTE.blue;
+  if (/commercial/.test(key)) return TYPE_PALETTE.rose;
+  if (/wind/.test(key)) return TYPE_PALETTE.cyan;
+  if (/(4|four)_?point/.test(key)) return TYPE_PALETTE.lime;
+  if (/sewer|scope/.test(key)) return TYPE_PALETTE.stone;
+  if (/pool/.test(key)) return TYPE_PALETTE.sky;
+  if (/well|water/.test(key)) return TYPE_PALETTE.fuchsia;
+  if (/(^|_)home(_|$)|home_inspection/.test(key)) return TYPE_PALETTE.teal;
 
-  if (lowerType.includes("mold")) {
-    return {
-      backgroundColor: "#7c2d12",
-      borderColor: "#fb923c",
-      textColor: "#ffedd5",
-    };
-  }
+  return FALLBACK_POOL[hashIndex(key, FALLBACK_POOL.length)];
+}
 
-  if (lowerType.includes("reinspect") || lowerType.includes("re-inspect")) {
-    return {
-      backgroundColor: "#1e3a8a",
-      borderColor: "#60a5fa",
-      textColor: "#dbeafe",
-    };
-  }
-
-  if (lowerType.includes("commercial")) {
-    return {
-      backgroundColor: "#881337",
-      borderColor: "#fb7185",
-      textColor: "#ffe4e6",
-    };
-  }
-
-  if (lowerStatus.includes("draft") || lowerStatus.includes("pending")) {
-    return {
-      backgroundColor: "#713f12",
-      borderColor: "#facc15",
-      textColor: "#fef9c3",
-    };
-  }
-
-  return {
-    backgroundColor: "#134e4a",
-    borderColor: "#2dd4bf",
-    textColor: "#ccfbf1",
-  };
+function typeColors(type: string, status: string, serviceMode: string): EventColor {
+  // A cancelled appointment is flagged red no matter its type, so a dead slot
+  // never blends in with the live ones.
+  if (status.toLowerCase().includes("cancel")) return CANCELLED_COLOR;
+  return colorForType(serviceMode, type);
 }
 
 export default function ScheduleCalendar({
@@ -264,7 +280,8 @@ export default function ScheduleCalendar({
         const realtor = getRealtor(inspection);
         const status = getStatus(inspection);
         const type = getType(inspection);
-        const colors = typeColors(type, status);
+        const serviceMode = String(inspection.service_mode || "");
+        const colors = typeColors(type, status, serviceMode);
         // Present only in the owner's team/company view (see app/schedule/page.tsx).
         const inspectorName = String(inspection.inspector_display_name || "").trim();
 
@@ -284,6 +301,7 @@ export default function ScheduleCalendar({
             realtor,
             status,
             type,
+            serviceMode,
             date,
             time,
             displayTime,
@@ -293,6 +311,28 @@ export default function ScheduleCalendar({
       })
       .filter(Boolean) as any[];
   }, [inspections, timeFormat]);
+
+  // Legend of the inspection TYPES actually present, each with the same color
+  // the calendar paints it — so the key always matches what's on screen.
+  const typeLegend = useMemo(() => {
+    const byLabel = new Map<string, EventColor>();
+    let hasCancelled = false;
+    for (const event of events) {
+      const props = event.extendedProps as any;
+      if (String(props.status || "").toLowerCase().includes("cancel")) {
+        hasCancelled = true;
+        continue;
+      }
+      const label = String(props.type || "Home Inspection").trim();
+      if (!byLabel.has(label)) {
+        byLabel.set(label, colorForType(props.serviceMode || "", label));
+      }
+    }
+    return {
+      items: Array.from(byLabel.entries()).map(([label, color]) => ({ label, color })),
+      hasCancelled,
+    };
+  }, [events]);
 
   // Compute "today" only after mount. Deriving it from new Date() during render
   // makes the server (its clock/zone) and the client disagree on the current
@@ -470,27 +510,47 @@ export default function ScheduleCalendar({
         </div>
 
         <div className="flex flex-wrap content-start gap-2 text-xs font-bold">
-          <span className="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-[var(--fl-info-text)]">
-            Home Inspection
-          </span>
-          <span className="rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1 text-[var(--fl-purple-text)]">
-            Radon
-          </span>
-          <span className="rounded-full border border-orange-400/30 bg-orange-500/10 px-3 py-1 text-[var(--fl-warn-text)]">
-            Mold
-          </span>
-          <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-[var(--fl-info-text)]">
-            Reinspection
-          </span>
-          <span className="rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-1 text-[var(--fl-crit-text)]">
-            Commercial
-          </span>
-          <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[var(--fl-good-text)]">
-            Completed
-          </span>
-          <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[var(--fl-crit-text)]">
-            Cancelled
-          </span>
+          {typeLegend.items.length === 0 ? (
+            <span className="rounded-full border border-[var(--fl-line)] px-3 py-1 text-[var(--fl-muted)]">
+              Colors mark each inspection type
+            </span>
+          ) : (
+            typeLegend.items.map(({ label, color }) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1"
+                style={{
+                  borderColor: color.borderColor,
+                  backgroundColor: `${color.backgroundColor}33`,
+                  color: color.textColor,
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: color.borderColor }}
+                />
+                {label}
+              </span>
+            ))
+          )}
+          {typeLegend.hasCancelled && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1"
+              style={{
+                borderColor: CANCELLED_COLOR.borderColor,
+                backgroundColor: `${CANCELLED_COLOR.backgroundColor}33`,
+                color: CANCELLED_COLOR.textColor,
+              }}
+            >
+              <span
+                aria-hidden
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: CANCELLED_COLOR.borderColor }}
+              />
+              Cancelled
+            </span>
+          )}
         </div>
       </div>
 
@@ -715,6 +775,10 @@ export default function ScheduleCalendar({
               <p className="mt-1 text-sm text-[var(--fl-muted)]">
                 Type: {selected.type || "Home Inspection"}
               </p>
+            </div>
+
+            <div className="mt-4">
+              <ResendConfirmationButton inspectionId={selected.id} />
             </div>
 
             {message ? (
