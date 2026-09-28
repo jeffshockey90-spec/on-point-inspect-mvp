@@ -623,8 +623,8 @@ export default function ScheduleCalendar({
       </div>
 
       {selected ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center">
-          <div className="w-full max-w-lg rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 shadow-2xl">
+        <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 p-3 pb-[calc(78px+env(safe-area-inset-bottom)+0.75rem)] sm:items-center sm:p-4 sm:pb-4">
+          <div className="max-h-full w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 shadow-2xl sm:max-h-[85vh]">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-[var(--fl-text)]">
