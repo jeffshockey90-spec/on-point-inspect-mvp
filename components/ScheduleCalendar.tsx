@@ -153,30 +153,31 @@ type EventColor = {
   textColor: string;
 };
 
-// A palette of visually distinct colors so every inspection TYPE reads at a
-// glance on the calendar. Common services get an intentional color; anything
-// else gets a stable color from the fallback pool (same type -> same color
-// every time).
+// A palette of vibrant, visually distinct colors so every inspection TYPE reads
+// at a glance on the calendar. Each type is a solid fill with dark text (also
+// used as the legend's dot). Common services get an intentional color; anything
+// else gets a stable color from the fallback pool (same type -> same color).
+const DARK_INK = "#0b1220";
+function fill(hex: string): EventColor {
+  return { backgroundColor: hex, borderColor: hex, textColor: DARK_INK };
+}
+
 const TYPE_PALETTE: Record<string, EventColor> = {
-  teal: { backgroundColor: "#134e4a", borderColor: "#2dd4bf", textColor: "#ccfbf1" },
-  indigo: { backgroundColor: "#312e81", borderColor: "#818cf8", textColor: "#e0e7ff" },
-  purple: { backgroundColor: "#4c1d95", borderColor: "#a78bfa", textColor: "#ede9fe" },
-  amber: { backgroundColor: "#78350f", borderColor: "#fbbf24", textColor: "#fef3c7" },
-  orange: { backgroundColor: "#7c2d12", borderColor: "#fb923c", textColor: "#ffedd5" },
-  blue: { backgroundColor: "#1e3a8a", borderColor: "#60a5fa", textColor: "#dbeafe" },
-  rose: { backgroundColor: "#881337", borderColor: "#fb7185", textColor: "#ffe4e6" },
-  cyan: { backgroundColor: "#164e63", borderColor: "#22d3ee", textColor: "#cffafe" },
-  lime: { backgroundColor: "#365314", borderColor: "#a3e635", textColor: "#ecfccb" },
-  sky: { backgroundColor: "#0c4a6e", borderColor: "#38bdf8", textColor: "#e0f2fe" },
-  fuchsia: { backgroundColor: "#701a75", borderColor: "#e879f9", textColor: "#fae8ff" },
-  stone: { backgroundColor: "#44403c", borderColor: "#d6d3d1", textColor: "#f5f5f4" },
+  teal: fill("#2dd4bf"),
+  indigo: fill("#818cf8"),
+  purple: fill("#c084fc"),
+  amber: fill("#fbbf24"),
+  orange: fill("#fb923c"),
+  blue: fill("#60a5fa"),
+  rose: fill("#fb7185"),
+  cyan: fill("#22d3ee"),
+  lime: fill("#a3e635"),
+  sky: fill("#38bdf8"),
+  fuchsia: fill("#e879f9"),
+  stone: fill("#cbd5e1"),
 };
 
-const CANCELLED_COLOR: EventColor = {
-  backgroundColor: "#7f1d1d",
-  borderColor: "#f87171",
-  textColor: "#fee2e2",
-};
+const CANCELLED_COLOR: EventColor = fill("#f87171");
 
 const FALLBACK_POOL: EventColor[] = [
   TYPE_PALETTE.blue,
@@ -521,8 +522,8 @@ export default function ScheduleCalendar({
                 className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1"
                 style={{
                   borderColor: color.borderColor,
-                  backgroundColor: `${color.backgroundColor}33`,
-                  color: color.textColor,
+                  backgroundColor: `${color.backgroundColor}22`,
+                  color: color.borderColor,
                 }}
               >
                 <span
@@ -539,8 +540,8 @@ export default function ScheduleCalendar({
               className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1"
               style={{
                 borderColor: CANCELLED_COLOR.borderColor,
-                backgroundColor: `${CANCELLED_COLOR.backgroundColor}33`,
-                color: CANCELLED_COLOR.textColor,
+                backgroundColor: `${CANCELLED_COLOR.backgroundColor}22`,
+                color: CANCELLED_COLOR.borderColor,
               }}
             >
               <span

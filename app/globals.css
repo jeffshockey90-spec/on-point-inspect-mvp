@@ -314,10 +314,10 @@ img {
   background: rgba(20, 184, 166, 0.08) !important;
 }
 
+/* Per-event colors (set on each event by ScheduleCalendar so every inspection
+   type reads at a glance) must win — do NOT hard-code a background here. */
 .fc-event {
-  background: #14b8a6 !important;
   border: none !important;
-  color: var(--fl-ground) !important;
   font-weight: bold;
   border-radius: 8px !important;
   padding: 2px 4px;
@@ -325,12 +325,14 @@ img {
 }
 
 .fc-event:hover {
-  background: #2dd4bf !important;
+  filter: brightness(1.08);
 }
 
+/* Inherit the event's own text color (each event sets one) instead of forcing
+   a single color, so labels stay readable on every type's background. */
 .fc-event-title,
 .fc-event-time {
-  color: var(--fl-ground) !important;
+  color: inherit !important;
 }
 
 .fc-scrollgrid {
