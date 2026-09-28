@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     const user = await getSessionUser();
     if (!user) return unauthorized();
 
-    const { inspectionId, recipientRole, recipientEmail, reschedule } = await req.json();
+    const { inspectionId, recipientRole, recipientEmail, recipientEmails, reschedule } = await req.json();
     const isReschedule = Boolean(reschedule);
 
     if (!inspectionId) {
@@ -104,52 +104,71 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: contactsError.message }, { status: 500 });
     }
 
-    const recipients: Array<{ email: string; name: string; role: string }> = (contacts || [])
-      .filter((contact: any) => {
-        const role = cleanText(contact.role).toLowerCase();
-        return (
-          contact.email &&
-          (role === "client" ||
-            role === "co-client" ||
-            role === "realtor" ||
-            role === "transaction coordinator")
-        );
-      })
+    // Every contact with an email. An explicit per-contact pick can send to any
+    // of these (even a "transaction coordinator" / "other"); the automatic
+    // broadcast is limited to the confirmation-eligible roles below.
+    const allContacts: Array<{ email: string; name: string; role: string }> = (contacts || [])
+      .filter((contact: any) => contact.email)
       .map((contact: any) => ({
         email: cleanText(contact.email).toLowerCase(),
         name: cleanText(contact.name),
         role: cleanText(contact.role).toLowerCase(),
       }));
 
-    let uniqueRecipients: Array<{ email: string; name: string; role: string }> = Array.from(
-      new Map(recipients.map((recipient) => [recipient.email, recipient])).values()
-    );
+    const broadcastRecipients = allContacts.filter((r) => {
+      const role = r.role;
+      return (
+        role === "client" ||
+        role === "co-client" ||
+        role === "realtor" ||
+        role === "transaction coordinator"
+      );
+    });
 
-    // Optional targeting for a manual resend (e.g. resend to just the realtor
-    // when their copy was delayed). No filter = resend to everyone.
+    // Optional targeting for a manual resend (e.g. resend to just one agent when
+    // their copy was delayed, or to a specific person the inspector picked). No
+    // filter = broadcast to everyone eligible.
     const emailFilter = cleanText(recipientEmail).toLowerCase();
+    const emailsFilter = Array.isArray(recipientEmails)
+      ? Array.from(
+          new Set(
+            recipientEmails
+              .map((value: any) => cleanText(value).toLowerCase())
+              .filter(Boolean)
+          )
+        )
+      : [];
     const roleFilter = cleanText(recipientRole).toLowerCase();
     // A manual targeted resend bypasses the confirmation toggles (the inspector
     // explicitly chose to send it); the automatic broadcast honors them.
-    const isManualTargeted = Boolean(emailFilter || roleFilter);
+    const isManualTargeted = Boolean(emailFilter || emailsFilter.length || roleFilter);
     const notifPrefs = await getNotificationPrefs(supabase, {
       inspectorId: (inspection as any).inspector_id,
       companyId: inspection.company_id,
     });
-    if (emailFilter) {
-      uniqueRecipients = uniqueRecipients.filter((r) => r.email === emailFilter);
+
+    let selectedRecipients: Array<{ email: string; name: string; role: string }>;
+    if (emailsFilter.length) {
+      const wanted = new Set(emailsFilter);
+      selectedRecipients = allContacts.filter((r) => wanted.has(r.email));
+    } else if (emailFilter) {
+      selectedRecipients = allContacts.filter((r) => r.email === emailFilter);
     } else if (roleFilter) {
-      uniqueRecipients = uniqueRecipients.filter(
+      selectedRecipients = broadcastRecipients.filter(
         (r) =>
           r.role.includes(roleFilter) ||
           (roleFilter === "realtor" && r.role.includes("transaction"))
       );
     } else {
-      uniqueRecipients = uniqueRecipients.filter((r) => {
+      selectedRecipients = broadcastRecipients.filter((r) => {
         const isAgent = r.role.includes("realtor") || r.role.includes("transaction");
         return isAgent ? notifPrefs.agent_confirmation : notifPrefs.client_confirmation;
       });
     }
+
+    const uniqueRecipients: Array<{ email: string; name: string; role: string }> = Array.from(
+      new Map(selectedRecipients.map((recipient) => [recipient.email, recipient])).values()
+    );
 
     if (uniqueRecipients.length === 0) {
       return NextResponse.json({
@@ -350,8 +369,9 @@ ${branding.name}`;
 
     // Best-effort confirmation text to the client + agent (if a phone is on
     // file and SMS is configured). Each role gets its own wording, mirroring the
-    // emails. Never blocks the response.
-    if (isSmsConfigured()) {
+    // emails. Only on the automatic broadcast — a manual, per-person resend is
+    // an email action and must not fan a text out to everyone. Never blocks.
+    if (!isManualTargeted && isSmsConfigured()) {
       const smsTargets = [
         { phone: inspection.client_phone, type: "client" as const },
         {
