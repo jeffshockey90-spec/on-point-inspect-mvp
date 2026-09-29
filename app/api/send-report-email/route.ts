@@ -348,6 +348,7 @@ function buildEmailHtml({
   emailOpenPixelUrl,
   moldReportUrl,
   radonReportUrl,
+  moldSummaryText = "",
   branding,
   environmentalNotice = false,
 }: {
@@ -357,6 +358,7 @@ function buildEmailHtml({
   emailOpenPixelUrl: string;
   moldReportUrl: string;
   radonReportUrl: string;
+  moldSummaryText?: string;
   branding: CompanyBranding;
   environmentalNotice?: boolean;
 }) {
@@ -378,6 +380,21 @@ function buildEmailHtml({
           <p style="color:#cbd5e1; line-height:1.6; margin:0 0 14px 0;">
             The following links open the official third-party lab or device reports.
           </p>
+
+          ${
+            moldSummaryText
+              ? `
+                  <div style="margin:0 0 16px 0; padding:14px 16px; border:1px solid #334155; border-radius:12px; background:#0b1220;">
+                    <p style="margin:0 0 6px 0; color:#c4b5fd; font-size:13px; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">
+                      Mold Results Summary
+                    </p>
+                    <p style="margin:0; color:#e2e8f0; line-height:1.6; white-space:pre-line;">
+                      ${escapeHtml(moldSummaryText)}
+                    </p>
+                  </div>
+                `
+              : ""
+          }
 
           ${
             moldReportUrl
@@ -535,7 +552,7 @@ export async function POST(req: Request) {
 
     const { data: moldTest } = await supabase
       .from("mold_tests")
-      .select("lab_report_url, lab_name, result, lab_status")
+      .select("*")
       .eq("inspection_id", inspectionId)
       .maybeSingle();
 
@@ -553,6 +570,13 @@ export async function POST(req: Request) {
     const radonReportUrl =
       hasRadonService(inspection) && radonTest?.report_url
         ? String(radonTest.report_url)
+        : "";
+
+    // The inspector-approved AI mold summary, so the client sees it in the
+    // results email too (not only on the report link).
+    const moldSummaryText =
+      hasMoldService(inspection) && (moldTest as any)?.ai_remark
+        ? String((moldTest as any).ai_remark).trim()
         : "";
 
     const property =
@@ -682,6 +706,7 @@ export async function POST(req: Request) {
         emailOpenPixelUrl,
         moldReportUrl,
         radonReportUrl,
+        moldSummaryText,
         branding,
         environmentalNotice,
       });
