@@ -838,12 +838,13 @@ export default function AILiveInspectionCamera({
     try {
       const refSection = referenceSection;
       const refFrames = shots.map((s) => s.frame).filter(Boolean);
+      const refCaption = referenceCaption.trim();
       for (const s of shots) {
         await uploadSectionReferencePhoto({
           inspectionId: selectedReport,
           section: referenceSection,
           file: s.file,
-          caption: "",
+          caption: refCaption,
         });
       }
       // Reference photos normally run no AI. Kick off a light material-
@@ -1928,6 +1929,16 @@ export default function AILiveInspectionCamera({
                       </option>
                     ))}
                   </select>
+
+                  <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                    Caption (optional)
+                  </label>
+                  <input
+                    value={referenceCaption}
+                    onChange={(event) => setReferenceCaption(event.target.value)}
+                    placeholder="What do these photos show?"
+                    className="mt-1 w-full rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                  />
                 </div>
               </>
             ) : (
