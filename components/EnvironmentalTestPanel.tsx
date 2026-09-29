@@ -271,6 +271,29 @@ function MoldForm({
     }
   }
 
+  // Remove the AI summary from the client report (reverts to the standard
+  // auto-generated mold blurb).
+  async function removeRemark() {
+    if (savingRemark) return;
+    setSavingRemark(true);
+    setRemarkMsg(null);
+    try {
+      const res = await fetch("/api/mold-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspection_id: inspectionId, ai_remark: "" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not remove the summary.");
+      setAiRemark("");
+      setRemarkMsg({ type: "success", text: "Summary removed — the client report shows the standard mold blurb." });
+    } catch (error: any) {
+      setRemarkMsg({ type: "error", text: error?.message || "Could not remove the summary." });
+    } finally {
+      setSavingRemark(false);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
       <h3 className="mb-4 text-xl font-bold text-[var(--fl-purple-text)]">Mold Test</h3>
@@ -352,6 +375,16 @@ function MoldForm({
           >
             {savingRemark ? "Saving…" : "Save Summary"}
           </button>
+          {aiRemark.trim() && (
+            <button
+              type="button"
+              onClick={removeRemark}
+              disabled={savingRemark}
+              className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-2.5 text-sm font-bold text-[var(--fl-crit-text)] transition hover:bg-red-500/20 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          )}
           {remarkMsg && (
             <span
               className={`text-sm font-bold ${
