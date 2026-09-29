@@ -659,9 +659,29 @@ export default function ClientPortalPage() {
 
   const moldReportUrl = moldTest?.lab_report_url || "";
   const radonReportUrl = radonTest?.report_url || "";
-  const showEnvironmentalResults =
-    (hasMoldService(inspection) && moldTest) ||
-    (hasRadonService(inspection) && radonTest);
+  // Only surface environmental results once there is ACTUAL content — an
+  // uploaded report, a saved summary/findings, entered results, or a non-pending
+  // status. A bare pending row (service contracted, nothing done) stays hidden.
+  const moldReportReady =
+    hasMoldService(inspection) &&
+    Boolean(
+      moldTest &&
+        (String(moldTest.lab_report_url || "").trim() ||
+          String(moldTest.ai_remark || "").trim() ||
+          String(moldTest.findings || "").trim() ||
+          (moldTest.lab_status && !/pending/i.test(String(moldTest.lab_status))) ||
+          Number(moldTest.air_samples) > 0 ||
+          Number(moldTest.surface_samples) > 0),
+    );
+  const radonReportReady =
+    hasRadonService(inspection) &&
+    Boolean(
+      radonTest &&
+        (String(radonTest.report_url || "").trim() ||
+          String(radonTest.average_pci ?? "").trim() !== "" ||
+          (radonTest.report_status && /complete/i.test(String(radonTest.report_status)))),
+    );
+  const showEnvironmentalResults = moldReportReady || radonReportReady;
 
   const checklistBySection = groupChecklistRows(checklistRows);
   const checklistSections = SECTION_ORDER.filter(
@@ -876,7 +896,7 @@ export default function ClientPortalPage() {
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {hasRadonService(inspection) && radonTest && (() => {
+              {radonReportReady && (() => {
                 const info = radonClientInfo(radonTest.average_pci);
                 return (
                   <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5">
@@ -906,7 +926,7 @@ export default function ClientPortalPage() {
                 );
               })()}
 
-              {hasMoldService(inspection) && moldTest && (
+              {moldReportReady && (
                 <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <span className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">

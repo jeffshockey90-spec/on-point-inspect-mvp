@@ -1883,11 +1883,31 @@ export default async function PublicSharePage({
   const radonReportUrl = radonTest?.report_url || "";
   const hasMold = hasMoldService(inspection);
   const hasRadon = hasRadonService(inspection);
-  // FLOW's own mold/radon sampling report (environmental-share) is always
-  // reachable once that service was performed, whether or not the raw
-  // third-party lab file has been uploaded yet - the client shouldn't need
-  // a separate link the inspector has to remember to send.
-  const showEnvironmentalLinks = hasMold || hasRadon;
+  // Only expose the environmental report link once there is ACTUAL content to
+  // see — an uploaded lab/device report, a saved summary/findings, entered
+  // results, or a non-pending status. Contracting the service alone (lab still
+  // pending, nothing uploaded) does NOT surface the link, so the client never
+  // opens an empty environmental report.
+  const moldReportReady =
+    hasMold &&
+    Boolean(
+      moldTest &&
+        (String(moldTest.lab_report_url || "").trim() ||
+          String((moldTest as any).ai_remark || "").trim() ||
+          String(moldTest.findings || "").trim() ||
+          (moldTest.lab_status && !/pending/i.test(String(moldTest.lab_status))) ||
+          Number(moldTest.air_samples) > 0 ||
+          Number(moldTest.surface_samples) > 0),
+    );
+  const radonReportReady =
+    hasRadon &&
+    Boolean(
+      radonTest &&
+        (String(radonTest.report_url || "").trim() ||
+          String(radonTest.average_pci ?? "").trim() !== "" ||
+          (radonTest.report_status && /complete/i.test(String(radonTest.report_status)))),
+    );
+  const showEnvironmentalLinks = moldReportReady || radonReportReady;
 
   const rawPropertyPhoto = getPropertyPhoto(inspection);
   let propertyPhoto = rawPropertyPhoto;
@@ -2812,15 +2832,15 @@ export default async function PublicSharePage({
               </h2>
 
               <p className="mt-2 text-sm text-[var(--fl-muted)]">
-                {hasMold && hasRadon
+                {moldReportReady && radonReportReady
                   ? "Your mold and radon sampling reports."
-                  : hasMold
+                  : moldReportReady
                     ? "Your mold sampling report."
                     : "Your radon sampling report."}
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {hasMold && (
+                {moldReportReady && (
                   <a
                     href={`/environmental-share/${sharePathId}`}
                     className="rounded-xl border border-purple-500 bg-[var(--fl-surface)] p-5 font-bold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10"
@@ -2834,7 +2854,7 @@ export default async function PublicSharePage({
                   </a>
                 )}
 
-                {hasRadon && (
+                {radonReportReady && (
                   <a
                     href={`/environmental-share/${sharePathId}`}
                     className="rounded-xl border border-purple-500 bg-[var(--fl-surface)] p-5 font-bold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10"
@@ -2848,7 +2868,7 @@ export default async function PublicSharePage({
                   </a>
                 )}
 
-                {hasMold && moldReportUrl && (
+                {moldReportReady && moldReportUrl && (
                   <a
                     href={moldReportUrl}
                     target="_blank"
@@ -2864,7 +2884,7 @@ export default async function PublicSharePage({
                   </a>
                 )}
 
-                {hasRadon && radonReportUrl && (
+                {radonReportReady && radonReportUrl && (
                   <a
                     href={radonReportUrl}
                     target="_blank"
