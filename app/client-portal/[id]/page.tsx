@@ -916,8 +916,9 @@ export default function ClientPortalPage() {
                       {moldTest.lab_status || "Pending"}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[var(--fl-muted)]">
-                    {moldTest.findings ||
+                  <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[var(--fl-muted)]">
+                    {(moldTest.ai_remark && String(moldTest.ai_remark).trim()) ||
+                      moldTest.findings ||
                       moldTest.notes ||
                       "Mold sampling was performed. See the official lab report for the full results."}
                   </p>
