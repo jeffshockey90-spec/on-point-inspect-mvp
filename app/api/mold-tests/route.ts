@@ -236,6 +236,12 @@ export async function POST(req: Request) {
     if (body.lab_status !== undefined) patch.lab_status = body.lab_status || "Pending Collection";
     if (body.findings !== undefined) patch.findings = body.findings || "";
     if (body.notes !== undefined) patch.notes = body.notes || "";
+    // The inspector-approved AI client summary (only sent by the mold summary
+    // Save; requires the ai_remark column — see add-mold-ai-remark.sql).
+    if (body.ai_remark !== undefined) {
+      patch.ai_remark = body.ai_remark || "";
+      patch.ai_remark_generated_at = new Date().toISOString();
+    }
 
     // Classification: an explicit result/status wins; otherwise derive it from
     // the chosen lab status so picking "Normal" / "Action Recommended" actually

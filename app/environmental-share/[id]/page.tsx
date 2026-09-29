@@ -544,7 +544,9 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
                   Client Summary
                 </h3>
                 <p className="mt-3 whitespace-pre-line leading-7 text-[var(--fl-muted)]">
-                  {moldSummary(moldTest, inspection)}
+                  {moldTest?.ai_remark && String(moldTest.ai_remark).trim()
+                    ? moldTest.ai_remark
+                    : moldSummary(moldTest, inspection)}
                 </p>
               </div>
 

@@ -2527,7 +2527,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   if (hasMoldService) {
     const { data } = await supabase
       .from("mold_tests")
-      .select("air_samples, surface_samples, lab_name, lab_report_url, lab_status, notes")
+      .select("*")
       .eq("inspection_id", inspection.id)
       .maybeSingle();
 

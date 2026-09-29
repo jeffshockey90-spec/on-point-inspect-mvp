@@ -10,6 +10,7 @@ type MoldTest = {
   lab_report_url?: string | null;
   lab_status?: string | null;
   notes?: string | null;
+  ai_remark?: string | null;
 } | null;
 
 type RadonTest = {
@@ -180,6 +181,14 @@ function MoldForm({
     null
   );
 
+  // AI client summary drafted from the uploaded lab report.
+  const [aiRemark, setAiRemark] = useState(initial?.ai_remark || "");
+  const [drafting, setDrafting] = useState(false);
+  const [savingRemark, setSavingRemark] = useState(false);
+  const [remarkMsg, setRemarkMsg] = useState<
+    { type: "success" | "error" | "info"; text: string } | null
+  >(null);
+
   async function save() {
     if (saving) return;
     setSaving(true);
@@ -209,6 +218,56 @@ function MoldForm({
       setMessage({ type: "error", text: error.message || "Failed to save mold test." });
     } finally {
       setSaving(false);
+    }
+  }
+
+  // Have AI read the uploaded lab report PDF and draft a client-friendly summary.
+  async function draftRemark() {
+    if (drafting) return;
+    setDrafting(true);
+    setRemarkMsg(null);
+    try {
+      const res = await fetch("/api/ai/mold-remark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not draft the summary.");
+      setAiRemark(data.remark || "");
+      setRemarkMsg(
+        data.saved === false
+          ? {
+              type: "info",
+              text: "Draft ready. Run add-mold-ai-remark.sql so it saves to the client report.",
+            }
+          : { type: "success", text: "Draft ready — review/edit it, then Save Summary." },
+      );
+    } catch (error: any) {
+      setRemarkMsg({ type: "error", text: error?.message || "Could not draft the summary." });
+    } finally {
+      setDrafting(false);
+    }
+  }
+
+  // Persist the reviewed/edited summary so it shows on the client report.
+  async function saveRemark() {
+    if (savingRemark) return;
+    setSavingRemark(true);
+    setRemarkMsg(null);
+    try {
+      const res = await fetch("/api/mold-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspection_id: inspectionId, ai_remark: aiRemark }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not save the summary.");
+      setRemarkMsg({ type: "success", text: "Client summary saved." });
+    } catch (error: any) {
+      setRemarkMsg({ type: "error", text: error?.message || "Could not save the summary." });
+    } finally {
+      setSavingRemark(false);
     }
   }
 
@@ -245,6 +304,67 @@ function MoldForm({
             onChange={setLabReportUrl}
             helper={'Shows as "View Official Mold Lab Report" on the client report. Remember to Save Mold Test.'}
           />
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-teal-500/40 bg-teal-500/5 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h4 className="text-sm font-bold text-[var(--fl-accent-text)]">
+              AI Client Summary
+            </h4>
+            <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
+              Upload the lab report above, then have AI read it and draft a clean,
+              plain-English summary for the client. Review and edit it, then Save —
+              it shows in the Mold section of the client&apos;s report.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={draftRemark}
+            disabled={drafting || !labReportUrl.trim()}
+            className="shrink-0 rounded-xl bg-teal-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {drafting ? "Reading report…" : "🧠 Draft from Lab Report"}
+          </button>
+        </div>
+
+        {!labReportUrl.trim() && (
+          <p className="mt-2 text-xs font-semibold text-[var(--fl-warn-text)]">
+            Upload the lab report PDF first (and Save Mold Test).
+          </p>
+        )}
+
+        <textarea
+          value={aiRemark}
+          onChange={(e) => setAiRemark(e.target.value)}
+          rows={6}
+          placeholder="The AI-drafted summary appears here for you to review and edit — or type your own."
+          className="mt-3 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 leading-7 text-[var(--fl-text)] outline-none focus:border-teal-400"
+        />
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={saveRemark}
+            disabled={savingRemark}
+            className="rounded-xl border border-teal-500 bg-teal-500/10 px-4 py-2.5 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-slate-950 disabled:opacity-50"
+          >
+            {savingRemark ? "Saving…" : "Save Summary"}
+          </button>
+          {remarkMsg && (
+            <span
+              className={`text-sm font-bold ${
+                remarkMsg.type === "success"
+                  ? "text-[var(--fl-good-text)]"
+                  : remarkMsg.type === "info"
+                    ? "text-[var(--fl-warn-text)]"
+                    : "text-[var(--fl-crit-text)]"
+              }`}
+            >
+              {remarkMsg.text}
+            </span>
+          )}
         </div>
       </div>
 
