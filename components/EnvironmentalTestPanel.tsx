@@ -231,20 +231,15 @@ function MoldForm({
     setDrafting(true);
     setRemarkMsg(null);
     try {
-      // Persist the mold test first so the lab report URL is saved (and a row
-      // exists) — the AI route reads the report from the database, so a
-      // just-uploaded-but-unsaved URL would otherwise be missed.
+      // Persist ONLY the lab report URL so the AI route can read it — never the
+      // whole form, so drafting can't overwrite samples/status/lab name the
+      // inspector may not have re-typed. The save is a field-by-field merge.
       const saveRes = await fetch("/api/mold-tests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           inspection_id: inspectionId,
-          air_samples: airSamples,
-          surface_samples: surfaceSamples,
-          lab_name: labName,
           lab_report_url: labReportUrl,
-          lab_status: labStatus,
-          notes,
         }),
       });
       if (!saveRes.ok) {
