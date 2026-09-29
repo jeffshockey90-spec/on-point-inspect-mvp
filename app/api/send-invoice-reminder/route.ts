@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import Stripe from "stripe";
 import { Resend } from "resend";
+import { createInspectionCheckoutSession } from "../../../lib/stripeCheckout";
 import { listUnsubscribeHeaders, isEmailUnsubscribed } from "../../../lib/emailUnsubscribe";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
@@ -22,17 +22,6 @@ function getSupabaseAdmin() {
       persistSession: false,
       autoRefreshToken: false,
     },
-  });
-}
-
-function getStripe() {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-
-  if (!stripeSecretKey) {
-    throw new Error("Missing STRIPE_SECRET_KEY.");
-  }
-
-  return new Stripe(stripeSecretKey, {
   });
 }
 
@@ -212,42 +201,23 @@ export async function POST(req: Request) {
 
     const clientName = inspection.client_name || inspection.client || "Client";
 
-    const stripe = getStripe();
-
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      customer_email: clientEmails[0],
-      client_reference_id: String(inspectionId),
-      metadata: {
-        inspection_id: String(inspectionId),
-        property_address: String(property),
-      },
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: Math.round(balanceDue * 100),
-            product_data: {
-              name: "Home Inspection Payment",
-              description: `${branding.name} - ${property}`,
-            },
-          },
-        },
-      ],
-      success_url: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appUrl}/payment-cancelled?inspection_id=${inspectionId}`,
+    // Use the EXACT same checkout the client portal "Pay Now" uses: a Stripe
+    // Connect direct charge on the inspector's own connected account, WITH the
+    // online processing fee. The reminder used to open a checkout on the raw
+    // platform account with no fee — that sent the money to the wrong Stripe
+    // account and made the inspector eat the card fee. One shared path now.
+    const checkout = await createInspectionCheckoutSession({
+      supabase,
+      inspection,
+      appUrl,
     });
 
-    await supabase
-      .from("inspections")
-      .update({
-        invoice_status: "Unpaid",
-        payment_status: "Pending",
-        stripe_checkout_session_id: session.id,
-      })
-      .eq("id", inspectionId);
+    if (!checkout.ok) {
+      return NextResponse.json(
+        { error: checkout.error, details: checkout.details },
+        { status: checkout.status }
+      );
+    }
 
     const from = buildBrandedFromHeader(
       branding,
@@ -300,7 +270,7 @@ export async function POST(req: Request) {
                   </p>
                 </div>
 
-                <a href="${session.url}" style="display:inline-block;background:#14b8a6;color:#020617;text-decoration:none;font-weight:900;padding:14px 22px;border-radius:12px;">
+                <a href="${checkout.url}" style="display:inline-block;background:#14b8a6;color:#020617;text-decoration:none;font-weight:900;padding:14px 22px;border-radius:12px;">
                   Pay Invoice
                 </a>
 
@@ -351,7 +321,7 @@ export async function POST(req: Request) {
         recipient_email: recipient,
         email_type: "invoice_reminder",
         subject: invoiceSubject,
-        message: session.url,
+        message: checkout.url,
         html: invoiceReminderHtml,
         status: "sent",
         sent_at: new Date().toISOString(),
