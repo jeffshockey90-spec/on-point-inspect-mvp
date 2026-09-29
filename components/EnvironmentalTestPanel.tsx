@@ -195,18 +195,32 @@ function MoldForm({
     setMessage(null);
 
     try {
+      // Send ONLY the fields that changed from what was loaded. Editing one
+      // thing (e.g. the status) sends just that, so the server's field-by-field
+      // merge leaves everything else exactly as it was — and a form that ever
+      // failed to preload can never blank out saved data.
+      const patch: Record<string, any> = { inspection_id: inspectionId };
+      if (airSamples !== String(initial?.air_samples ?? ""))
+        patch.air_samples = airSamples;
+      if (surfaceSamples !== String(initial?.surface_samples ?? ""))
+        patch.surface_samples = surfaceSamples;
+      if (labName !== (initial?.lab_name || "")) patch.lab_name = labName;
+      if (labReportUrl !== (initial?.lab_report_url || ""))
+        patch.lab_report_url = labReportUrl;
+      if (labStatus !== (initial?.lab_status || "Pending Collection"))
+        patch.lab_status = labStatus;
+      if (notes !== (initial?.notes || "")) patch.notes = notes;
+
+      if (Object.keys(patch).length === 1) {
+        setMessage({ type: "success", text: "No changes to save." });
+        setSaving(false);
+        return;
+      }
+
       const res = await fetch("/api/mold-tests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inspection_id: inspectionId,
-          air_samples: airSamples,
-          surface_samples: surfaceSamples,
-          lab_name: labName,
-          lab_report_url: labReportUrl,
-          lab_status: labStatus,
-          notes,
-        }),
+        body: JSON.stringify(patch),
       });
 
       const data = await res.json();
@@ -500,17 +514,27 @@ function RadonForm({
     setMessage(null);
 
     try {
+      // Send ONLY the changed fields (see MoldForm), so editing one thing never
+      // wipes the rest and a blank preload can't erase saved data.
+      const patch: Record<string, any> = { inspection_id: inspectionId };
+      if (averagePci !== String(initial?.average_pci ?? ""))
+        patch.average_pci = averagePci;
+      if (deviceName !== (initial?.device_name || "")) patch.device_name = deviceName;
+      if (reportUrl !== (initial?.report_url || "")) patch.report_url = reportUrl;
+      if (reportStatus !== (initial?.report_status || "Pending"))
+        patch.report_status = reportStatus;
+      if (notes !== (initial?.notes || "")) patch.notes = notes;
+
+      if (Object.keys(patch).length === 1) {
+        setMessage({ type: "success", text: "No changes to save." });
+        setSaving(false);
+        return;
+      }
+
       const res = await fetch("/api/radon-tests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inspection_id: inspectionId,
-          average_pci: averagePci,
-          device_name: deviceName,
-          report_url: reportUrl,
-          report_status: reportStatus,
-          notes,
-        }),
+        body: JSON.stringify(patch),
       });
 
       const data = await res.json();
