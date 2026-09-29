@@ -313,17 +313,18 @@ function ReviewList({
   title,
   items,
   emptyText,
-  inspectionId,
+  doneSet,
+  onToggle,
   tone = "text-[var(--fl-text)]",
 }: {
   title: string;
   items?: any[];
   emptyText: string;
-  inspectionId: string;
+  doneSet: Set<string>;
+  onToggle: (key: string) => void;
   tone?: string;
 }) {
   const reviewedIds = useReviewedFindings();
-  const { doneSet, toggle } = useDoneItems(inspectionId);
   // An item is "handled" if the inspector checked it off here OR its finding was
   // marked reviewed elsewhere. Handled items sink to the bottom, dimmed, so the
   // next thing to fix is always on top — but they never disappear.
@@ -368,7 +369,7 @@ function ReviewList({
                 item={item}
                 handled={item.handled}
                 tone={tone}
-                onToggle={() => toggle(item.key)}
+                onToggle={() => onToggle(item.key)}
               />
             </li>
           ))}
@@ -393,6 +394,10 @@ export default function AIReportReviewPanel({
     retryable?: boolean;
     retryAfterSeconds?: number;
   }>(null);
+
+  // One shared checked-off set for the whole panel so every list stays in sync
+  // and check-offs never bounce back.
+  const { doneSet, toggle: onToggleItem } = useDoneItems(inspectionId);
 
   // Restore the saved review on mount so returning to the panel shows the list
   // to keep working through — never a blank "Run AI Review" prompt, and never a
@@ -428,8 +433,13 @@ export default function AIReportReviewPanel({
           }
         }
         if (Array.isArray(data?.done)) {
+          // MERGE (union) server check-offs with whatever the inspector may have
+          // already tapped while this fetch was in flight — never overwrite, or
+          // a slow load would wipe a just-made check-off (the bounce-back bug).
           try {
-            localStorage.setItem(doneStorageKey(inspectionId), JSON.stringify(data.done));
+            const local = readDone(inspectionId);
+            const merged = new Set<string>([...local, ...data.done.map((v: any) => String(v))]);
+            localStorage.setItem(doneStorageKey(inspectionId), JSON.stringify([...merged]));
           } catch {
             /* best-effort cache */
           }
@@ -648,7 +658,8 @@ export default function AIReportReviewPanel({
             title="Critical Issues"
             items={review.criticalIssues}
             emptyText="No critical issues found."
-            inspectionId={inspectionId}
+            doneSet={doneSet}
+            onToggle={onToggleItem}
             tone="text-[var(--fl-crit-text)]"
           />
 
@@ -656,7 +667,8 @@ export default function AIReportReviewPanel({
             title="Warnings"
             items={review.warnings}
             emptyText="No warnings found."
-            inspectionId={inspectionId}
+            doneSet={doneSet}
+            onToggle={onToggleItem}
             tone="text-[var(--fl-warn-text)]"
           />
 
@@ -664,42 +676,48 @@ export default function AIReportReviewPanel({
             title="Missing Systems"
             items={review.missingSystems}
             emptyText="No missing systems flagged."
-            inspectionId={inspectionId}
+            doneSet={doneSet}
+            onToggle={onToggleItem}
           />
 
           <ReviewList
             title="Photo Concerns"
             items={review.photoConcerns}
             emptyText="No photo concerns found."
-            inspectionId={inspectionId}
+            doneSet={doneSet}
+            onToggle={onToggleItem}
           />
 
           <ReviewList
             title="Possible Duplicates"
             items={review.duplicateConcerns}
             emptyText="No duplicate concerns found."
-            inspectionId={inspectionId}
+            doneSet={doneSet}
+            onToggle={onToggleItem}
           />
 
           <ReviewList
             title="Section Concerns"
             items={review.sectionConcerns}
             emptyText="No section concerns found."
-            inspectionId={inspectionId}
+            doneSet={doneSet}
+            onToggle={onToggleItem}
           />
 
           <ReviewList
             title="Suggestions"
             items={review.suggestions}
             emptyText="No extra suggestions."
-            inspectionId={inspectionId}
+            doneSet={doneSet}
+            onToggle={onToggleItem}
           />
 
           <ReviewList
             title="Automated Base Checks"
             items={review.baseIssues}
             emptyText="No base quality issues found."
-            inspectionId={inspectionId}
+            doneSet={doneSet}
+            onToggle={onToggleItem}
           />
         </div>
       )}

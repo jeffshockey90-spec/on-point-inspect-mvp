@@ -178,7 +178,7 @@ export async function POST(req: Request) {
           .eq("inspection_id", inspectionId),
         supabase
           .from("photos")
-          .select("id,finding_id,public_url,file_path")
+          .select("id,finding_id,public_url,file_path,media_type,is_video")
           .eq("inspection_id", inspectionId),
         supabase
           .from("section_reference_photos")
@@ -186,8 +186,40 @@ export async function POST(req: Request) {
           .eq("inspection_id", inspectionId),
       ]);
 
+    // A finding can be documented with a VIDEO instead of a still photo. Videos
+    // live in the photos table (media_type "video" / is_video). Build a per-
+    // finding media map so we never nag "no main photo" when there's a video
+    // (or any attached media) covering that defect.
+    const findingMedia = new Map<string, { hasPhoto: boolean; hasVideo: boolean }>();
+    for (const media of safeArray(photos)) {
+      const fid =
+        media?.finding_id !== undefined && media?.finding_id !== null
+          ? String(media.finding_id)
+          : "";
+      if (!fid) continue;
+      const isVideo =
+        media?.is_video === true ||
+        String(media?.media_type || "").toLowerCase().includes("video");
+      const current = findingMedia.get(fid) || { hasPhoto: false, hasVideo: false };
+      if (isVideo) current.hasVideo = true;
+      else current.hasPhoto = true;
+      findingMedia.set(fid, current);
+    }
+    const findingHasVisualMedia = (finding: any) => {
+      if (cleanText(finding.image_url)) return true;
+      const media = findingMedia.get(String(finding.id));
+      return Boolean(media && (media.hasPhoto || media.hasVideo));
+    };
+
+    // Tell the base quality check about video/media so its "no main photo" rule
+    // only fires when a finding has NO visual documentation at all.
+    const findingsForReview = safeArray(findings).map((finding: any) => ({
+      ...finding,
+      hasVisualMedia: findingHasVisualMedia(finding),
+    }));
+
     const baseReview = qualityControl.reviewReport({
-      findings: safeArray(findings),
+      findings: findingsForReview,
       equipment: safeArray(equipment),
     });
 
@@ -196,6 +228,17 @@ export async function POST(req: Request) {
     const orderedFindings = safeArray(findings);
     const findingsSummary = orderedFindings
       .map((finding: any, index: number) => {
+        const media = findingMedia.get(String(finding.id));
+        const hasPic = Boolean(cleanText(finding.image_url) || media?.hasPhoto);
+        const hasVid = Boolean(media?.hasVideo);
+        const visual =
+          hasPic && hasVid
+            ? "Photo + video"
+            : hasPic
+              ? "Photo"
+              : hasVid
+                ? "Video"
+                : "None";
         return [
           `Finding ${index + 1}`,
           `Section: ${cleanText(finding.section) || "Unknown"}`,
@@ -204,7 +247,8 @@ export async function POST(req: Request) {
           `Observation: ${cleanText(finding.observation) || "Blank"}`,
           `Implication: ${cleanText(finding.implication) || "Blank"}`,
           `Recommendation: ${cleanText(finding.recommendation) || "Blank"}`,
-          `Main photo: ${finding.image_url ? "Yes" : "No"}`,
+          // A video counts as visual documentation — don't flag it as missing a photo.
+          `Visual media: ${visual}`,
         ].join("\n");
       })
       .join("\n\n---\n\n");
@@ -234,7 +278,7 @@ Your job:
 - Find inconsistent or unclear findings.
 - Identify missing recommendations.
 - Identify missing implications.
-- Identify missing photos for safety/major concerns.
+- Identify missing photos for safety/major concerns ONLY when a finding's "Visual media" is "None". A finding with a Photo OR a Video is already visually documented — never tell the inspector to add a photo when a video is present.
 - Identify possible duplicate findings.
 - Identify section or severity mismatches.
 - Identify report completeness concerns.

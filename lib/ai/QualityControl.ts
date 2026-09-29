@@ -23,6 +23,9 @@ export type ReportQualityInput = {
     implication?: string | null;
     recommendation?: string | null;
     image_url?: string | null;
+    // True when the finding has ANY visual documentation (a still photo OR a
+    // video). Used so the "no main photo" check doesn't fire on video-only findings.
+    hasVisualMedia?: boolean;
   }>;
   equipment?: Array<{
     equipment_type?: string | null;
@@ -103,16 +106,19 @@ export class QualityControl {
       }
 
       const severity = clean(finding.severity).toLowerCase();
+      // Only flag when the finding has NO visual documentation at all — a video
+      // counts, so a video-only finding is not "missing a photo".
       if (
         (severity.includes("safety") || severity.includes("major")) &&
-        !clean(finding.image_url)
+        !clean(finding.image_url) &&
+        !finding.hasVisualMedia
       ) {
         issues.push({
           level: "warning",
           category: "missing_photo",
           findingId: id,
           section: clean(finding.section),
-          message: `"${title}" is marked ${finding.severity} but does not have a main photo attached.`,
+          message: `"${title}" is marked ${finding.severity} but has no photo or video attached.`,
         });
       }
     }
