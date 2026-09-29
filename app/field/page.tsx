@@ -885,6 +885,46 @@ function FieldPageContent() {
   const limitationAutoAnalyzedRef = useRef("");
   // Optional inspector note that steers the AI when drafting a limitation.
   const [limitationHint, setLimitationHint] = useState("");
+  // Attach-to-existing-limitation: when set, captured photos are appended to an
+  // existing limitation instead of drafting a brand-new one.
+  const [limitationTargetId, setLimitationTargetId] = useState("");
+  const [existingLimitations, setExistingLimitations] = useState<
+    Array<{ id: string; section: string; label: string }>
+  >([]);
+
+  // Keep the "attach to existing limitation" list current for the selected
+  // report, and refresh it whenever a limitation is added/changed anywhere.
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      if (!selectedReport) {
+        if (alive) setExistingLimitations([]);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `/api/limitations/list?inspection_id=${encodeURIComponent(String(selectedReport))}`,
+          { cache: "no-store" },
+        );
+        if (!res.ok || !alive) return;
+        const data = await res.json().catch(() => ({}));
+        if (alive) {
+          setExistingLimitations(
+            Array.isArray(data.limitations) ? data.limitations : [],
+          );
+        }
+      } catch {
+        /* offline / transient — keep whatever we had */
+      }
+    }
+    load();
+    const onChanged = () => load();
+    window.addEventListener("opi:section-limitations-changed", onChanged);
+    return () => {
+      alive = false;
+      window.removeEventListener("opi:section-limitations-changed", onChanged);
+    };
+  }, [selectedReport]);
   const [analyzingEquipment, setAnalyzingEquipment] = useState(false);
   const [equipmentResult, setEquipmentResult] =
     useState<EquipmentResult | null>(null);
@@ -1381,6 +1421,7 @@ function FieldPageContent() {
     setExistingFindingMedia([]);
     limitationAutoAnalyzedRef.current = "";
     setLimitationHint("");
+    setLimitationTargetId("");
     setSection("Exterior");
     setSeverity("Recommended Repair");
     setNote("");
@@ -1912,6 +1953,19 @@ function FieldPageContent() {
       const effectiveSection = activeSections.includes(draft.section)
         ? draft.section
         : section;
+
+      // If the inspector picked an existing limitation to attach to, append the
+      // photo(s) to it (online) instead of drafting a brand-new limitation.
+      if (limitationTargetId && isOnline()) {
+        await saveLimitationWithPhotoOnline({
+          photos: limitationImages,
+          section: effectiveSection,
+          targetLimitationId: limitationTargetId,
+        });
+        setMessage("Photo(s) added to the selected limitation.");
+        resetForm();
+        return;
+      }
 
       // Same instant + never-lost save as findings: persist to the durable queue
       // first, return immediately, upload in the background. AI already drafted
@@ -4053,6 +4107,7 @@ function FieldPageContent() {
     note?: string;
     section?: string;
     recommendation?: string;
+    targetLimitationId?: string | null;
   }) {
     const effectivePhotos = overrides?.photos ?? photos;
     const effectiveSection = overrides?.section ?? section;
@@ -4060,11 +4115,16 @@ function FieldPageContent() {
     const limitationText = String(overrides?.note ?? note ?? "").trim();
     const limitationTitle =
       String(overrides?.title ?? title ?? "").trim() || "Field Limitation";
+    // When attaching to an existing limitation, its wording already exists — we
+    // just append photos to it, so no new wording is required.
+    const attachTargetId = String(
+      overrides?.targetLimitationId ?? limitationTargetId ?? "",
+    ).trim();
     const images = effectivePhotos.filter((photo) =>
       photo.type.startsWith("image/"),
     );
 
-    if (!limitationText) {
+    if (!attachTargetId && !limitationText) {
       throw new Error("Enter the limitation wording before saving.");
     }
 
@@ -4086,7 +4146,9 @@ function FieldPageContent() {
     // limitation can hold. The first batch creates the limitation; later batches
     // attach to it by id.
     const BATCH = 4;
-    let limitationId: string | null = null;
+    // Seed with the existing limitation's id when attaching, so the very first
+    // batch appends to it instead of creating a new limitation.
+    let limitationId: string | null = attachTargetId || null;
     let firstData: any = null;
 
     for (let start = 0; start < imageDataUrls.length; start += BATCH) {
@@ -4117,9 +4179,9 @@ function FieldPageContent() {
         );
       }
 
+      if (firstData === null) firstData = data;
       if (!limitationId) {
         limitationId = data.limitation?.id || data.limitationId || null;
-        firstData = data;
       }
     }
 
@@ -4386,6 +4448,7 @@ function FieldPageContent() {
     recommendation: string;
     existingFindingId: string;
     inspectionId: any;
+    targetLimitationId?: string | null;
   }) {
     try {
       await saveLimitationWithPhotoOnline({
@@ -4394,6 +4457,7 @@ function FieldPageContent() {
         note: snapshot.note,
         section: snapshot.section,
         recommendation: snapshot.recommendation,
+        targetLimitationId: snapshot.targetLimitationId ?? null,
       });
       clearCompletedProgressSoon();
     } catch (error: any) {
@@ -4429,15 +4493,22 @@ function FieldPageContent() {
       return;
     }
 
-    if (
-      photoType === "limitation" &&
-      (!note.trim() ||
-        !photos.some((photo) => photo.type.startsWith("image/")))
-    ) {
-      setMessage(
-        "Enter the limitation wording and add at least one photo showing the limitation.",
+    if (photoType === "limitation") {
+      const hasLimitationImage = photos.some((photo) =>
+        photo.type.startsWith("image/"),
       );
-      return;
+      if (!hasLimitationImage) {
+        setMessage("Add at least one photo showing the limitation.");
+        return;
+      }
+      // Attaching to an existing limitation needs only a photo; a new limitation
+      // still needs its wording.
+      if (!limitationTargetId && !note.trim()) {
+        setMessage(
+          "Enter the limitation wording, or choose an existing limitation to add the photo to.",
+        );
+        return;
+      }
     }
 
     if (photoType === "existing_finding" && !existingFindingId) {
@@ -4533,6 +4604,7 @@ function FieldPageContent() {
 
     if (photoType === "limitation" && isOnline()) {
       const savedSection = section;
+      const attachingToExisting = Boolean(limitationTargetId);
       const snapshot = {
         photoType,
         photos: [...photos],
@@ -4545,11 +4617,14 @@ function FieldPageContent() {
         recommendation,
         existingFindingId,
         inspectionId: selectedReport,
+        targetLimitationId: limitationTargetId || null,
       };
       resetForm();
       setSaving(false);
       setMessage(
-        `Limitation and photo are saving to ${savedSection} in the background — go ahead and continue.`,
+        attachingToExisting
+          ? "Adding photo(s) to the selected limitation in the background — go ahead and continue."
+          : `Limitation and photo are saving to ${savedSection} in the background — go ahead and continue.`,
       );
       void backgroundSaveLimitation(snapshot);
       return;
@@ -5708,7 +5783,7 @@ function FieldPageContent() {
               </div>
             )}
 
-            {photoType === "limitation" && (
+            {photoType === "limitation" && !limitationTargetId && (
               <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 p-4 text-sm leading-6 text-[var(--fl-warn-text)]">
                 <p className="font-semibold text-[var(--fl-warn-text)]">
                   Section Limitation + Photo
@@ -5760,6 +5835,32 @@ function FieldPageContent() {
                 </select>
               </div>
 
+              {photoType === "limitation" && existingLimitations.length > 0 && (
+                <div className="mt-5">
+                  <label className="mb-2 block font-bold">Save to</label>
+                  <select
+                    value={limitationTargetId}
+                    onChange={(e) => setLimitationTargetId(e.target.value)}
+                    className="w-full rounded-xl border border-orange-400/60 bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"
+                  >
+                    <option value="">➕ New limitation</option>
+                    {existingLimitations.map((lim) => (
+                      <option key={lim.id} value={lim.id}>
+                        Add to: {lim.label}
+                        {lim.section ? ` — ${lim.section}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {limitationTargetId ? (
+                    <p className="mt-2 rounded-xl border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs font-semibold leading-5 text-[var(--fl-warn-text)]">
+                      Your photo(s) will be added to this existing limitation — no
+                      new wording needed. Capture below, then Save.
+                    </p>
+                  ) : null}
+                </div>
+              )}
+
+              {!(photoType === "limitation" && limitationTargetId) && (
               <div className="mt-5">
                 <label className="mb-2 block font-bold">
                   {photoType === "reference_photo"
@@ -5787,8 +5888,9 @@ function FieldPageContent() {
                   </p>
                 )}
               </div>
+              )}
 
-              {photoType === "limitation" && (
+              {photoType === "limitation" && !limitationTargetId && (
                 <div className="mt-5 grid gap-4">
                   <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/5 p-4">
                     <label className="mb-2 block font-bold text-[var(--fl-info-text)]">
