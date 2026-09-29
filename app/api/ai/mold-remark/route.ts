@@ -56,7 +56,16 @@ export async function POST(req: Request) {
       .eq("inspection_id", inspectionId)
       .maybeSingle();
 
-    const labUrl = String(moldTest?.lab_report_url || "").trim();
+    // Prefer the lab report URL saved on the row, but also accept one the client
+    // just uploaded (so a not-yet-saved upload still works) — ONLY if it points
+    // at our own Supabase storage, never an arbitrary external URL (SSRF guard).
+    const dbLabUrl = String(moldTest?.lab_report_url || "").trim();
+    const bodyLabUrl = String(body.labReportUrl || body.lab_report_url || "").trim();
+    const supabaseBase = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
+    const bodyLabUrlAllowed =
+      bodyLabUrl && supabaseBase && bodyLabUrl.startsWith(supabaseBase) ? bodyLabUrl : "";
+
+    const labUrl = dbLabUrl || bodyLabUrlAllowed;
     if (!labUrl) {
       return NextResponse.json(
         { error: "Upload the mold lab report PDF first, then draft the summary." },
@@ -162,11 +171,25 @@ Write the client-friendly mold results summary now.`;
     // gets the draft and can save it after running the SQL.
     let saved = true;
     try {
-      const { error: updateError } = await supabaseAdmin
-        .from("mold_tests")
-        .update({ ai_remark: remark, ai_remark_generated_at: new Date().toISOString() })
-        .eq("inspection_id", inspectionId);
-      if (updateError) saved = false;
+      const stamp = new Date().toISOString();
+      if (moldTest?.id) {
+        const { error: updateError } = await supabaseAdmin
+          .from("mold_tests")
+          .update({ ai_remark: remark, ai_remark_generated_at: stamp })
+          .eq("inspection_id", inspectionId);
+        if (updateError) saved = false;
+      } else {
+        // No mold row yet — create one so the remark (and the lab URL) persist.
+        const { error: insertError } = await supabaseAdmin.from("mold_tests").insert({
+          inspection_id: inspectionId,
+          lab_report_url: labUrl,
+          lab_status: "Pending Collection",
+          result: "Pending",
+          ai_remark: remark,
+          ai_remark_generated_at: stamp,
+        });
+        if (insertError) saved = false;
+      }
     } catch {
       saved = false;
     }

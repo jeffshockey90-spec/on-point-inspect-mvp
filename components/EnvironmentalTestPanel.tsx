@@ -255,7 +255,7 @@ function MoldForm({
       const res = await fetch("/api/ai/mold-remark", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inspectionId }),
+        body: JSON.stringify({ inspectionId, labReportUrl }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Could not draft the summary.");
