@@ -224,9 +224,34 @@ function MoldForm({
   // Have AI read the uploaded lab report PDF and draft a client-friendly summary.
   async function draftRemark() {
     if (drafting) return;
+    if (!labReportUrl.trim()) {
+      setRemarkMsg({ type: "error", text: "Upload the mold lab report PDF first." });
+      return;
+    }
     setDrafting(true);
     setRemarkMsg(null);
     try {
+      // Persist the mold test first so the lab report URL is saved (and a row
+      // exists) — the AI route reads the report from the database, so a
+      // just-uploaded-but-unsaved URL would otherwise be missed.
+      const saveRes = await fetch("/api/mold-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspection_id: inspectionId,
+          air_samples: airSamples,
+          surface_samples: surfaceSamples,
+          lab_name: labName,
+          lab_report_url: labReportUrl,
+          lab_status: labStatus,
+          notes,
+        }),
+      });
+      if (!saveRes.ok) {
+        const saveData = await saveRes.json().catch(() => ({}));
+        throw new Error(saveData.error || "Could not save the lab report before drafting.");
+      }
+
       const res = await fetch("/api/ai/mold-remark", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
