@@ -180,30 +180,165 @@ function useReviewedFindings(): Set<string> {
   return ids;
 }
 
+// Manual "knocked off" state: the inspector can check any review item off as
+// they address it — even items with no finding to mark reviewed (missing
+// photos, completeness, suggestions). Persisted per inspection so it survives
+// leaving and coming back. Keyed by list + item text so unchanged items keep
+// their check across a re-run. localStorage matches the review cache above.
+const doneStorageKey = (id: string) => `fl-ai-review-done-${id}`;
+
+function itemKey(listTitle: string, text: string) {
+  return `${listTitle}::${text}`;
+}
+
+function readDone(inspectionId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(doneStorageKey(inspectionId));
+    const arr = raw ? JSON.parse(raw) : [];
+    return new Set((Array.isArray(arr) ? arr : []).map((v: any) => String(v)));
+  } catch {
+    return new Set();
+  }
+}
+
+function writeDone(inspectionId: string, set: Set<string>) {
+  try {
+    localStorage.setItem(doneStorageKey(inspectionId), JSON.stringify([...set]));
+  } catch {
+    /* best-effort */
+  }
+  window.dispatchEvent(new CustomEvent("opi:ai-review-done-changed"));
+}
+
+// Shared checked-off set for this inspection, kept in sync across every list on
+// the panel (and across tab focus) via a custom event.
+function useDoneItems(inspectionId: string) {
+  const [doneSet, setDoneSet] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const read = () => setDoneSet(readDone(inspectionId));
+    read();
+    window.addEventListener("opi:ai-review-done-changed", read);
+    window.addEventListener("focus", read);
+    return () => {
+      window.removeEventListener("opi:ai-review-done-changed", read);
+      window.removeEventListener("focus", read);
+    };
+  }, [inspectionId]);
+
+  const toggle = (key: string) => {
+    const next = readDone(inspectionId);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    writeDone(inspectionId, next);
+    setDoneSet(next);
+
+    // Persist to the server so the checklist state survives an app restart and
+    // syncs across devices (best-effort; the local cache already updated).
+    fetch("/api/ai/report-review", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inspectionId, done: [...next] }),
+    }).catch(() => {
+      /* offline / pre-migration — local cache still holds it */
+    });
+  };
+
+  return { doneSet, toggle };
+}
+
+function ReviewItemRow({
+  item,
+  handled,
+  onToggle,
+  tone = "text-[var(--fl-text)]",
+}: {
+  item: ReviewItem;
+  handled: boolean;
+  onToggle: () => void;
+  tone?: string;
+}) {
+  const hasFinding = item.findingId !== undefined && item.findingId !== null;
+  return (
+    <div
+      className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm leading-6 transition ${
+        handled
+          ? "border-emerald-500/40 bg-emerald-500/5 opacity-75 hover:opacity-100"
+          : "border-[var(--fl-line)] bg-[var(--fl-surface-2)]"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={handled}
+        aria-label={handled ? "Mark as not done" : "Mark as done"}
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[11px] font-bold [touch-action:manipulation] ${
+          handled
+            ? "border-emerald-500 bg-emerald-500 text-slate-950"
+            : "border-[var(--fl-faint)] text-transparent hover:border-purple-400"
+        }`}
+      >
+        ✓
+      </button>
+
+      {hasFinding ? (
+        <button
+          type="button"
+          onClick={() => jumpToFinding(item.findingId, item.section)}
+          className={`min-w-0 flex-1 text-left transition ${
+            handled ? "text-[var(--fl-muted)] line-through" : `${tone} hover:text-[var(--fl-purple-text)]`
+          }`}
+        >
+          {item.text}
+        </button>
+      ) : (
+        <span className={`min-w-0 flex-1 ${handled ? "text-[var(--fl-muted)] line-through" : tone}`}>
+          {item.text}
+        </span>
+      )}
+
+      {hasFinding && (
+        <span
+          className={`mt-0.5 shrink-0 text-xs font-semibold ${
+            handled ? "text-[var(--fl-good-text)]" : "text-[var(--fl-purple-text)]"
+          }`}
+        >
+          {handled ? "✓ Done" : "Fix →"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function ReviewList({
   title,
   items,
   emptyText,
+  inspectionId,
   tone = "text-[var(--fl-text)]",
 }: {
   title: string;
   items?: any[];
   emptyText: string;
+  inspectionId: string;
   tone?: string;
 }) {
   const reviewedIds = useReviewedFindings();
-  // Un-reviewed items first so the "next one to fix" is always on top; reviewed
-  // items sink to the bottom, dimmed, rather than disappearing.
+  const { doneSet, toggle } = useDoneItems(inspectionId);
+  // An item is "handled" if the inspector checked it off here OR its finding was
+  // marked reviewed elsewhere. Handled items sink to the bottom, dimmed, so the
+  // next thing to fix is always on top — but they never disappear.
   const cleanItems = toReviewItems(items)
-    .map((item) => ({
-      ...item,
-      reviewed:
+    .map((item) => {
+      const reviewed =
         item.findingId !== undefined &&
         item.findingId !== null &&
-        reviewedIds.has(String(item.findingId)),
-    }))
-    .sort((a, b) => Number(a.reviewed) - Number(b.reviewed));
-  const remaining = cleanItems.filter((i) => !i.reviewed).length;
+        reviewedIds.has(String(item.findingId));
+      const key = itemKey(title, item.text);
+      const handled = reviewed || doneSet.has(key);
+      return { ...item, key, handled };
+    })
+    .sort((a, b) => Number(a.handled) - Number(b.handled));
+  const remaining = cleanItems.filter((i) => !i.handled).length;
 
   return (
     <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
@@ -221,42 +356,22 @@ function ReviewList({
         <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">{emptyText}</p>
       ) : remaining === 0 ? (
         <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">
-          All handled — every item here has been reviewed. ✓
+          All handled — every item here is checked off. ✓
         </p>
       ) : null}
 
       {cleanItems.length > 0 && (
         <ul className="mt-3 space-y-2">
-          {cleanItems.map((item, index) =>
-            item.findingId !== undefined && item.findingId !== null ? (
-              <li key={`${title}-${index}`}>
-                <button
-                  type="button"
-                  onClick={() => jumpToFinding(item.findingId, item.section)}
-                  className={`flex w-full items-start justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm leading-6 transition ${
-                    item.reviewed
-                      ? "border-emerald-500/40 bg-emerald-500/5 text-[var(--fl-muted)] opacity-70 hover:opacity-100"
-                      : `border-[var(--fl-line)] bg-[var(--fl-surface-2)] hover:border-purple-400/60 hover:bg-purple-500/10 ${tone}`
-                  }`}
-                >
-                  <span className={`min-w-0 ${item.reviewed ? "line-through" : ""}`}>
-                    {item.text}
-                  </span>
-                  <span
-                    className={`mt-0.5 shrink-0 text-xs font-semibold ${
-                      item.reviewed ? "text-[var(--fl-good-text)]" : "text-[var(--fl-purple-text)]"
-                    }`}
-                  >
-                    {item.reviewed ? "✓ Reviewed" : "Fix →"}
-                  </span>
-                </button>
-              </li>
-            ) : (
-              <li key={`${title}-${index}`} className={`text-sm leading-6 ${tone}`}>
-                {item.text}
-              </li>
-            ),
-          )}
+          {cleanItems.map((item, index) => (
+            <li key={`${title}-${index}`}>
+              <ReviewItemRow
+                item={item}
+                handled={item.handled}
+                tone={tone}
+                onToggle={() => toggle(item.key)}
+              />
+            </li>
+          ))}
         </ul>
       )}
     </div>
@@ -279,15 +394,55 @@ export default function AIReportReviewPanel({
     retryAfterSeconds?: number;
   }>(null);
 
-  // Restore the cached review on mount so returning to the panel shows the saved
-  // list to keep working through, not a blank "Run AI Review" prompt.
+  // Restore the saved review on mount so returning to the panel shows the list
+  // to keep working through — never a blank "Run AI Review" prompt, and never a
+  // forced re-run. Local cache paints instantly; the server (source of truth,
+  // per single-source-of-truth) then hydrates so it survives an app restart and
+  // syncs across devices.
   useEffect(() => {
+    let alive = true;
+
     try {
       const raw = localStorage.getItem(reviewStorageKey(inspectionId));
       if (raw) setReview(JSON.parse(raw));
     } catch {
       /* storage may be unavailable or hold a stale shape */
     }
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/ai/report-review?inspection_id=${encodeURIComponent(inspectionId)}`,
+          { cache: "no-store" },
+        );
+        if (!res.ok || !alive) return;
+        const data = await res.json().catch(() => ({}));
+        if (!alive) return;
+
+        if (data?.review) {
+          setReview(data.review);
+          try {
+            localStorage.setItem(reviewStorageKey(inspectionId), JSON.stringify(data.review));
+          } catch {
+            /* best-effort cache */
+          }
+        }
+        if (Array.isArray(data?.done)) {
+          try {
+            localStorage.setItem(doneStorageKey(inspectionId), JSON.stringify(data.done));
+          } catch {
+            /* best-effort cache */
+          }
+          window.dispatchEvent(new CustomEvent("opi:ai-review-done-changed"));
+        }
+      } catch {
+        /* offline / pre-migration — the local cache above still applies */
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, [inspectionId]);
 
   async function runReview() {
@@ -384,8 +539,9 @@ export default function AIReportReviewPanel({
 
       {review && !loading && (
         <p className="mt-2 text-xs font-semibold text-[var(--fl-purple-text)]">
-          Showing your last review — work through the items below. Only re-run when
-          you&apos;ve made changes you want re-checked.
+          Showing your last review — tap the ✓ to check off each item as you handle
+          it. Your progress is saved, so you can leave and come back without
+          re-running. Only re-run when you&apos;ve made changes you want re-checked.
         </p>
       )}
 
@@ -492,6 +648,7 @@ export default function AIReportReviewPanel({
             title="Critical Issues"
             items={review.criticalIssues}
             emptyText="No critical issues found."
+            inspectionId={inspectionId}
             tone="text-[var(--fl-crit-text)]"
           />
 
@@ -499,6 +656,7 @@ export default function AIReportReviewPanel({
             title="Warnings"
             items={review.warnings}
             emptyText="No warnings found."
+            inspectionId={inspectionId}
             tone="text-[var(--fl-warn-text)]"
           />
 
@@ -506,66 +664,43 @@ export default function AIReportReviewPanel({
             title="Missing Systems"
             items={review.missingSystems}
             emptyText="No missing systems flagged."
+            inspectionId={inspectionId}
           />
 
           <ReviewList
             title="Photo Concerns"
             items={review.photoConcerns}
             emptyText="No photo concerns found."
+            inspectionId={inspectionId}
           />
 
           <ReviewList
             title="Possible Duplicates"
             items={review.duplicateConcerns}
             emptyText="No duplicate concerns found."
+            inspectionId={inspectionId}
           />
 
           <ReviewList
             title="Section Concerns"
             items={review.sectionConcerns}
             emptyText="No section concerns found."
+            inspectionId={inspectionId}
           />
 
           <ReviewList
             title="Suggestions"
             items={review.suggestions}
             emptyText="No extra suggestions."
+            inspectionId={inspectionId}
           />
 
-          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
-              Automated Base Checks
-            </h3>
-
-            {!review.baseIssues?.length ? (
-              <p className="mt-3 text-sm font-bold text-[var(--fl-good-text)]">
-                No base quality issues found.
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {toReviewItems(review.baseIssues.slice(0, 8)).map((item, index) =>
-                  item.findingId !== undefined && item.findingId !== null ? (
-                    <li key={index}>
-                      <button
-                        type="button"
-                        onClick={() => jumpToFinding(item.findingId, item.section)}
-                        className="flex w-full items-start justify-between gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-2 text-left text-sm leading-6 text-[var(--fl-muted)] transition hover:border-purple-400/60 hover:bg-purple-500/10"
-                      >
-                        <span className="min-w-0">{item.text}</span>
-                        <span className="mt-0.5 shrink-0 text-xs font-semibold text-[var(--fl-purple-text)]">
-                          Fix →
-                        </span>
-                      </button>
-                    </li>
-                  ) : (
-                    <li key={index} className="text-sm leading-6 text-[var(--fl-muted)]">
-                      {item.text}
-                    </li>
-                  ),
-                )}
-              </ul>
-            )}
-          </div>
+          <ReviewList
+            title="Automated Base Checks"
+            items={review.baseIssues}
+            emptyText="No base quality issues found."
+            inspectionId={inspectionId}
+          />
         </div>
       )}
     </section>

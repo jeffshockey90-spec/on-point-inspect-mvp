@@ -29,6 +29,85 @@ function safeArray(value: any) {
   return Array.isArray(value) ? value : [];
 }
 
+// Return the saved review + checked-off items for this inspection so the panel
+// can restore the list without a (slow, paid) re-run. Degrades to "nothing
+// saved" if the persistence columns don't exist yet.
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const inspectionId = normalizeInspectionId(
+      url.searchParams.get("inspection_id") || url.searchParams.get("inspectionId"),
+    );
+    if (!inspectionId) {
+      return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+    const { data, error } = await supabase
+      .from("inspections")
+      .select("ai_review, ai_review_done, ai_review_at")
+      .eq("id", inspectionId)
+      .eq(accessFilter.column, accessFilter.value)
+      .maybeSingle();
+
+    if (error) {
+      // Columns likely not present yet (pre-migration) — behave as "nothing saved".
+      return NextResponse.json({ review: null, done: [], reviewedAt: null });
+    }
+
+    return NextResponse.json({
+      review: (data as any)?.ai_review ?? null,
+      done: Array.isArray((data as any)?.ai_review_done) ? (data as any).ai_review_done : [],
+      reviewedAt: (data as any)?.ai_review_at ?? null,
+    });
+  } catch {
+    return NextResponse.json({ review: null, done: [], reviewedAt: null });
+  }
+}
+
+// Save which review items the inspector has checked off, so the checklist state
+// survives leaving the panel / app and syncs across devices.
+export async function PATCH(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const inspectionId = normalizeInspectionId(
+      body.inspectionId || body.inspection_id || body.id,
+    );
+    if (!inspectionId) {
+      return NextResponse.json({ error: "Missing inspection ID." }, { status: 400 });
+    }
+
+    const done = Array.isArray(body.done)
+      ? body.done.map((v: any) => String(v)).slice(0, 1000)
+      : [];
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+    const { error } = await supabase
+      .from("inspections")
+      .update({ ai_review_done: done })
+      .eq("id", inspectionId)
+      .eq(accessFilter.column, accessFilter.value);
+
+    // Best-effort: don't surface a hard error to the client if the column isn't
+    // there yet — the local cache still holds the state.
+    return NextResponse.json({ ok: !error });
+  } catch (error: any) {
+    return NextResponse.json({ ok: false, error: error?.message || "Failed to save." });
+  }
+}
+
 export async function POST(req: Request) {
   let inspectionId: number | null = null;
 
@@ -366,6 +445,22 @@ Keep items short and actionable.
       tokensUsed: brainResult.usage?.total_tokens ?? null,
       status: "success",
     });
+
+    // Persist the review on the inspection so the inspector can reopen the panel
+    // later — even after an app restart or on another device — and keep working
+    // the list WITHOUT paying to re-run. Best-effort: if the columns aren't
+    // present yet (pre-migration), ignore and rely on the client's local cache.
+    // Note: we intentionally do NOT reset ai_review_done here, so items the
+    // inspector already checked off stay checked across a re-run.
+    try {
+      await supabase
+        .from("inspections")
+        .update({ ai_review: result, ai_review_at: new Date().toISOString() })
+        .eq("id", inspectionId)
+        .eq(accessFilter.column, accessFilter.value);
+    } catch {
+      /* column may not exist yet */
+    }
 
     return NextResponse.json(result);
   } catch (error: any) {
