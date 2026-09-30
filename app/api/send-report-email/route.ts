@@ -349,6 +349,7 @@ function buildEmailHtml({
   moldReportUrl,
   radonReportUrl,
   moldSummaryText = "",
+  radonSummaryText = "",
   branding,
   environmentalNotice = false,
 }: {
@@ -359,10 +360,13 @@ function buildEmailHtml({
   moldReportUrl: string;
   radonReportUrl: string;
   moldSummaryText?: string;
+  radonSummaryText?: string;
   branding: CompanyBranding;
   environmentalNotice?: boolean;
 }) {
-  const hasEnvironmentalLinks = Boolean(moldReportUrl || radonReportUrl);
+  const hasEnvironmentalLinks = Boolean(
+    moldReportUrl || radonReportUrl || moldSummaryText || radonSummaryText,
+  );
   // Treat an explicit environmental notification the same as a standalone
   // environmental report for wording, so combined (home + radon/mold) reports
   // still read as "your radon/mold results" when posted from the env panel.
@@ -406,6 +410,21 @@ function buildEmailHtml({
                       View Official Mold Report
                     </a>
                   </p>
+                `
+              : ""
+          }
+
+          ${
+            radonSummaryText
+              ? `
+                  <div style="margin:0 0 16px 0; padding:14px 16px; border:1px solid #334155; border-radius:12px; background:#0b1220;">
+                    <p style="margin:0 0 6px 0; color:#c4b5fd; font-size:13px; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">
+                      Radon Results Summary
+                    </p>
+                    <p style="margin:0; color:#e2e8f0; line-height:1.6; white-space:pre-line;">
+                      ${escapeHtml(radonSummaryText)}
+                    </p>
+                  </div>
                 `
               : ""
           }
@@ -558,7 +577,7 @@ export async function POST(req: Request) {
 
     const { data: radonTest } = await supabase
       .from("radon_tests")
-      .select("report_url, report_status, result, average_pci")
+      .select("*")
       .eq("inspection_id", inspectionId)
       .maybeSingle();
 
@@ -572,11 +591,15 @@ export async function POST(req: Request) {
         ? String(radonTest.report_url)
         : "";
 
-    // The inspector-approved AI mold summary, so the client sees it in the
-    // results email too (not only on the report link).
+    // The inspector-approved AI mold/radon summaries, so the client sees them in
+    // the results email too (not only on the report link).
     const moldSummaryText =
       hasMoldService(inspection) && (moldTest as any)?.ai_remark
         ? String((moldTest as any).ai_remark).trim()
+        : "";
+    const radonSummaryText =
+      hasRadonService(inspection) && (radonTest as any)?.ai_remark
+        ? String((radonTest as any).ai_remark).trim()
         : "";
 
     const property =
@@ -707,6 +730,7 @@ export async function POST(req: Request) {
         moldReportUrl,
         radonReportUrl,
         moldSummaryText,
+        radonSummaryText,
         branding,
         environmentalNotice,
       });

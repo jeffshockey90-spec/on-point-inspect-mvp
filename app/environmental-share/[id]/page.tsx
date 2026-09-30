@@ -484,7 +484,9 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
                   Client Summary
                 </h3>
                 <p className="mt-3 whitespace-pre-line leading-7 text-[var(--fl-muted)]">
-                  {radonSummary(radonTest?.average_pci)}
+                  {radonTest?.ai_remark && String(radonTest.ai_remark).trim()
+                    ? radonTest.ai_remark
+                    : radonSummary(radonTest?.average_pci)}
                 </p>
               </div>
 

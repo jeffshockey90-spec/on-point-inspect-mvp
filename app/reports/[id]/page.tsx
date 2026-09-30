@@ -2537,7 +2537,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   if (hasRadonService) {
     const { data } = await supabase
       .from("radon_tests")
-      .select("average_pci, device_name, report_url, report_status, notes")
+      .select("*")
       .eq("inspection_id", inspection.id)
       .maybeSingle();
 

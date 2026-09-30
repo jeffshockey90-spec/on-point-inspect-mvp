@@ -19,6 +19,7 @@ type RadonTest = {
   report_url?: string | null;
   report_status?: string | null;
   notes?: string | null;
+  ai_remark?: string | null;
 } | null;
 
 function Field({
@@ -508,6 +509,99 @@ function RadonForm({
     null
   );
 
+  // AI client summary drafted from the uploaded radon report.
+  const [aiRemark, setAiRemark] = useState(initial?.ai_remark || "");
+  const [drafting, setDrafting] = useState(false);
+  const [savingRemark, setSavingRemark] = useState(false);
+  const [remarkMsg, setRemarkMsg] = useState<
+    { type: "success" | "error" | "info"; text: string } | null
+  >(null);
+
+  async function draftRemark() {
+    if (drafting) return;
+    if (!reportUrl.trim()) {
+      setRemarkMsg({ type: "error", text: "Upload the radon device report PDF first." });
+      return;
+    }
+    setDrafting(true);
+    setRemarkMsg(null);
+    try {
+      // Persist only the report URL first (field-by-field merge) so the AI route
+      // can read it — never the whole form.
+      const saveRes = await fetch("/api/radon-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspection_id: inspectionId, report_url: reportUrl }),
+      });
+      if (!saveRes.ok) {
+        const saveData = await saveRes.json().catch(() => ({}));
+        throw new Error(saveData.error || "Could not save the report before drafting.");
+      }
+
+      const res = await fetch("/api/ai/radon-remark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, reportUrl }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not draft the summary.");
+      setAiRemark(data.remark || "");
+      setRemarkMsg(
+        data.saved === false
+          ? {
+              type: "info",
+              text: "Draft ready. Run add-radon-ai-remark.sql so it saves to the client report.",
+            }
+          : { type: "success", text: "Draft ready — review/edit it, then Save Summary." },
+      );
+    } catch (error: any) {
+      setRemarkMsg({ type: "error", text: error?.message || "Could not draft the summary." });
+    } finally {
+      setDrafting(false);
+    }
+  }
+
+  async function saveRemark() {
+    if (savingRemark) return;
+    setSavingRemark(true);
+    setRemarkMsg(null);
+    try {
+      const res = await fetch("/api/radon-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspection_id: inspectionId, ai_remark: aiRemark }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not save the summary.");
+      setRemarkMsg({ type: "success", text: "Client summary saved." });
+    } catch (error: any) {
+      setRemarkMsg({ type: "error", text: error?.message || "Could not save the summary." });
+    } finally {
+      setSavingRemark(false);
+    }
+  }
+
+  async function removeRemark() {
+    if (savingRemark) return;
+    setSavingRemark(true);
+    setRemarkMsg(null);
+    try {
+      const res = await fetch("/api/radon-tests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspection_id: inspectionId, ai_remark: "" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not remove the summary.");
+      setAiRemark("");
+      setRemarkMsg({ type: "success", text: "Summary removed — the client report shows the standard radon blurb." });
+    } catch (error: any) {
+      setRemarkMsg({ type: "error", text: error?.message || "Could not remove the summary." });
+    } finally {
+      setSavingRemark(false);
+    }
+  }
+
   async function save() {
     if (saving) return;
     setSaving(true);
@@ -599,6 +693,77 @@ function RadonForm({
             onChange={setReportUrl}
             helper={'Shows as "View Official Radon Device Report" on the client report. Remember to Save Radon Test.'}
           />
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-teal-500/40 bg-teal-500/5 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h4 className="text-sm font-bold text-[var(--fl-accent-text)]">
+              AI Client Summary
+            </h4>
+            <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
+              Upload the radon report above, then have AI read it and draft a clean,
+              plain-English summary for the client. Review and edit it, then Save —
+              it shows in the Radon section of the client&apos;s report.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={draftRemark}
+            disabled={drafting || !reportUrl.trim()}
+            className="shrink-0 rounded-xl bg-teal-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {drafting ? "Reading report…" : "🧠 Draft from Report"}
+          </button>
+        </div>
+
+        {!reportUrl.trim() && (
+          <p className="mt-2 text-xs font-semibold text-[var(--fl-warn-text)]">
+            Upload the radon device report PDF first (and Save Radon Test).
+          </p>
+        )}
+
+        <textarea
+          value={aiRemark}
+          onChange={(e) => setAiRemark(e.target.value)}
+          rows={6}
+          placeholder="The AI-drafted summary appears here for you to review and edit — or type your own."
+          className="mt-3 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 leading-7 text-[var(--fl-text)] outline-none focus:border-teal-400"
+        />
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={saveRemark}
+            disabled={savingRemark}
+            className="rounded-xl border border-teal-500 bg-teal-500/10 px-4 py-2.5 text-sm font-bold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-slate-950 disabled:opacity-50"
+          >
+            {savingRemark ? "Saving…" : "Save Summary"}
+          </button>
+          {aiRemark.trim() && (
+            <button
+              type="button"
+              onClick={removeRemark}
+              disabled={savingRemark}
+              className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-2.5 text-sm font-bold text-[var(--fl-crit-text)] transition hover:bg-red-500/20 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          )}
+          {remarkMsg && (
+            <span
+              className={`text-sm font-bold ${
+                remarkMsg.type === "success"
+                  ? "text-[var(--fl-good-text)]"
+                  : remarkMsg.type === "info"
+                    ? "text-[var(--fl-warn-text)]"
+                    : "text-[var(--fl-crit-text)]"
+              }`}
+            >
+              {remarkMsg.text}
+            </span>
+          )}
         </div>
       </div>
 

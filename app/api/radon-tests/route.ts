@@ -174,6 +174,12 @@ export async function POST(req: Request) {
     if (body.report_url !== undefined) patch.report_url = body.report_url || "";
     if (body.report_status !== undefined) patch.report_status = body.report_status || "Pending";
     if (body.notes !== undefined) patch.notes = body.notes || "";
+    // Inspector-approved AI client summary (needs the ai_remark column — see
+    // add-radon-ai-remark.sql).
+    if (body.ai_remark !== undefined) {
+      patch.ai_remark = body.ai_remark || "";
+      patch.ai_remark_generated_at = new Date().toISOString();
+    }
 
     if (body.result !== undefined) {
       patch.result = body.result;

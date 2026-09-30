@@ -911,7 +911,9 @@ export default function ClientPortalPage() {
                     <p className="mt-3 text-3xl font-semibold text-[var(--fl-text)]">
                       {radonTest.average_pci ? `${radonTest.average_pci} pCi/L` : "Pending"}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">{info.summary}</p>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[var(--fl-muted)]">
+                      {(radonTest.ai_remark && String(radonTest.ai_remark).trim()) || info.summary}
+                    </p>
                     {radonReportUrl && (
                       <a
                         href={radonReportUrl}
