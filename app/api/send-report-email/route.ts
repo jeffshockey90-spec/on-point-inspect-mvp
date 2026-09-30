@@ -502,10 +502,19 @@ function buildEmailHtml({
 
 export async function POST(req: Request) {
   try {
-    const { inspectionId, recipientType, recipientEmail, context } = await req.json();
+    const { inspectionId, recipientType, recipientEmail, context, channel: channelRaw } = await req.json();
     // When the send comes from the environmental panel's "Notify" button, word
     // the email around the radon/mold results (even for a combined report).
     const environmentalNotice = String(context || "").toLowerCase() === "environmental";
+
+    // Delivery channel: "email", "sms", or "both" (default). Lets the inspector
+    // resend via email, text, or both.
+    const channel = ["email", "sms", "both"].includes(String(channelRaw || "").toLowerCase())
+      ? String(channelRaw).toLowerCase()
+      : "both";
+    const wantEmail = channel !== "sms";
+    const wantSms = channel !== "email";
+    let smsSent = 0;
 
     if (!inspectionId) {
       return NextResponse.json(
@@ -683,7 +692,9 @@ export async function POST(req: Request) {
       Boolean(recipient.email)
     );
 
-    if (!recipients.length) {
+    // Email needs an address; text does not. Only block when we actually need
+    // email (email or both) and none is on file.
+    if (wantEmail && !recipients.length) {
       return NextResponse.json(
         { error: "No recipient email found." },
         { status: 400 }
@@ -692,6 +703,7 @@ export async function POST(req: Request) {
 
     const results: any[] = [];
 
+    if (wantEmail)
     for (const recipient of recipients) {
       const recipientRoleForTracking = recipient.recipientType;
 
@@ -755,29 +767,39 @@ export async function POST(req: Request) {
       results.push(result);
     }
 
-    // Best-effort: also text the report link to any recipient with a phone on
-    // file. Never blocks or fails the email response.
-    if (isSmsConfigured()) {
-      for (const recipient of recipients) {
+    // Text the report link (when requested and SMS is configured). Phone targets
+    // come from the recipient role directly, so a TEXT-ONLY resend works even
+    // when there's no email on file. Never blocks the response.
+    if (wantSms && isSmsConfigured()) {
+      const smsRoles: Array<"client" | "realtor"> =
+        recipientType === "client"
+          ? ["client"]
+          : recipientType === "realtor"
+            ? ["realtor"]
+            : ["client", "realtor"]; // "all"/"custom" -> both parties
+
+      const seenPhones = new Set<string>();
+      for (const role of smsRoles) {
         const phone =
-          recipient.recipientType === "client"
+          role === "client"
             ? inspection.client_phone
-            : recipient.recipientType === "realtor"
-              ? inspection.realtor_phone || inspection.agent_phone
-              : null;
+            : inspection.realtor_phone || inspection.agent_phone;
+        const clean = String(phone || "").trim();
+        if (!clean || seenPhones.has(clean)) continue;
+        seenPhones.add(clean);
 
-        if (!phone) continue;
-
-        const link = `${finalShareUrl}?role=${encodeURIComponent(
-          recipient.recipientType
-        )}&src=sms`;
-
+        const link = `${finalShareUrl}?role=${encodeURIComponent(role)}&src=sms`;
         const body =
-          recipient.recipientType === "realtor"
+          role === "realtor"
             ? smsReportReadyAgent({ company: branding.name, address: property, link })
             : smsReportReadyClient({ company: branding.name, address: property, link });
 
-        await sendSms({ to: phone, body }).catch(() => null);
+        try {
+          await sendSms({ to: clean, body });
+          smsSent += 1;
+        } catch {
+          /* best-effort */
+        }
       }
     }
 
@@ -800,12 +822,19 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!sent.length && failed.length) {
+    // Fail only when nothing went out on any requested channel.
+    if (!sent.length && smsSent === 0) {
       return NextResponse.json(
         {
-          error: "Report email failed to send.",
+          error:
+            wantSms && !wantEmail
+              ? "No text was sent — no phone on file, or texting isn't configured."
+              : failed.length
+                ? "Report email failed to send."
+                : "Nothing was sent — check the email/phone on file.",
           sent,
           failed,
+          smsSent,
         },
         { status: 500 }
       );
@@ -830,16 +859,24 @@ export async function POST(req: Request) {
       });
     }
 
+    const parts: string[] = [];
+    if (wantEmail && sent.length) {
+      parts.push(`emailed ${sent.length} recipient${sent.length === 1 ? "" : "s"}`);
+    }
+    if (wantSms && smsSent) {
+      parts.push(`texted ${smsSent} recipient${smsSent === 1 ? "" : "s"}`);
+    }
+    const message = parts.length
+      ? `Report ${parts.join(" and ")}.`
+      : "Report sent.";
+
     return NextResponse.json({
       success: true,
-      message:
-        recipientType === "all"
-          ? `Report email sent to ${sent.length} recipient${
-              sent.length === 1 ? "" : "s"
-            }.`
-          : `Report email sent to ${sent[0]?.recipient || recipients[0]?.email}.`,
+      message,
+      channel,
       sent,
       failed,
+      smsSent,
       shareUrl: finalShareUrl,
       moldReportUrl,
       radonReportUrl,

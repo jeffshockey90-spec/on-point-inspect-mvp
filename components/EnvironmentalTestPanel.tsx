@@ -795,66 +795,86 @@ function RadonForm({
 // which emails AND texts both parties (role-aware) and includes the
 // environmental report links.
 function NotifyButton({ inspectionId }: { inspectionId: string }) {
-  const [sending, setSending] = useState(false);
+  const [sending, setSending] = useState<null | "both" | "email" | "sms">(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(
     null
   );
 
-  async function notify() {
+  async function notify(channel: "both" | "email" | "sms") {
     if (sending) return;
-    setSending(true);
+    setSending(channel);
     setMessage(null);
     try {
       const res = await fetch("/api/send-report-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inspectionId, recipientType: "all", context: "environmental" }),
+        body: JSON.stringify({
+          inspectionId,
+          recipientType: "all",
+          context: "environmental",
+          channel,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Failed to send.");
-      const count = Array.isArray(data?.sent) ? data.sent.length : undefined;
       setMessage({
         type: "success",
-        text:
-          count != null
-            ? `Sent to ${count} recipient${count === 1 ? "" : "s"} by email + text.`
-            : "Results sent to your client and realtor by email + text.",
+        text: data?.message || "Results sent to your client and realtor.",
       });
     } catch (error: any) {
       setMessage({ type: "error", text: error?.message || "Failed to send." });
     } finally {
-      setSending(false);
+      setSending(null);
     }
   }
+
+  const btn =
+    "rounded-xl px-4 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 [touch-action:manipulation]";
 
   return (
     <div className="rounded-2xl border border-teal-500/40 bg-teal-500/10 p-4">
       <p className="text-sm font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
-        Alert everyone
+        Send / Resend Results
       </p>
       <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
-        Save your results above first, then send your client and realtor the report link by
-        email and text.
+        Save your results above first, then send (or resend) the environmental report to your
+        client and realtor — by email, text, or both.
       </p>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={notify}
-          disabled={sending}
-          className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-wait disabled:opacity-60"
+          onClick={() => notify("both")}
+          disabled={!!sending}
+          className={`${btn} bg-teal-500 text-slate-950 hover:bg-teal-400`}
         >
-          {sending ? "Sending…" : "📣 Notify Client & Realtor"}
+          {sending === "both" ? "Sending…" : "📧+💬 Email & Text"}
         </button>
-        {message && (
-          <span
-            className={`text-sm font-bold ${
-              message.type === "success" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"
-            }`}
-          >
-            {message.text}
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={() => notify("email")}
+          disabled={!!sending}
+          className={`${btn} border border-teal-500 bg-teal-500/10 text-[var(--fl-accent-text)] hover:bg-teal-500/20`}
+        >
+          {sending === "email" ? "Sending…" : "📧 Email only"}
+        </button>
+        <button
+          type="button"
+          onClick={() => notify("sms")}
+          disabled={!!sending}
+          className={`${btn} border border-teal-500 bg-teal-500/10 text-[var(--fl-accent-text)] hover:bg-teal-500/20`}
+        >
+          {sending === "sms" ? "Sending…" : "💬 Text only"}
+        </button>
       </div>
+      {message && (
+        <p
+          className={`mt-3 text-sm font-bold ${
+            message.type === "success" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"
+          }`}
+        >
+          {message.text}
+        </p>
+      )}
     </div>
   );
 }
