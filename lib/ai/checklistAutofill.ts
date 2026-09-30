@@ -320,7 +320,10 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
 // --- Phase 2: material/type fields identified visually from a Finding photo ---
 // section -> the checklist groups the AI can fill by identifying the material.
 // Option lists MIRROR CHECKLIST_LIBRARY in SectionInformationChecklist.tsx.
-export const MATERIAL_FIELDS: Record<string, { groupTitle: string; options: string[] }[]> = {
+export const MATERIAL_FIELDS: Record<
+  string,
+  { groupTitle: string; options: string[]; presence?: boolean }[]
+> = {
   "Exterior": [
     { groupTitle: "Siding Material", options: ["Brick Veneer", "Plastic", "Logs", "Stone Veneer", "Concrete", "Stucco", "Fiber Cement", "Stone", "Wood", "Vinyl", "Shingles", "Brick", "Engineered Wood", "Masonry", "Asphalt", "Metal"] },
     { groupTitle: "Exterior Entry Door", options: ["Wood", "Steel", "Single Pane", "Glass", "Hollow Core", "Fiberglass"] },
@@ -354,6 +357,10 @@ export const MATERIAL_FIELDS: Record<string, { groupTitle: string; options: stri
     { groupTitle: "Panel Type", options: ["Circuit Breaker", "Fuses"] },
     { groupTitle: "Wiring Method", options: ["Conduit", "Not Visible", "Surface Mounted Distribution", "Knob & Tube", "Romex"] },
     { groupTitle: "Branch Wire 15 and 20 AMP", options: ["Aluminum", "Copper"] },
+    // Presence-only: filled "Yes" ONLY when the device is clearly visible in the
+    // photo — never "No" (so it can't wrongly mark a device absent).
+    { groupTitle: "Smoke Detector Present", options: ["Yes", "No"], presence: true },
+    { groupTitle: "Carbon Monoxide Detector Present", options: ["Yes", "No"], presence: true },
   ],
   "Fireplace": [
     { groupTitle: "Fireplace Type", options: ["Gas", "Electric", "None", "Wood", "Ethanol"] },

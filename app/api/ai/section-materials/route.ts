@@ -53,13 +53,18 @@ export async function POST(req: Request) {
 
     const fieldList = groups
       .map((g) => {
+        // Presence fields answer "Yes" ONLY when the item is clearly visible;
+        // never "No" (a photo can't prove a device is absent).
+        if ((g as any).presence) {
+          return `- "${g.groupTitle}": answer "Yes" ONLY if the item this field names is clearly visible in the photo; otherwise "Unknown". Never answer "No".`;
+        }
         // Brand/manufacturer fields are OPEN-ENDED: read the actual brand off
         // the logo/badge (there are far more brands than any list, and the fill
         // engine checks an existing brand or adds a new one). Material fields
         // stay constrained to their option list.
         const isBrand = /brand|manufacturer/i.test(g.groupTitle);
         return isBrand
-          ? `- "${g.groupTitle}": the exact brand name read from the appliance's logo/badge/nameplate (e.g. Bosch, Samsung, LG, Whirlpool, KitchenAid, Frigidaire, GE, Maytag), or "Unknown" if no brand is visible`
+          ? `- "${g.groupTitle}": the exact brand name read from the logo/badge/nameplate (e.g. Bosch, Samsung, LG, Whirlpool, KitchenAid, Frigidaire, GE, Maytag; for an electrical panel: Square D, Siemens, Federal Pacific, Zinsco, etc.), or "Unknown" if no brand is visible`
           : `- "${g.groupTitle}": one of [${g.options.join(", ")}] or "Unknown"`;
       })
       .join("\n");
@@ -95,6 +100,14 @@ Return ONLY valid JSON: { "sectionInfo": { <field>: <value>, ... } } — include
 
     const sectionInfo =
       parsed?.sectionInfo && typeof parsed.sectionInfo === "object" ? parsed.sectionInfo : {};
+
+    // For presence-only fields, keep "Yes" and drop everything else, so a photo
+    // never records "No" (or anything but a confident positive sighting).
+    for (const g of groups) {
+      if (!(g as any).presence) continue;
+      const value = String(sectionInfo[g.groupTitle] ?? "").trim().toLowerCase();
+      if (value !== "yes") delete sectionInfo[g.groupTitle];
+    }
 
     // Write the recognized materials into the section's checklist (only-empty
     // groups, snap-to-option, add-as-NEW) — same behavior as finding-photo
