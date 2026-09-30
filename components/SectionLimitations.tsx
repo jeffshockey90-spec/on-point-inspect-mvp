@@ -882,6 +882,25 @@ function SectionLimitations({
                     </div>
 
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      <label
+                        className={`rounded-full border border-teal-500/60 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/20 [touch-action:manipulation] ${
+                          uploadingForId === item.id ? "cursor-wait opacity-70" : "cursor-pointer"
+                        }`}
+                        title="Add another photo to this limitation"
+                      >
+                        {uploadingForId === item.id ? "Uploading…" : "＋ Add Photo"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={uploadingForId === item.id}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            uploadLimitationPhoto(item, file);
+                            event.currentTarget.value = "";
+                          }}
+                          className="hidden"
+                        />
+                      </label>
                       {availableSections && availableSections.length > 1 && (
                         <select
                           value=""
