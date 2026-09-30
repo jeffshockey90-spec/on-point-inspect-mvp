@@ -284,6 +284,26 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
   ],
   "Basement, Foundation, Crawlspace & Structure": [
     {
+      "title": "Under-Floor Access Location",
+      "options": [
+        "Interior Closet",
+        "Hallway",
+        "Garage",
+        "Exterior",
+        "Basement",
+        "Under Stairs",
+        "Bedroom Closet",
+        "Front",
+        "Rear",
+        "North",
+        "South",
+        "East",
+        "West",
+        "None Found",
+        "Unknown"
+      ]
+    },
+    {
       "title": "Inspection Method",
       "options": [
         "Infrared",
@@ -339,6 +359,23 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
     }
   ],
   "Heating": [
+    {
+      "title": "Thermostat Location",
+      "options": [
+        "Hallway",
+        "Living Room",
+        "Living Area",
+        "Kitchen",
+        "Main Level",
+        "Upper Level",
+        "Basement",
+        "Bedroom",
+        "Foyer/Entry",
+        "Front",
+        "Rear",
+        "Unknown"
+      ]
+    },
     {
       "title": "Brand",
       "options": [
@@ -408,6 +445,23 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
     }
   ],
   "Cooling": [
+    {
+      "title": "Thermostat Location",
+      "options": [
+        "Hallway",
+        "Living Room",
+        "Living Area",
+        "Kitchen",
+        "Main Level",
+        "Upper Level",
+        "Basement",
+        "Bedroom",
+        "Foyer/Entry",
+        "Front",
+        "Rear",
+        "Unknown"
+      ]
+    },
     {
       "title": "Brand",
       "options": [
@@ -523,6 +577,39 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
         "East",
         "West",
         "Not Located",
+        "Unknown"
+      ]
+    },
+    {
+      "title": "Main Fuel/Gas Shutoff Location",
+      "options": [
+        "None (All-Electric)",
+        "Basement",
+        "Crawlspace",
+        "Garage",
+        "Utility/Mechanical Room",
+        "Exterior - At Meter",
+        "At Furnace",
+        "At Water Heater",
+        "Front",
+        "Rear",
+        "North",
+        "South",
+        "East",
+        "West",
+        "Not Located",
+        "Unknown"
+      ]
+    },
+    {
+      "title": "Fuel Storage Location",
+      "options": [
+        "None Observed",
+        "Basement",
+        "Garage",
+        "Utility/Mechanical Room",
+        "Exterior - Above Ground Tank",
+        "Exterior - Underground Tank",
         "Unknown"
       ]
     },
@@ -802,6 +889,14 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
     }
   ],
   "Attic, Insulation & Ventilation": [
+    {
+      "title": "Insulation Depth",
+      "type": "text",
+      "unitOptions": [
+        "inches"
+      ],
+      "options": []
+    },
     {
       "title": "Dryer Power Source",
       "options": [
