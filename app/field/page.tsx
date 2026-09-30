@@ -6024,7 +6024,7 @@ function FieldPageContent() {
                 (photoType === "reference_photo" && photos.length === 0) ||
                 (photoType === "limitation" &&
                   (!online ||
-                    !note.trim() ||
+                    (!limitationTargetId && !note.trim()) ||
                     !photos.some((photo) => photo.type.startsWith("image/"))))
               }
               className={`w-full rounded-xl p-4 text-lg font-bold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
