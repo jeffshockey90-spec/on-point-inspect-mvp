@@ -346,9 +346,17 @@ export const MATERIAL_FIELDS: Record<string, { groupTitle: string; options: stri
     { groupTitle: "Drain Material", options: ["ABS", "Copper", "PVC", "Lead", "Iron", "Unknown"] },
   ],
   "Electrical": [
+    // Panel brand + amperage read straight off the panel in a reference photo
+    // (Manufacturer is read open-ended off the label; Capacity snaps to the AMP
+    // options). Option lists reuse the equipment-path constants above.
+    { groupTitle: "Panel Manufacturer", options: PANEL_MANUFACTURER },
+    { groupTitle: "Panel Capacity", options: PANEL_CAPACITY },
     { groupTitle: "Panel Type", options: ["Circuit Breaker", "Fuses"] },
     { groupTitle: "Wiring Method", options: ["Conduit", "Not Visible", "Surface Mounted Distribution", "Knob & Tube", "Romex"] },
     { groupTitle: "Branch Wire 15 and 20 AMP", options: ["Aluminum", "Copper"] },
+  ],
+  "Fireplace": [
+    { groupTitle: "Fireplace Type", options: ["Gas", "Electric", "None", "Wood", "Ethanol"] },
   ],
   "Attic, Insulation & Ventilation": [
     { groupTitle: "Insulation Type", options: ["Batt", "Blown-in", "Loose-fill", "Fiberglass", "Cellulose", "Mineral Wool", "Spray Foam", "Foam Board", "Vermiculite", "None", "Unknown"] },
