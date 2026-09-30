@@ -508,6 +508,25 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
       ]
     },
     {
+      "title": "Main Water Shutoff Location",
+      "options": [
+        "Basement",
+        "Crawlspace",
+        "Garage",
+        "Utility/Mechanical Room",
+        "Under Kitchen Sink",
+        "Exterior / Meter Pit",
+        "Front",
+        "Rear",
+        "North",
+        "South",
+        "East",
+        "West",
+        "Not Located",
+        "Unknown"
+      ]
+    },
+    {
       "title": "Drain Location",
       "options": [
         "Basement",
