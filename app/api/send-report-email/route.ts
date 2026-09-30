@@ -37,6 +37,7 @@ type Recipient = {
   email: string;
   recipientType: "client" | "realtor" | "custom";
   role: string;
+  phone?: string;
 };
 
 function getServiceType(inspection: any) {
@@ -502,7 +503,17 @@ function buildEmailHtml({
 
 export async function POST(req: Request) {
   try {
-    const { inspectionId, recipientType, recipientEmail, context, channel: channelRaw } = await req.json();
+    const { inspectionId, recipientType, recipientEmail, recipientEmails, context, channel: channelRaw } = await req.json();
+    // Optional explicit recipient list (specific people the inspector picked).
+    const explicitEmails: string[] = Array.isArray(recipientEmails)
+      ? Array.from(
+          new Set(
+            recipientEmails
+              .map((value: any) => String(value || "").trim().toLowerCase())
+              .filter(Boolean),
+          ),
+        )
+      : [];
     // When the send comes from the environmental panel's "Notify" button, word
     // the email around the radon/mold results (even for a combined report).
     const environmentalNotice = String(context || "").toLowerCase() === "environmental";
@@ -563,7 +574,7 @@ export async function POST(req: Request) {
 
     const { data: contacts } = await supabase
       .from("inspection_contacts")
-      .select("email, role, portal_access")
+      .select("email, role, portal_access, name, phone")
       .eq("inspection_id", inspectionId);
 
     const appUrl =
@@ -624,7 +635,47 @@ export async function POST(req: Request) {
 
     let recipients: Recipient[] = [];
 
-    if (recipientEmail) {
+    if (explicitEmails.length) {
+      // Send to exactly the people the inspector picked. Look each email up in
+      // the contacts (for role + phone), falling back to the inspection's
+      // primary client/realtor when a picked email matches those.
+      const byEmail = new Map<string, any>();
+      (contacts || []).forEach((contact: any) => {
+        const email = cleanEmail(contact.email);
+        if (email) byEmail.set(email, contact);
+      });
+      const primaryClient = cleanEmail(inspection.client_email);
+      const primaryRealtor = cleanEmail(inspection.realtor_email || inspection.agent_email);
+
+      recipients = explicitEmails.map((email) => {
+        const contact = byEmail.get(email);
+        if (contact) {
+          return {
+            email,
+            recipientType: getRecipientTypeForRole(contact.role),
+            role: String(contact.role || ""),
+            phone: String(contact.phone || "").trim() || undefined,
+          };
+        }
+        if (email === primaryClient) {
+          return {
+            email,
+            recipientType: "client" as const,
+            role: "client",
+            phone: String(inspection.client_phone || "").trim() || undefined,
+          };
+        }
+        if (email === primaryRealtor) {
+          return {
+            email,
+            recipientType: "realtor" as const,
+            role: "realtor",
+            phone: String(inspection.realtor_phone || inspection.agent_phone || "").trim() || undefined,
+          };
+        }
+        return { email, recipientType: "custom" as const, role: "custom" };
+      });
+    } else if (recipientEmail) {
       recipients = [
         {
           email: cleanEmail(recipientEmail),
@@ -771,31 +822,49 @@ export async function POST(req: Request) {
     // come from the recipient role directly, so a TEXT-ONLY resend works even
     // when there's no email on file. Never blocks the response.
     if (wantSms && isSmsConfigured()) {
-      const smsRoles: Array<"client" | "realtor"> =
-        recipientType === "client"
-          ? ["client"]
-          : recipientType === "realtor"
-            ? ["realtor"]
-            : ["client", "realtor"]; // "all"/"custom" -> both parties
-
       const seenPhones = new Set<string>();
-      for (const role of smsRoles) {
-        const phone =
-          role === "client"
-            ? inspection.client_phone
-            : inspection.realtor_phone || inspection.agent_phone;
-        const clean = String(phone || "").trim();
-        if (!clean || seenPhones.has(clean)) continue;
-        seenPhones.add(clean);
 
-        const link = `${finalShareUrl}?role=${encodeURIComponent(role)}&src=sms`;
+      // Phone targets: when specific people were picked, text each picked
+      // recipient's own phone; otherwise text by role from the inspection.
+      const smsTargets: Array<{ role: "client" | "realtor"; phone: string }> = [];
+      if (explicitEmails.length) {
+        for (const recipient of recipients) {
+          const clean = String(recipient.phone || "").trim();
+          if (!clean) continue;
+          smsTargets.push({
+            role: recipient.recipientType === "realtor" ? "realtor" : "client",
+            phone: clean,
+          });
+        }
+      } else {
+        const roles: Array<"client" | "realtor"> =
+          recipientType === "client"
+            ? ["client"]
+            : recipientType === "realtor"
+              ? ["realtor"]
+              : ["client", "realtor"]; // "all"/"custom" -> both parties
+        for (const role of roles) {
+          const phone =
+            role === "client"
+              ? inspection.client_phone
+              : inspection.realtor_phone || inspection.agent_phone;
+          const clean = String(phone || "").trim();
+          if (clean) smsTargets.push({ role, phone: clean });
+        }
+      }
+
+      for (const target of smsTargets) {
+        if (seenPhones.has(target.phone)) continue;
+        seenPhones.add(target.phone);
+
+        const link = `${finalShareUrl}?role=${encodeURIComponent(target.role)}&src=sms`;
         const body =
-          role === "realtor"
+          target.role === "realtor"
             ? smsReportReadyAgent({ company: branding.name, address: property, link })
             : smsReportReadyClient({ company: branding.name, address: property, link });
 
         try {
-          await sendSms({ to: clean, body });
+          await sendSms({ to: target.phone, body });
           smsSent += 1;
         } catch {
           /* best-effort */

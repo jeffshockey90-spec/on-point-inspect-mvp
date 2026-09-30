@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 type MoldTest = {
@@ -794,14 +794,70 @@ function RadonForm({
 // Post the results to the client + realtor. Reuses /api/send-report-email,
 // which emails AND texts both parties (role-aware) and includes the
 // environmental report links.
+type NotifyContact = {
+  id?: string | number;
+  name?: string | null;
+  email?: string | null;
+  role?: string | null;
+};
+
+function formatRole(role?: string | null) {
+  const clean = String(role || "client").trim();
+  return clean
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 function NotifyButton({ inspectionId }: { inspectionId: string }) {
   const [sending, setSending] = useState<null | "both" | "email" | "sms">(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(
     null
   );
+  const [contacts, setContacts] = useState<NotifyContact[]>([]);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/inspection-contacts?inspection_id=${encodeURIComponent(inspectionId)}`,
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!alive) return;
+        const list: NotifyContact[] = (data.contacts || []).filter(
+          (c: NotifyContact) => c.email && String(c.email).trim(),
+        );
+        setContacts(list);
+        const initial: Record<string, boolean> = {};
+        list.forEach((c) => {
+          initial[String(c.email).toLowerCase()] = true;
+        });
+        setSelected(initial);
+      } catch {
+        /* fall back to "everyone" send below */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [inspectionId]);
+
+  const selectedEmails = contacts
+    .map((c) => String(c.email).toLowerCase())
+    .filter((email) => selected[email]);
+
+  function toggle(email: string) {
+    setSelected((prev) => ({ ...prev, [email]: !prev[email] }));
+  }
 
   async function notify(channel: "both" | "email" | "sms") {
     if (sending) return;
+    if (contacts.length > 0 && selectedEmails.length === 0) {
+      setMessage({ type: "error", text: "Pick at least one recipient." });
+      return;
+    }
     setSending(channel);
     setMessage(null);
     try {
@@ -810,16 +866,19 @@ function NotifyButton({ inspectionId }: { inspectionId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           inspectionId,
-          recipientType: "all",
           context: "environmental",
           channel,
+          // Specific people when contacts are loaded; otherwise everyone.
+          ...(contacts.length > 0
+            ? { recipientEmails: selectedEmails }
+            : { recipientType: "all" }),
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Failed to send.");
       setMessage({
         type: "success",
-        text: data?.message || "Results sent to your client and realtor.",
+        text: data?.message || "Results sent.",
       });
     } catch (error: any) {
       setMessage({ type: "error", text: error?.message || "Failed to send." });
@@ -837,9 +896,48 @@ function NotifyButton({ inspectionId }: { inspectionId: string }) {
         Send / Resend Results
       </p>
       <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
-        Save your results above first, then send (or resend) the environmental report to your
-        client and realtor — by email, text, or both.
+        Save your results above first, then send (or resend) the environmental report — pick the
+        recipients and choose email, text, or both.
       </p>
+
+      {contacts.length > 0 && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+            Send to
+          </p>
+          {contacts.map((c) => {
+            const email = String(c.email).toLowerCase();
+            return (
+              <label
+                key={String(c.id ?? email)}
+                className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 [touch-action:manipulation]"
+              >
+                <input
+                  type="checkbox"
+                  checked={Boolean(selected[email])}
+                  onChange={() => toggle(email)}
+                  disabled={!!sending}
+                  className="h-5 w-5 shrink-0 accent-teal-500"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="truncate text-sm font-bold text-[var(--fl-text)]">
+                      {c.name || c.email}
+                    </span>
+                    <span className="rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+                      {formatRole(c.role)}
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs text-[var(--fl-muted)]">
+                    {c.email}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
