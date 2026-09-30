@@ -890,14 +890,6 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
   ],
   "Attic, Insulation & Ventilation": [
     {
-      "title": "Insulation Depth",
-      "type": "text",
-      "unitOptions": [
-        "inches"
-      ],
-      "options": []
-    },
-    {
       "title": "Dryer Power Source",
       "options": [
         "110 Volt",
@@ -955,11 +947,16 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
       ]
     },
     {
-      "title": "R-value",
+      "title": "Insulation Depth",
       "type": "text",
       "unitOptions": [
-        "null"
+        "inches"
       ],
+      "options": []
+    },
+    {
+      "title": "R-value",
+      "type": "text",
       "options": []
     },
     {
@@ -1289,6 +1286,23 @@ const CHECKLIST_LIBRARY: Record<string, ChecklistGroup[]> = {
   ]
 };
 
+// Approximate R-value per inch of attic insulation, by insulation type. Used to
+// auto-estimate the attic R-value from Insulation Type x Insulation Depth. These
+// are industry rule-of-thumb averages; the inspector can always edit the result.
+function rValuePerInch(type: string): number {
+  const t = String(type || "").toLowerCase();
+  if (!t || t.includes("unknown") || t === "none") return 0;
+  if (t.includes("spray foam")) return 6.0; // closed-cell avg
+  if (t.includes("foam board")) return 5.0; // rigid (XPS/polyiso)
+  if (t.includes("cellulose")) return 3.5;
+  if (t.includes("mineral wool") || t.includes("rock wool")) return 3.1;
+  if (t.includes("vermiculite")) return 2.4;
+  if (t.includes("batt")) return 3.2; // fiberglass batt
+  if (t.includes("blown") || t.includes("loose")) return 2.6; // blown/loose-fill
+  if (t.includes("fiberglass")) return 3.2;
+  return 0;
+}
+
 function SectionInformationChecklist({
   inspectionId,
   section,
@@ -1314,6 +1328,30 @@ function SectionInformationChecklist({
   const [newOptionLabel, setNewOptionLabel] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+
+  // Attic only: auto-estimate the R-value from Insulation Type x Insulation
+  // Depth whenever either changes. The inspector can still edit the result; it
+  // only recomputes when the type or depth changes again.
+  const insulationDepthValue = textValueByGroup["Insulation Depth"] || "";
+  useEffect(() => {
+    if (section !== "Attic, Insulation & Ventilation") return;
+    const typeRow = selections.find(
+      (item) =>
+        item.group_title === "Insulation Type" &&
+        item.value !== "__TEXT_VALUE__" &&
+        item.value !== "OTHER",
+    );
+    const perInch = rValuePerInch(typeRow?.value || "");
+    const depth = parseFloat(String(insulationDepthValue).replace(/[^0-9.]/g, ""));
+    if (!perInch || !Number.isFinite(depth) || depth <= 0) return;
+
+    const computed = `R-${Math.round(perInch * depth)}`;
+    if ((textValueByGroup["R-value"] || "").trim() === computed) return;
+
+    setTextValueByGroup((prev) => ({ ...prev, "R-value": computed }));
+    void saveTextValue("R-value", computed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section, selections, insulationDepthValue]);
 
 
 
@@ -1920,6 +1958,11 @@ function SectionInformationChecklist({
                       placeholder="#"
                       className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                     />
+                    {group.title === "R-value" && (
+                      <p className="mt-2 text-xs text-[var(--fl-muted)]">
+                        Auto-estimated from Insulation Type × Depth — edit if needed.
+                      </p>
+                    )}
                     {group.unitOptions && (
                       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {getGroupUnitOptions(group).map((u) => (
