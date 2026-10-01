@@ -246,6 +246,17 @@ export default function AILiveInspectionCamera({
   const [saveError, setSaveError] = useState("");
   const [toast, setToast] = useState("");
 
+  // Voice section-fill: speak as you go ("asphalt shingles, water shutoff in the
+  // basement") to tick section-info checkboxes. Fills only empty boxes, so it
+  // never overlaps what a photo already recognized.
+  const voiceRecognitionRef = useRef<any>(null);
+  const voiceTranscriptRef = useRef("");
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [voiceFilled, setVoiceFilled] = useState<
+    Array<{ section: string; group: string; value: string }> | null
+  >(null);
+
   useEffect(() => {
     function openForCategory(
       cat: CaptureCategory,
@@ -862,6 +873,92 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  async function submitVoiceTranscript(text: string) {
+    const transcript = text.trim();
+    if (!transcript || !selectedReport) return;
+    setVoiceBusy(true);
+    try {
+      const res = await fetch("/api/ai/voice-section-fill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId: selectedReport, transcript }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setToast(data?.error || "Voice fill failed.");
+        return;
+      }
+      const applied = Array.isArray(data.applied) ? data.applied : [];
+      if (applied.length) {
+        setVoiceFilled(applied);
+        setToast(`✓ Filled ${applied.length} box${applied.length === 1 ? "" : "es"}`);
+      } else {
+        setToast("Didn't catch any matching fields — try again.");
+      }
+    } catch {
+      setToast("Voice fill failed — check your connection.");
+    } finally {
+      setVoiceBusy(false);
+    }
+  }
+
+  function toggleVoiceFill() {
+    const SR =
+      (typeof window !== "undefined" &&
+        ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) ||
+      null;
+    if (!SR) {
+      setToast("Voice isn't supported on this device.");
+      return;
+    }
+    if (!selectedReport) {
+      setToast("Select a report first.");
+      return;
+    }
+    if (voiceListening) {
+      try {
+        voiceRecognitionRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    voiceTranscriptRef.current = "";
+    const recognition = new SR();
+    voiceRecognitionRef.current = recognition;
+    recognition.lang = "en-US";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setVoiceListening(true);
+      setVoiceFilled(null);
+      setToast("🎤 Listening — say what you see…");
+    };
+    recognition.onresult = (event: any) => {
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        if (result.isFinal) voiceTranscriptRef.current += ` ${result[0]?.transcript || ""}`;
+      }
+    };
+    recognition.onerror = () => {
+      setVoiceListening(false);
+    };
+    recognition.onend = () => {
+      setVoiceListening(false);
+      const text = voiceTranscriptRef.current.trim();
+      if (text) void submitVoiceTranscript(text);
+    };
+
+    try {
+      recognition.start();
+    } catch {
+      setToast("Couldn't start the mic.");
+      setVoiceListening(false);
+    }
+  }
+
   async function saveFileToDeviceGallerySafe(file: File) {
     const key = `${file.name}:${file.size}:${file.lastModified}`;
     if (gallerySavedKeysRef.current.has(key)) return;
@@ -1471,6 +1568,23 @@ export default function AILiveInspectionCamera({
           {selectedReport && (
             <FieldFindingLinker inspectionId={String(selectedReport)} compact />
           )}
+
+          {selectedReport && (
+            <button
+              type="button"
+              onClick={toggleVoiceFill}
+              disabled={voiceBusy}
+              aria-label="Voice-fill section info"
+              title="Speak to fill section-info checkboxes"
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-xl shadow-2xl backdrop-blur transition active:scale-95 disabled:opacity-60 ${
+                voiceListening
+                  ? "animate-pulse border-red-400 bg-red-500/80 text-white"
+                  : "border-white/15 bg-neutral-900/85 text-cyan-300"
+              }`}
+            >
+              {voiceBusy ? "…" : voiceListening ? "■" : "🎤"}
+            </button>
+          )}
         </div>
 
         {activeCategoryMeta && stage !== "note_entry" && (
@@ -1504,6 +1618,34 @@ export default function AILiveInspectionCamera({
           </button>
         </div>
       </div>
+
+      {voiceFilled && voiceFilled.length > 0 && (
+        <div className="absolute left-1/2 top-24 z-30 w-[min(92%,22rem)] -translate-x-1/2 rounded-2xl border border-emerald-400/60 bg-neutral-900/95 p-3 text-white shadow-2xl backdrop-blur">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-bold text-emerald-300">
+              ✓ Filled {voiceFilled.length} box{voiceFilled.length === 1 ? "" : "es"}
+            </p>
+            <button
+              type="button"
+              onClick={() => setVoiceFilled(null)}
+              className="text-xs font-semibold text-white/60 [touch-action:manipulation]"
+            >
+              Dismiss
+            </button>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {voiceFilled.slice(0, 8).map((f, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs leading-5 text-white/90">
+                <span className="text-emerald-400">✓</span>
+                <span>
+                  <b>{f.group}</b>: {f.value}{" "}
+                  <span className="text-white/50">· {f.section}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Collapsible zoom tab: a small pill showing the current zoom that opens the
           preset picker + fine slider, then closes on select or outside tap. Pinch-
