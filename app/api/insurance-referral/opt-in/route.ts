@@ -163,8 +163,11 @@ export async function POST(request: Request) {
     `Property: ${address || "—"}\nInspection date: ${str(inspection.inspection_date) || "—"}\n\n` +
     `Consent on file: "${INSURANCE_CONSENT_TEXT}"\n\nSent via FLOW on behalf of the referring home inspector.`;
 
+  const subject = `Home insurance referral: ${fullName || "New client"}${address ? ` — ${address}` : ""}`;
+
   let sentOk = false;
   let resultMessage = "";
+  let resendId: string | null = null;
   try {
     const result = await resend.emails.send({
       from: "FLOW <notifications@flowinspect.app>",
@@ -172,11 +175,12 @@ export async function POST(request: Request) {
       cc: inspectorEmail ? [inspectorEmail] : undefined,
       // Agent replies go straight to the client.
       replyTo: clientEmail || undefined,
-      subject: `Home insurance referral: ${fullName || "New client"}${address ? ` — ${address}` : ""}`,
+      subject,
       html,
       text,
     });
     sentOk = !result.error;
+    resendId = result?.data?.id || null;
     resultMessage = result.error ? String(result.error.message || result.error) : "sent";
   } catch (e: any) {
     resultMessage = e?.message || "send failed";
@@ -187,6 +191,34 @@ export async function POST(request: Request) {
       .from("insurance_referral_leads")
       .update({ status: sentOk ? "submitted" : "error", result_message: resultMessage })
       .eq("id", logRow.id);
+  }
+
+  // Also log to email_logs so the Resend webhook can mark it delivered/bounced
+  // and it shows up in Sent Emails — insurance leads were a delivery black box
+  // (API "sent" != delivered). inspection_id is UUID; the numeric id goes in
+  // inspection_id_bigint.
+  try {
+    await db.from("email_logs").insert({
+      inspection_id_bigint: Number(inspection.id),
+      recipient: agentEmail,
+      recipient_email: agentEmail,
+      email_type: "insurance_referral",
+      subject,
+      message: `Insurance referral for ${fullName || "a client"} sent to ${agentEmail}.`,
+      html,
+      status: sentOk ? "sent" : "failed",
+      resend_id: resendId,
+      sent_at: sentOk ? new Date().toISOString() : null,
+      metadata: {
+        type: "insurance_referral",
+        agent_email: agentEmail,
+        client_email: clientEmail || null,
+        lead_id: logRow?.id || null,
+        error: sentOk ? undefined : resultMessage,
+      },
+    });
+  } catch {
+    /* logging is best-effort */
   }
 
   if (!sentOk && !agentLink) {
