@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { Capacitor } from "@capacitor/core";
+import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
@@ -902,60 +904,93 @@ export default function AILiveInspectionCamera({
     }
   }
 
-  function toggleVoiceFill() {
-    const SR =
-      (typeof window !== "undefined" &&
-        ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) ||
-      null;
-    if (!SR) {
-      setToast("Voice isn't supported on this device.");
-      return;
+  async function stopVoiceFill() {
+    setVoiceListening(false);
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await NativeSpeechRecognition.stop();
+        await NativeSpeechRecognition.removeAllListeners();
+      } catch {
+        /* ignore */
+      }
+      const text = voiceTranscriptRef.current.trim();
+      if (text) void submitVoiceTranscript(text);
+    } else {
+      try {
+        voiceRecognitionRef.current?.stop?.();
+      } catch {
+        /* web onend submits */
+      }
     }
+  }
+
+  async function toggleVoiceFill() {
     if (!selectedReport) {
       setToast("Select a report first.");
       return;
     }
     if (voiceListening) {
-      try {
-        voiceRecognitionRef.current?.stop();
-      } catch {
-        /* ignore */
-      }
+      await stopVoiceFill();
       return;
     }
 
     voiceTranscriptRef.current = "";
-    const recognition = new SR();
-    voiceRecognitionRef.current = recognition;
-    recognition.lang = "en-US";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    recognition.onstart = () => {
-      setVoiceListening(true);
-      setVoiceFilled(null);
-      setToast("🎤 Listening — say what you see…");
-    };
-    recognition.onresult = (event: any) => {
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        const result = event.results[i];
-        if (result.isFinal) voiceTranscriptRef.current += ` ${result[0]?.transcript || ""}`;
-      }
-    };
-    recognition.onerror = () => {
-      setVoiceListening(false);
-    };
-    recognition.onend = () => {
-      setVoiceListening(false);
-      const text = voiceTranscriptRef.current.trim();
-      if (text) void submitVoiceTranscript(text);
-    };
+    setVoiceFilled(null);
 
     try {
-      recognition.start();
-    } catch {
-      setToast("Couldn't start the mic.");
+      if (Capacitor.isNativePlatform()) {
+        // Native iOS/Android speech (same plugin as Voice-Only mode).
+        const permission = await NativeSpeechRecognition.requestPermissions();
+        if (permission.speechRecognition !== "granted") {
+          setToast("Microphone permission was not granted.");
+          return;
+        }
+        await NativeSpeechRecognition.addListener("partialResults", (event: any) => {
+          const transcript = String(event?.matches?.[0] || "").trim();
+          if (transcript) voiceTranscriptRef.current = transcript;
+        });
+        await NativeSpeechRecognition.start({
+          language: "en-US",
+          maxResults: 1,
+          partialResults: true,
+          popup: false,
+        });
+        setVoiceListening(true);
+        setToast("🎤 Listening — say what you see…");
+      } else {
+        // Browser Web Speech API fallback.
+        const SR =
+          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SR) {
+          setToast("Voice isn't supported on this device.");
+          return;
+        }
+        const recognition = new SR();
+        voiceRecognitionRef.current = recognition;
+        recognition.lang = "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onstart = () => {
+          setVoiceListening(true);
+          setToast("🎤 Listening — say what you see…");
+        };
+        recognition.onresult = (event: any) => {
+          for (let i = event.resultIndex; i < event.results.length; i += 1) {
+            const result = event.results[i];
+            if (result.isFinal) voiceTranscriptRef.current += ` ${result[0]?.transcript || ""}`;
+          }
+        };
+        recognition.onerror = () => setVoiceListening(false);
+        recognition.onend = () => {
+          setVoiceListening(false);
+          const text = voiceTranscriptRef.current.trim();
+          if (text) void submitVoiceTranscript(text);
+        };
+        recognition.start();
+      }
+    } catch (error: any) {
       setVoiceListening(false);
+      setToast(error?.message || "Couldn't start the mic.");
     }
   }
 
