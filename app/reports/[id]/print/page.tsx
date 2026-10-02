@@ -598,6 +598,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .from("findings")
     .select("*")
     .eq("inspection_id", inspection.id)
+    // Honor the inspector's manual in-section order (findings.sort_order);
+    // nulls last, created_at tiebreak.
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
 
   const { data: reportSectionsRaw } = await supabase

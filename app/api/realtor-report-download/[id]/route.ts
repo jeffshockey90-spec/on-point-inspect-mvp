@@ -2688,6 +2688,9 @@ export async function GET(req: Request, { params }: RouteProps) {
       .from("findings")
       .select("*")
       .eq("inspection_id", inspectionId)
+      // Honor the inspector's manual in-section order (findings.sort_order);
+      // nulls last, created_at tiebreak.
+      .order("sort_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true });
 
     const normalizedFindings = (findingsRaw || []).map((finding: any) => ({

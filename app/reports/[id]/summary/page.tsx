@@ -174,6 +174,9 @@ export default function ReportSummaryPage() {
           .from("findings")
           .select("*")
           .eq("inspection_id", reportId)
+          // Honor the inspector's manual in-section order (findings.sort_order);
+          // nulls last, created_at tiebreak.
+          .order("sort_order", { ascending: true, nullsFirst: false })
           .order("created_at", { ascending: true });
 
         if (findingsError) throw findingsError;

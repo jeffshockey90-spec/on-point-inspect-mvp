@@ -356,9 +356,62 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     groupedFindings || [],
   );
   const [draggingSection, setDraggingSection] = useState<string | null>(null);
+  const [reorderingFindingId, setReorderingFindingId] = useState<string | null>(
+    null,
+  );
   const [photoPickerLoaded, setPhotoPickerLoaded] = useState(false);
   // Stable handler so passing it to every FindingCard doesn't break its memo().
   const handleNeedPhotoPicker = useCallback(() => setPhotoPickerLoaded(true), []);
+
+  // Reorder a finding WITHIN its section (the ↑/↓ controls on each card). Works
+  // on the full section list (not the severity-filtered view) and renumbers
+  // findings.sort_order for the whole section so the order is stable. Optimistic:
+  // reflects instantly, then persists; a failure falls back to a server refresh.
+  async function moveFindingWithinSection(
+    sectionName: string,
+    findingId: string,
+    direction: number,
+  ) {
+    if (reorderingFindingId) return;
+
+    const group = (orderedGroups || []).find(
+      (g: any) => g.section === sectionName,
+    );
+    if (!group) return;
+
+    const list = [...((group.findings as any[]) || [])];
+    const index = list.findIndex((f: any) => String(f.id) === String(findingId));
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= list.length) return;
+
+    const [moved] = list.splice(index, 1);
+    list.splice(target, 0, moved);
+    const renumbered = list.map((f: any, i: number) => ({ ...f, sort_order: i }));
+
+    setOrderedGroups((groups) =>
+      (groups || []).map((g: any) =>
+        g.section === sectionName ? { ...g, findings: renumbered } : g,
+      ),
+    );
+    setReorderingFindingId(String(findingId));
+
+    try {
+      await Promise.all(
+        renumbered.map((f: any, i: number) =>
+          supabase
+            .from("findings")
+            .update({ sort_order: i })
+            .eq("id", f.id)
+            .eq("inspection_id", inspectionId),
+        ),
+      );
+    } catch {
+      // Re-sync from the server if the persist failed.
+      refreshKeepScroll(router);
+    } finally {
+      setReorderingFindingId(null);
+    }
+  }
 
   useEffect(() => {
     const nextGroups = groupedFindings || [];
@@ -1405,6 +1458,15 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                     inspectionId={inspectionId}
                     section={group.section}
                     availableSections={availableSections}
+                    sectionFindings={allSectionFindings.map((f: any) => ({
+                      id: f.id,
+                      title:
+                        f.title ||
+                        f.finding_title ||
+                        f.defect_title ||
+                        f.name ||
+                        "Untitled Finding",
+                    }))}
                   />
                 </div>
 
@@ -1461,6 +1523,55 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                           {picked ? "Selected" : "Combine"}
                         </label>
                       )}
+                      {!combineOpen &&
+                        allSectionFindings.length > 1 &&
+                        (() => {
+                          const fullIndex = allSectionFindings.findIndex(
+                            (f: any) => String(f.id) === cid,
+                          );
+                          const busy = reorderingFindingId === cid;
+                          return (
+                            <div className="absolute right-2 top-2 z-30 inline-flex overflow-hidden rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface)] shadow-lg">
+                              <button
+                                type="button"
+                                aria-label="Move finding up"
+                                title="Move finding up in this section"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void moveFindingWithinSection(
+                                    group.section,
+                                    cid,
+                                    -1,
+                                  );
+                                }}
+                                disabled={fullIndex <= 0 || busy}
+                                className="px-2.5 py-1 text-sm font-bold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-30 [touch-action:manipulation]"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                aria-label="Move finding down"
+                                title="Move finding down in this section"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void moveFindingWithinSection(
+                                    group.section,
+                                    cid,
+                                    1,
+                                  );
+                                }}
+                                disabled={
+                                  fullIndex >= allSectionFindings.length - 1 ||
+                                  busy
+                                }
+                                className="border-l border-[var(--fl-line)] px-2.5 py-1 text-sm font-bold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-30 [touch-action:manipulation]"
+                              >
+                                ↓
+                              </button>
+                            </div>
+                          );
+                        })()}
                       {card}
                     </div>
                   );

@@ -19,6 +19,7 @@ type ReferencePhoto = {
   thumbnail_path?: string | null;
   thumbnail_url?: string | null;
   signed_thumbnail_url?: string | null;
+  sort_order?: number | null;
   created_at?: string | null;
 };
 
@@ -72,10 +73,12 @@ function SectionReferencePhotos({
   inspectionId,
   section,
   availableSections,
+  sectionFindings,
 }: {
   inspectionId: string;
   section: string;
   availableSections?: string[];
+  sectionFindings?: Array<{ id: string | number; title: string }>;
 }) {
   const [open, setOpen] = useState(false);
   const [photos, setPhotos] = useState<ReferencePhoto[]>([]);
@@ -85,6 +88,7 @@ function SectionReferencePhotos({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
+  const [reorderBusy, setReorderBusy] = useState(false);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [draggingOver, setDraggingOver] = useState(false);
 
@@ -92,6 +96,7 @@ function SectionReferencePhotos({
   const moveOptions = (availableSections || []).filter(
     (name) => name && name !== section,
   );
+  const findingOptions = sectionFindings || [];
 
   useEffect(() => {
     loadPhotos();
@@ -106,6 +111,8 @@ function SectionReferencePhotos({
       const { data, error } = await supabase
         .from("section_reference_photos")
         .select("*")
+        // Manual order (sort_order); nulls (legacy) last, created_at tiebreak.
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .eq("inspection_id", inspectionId)
         .eq("section", section)
         .order("created_at", { ascending: true });
@@ -337,6 +344,89 @@ function SectionReferencePhotos({
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id));
     } catch (error: any) {
       alert(error?.message || "Failed to move reference photo.");
+    } finally {
+      setMovingId(null);
+    }
+  }
+
+  // Reorder the gallery: renumber sort_order for the whole set so the order is
+  // stable regardless of existing values. Optimistic — reflects instantly, then
+  // persists; reloads from the server if the write fails.
+  async function moveReferencePhotoOrder(index: number, direction: number) {
+    const target = index + direction;
+    if (reorderBusy || target < 0 || target >= photos.length) return;
+
+    const reordered = [...photos];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(target, 0, moved);
+
+    setPhotos(reordered.map((item, i) => ({ ...item, sort_order: i })));
+    setReorderBusy(true);
+
+    try {
+      await Promise.all(
+        reordered.map((item, i) =>
+          supabase
+            .from("section_reference_photos")
+            .update({ sort_order: i })
+            .eq("id", item.id)
+            .eq("inspection_id", inspectionId),
+        ),
+      );
+    } catch (error: any) {
+      alert(error?.message || "Could not reorder reference photos.");
+      await loadPhotos();
+    } finally {
+      setReorderBusy(false);
+    }
+  }
+
+  // Attach a reference photo back onto a specific finding (the reverse of moving
+  // a finding's photo out to the reference gallery). Reuses the same storage file
+  // — insert a photos row pointing at it, then remove the reference row.
+  async function moveReferenceToFinding(
+    photo: ReferencePhoto,
+    findingId: string | number,
+  ) {
+    if (movingId || !findingId) return;
+
+    setMovingId(photo.id);
+
+    try {
+      const { error: insertError } = await supabase.from("photos").insert({
+        inspection_id: inspectionId,
+        finding_id: findingId,
+        file_path: photo.file_path || null,
+        // Never store the temporary signed_url as public_url — it expires. The
+        // builder re-signs from file_path.
+        public_url: photo.public_url || null,
+        thumbnail_path: photo.thumbnail_path || null,
+        thumbnail_url: photo.thumbnail_url || null,
+        is_video: false,
+      });
+
+      if (insertError) throw insertError;
+
+      const { error: deleteError } = await supabase
+        .from("section_reference_photos")
+        .delete()
+        .eq("id", photo.id)
+        .eq("inspection_id", inspectionId);
+
+      if (deleteError) throw deleteError;
+
+      setPhotos((prev) => prev.filter((item) => item.id !== photo.id));
+
+      // Refresh so the photo shows on the target finding (infrequent action).
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("opi:findings-changed", {
+            detail: { inspectionId, section },
+          }),
+        );
+      }
+    } catch (error: any) {
+      alert(error?.message || "Failed to move the photo to the finding.");
     } finally {
       setMovingId(null);
     }
@@ -592,11 +682,58 @@ function SectionReferencePhotos({
                         className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
                       />
 
-                      <div className="flex flex-wrap justify-between gap-2 text-xs font-bold">
-                        {previewUrl && (
-                          <span className="rounded-lg border border-[var(--fl-line)] px-3 py-2 text-[var(--fl-text)]">
-                            Tap photo to expand
-                          </span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
+                        {photos.length > 1 && (
+                          <div className="inline-flex overflow-hidden rounded-lg border border-[var(--fl-line)]">
+                            <button
+                              type="button"
+                              onClick={() => moveReferencePhotoOrder(index, -1)}
+                              disabled={index === 0 || reorderBusy || isMoving || isDeleting}
+                              title="Move earlier"
+                              className="px-3 py-2 text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-30 [touch-action:manipulation]"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveReferencePhotoOrder(index, 1)}
+                              disabled={
+                                index === photos.length - 1 ||
+                                reorderBusy ||
+                                isMoving ||
+                                isDeleting
+                              }
+                              title="Move later"
+                              className="border-l border-[var(--fl-line)] px-3 py-2 text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-30 [touch-action:manipulation]"
+                            >
+                              ↓
+                            </button>
+                          </div>
+                        )}
+
+                        {findingOptions.length > 0 && (
+                          <select
+                            value=""
+                            disabled={
+                              isMoving || isDeleting || isConverting || uploading
+                            }
+                            onChange={(event) => {
+                              const next = event.target.value;
+                              event.currentTarget.value = "";
+                              if (next) void moveReferenceToFinding(photo, next);
+                            }}
+                            title="Attach this photo to a finding in this section"
+                            className="max-w-[9rem] rounded-lg border border-teal-500 bg-[var(--fl-ground)] px-3 py-2 font-semibold text-[var(--fl-accent-text)] outline-none transition focus:border-teal-300 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                          >
+                            <option value="">
+                              {isMoving ? "Moving..." : "↪ To finding…"}
+                            </option>
+                            {findingOptions.map((f) => (
+                              <option key={String(f.id)} value={String(f.id)}>
+                                {f.title}
+                              </option>
+                            ))}
+                          </select>
                         )}
 
                         {moveOptions.length > 0 && (

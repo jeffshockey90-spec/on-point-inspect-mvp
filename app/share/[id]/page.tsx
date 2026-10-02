@@ -1367,6 +1367,9 @@ export default async function PublicSharePage({
       .from("findings")
       .select("*")
       .eq("inspection_id", inspectionId)
+      // Honor the inspector's manual in-section order (findings.sort_order);
+      // nulls last, created_at tiebreak — unchanged until a report is reordered.
+      .order("sort_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true }),
     supabase
       .from("report_section_overrides")

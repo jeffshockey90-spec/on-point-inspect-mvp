@@ -1866,6 +1866,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         .from("findings")
         .select("*")
         .eq("inspection_id", inspection.id)
+        // Manual in-section order (findings.sort_order); nulls (unordered) last,
+        // created_at tiebreak. Falls back to capture order until reordered.
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true }),
       supabase
         .from("report_section_overrides")
