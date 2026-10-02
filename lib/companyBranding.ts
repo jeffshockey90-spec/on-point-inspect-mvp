@@ -57,26 +57,52 @@ export function normalizeCompanyBranding(company: any): CompanyBranding {
 }
 
 // FLOW's own verified platform sending domain (Resend). Every inspector's client
-// mail sends from here, with THEIR company name as the display name, so it's a
-// neutral platform sender that works for the whole SaaS -- not tied to one
-// inspector's domain. Replies are routed back to the inspector via Reply-To.
+// mail sends from here -- the DOMAIN is always flowinspect.app (DKIM/SPF verified),
+// so it's a neutral platform sender that works for the whole SaaS and is never tied
+// to any one inspector's own domain. The local-part and display name are branded
+// with the inspector's company. Replies are routed back to the inspector via Reply-To.
 const PLATFORM_FROM_ADDRESS = "notifications@flowinspect.app";
 
-// The verified sending address is platform-wide, but the display name is the
-// inspector's own company name, so a client's inbox shows their inspector, not
-// the platform. (`envFallback` is kept for call-site compatibility but the
-// platform address wins unless an env override is set.)
+// Turn a company name into a safe email local-part, e.g.
+// "On Point Home Inspections" -> "on-point-home-inspections". Only chars valid in
+// an address local-part survive; empty/legacy names fall back to "notifications".
+function companyEmailLocalPart(name: string): string {
+  const slug = String(name || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-") // spaces & punctuation -> hyphen
+    .replace(/-{2,}/g, "-") // collapse runs
+    .replace(/^-+|-+$/g, "") // trim ends
+    .slice(0, 40)
+    .replace(/-+$/g, ""); // trim a hyphen the slice may have left
+  return slug || "notifications";
+}
+
+// The verified sending DOMAIN is platform-wide (flowinspect.app), but both the
+// local-part and the display name are branded to the inspector's company -- so a
+// client/agent inbox shows e.g. "On Point Home Inspections
+// <on-point-home-inspections@flowinspect.app>". Because the From domain stays
+// flowinspect.app, DKIM/SPF/DMARC all still align (the local-part doesn't affect
+// auth), so this is safe for every tenant. (`envFallback` is kept for call-site
+// compatibility; a PLATFORM_EMAIL_FROM env override wins verbatim for the address.)
 export function buildBrandedFromHeader(branding: CompanyBranding, _envFallback?: string) {
-  // Platform address is fixed to the verified flowinspect.app domain. An optional
-  // PLATFORM_EMAIL_FROM env can override it; the older REPORT_EMAIL_FROM /
-  // RESEND_FROM_EMAIL vars (which pointed at a single inspector's domain) are
-  // intentionally ignored now.
-  const configured = process.env.PLATFORM_EMAIL_FROM || PLATFORM_FROM_ADDRESS;
+  // An explicit PLATFORM_EMAIL_FROM env override is respected as-is (address only);
+  // the older REPORT_EMAIL_FROM / RESEND_FROM_EMAIL vars are intentionally ignored.
+  const override = process.env.PLATFORM_EMAIL_FROM;
+  if (override) {
+    const m = override.match(/<([^>]+)>/);
+    const address = m ? m[1] : override;
+    return `${branding.name} <${address}>`;
+  }
 
-  const addressMatch = configured.match(/<([^>]+)>/);
-  const address = addressMatch ? addressMatch[1] : configured;
+  const domain = PLATFORM_FROM_ADDRESS.split("@")[1] || "flowinspect.app";
+  // Keep legacy/unknown-company mail on the warmed "notifications@" address.
+  const local =
+    branding.name && branding.name !== DEFAULT_BRANDING.name
+      ? companyEmailLocalPart(branding.name)
+      : "notifications";
 
-  return `${branding.name} via FLOW <${address}>`;
+  return `${branding.name} <${local}@${domain}>`;
 }
 
 // Replies to platform mail should reach the inspector -- use their company's
