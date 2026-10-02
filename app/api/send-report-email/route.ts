@@ -585,9 +585,13 @@ export async function POST(req: Request) {
 
     const shareToken = await getOrCreateShareToken(supabase, inspection);
 
-    const finalShareUrl = isStandaloneEnvironmentalService(inspection)
-      ? `${appUrl}/environmental-share/${shareToken}`
-      : `${appUrl}/share/${shareToken}`;
+    // An explicit "Send/Resend Results" (environmentalNotice) always links
+    // straight to the environmental report — even on a combined home+mold/radon
+    // job — so the client lands on their results, not the home report.
+    const finalShareUrl =
+      isStandaloneEnvironmentalService(inspection) || environmentalNotice
+        ? `${appUrl}/environmental-share/${shareToken}`
+        : `${appUrl}/share/${shareToken}`;
 
     const { data: moldTest } = await supabase
       .from("mold_tests")
