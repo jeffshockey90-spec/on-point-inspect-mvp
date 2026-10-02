@@ -503,6 +503,45 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     };
   }, [inspectionId, router]);
 
+  // Instant delete: when a finding is deleted (from EditableFinding), drop it
+  // from local state immediately instead of re-fetching the whole report. The
+  // row is already gone from the DB, so this is just removing the now-stale card
+  // — this is what makes deleting a defect feel instant (like Spectora) rather
+  // than waiting on a full server round-trip for the card to disappear.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function handleFindingDeleted(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const eventInspectionId = String(detail.inspectionId || "");
+      const findingId = String(detail.findingId || "");
+
+      if (!findingId) return;
+      if (eventInspectionId && eventInspectionId !== String(inspectionId)) return;
+
+      setOrderedGroups((groups) =>
+        (groups || []).map((group: any) => ({
+          ...group,
+          findings: (group.findings || []).filter(
+            (f: any) => String(f.id) !== findingId,
+          ),
+        })),
+      );
+    }
+
+    window.addEventListener(
+      "opi:finding-deleted",
+      handleFindingDeleted as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "opi:finding-deleted",
+        handleFindingDeleted as EventListener,
+      );
+    };
+  }, [inspectionId]);
+
   const allFindings = useMemo(() => {
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
   }, [orderedGroups]);
@@ -2829,6 +2868,40 @@ function FindingCardBase({
     };
   }, [finding.id, findingAnchor]);
 
+  // The AI auto-retitle (in EditableFinding) finishes a beat after a save and
+  // used to trigger a second full router.refresh(). Instead it now dispatches
+  // this event, and we patch just this card's title in place — no refetch, no
+  // second flicker.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function handleRetitled(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      if (String(detail.findingId || "") !== String(finding.id)) return;
+
+      const nextTitle = String(detail.title || "");
+      if (!nextTitle) return;
+
+      setLocalFinding((current: any) => ({
+        ...(current || finding),
+        title: nextTitle,
+      }));
+    }
+
+    window.addEventListener(
+      "opi:finding-retitled",
+      handleRetitled as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "opi:finding-retitled",
+        handleRetitled as EventListener,
+      );
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finding.id]);
+
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
     setMessage(text);
@@ -3297,8 +3370,20 @@ function FindingCardBase({
 
       if (error) throw error;
 
+      // Remove the photo from this card INSTANTLY — it's already gone from the
+      // DB. Re-fetching the whole report made photo deletes feel laggy; updating
+      // local state drops it from the grid immediately (getFindingPhotos derives
+      // from displayFinding, so this re-renders just this card).
+      setLocalFinding((current: any) => {
+        const base = current || finding;
+        return {
+          ...base,
+          photos: (base.photos || []).filter(
+            (p: any) => String(p.id) !== String(photo.id),
+          ),
+        };
+      });
       showMessage("success", "Photo deleted from finding.");
-      refreshKeepScroll(router);
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to delete photo.");
     } finally {
@@ -4468,11 +4553,12 @@ function FindingCardBase({
           className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 sm:p-4"
         >
           <EditableFinding
-            key={`${String(displayFinding.id || finding.id)}-${String(
-              displayFinding.updated_at || "",
-            )}-${String(displayFinding.title || "")}-${String(
-              displayFinding.observation || "",
-            )}`}
+            // Stable key (id only). The editor now re-syncs from props on its
+            // own (with a dirty-guard), so we no longer remount it on every
+            // content change — the old key included the full title/observation
+            // (and a non-existent `updated_at`), which remounted the editor and
+            // DROPPED in-progress typing whenever the finding object changed.
+            key={String(displayFinding.id || finding.id)}
             finding={displayFinding}
             availableSections={availableSections}
           />

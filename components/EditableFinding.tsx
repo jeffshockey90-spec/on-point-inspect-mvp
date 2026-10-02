@@ -112,6 +112,52 @@ function EditableFinding({
     recommendation: finding.recommendation || "",
   });
 
+  // Keep the editor's fields in sync with the finding as it changes on disk —
+  // an AI rewrite (AI Inspector note / auto-retitle) or another device editing
+  // the same finding. WITHOUT this, the editor kept whatever it loaded on first
+  // mount, so the next "Save Finding" silently REVERTED those changes back to
+  // the stale values (the old remount-key relied on a non-existent `updated_at`
+  // column and omitted severity/implication/recommendation, so it didn't catch
+  // most edits). We re-seed only while the inspector is NOT actively editing, so
+  // in-progress typing is never stomped.
+  const persistedSignature = [
+    finding.title,
+    finding.section,
+    finding.severity,
+    finding.location,
+    finding.observation,
+    finding.implication,
+    finding.recommendation,
+    finding.repair_request,
+    finding.repair_priority,
+    finding.repair_notes,
+  ]
+    .map((value) => String(value ?? ""))
+    .join("\u0001");
+
+  useEffect(() => {
+    if (editing) return; // never overwrite an active edit in progress
+    setTitle(finding.title || "");
+    setSection(finding.section || "Exterior");
+    setSeverity(finding.severity || "Recommended Repair");
+    setLocation(finding.location || "");
+    setObservation(finding.observation || "");
+    setImplication(finding.implication || "");
+    setRecommendation(finding.recommendation || "");
+    setRepairRequest(finding.repair_request || false);
+    setRepairPriority(finding.repair_priority || "Recommended");
+    setRepairNotes(finding.repair_notes || "");
+    learningBaselineRef.current = {
+      title: finding.title || "",
+      section: finding.section || "",
+      severity: finding.severity || "",
+      observation: finding.observation || "",
+      implication: finding.implication || "",
+      recommendation: finding.recommendation || "",
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistedSignature]);
+
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
     setMessage(text);
@@ -227,7 +273,19 @@ function EditableFinding({
                 ...learningBaselineRef.current,
                 title: data.title,
               };
-              refreshKeepScroll(router);
+              // Patch just this finding's title in the report card instead of a
+              // SECOND full router.refresh(). The save already refreshed once;
+              // the AI retitle lands a beat later, and a second refresh caused a
+              // visible flicker/scroll-settle ~1s after "Saved!" ("it twitched
+              // again on its own"). The card listens for this and updates the
+              // title in place — no refetch.
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("opi:finding-retitled", {
+                    detail: { findingId: finding.id, title: data.title },
+                  }),
+                );
+              }
             }
           } catch {
             /* leave the existing title if retitle fails */
@@ -552,7 +610,21 @@ function EditableFinding({
 
       setDeleteLabel("Deleted!");
       showMessage("success", "Finding deleted.");
-      refreshKeepScroll(router);
+      // Drop the card from the list INSTANTLY instead of re-fetching the whole
+      // report — the row is already gone from the DB. The report page listens
+      // for this and removes it from local state right away, so deleting a
+      // finding feels immediate (the full router.refresh() used to re-run the
+      // entire ~11–13-query server load before the card disappeared).
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("opi:finding-deleted", {
+            detail: {
+              inspectionId: String(finding.inspection_id || ""),
+              findingId: String(finding.id || ""),
+            },
+          }),
+        );
+      }
     } catch (error: any) {
       setDeleteLabel("Failed");
       showMessage("error", error?.message || "Failed to delete finding.");
