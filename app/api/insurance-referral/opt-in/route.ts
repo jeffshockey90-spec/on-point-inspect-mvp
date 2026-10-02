@@ -5,6 +5,7 @@ import {
   resolveInspectionByToken,
   INSURANCE_CONSENT_TEXT,
 } from "../../../../lib/insuranceReferral";
+import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -165,12 +166,23 @@ export async function POST(request: Request) {
 
   const subject = `Home insurance referral: ${fullName || "New client"}${address ? ` — ${address}` : ""}`;
 
+  // Send from the inspector's BRANDED domain (e.g. On Point) rather than the
+  // generic FLOW address — agents' mail filters trust a recognizable inspector
+  // domain far more than an unfamiliar one, which improves inbox placement.
+  let fromHeader = "On Point Home Inspections <reports@onpointhomeinspect.com>";
+  try {
+    const branding = await getCompanyBrandingById(inspection.company_id);
+    fromHeader = buildBrandedFromHeader(branding, fromHeader);
+  } catch {
+    /* fall back to the default branded sender */
+  }
+
   let sentOk = false;
   let resultMessage = "";
   let resendId: string | null = null;
   try {
     const result = await resend.emails.send({
-      from: "FLOW <notifications@flowinspect.app>",
+      from: fromHeader,
       to: agentEmail,
       cc: inspectorEmail ? [inspectorEmail] : undefined,
       // Agent replies go straight to the client.
