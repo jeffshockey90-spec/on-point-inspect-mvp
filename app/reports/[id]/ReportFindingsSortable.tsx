@@ -542,6 +542,49 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     };
   }, [inspectionId]);
 
+  // Instant add: when a defect is created in the builder (no attached media),
+  // drop the new card straight into its section instead of a full server
+  // refetch. The row is already persisted with this id.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function handleFindingAdded(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const eventInspectionId = String(detail.inspectionId || "");
+      const sectionName = String(detail.section || "");
+      const finding = detail.finding;
+
+      if (!finding?.id || !sectionName) return;
+      if (eventInspectionId && eventInspectionId !== String(inspectionId)) return;
+
+      setOrderedGroups((groups) =>
+        (groups || []).map((group: any) => {
+          if (group.section !== sectionName) return group;
+          const already = (group.findings || []).some(
+            (f: any) => String(f.id) === String(finding.id),
+          );
+          if (already) return group;
+          return { ...group, findings: [...(group.findings || []), finding] };
+        }),
+      );
+
+      // Make sure the section is open so the new card is visible.
+      setClosedSections((current) => ({ ...current, [sectionName]: false }));
+    }
+
+    window.addEventListener(
+      "opi:finding-added-optimistic",
+      handleFindingAdded as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "opi:finding-added-optimistic",
+        handleFindingAdded as EventListener,
+      );
+    };
+  }, [inspectionId]);
+
   const allFindings = useMemo(() => {
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
   }, [orderedGroups]);
@@ -1774,8 +1817,26 @@ function AddSectionFindingForm({
 
       if (error) throw error;
 
+      // Build the new card's data from what we just saved, so it can appear
+      // instantly without a full server refetch (same id the DB assigned).
+      const optimisticFinding = {
+        id: newFinding?.id,
+        inspection_id: inspectionId,
+        section,
+        severity,
+        title: cleanTitle || cleanObservation.slice(0, 80) || "New Defect",
+        location: location.trim() || null,
+        observation: cleanObservation,
+        implication: implication.trim(),
+        recommendation: recommendation.trim(),
+        image_url: null,
+        photos: [],
+      };
+
+      const hadPendingFiles = pendingFiles.length > 0;
+
       // Attach any photos/videos chosen while creating the defect.
-      if (newFinding?.id && pendingFiles.length) {
+      if (newFinding?.id && hadPendingFiles) {
         setMessage(
           pendingFiles.length === 1
             ? "Saving defect and uploading media…"
@@ -1795,7 +1856,21 @@ function AddSectionFindingForm({
       setSeverity("Recommended Repair");
       setPendingFiles([]);
       setOpen(false);
-      refreshKeepScroll(router);
+
+      if (hadPendingFiles || !optimisticFinding.id) {
+        // Media was uploaded separately — refresh so the photos show on the card.
+        refreshKeepScroll(router);
+      } else {
+        // Instant add: drop the new (already-persisted) card straight into the
+        // list, no full server refetch. The report page listens for this.
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("opi:finding-added-optimistic", {
+              detail: { inspectionId, section, finding: optimisticFinding },
+            }),
+          );
+        }
+      }
     } catch (error: any) {
       setMessage(error?.message || "Failed to add defect.");
     } finally {
@@ -3332,7 +3407,25 @@ function FindingCardBase({
             .eq("inspection_id", inspectionId);
         }),
       );
-      refreshKeepScroll(router);
+      // Reflect the new order INSTANTLY instead of a full server refresh — the
+      // sort_order writes above already persisted it. getFindingPhotos sorts by
+      // sort_order, so updating it on the local rows re-orders the grid in place.
+      setLocalFinding((current: any) => {
+        const base = current || finding;
+        const orderById = new Map(
+          reordered.map((entry: any, position: number) => [
+            String(entry?.id || ""),
+            position,
+          ]),
+        );
+        const nextPhotos = (base.photos || []).map((p: any) => {
+          const key = String(p?.id || "");
+          return orderById.has(key)
+            ? { ...p, sort_order: orderById.get(key) }
+            : p;
+        });
+        return { ...base, photos: nextPhotos };
+      });
     } catch {
       showMessage("error", "Could not reorder photos. Please try again.");
     } finally {
@@ -4593,7 +4686,99 @@ function FindingCardBase({
   );
 }
 
-const FindingCard = memo(FindingCardBase);
+// Compare the finding fields the card actually RENDERS. The parent passes a new
+// `finding` object on every server refresh even when nothing changed, so without
+// a content comparison every card re-rendered on every edit/refresh (150 cards
+// reconciling because you edited one). We compare by content instead of identity.
+function findingContentEqual(a: any, b: any) {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (String(a.id) !== String(b.id)) return false;
+
+  const fields = [
+    "title",
+    "section",
+    "severity",
+    "observation",
+    "implication",
+    "recommendation",
+    "location",
+    "comment",
+    "flagged",
+    "repair_request",
+    "repair_priority",
+    "repair_notes",
+    "finding_title",
+    "defect_title",
+    "name",
+    "image_url",
+  ];
+  for (const f of fields) {
+    if (String(a[f] ?? "") !== String(b[f] ?? "")) return false;
+  }
+
+  const ap = a.photos || [];
+  const bp = b.photos || [];
+  if (ap.length !== bp.length) return false;
+  for (let i = 0; i < ap.length; i += 1) {
+    const x = ap[i] || {};
+    const y = bp[i] || {};
+    if (String(x.id ?? "") !== String(y.id ?? "")) return false;
+    if (
+      String(x.signed_url ?? x.public_url ?? "") !==
+      String(y.signed_url ?? y.public_url ?? "")
+    ) {
+      return false;
+    }
+    if (String(x.caption ?? "") !== String(y.caption ?? "")) return false;
+    if (String(x.sort_order ?? "") !== String(y.sort_order ?? "")) return false;
+  }
+
+  return true;
+}
+
+function findingCardPropsEqual(prev: any, next: any) {
+  if (prev.inspectionId !== next.inspectionId) return false;
+
+  // Handlers are useCallback-stable, but guard anyway.
+  if (prev.onNeedPhotoPicker !== next.onNeedPhotoPicker) return false;
+  if (prev.onStartCombine !== next.onStartCombine) return false;
+  if (prev.onCombinePair !== next.onCombinePair) return false;
+
+  // availableSections: compare content, not identity.
+  const pa = prev.availableSections || [];
+  const na = next.availableSections || [];
+  if (pa.length !== na.length || pa.some((v: any, i: number) => v !== na[i])) {
+    return false;
+  }
+
+  // relatedHint: compare by value (new object identity every refresh).
+  const ph = prev.relatedHint;
+  const nh = next.relatedHint;
+  if (
+    String(ph?.otherId ?? "") !== String(nh?.otherId ?? "") ||
+    String(ph?.otherTitle ?? "") !== String(nh?.otherTitle ?? "") ||
+    String(ph?.reason ?? "") !== String(nh?.reason ?? "")
+  ) {
+    return false;
+  }
+
+  // allFindings / allPhotos are consumed lazily (inside the related-findings
+  // editor / photo picker when opened). Their identity churns every refresh, so
+  // we gate re-render on a LENGTH change — enough to catch add/remove — and
+  // ignore pure identity churn. A still-open editor re-reads fresh data when it
+  // next opens.
+  if ((prev.allFindings?.length || 0) !== (next.allFindings?.length || 0)) {
+    return false;
+  }
+  if ((prev.allPhotos?.length || 0) !== (next.allPhotos?.length || 0)) {
+    return false;
+  }
+
+  return findingContentEqual(prev.finding, next.finding);
+}
+
+const FindingCard = memo(FindingCardBase, findingCardPropsEqual);
 
 function InlineStatusMessage({
   type,
