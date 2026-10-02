@@ -121,7 +121,17 @@ export async function GET(req: Request) {
     }
 
     if (state) {
-      query = query.eq("state", normalizeState(state));
+      const normalized = normalizeState(state);
+      // "General / Any State" templates apply in every state, so a specific-state
+      // request returns that state's templates PLUS the GENERAL ones — that's how
+      // an any-state agreement (e.g. a Radon Testing Agreement saved as General)
+      // shows up when scheduling an inspection in MD/WV/PA/etc. A request that
+      // explicitly asks for GENERAL stays GENERAL-only.
+      if (normalized === "GENERAL") {
+        query = query.eq("state", "GENERAL");
+      } else {
+        query = query.in("state", [normalized, "GENERAL"]);
+      }
     }
 
     if (activeOnly) {
