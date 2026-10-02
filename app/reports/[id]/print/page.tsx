@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { resolveReportSections } from "../../../../lib/reportSections";
 import { getCompanyBrandingById } from "../../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
+import { getCachedSignedUrls } from "../../../../lib/signedUrlCache";
 
 import PrintControls from "./PrintControls";
 
@@ -238,8 +239,21 @@ function groupLimitations(rows: any[], photosByLimitationId: Record<string, any[
   return grouped;
 }
 
-async function createSignedUrlMap(supabase: any, paths: string[]) {
-  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+// Print images used to be signed as the RAW original (multi-MB phone JPEGs),
+// uncached, even though they render into ~3in print boxes — so opening the print
+// view (or Save-as-PDF from it) downloaded tens of MB on a photo-heavy report.
+// Downscale to ~1280px/q80 (plenty for print) and reuse the shared signed-URL
+// cache, same as the on-screen builder does with its 640/q72 previews.
+const PRINT_IMAGE_TRANSFORM_OPTIONS = {
+  transform: {
+    width: 1280,
+    quality: 80,
+    resize: "contain",
+  },
+};
+
+async function signPrintBatch(supabase: any, paths: string[]) {
+  const uniquePaths = Array.from(new Set((paths || []).filter(Boolean)));
   const signedMap: Record<string, string> = {};
 
   if (uniquePaths.length === 0) return signedMap;
@@ -251,10 +265,10 @@ async function createSignedUrlMap(supabase: any, paths: string[]) {
 
     const { data, error } = await supabase.storage
       .from("inspection-photos")
-      .createSignedUrls(chunk, 60 * 60 * 24 * 7);
+      .createSignedUrls(chunk, 60 * 60 * 24 * 7, PRINT_IMAGE_TRANSFORM_OPTIONS);
 
     if (error) {
-      console.error("Batch signed photo URL error:", error);
+      console.error("Batch signed print URL error:", error);
       continue;
     }
 
@@ -268,6 +282,20 @@ async function createSignedUrlMap(supabase: any, paths: string[]) {
   }
 
   return signedMap;
+}
+
+async function createSignedUrlMap(supabase: any, paths: string[]) {
+  const uniquePaths = Array.from(new Set((paths || []).filter(Boolean)));
+  if (uniquePaths.length === 0) return {};
+
+  // Fail-open cache: on a miss it signs via signPrintBatch; the cache write is
+  // fire-and-forget so a miss returns immediately.
+  return getCachedSignedUrls({
+    paths: uniquePaths,
+    variant: "print1280q80",
+    ttlSeconds: 60 * 60 * 24 * 7,
+    sign: (missing) => signPrintBatch(supabase, missing),
+  });
 }
 
 function getPhotoFilePath(photo: any) {

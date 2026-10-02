@@ -4,7 +4,7 @@ import { isPaymentComplete } from "../../../lib/inspectionStatus";
 import { Camera } from "lucide-react";
 import { resolveActiveSections, filterSectionsForServiceMode, resolveReportSections } from "../../../lib/reportSections";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
-import { loadSeverityConfigForInspection } from "../../../lib/severity/loadSeverityConfig";
+import { loadSeverityConfigForCompany } from "../../../lib/severity/loadSeverityConfig";
 import { severityIsCritical } from "../../../lib/severity/severityConfig";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -1291,9 +1291,12 @@ function getSuggestedDisclaimerTopicsForReport(year: number | null, findings: an
 
 export default async function ReportPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  // Company custom severity config — drives which levels count as safety/critical
-  // for the summary counts + publish gating below (honors renamed/custom levels).
-  const severityConfig = await loadSeverityConfigForInspection(id);
+  // NOTE: the company custom severity config (drives which levels count as
+  // safety/critical for the summary counts + publish gating below) is loaded
+  // further down, folded into the main parallel query wave by company_id. It
+  // used to be the very first await here and did its OWN inspection read — two
+  // serial round-trips at the front of every report load, one of them a
+  // duplicate of the inspection the page loads anyway.
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const propertyPhotoUpdated = getSingleSearchParam(resolvedSearchParams, "property_photo_updated") === "1";
   const propertyPhotoError = getSingleSearchParam(resolvedSearchParams, "property_photo_error");
@@ -1846,6 +1849,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     signedAgreementsResult,
     agreementContactsResult,
     reportDisclaimersResult,
+    severityConfig,
   ] = await Promise.all([
       loadEmailLogs(supabase, inspection.id),
       supabase
@@ -1905,6 +1909,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         .select("id, topic, disclaimer_text")
         .eq("inspection_id", inspection.id)
         .order("created_at", { ascending: true }),
+      // Company severity config by company_id (no duplicate inspection read).
+      loadSeverityConfigForCompany(inspection.company_id),
     ]);
 
   const officeAddress = officeAddressResult?.data?.office_address || null;
@@ -2201,12 +2207,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   // IMPORTANT: sign original media paths WITHOUT image transforms for the full URL
   // so videos keep working. For previews, use a transformed signed URL from the
   // original image instead of relying on generated thumbnail rows that may not exist.
-  const [signedThumbnailMap, signedFullMediaMap, signedImagePreviewMap] = await Promise.all([
-    createSignedRawUrlMap(storageSupabase, thumbnailPaths),
-    createSignedRawUrlMap(storageSupabase, fullPhotoPaths),
-    createSignedUrlMap(storageSupabase, imagePreviewPaths),
-  ]);
-
   const getEquipmentStoragePath = (item: any) =>
     item?.file_path ||
     item?.storage_path ||
@@ -2232,7 +2232,20 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     .map((item: any) => getEquipmentThumbnailPath(item))
     .filter(Boolean);
 
-  const [equipmentSignedImageMap, equipmentSignedThumbnailMap] = await Promise.all([
+  // Sign the photo media AND the equipment images in ONE parallel wave. These
+  // two sets share no data dependency (equipment paths come from
+  // equipmentInventoryRaw, already loaded in the main query wave), so signing
+  // them together removes a serial round-trip from the critical load path.
+  const [
+    signedThumbnailMap,
+    signedFullMediaMap,
+    signedImagePreviewMap,
+    equipmentSignedImageMap,
+    equipmentSignedThumbnailMap,
+  ] = await Promise.all([
+    createSignedRawUrlMap(storageSupabase, thumbnailPaths),
+    createSignedRawUrlMap(storageSupabase, fullPhotoPaths),
+    createSignedUrlMap(storageSupabase, imagePreviewPaths),
     createSignedRawUrlMap(storageSupabase, equipmentImagePaths),
     createSignedRawUrlMap(storageSupabase, equipmentThumbnailPaths),
   ]);

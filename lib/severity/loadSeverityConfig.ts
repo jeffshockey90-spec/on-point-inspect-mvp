@@ -29,6 +29,22 @@ async function readByCompany(db: any, companyId: number | string): Promise<Sever
   return normalizeSeverityConfig(data.config);
 }
 
+// When the caller already has the company_id (e.g. the report page has loaded
+// the inspection), skip the redundant inspection read that
+// loadSeverityConfigForInspection does — one round-trip instead of two.
+export async function loadSeverityConfigForCompany(
+  companyId: number | string | null | undefined,
+): Promise<SeverityConfig> {
+  const db = admin();
+  if (!db || companyId == null || companyId === "") return DEFAULT_SEVERITY_CONFIG;
+
+  try {
+    return await readByCompany(db, companyId);
+  } catch {
+    return DEFAULT_SEVERITY_CONFIG;
+  }
+}
+
 export async function loadSeverityConfigForUser(
   userId: string | null | undefined,
 ): Promise<SeverityConfig> {

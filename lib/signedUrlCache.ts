@@ -86,13 +86,17 @@ export async function getCachedSignedUrls(opts: {
       }
     }
 
-    // 3) Write back (best-effort; never blocks or throws).
+    // 3) Write back (best-effort; FIRE-AND-FORGET so a cache MISS returns the
+    // freshly-signed URLs immediately instead of waiting on an upsert round-trip
+    // on the critical path. Worst case if the write is dropped: a miss next time.
     if (rows.length > 0) {
-      try {
-        await db.from("signed_url_cache").upsert(rows, { onConflict: "path,variant" });
-      } catch {
-        /* ignore */
-      }
+      void db
+        .from("signed_url_cache")
+        .upsert(rows, { onConflict: "path,variant" })
+        .then(
+          () => {},
+          () => {},
+        );
     }
   }
 
