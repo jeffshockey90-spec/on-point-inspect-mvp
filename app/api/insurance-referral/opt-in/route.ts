@@ -166,15 +166,18 @@ export async function POST(request: Request) {
 
   const subject = `Home insurance referral: ${fullName || "New client"}${address ? ` — ${address}` : ""}`;
 
-  // Send from the inspector's BRANDED domain (e.g. On Point) rather than the
-  // generic FLOW address — agents' mail filters trust a recognizable inspector
-  // domain far more than an unfamiliar one, which improves inbox placement.
-  let fromHeader = "On Point Home Inspections <reports@onpointhomeinspect.com>";
+  // Send with the inspector's COMPANY NAME as the display name (e.g. "On Point
+  // Home Inspections via FLOW") over FLOW's verified platform domain. This is
+  // multi-tenant-safe — every inspector's referral shows THEIR name, and no one
+  // sends from another inspector's (or On Point's) domain. buildBrandedFromHeader
+  // always uses the flowinspect.app platform address; the fallback here is only
+  // the neutral platform sender if branding can't be loaded.
+  let fromHeader = "FLOW <notifications@flowinspect.app>";
   try {
     const branding = await getCompanyBrandingById(inspection.company_id);
     fromHeader = buildBrandedFromHeader(branding, fromHeader);
   } catch {
-    /* fall back to the default branded sender */
+    /* fall back to the neutral platform sender */
   }
 
   let sentOk = false;
