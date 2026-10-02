@@ -1404,6 +1404,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                   <SectionReferencePhotos
                     inspectionId={inspectionId}
                     section={group.section}
+                    availableSections={availableSections}
                   />
                 </div>
 

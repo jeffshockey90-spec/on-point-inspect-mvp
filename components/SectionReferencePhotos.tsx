@@ -71,9 +71,11 @@ async function createSignedUrlMap(paths: string[]) {
 function SectionReferencePhotos({
   inspectionId,
   section,
+  availableSections,
 }: {
   inspectionId: string;
   section: string;
+  availableSections?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [photos, setPhotos] = useState<ReferencePhoto[]>([]);
@@ -82,8 +84,14 @@ function SectionReferencePhotos({
   const [uploadLabel, setUploadLabel] = useState("Uploading...");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [movingId, setMovingId] = useState<string | null>(null);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [draggingOver, setDraggingOver] = useState(false);
+
+  // Sections this photo can be moved TO (every report section except this one).
+  const moveOptions = (availableSections || []).filter(
+    (name) => name && name !== section,
+  );
 
   useEffect(() => {
     loadPhotos();
@@ -307,6 +315,33 @@ function SectionReferencePhotos({
     }
   }
 
+  // Move a reference photo to a DIFFERENT section's gallery (e.g. it was filed
+  // under the wrong section). Just re-points its `section` column — same image,
+  // no re-upload. It drops out of this gallery and shows in the target section's
+  // gallery when that panel loads.
+  async function moveReferencePhoto(photo: ReferencePhoto, targetSection: string) {
+    const target = String(targetSection || "").trim();
+    if (!target || target === section || movingId) return;
+
+    setMovingId(photo.id);
+
+    try {
+      const { error } = await supabase
+        .from("section_reference_photos")
+        .update({ section: target })
+        .eq("id", photo.id)
+        .eq("inspection_id", inspectionId);
+
+      if (error) throw error;
+
+      setPhotos((prev) => prev.filter((item) => item.id !== photo.id));
+    } catch (error: any) {
+      alert(error?.message || "Failed to move reference photo.");
+    } finally {
+      setMovingId(null);
+    }
+  }
+
   async function uploadSelectedPhotos(fileList: FileList | null) {
     const files = Array.from(fileList || []);
 
@@ -524,6 +559,7 @@ function SectionReferencePhotos({
                 const fullUrl = photo.signed_url || photo.public_url || previewUrl;
                 const isDeleting = deletingId === photo.id;
                 const isConverting = convertingId === photo.id;
+                const isMoving = movingId === photo.id;
 
                 return (
                   <div
@@ -563,10 +599,35 @@ function SectionReferencePhotos({
                           </span>
                         )}
 
+                        {moveOptions.length > 0 && (
+                          <select
+                            value=""
+                            disabled={
+                              isMoving || isDeleting || isConverting || uploading
+                            }
+                            onChange={(event) => {
+                              const next = event.target.value;
+                              event.currentTarget.value = "";
+                              if (next) void moveReferencePhoto(photo, next);
+                            }}
+                            title="Move this reference photo to another section"
+                            className="rounded-lg border border-cyan-500 bg-[var(--fl-ground)] px-3 py-2 font-semibold text-[var(--fl-info-text)] outline-none transition focus:border-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                          >
+                            <option value="">
+                              {isMoving ? "Moving..." : "↪ Move to…"}
+                            </option>
+                            {moveOptions.map((name) => (
+                              <option key={name} value={name}>
+                                {name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => convertToDefect(photo)}
-                          disabled={isConverting || isDeleting || uploading}
+                          disabled={isConverting || isDeleting || isMoving || uploading}
                           title="This was actually a defect — move it to the findings list"
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-yellow-500 px-3 py-2 font-semibold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-yellow-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                         >
@@ -577,7 +638,7 @@ function SectionReferencePhotos({
                         <button
                           type="button"
                           onClick={() => deletePhoto(photo)}
-                          disabled={isDeleting || isConverting || uploading}
+                          disabled={isDeleting || isConverting || isMoving || uploading}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-600 px-3 py-2 font-semibold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
                         >
                           {isDeleting && <SmallSpinner />}
