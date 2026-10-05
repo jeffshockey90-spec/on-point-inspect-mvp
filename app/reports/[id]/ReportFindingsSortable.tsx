@@ -1330,7 +1330,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                     toggleSection(group.section);
                   }
                 }}
-                className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-2 px-3 py-3 text-left transition hover:bg-[var(--fl-raised)] focus:outline-none focus:ring-2 focus:ring-teal-400 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
+                className="flex min-w-0 flex-1 cursor-pointer flex-col items-stretch gap-2 px-3 py-3 text-left transition hover:bg-[var(--fl-raised)] active:bg-[var(--fl-raised)] focus:outline-none focus:ring-2 focus:ring-teal-400 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
               >
                 <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                   <span
