@@ -8,6 +8,14 @@ import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
+import {
+  logCam,
+  detectPriorCrash,
+  beginCamSession,
+  endCamSessionClean,
+  formatCrashLog,
+  clearCrashLog,
+} from "../lib/liveCameraLog";
 // Lazy-load the Konva markup editor so the canvas library isn't pulled into the
 // live-camera bundle up front — it loads only when the inspector opens markup.
 const PhotoMarkupEditor = dynamic(() => import("./PhotoMarkupEditor"), {
@@ -256,6 +264,9 @@ export default function AILiveInspectionCamera({
   // Synchronous guard so a double-tap during the async mic-start sequence can't
   // start the native recognizer twice (two concurrent starts crash on iOS).
   const voiceStartingRef = useRef(false);
+  // True when the previous camera session ended abnormally (likely a crash) and
+  // its breadcrumb log was preserved for copying.
+  const [crashLogAvailable, setCrashLogAvailable] = useState(false);
   const [voiceListening, setVoiceListening] = useState(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [voiceFilled, setVoiceFilled] = useState<
@@ -315,12 +326,27 @@ export default function AILiveInspectionCamera({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]);
 
+  // Detect a crash from a PRIOR session once on mount, and preserve its log.
   useEffect(() => {
-    if (!open) {
+    if (detectPriorCrash()) {
+      setCrashLogAvailable(true);
+      logCam("prior-crash-detected");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      beginCamSession();
+      logCam("session:open", { category });
+    } else {
       stopCamera();
     }
 
     return () => {
+      // Runs on a NORMAL close/unmount (a crash skips React cleanup) — mark the
+      // session clean so the next mount doesn't report a false crash.
+      endCamSessionClean();
       stopCamera();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -353,6 +379,7 @@ export default function AILiveInspectionCamera({
         videoTrack.muted === true;
 
       if (dead) {
+        logCam("camera:recover", { voiceListening });
         try {
           stream?.getTracks?.().forEach((t) => t.stop());
         } catch {}
@@ -440,6 +467,7 @@ export default function AILiveInspectionCamera({
 
     setStarting(true);
     setCameraError("");
+    logCam("camera:start", { mode, byId: Boolean(deviceId) });
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -475,6 +503,10 @@ export default function AILiveInspectionCamera({
       });
 
       streamRef.current = stream;
+      logCam("camera:started", {
+        audio: stream.getAudioTracks().length,
+        video: stream.getVideoTracks().length,
+      });
 
       const videoTrack = stream.getVideoTracks()[0];
       const capabilities = videoTrack?.getCapabilities?.() as MediaTrackCapabilities & {
@@ -535,6 +567,7 @@ export default function AILiveInspectionCamera({
         }
       }
     } catch (error: any) {
+      logCam("camera:error", { msg: String(error?.message || error) });
       setCameraError(error?.message || "Could not start camera.");
     } finally {
       setStarting(false);
@@ -560,6 +593,7 @@ export default function AILiveInspectionCamera({
   }
 
   function stopCamera() {
+    logCam("camera:stop");
     if (focusResetTimerRef.current) {
       window.clearTimeout(focusResetTimerRef.current);
       focusResetTimerRef.current = null;
@@ -801,6 +835,12 @@ export default function AILiveInspectionCamera({
       if (category === "reference" && shots.length === 0) {
         setReferenceSection(currentSection);
       }
+      logCam("shots:add", {
+        count: shots.length + 1,
+        category,
+        isVideo,
+        fileKB: Math.round((file.size || 0) / 1024),
+      });
       setShots((current) => [
         ...current,
         { file, frame: frameDataUrlForAi, isVideo },
@@ -909,6 +949,7 @@ export default function AILiveInspectionCamera({
   async function submitVoiceTranscript(text: string) {
     const transcript = text.trim();
     if (!transcript || !selectedReport) return;
+    logCam("mic:submit", { len: transcript.length });
     setVoiceBusy(true);
     try {
       const res = await fetch("/api/ai/voice-section-fill", {
@@ -936,6 +977,7 @@ export default function AILiveInspectionCamera({
   }
 
   async function stopVoiceFill() {
+    logCam("mic:stop");
     setVoiceListening(false);
     if (Capacitor.isNativePlatform()) {
       try {
@@ -969,6 +1011,7 @@ export default function AILiveInspectionCamera({
     voiceStartingRef.current = true;
     voiceTranscriptRef.current = "";
     setVoiceFilled(null);
+    logCam("mic:start", { native: Capacitor.isNativePlatform() });
 
     try {
       if (Capacitor.isNativePlatform()) {
@@ -979,13 +1022,16 @@ export default function AILiveInspectionCamera({
         // field. Stopping the camera's audio track(s) frees the session; the
         // video preview is unaffected (photos don't use audio).
         try {
+          const n = streamRef.current?.getAudioTracks().length ?? 0;
           streamRef.current?.getAudioTracks().forEach((track) => track.stop());
+          logCam("mic:audio-freed", { tracks: n });
         } catch {
           /* ignore */
         }
 
         // Native iOS/Android speech (same plugin as Voice-Only mode).
         const permission = await NativeSpeechRecognition.requestPermissions();
+        logCam("mic:permission", { state: permission.speechRecognition });
         if (permission.speechRecognition !== "granted") {
           setToast("Microphone permission was not granted.");
           return;
@@ -1008,6 +1054,7 @@ export default function AILiveInspectionCamera({
           popup: false,
         });
         setVoiceListening(true);
+        logCam("mic:listening", { native: true });
         setToast("🎤 Listening — say what you see…");
       } else {
         // Browser Web Speech API fallback.
@@ -1042,6 +1089,7 @@ export default function AILiveInspectionCamera({
       }
     } catch (error: any) {
       setVoiceListening(false);
+      logCam("mic:error", { msg: String(error?.message || error) });
       // A failed start can leave a native listener/session half-attached — clean
       // it up so the next attempt starts fresh (and doesn't stack listeners).
       if (Capacitor.isNativePlatform()) {
@@ -1075,6 +1123,7 @@ export default function AILiveInspectionCamera({
     try {
       const frame = captureFrame();
       if (!frame) return;
+      logCam("capture:photo", { category });
       const file = dataUrlToFile(frame, `ai-camera-${category}`);
       await proceedAfterCapture(file, frame, false);
     } catch (error: any) {
@@ -1145,6 +1194,12 @@ export default function AILiveInspectionCamera({
           return;
         }
 
+        logCam("capture:video-stop", {
+          chunks: chunks.length,
+          kb: Math.round(
+            chunks.reduce((sum, c) => sum + (c.size || 0), 0) / 1024,
+          ),
+        });
         const type = recorder.mimeType || chunks[0]?.type || "video/webm";
         const extension = type.includes("mp4") ? "mp4" : "webm";
         const file = new File(
@@ -1168,6 +1223,7 @@ export default function AILiveInspectionCamera({
       };
 
       recorder.start();
+      logCam("capture:video-start");
       setRecordingVideo(true);
     } catch {
       setCameraError("Could not start video recording.");
@@ -1221,6 +1277,7 @@ export default function AILiveInspectionCamera({
     allFiles?: File[],
   ) {
     setDraftError("");
+    logCam("ai:begin", { category });
     const note = typeof noteOverride === "string" ? noteOverride : noteText;
 
     // Shrink the frame(s) for the AI request only — the saved photo (file) keeps
@@ -1237,6 +1294,7 @@ export default function AILiveInspectionCamera({
       aiFrames.push(await shrinkForAi(f));
     }
     const aiFrame = aiFrames[0] || frameDataUrl;
+    logCam("ai:frames-ready", { count: aiFrames.length });
 
     try {
       if (category === "finding") {
@@ -1354,6 +1412,7 @@ export default function AILiveInspectionCamera({
         return;
       }
     } catch (error: any) {
+      logCam("ai:error", { category, msg: String(error?.message || error) });
       setDraftError(error?.message || "AI drafting failed.");
       setStage("capture_error");
     }
@@ -1635,6 +1694,22 @@ export default function AILiveInspectionCamera({
 
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === category) || null;
 
+  async function copyCrashLog() {
+    const text = formatCrashLog();
+    try {
+      await navigator.clipboard.writeText(text);
+      setToast("Diagnostic log copied — paste it to support.");
+    } catch {
+      // Clipboard blocked → show it so they can select + copy manually.
+      window.prompt("Copy this diagnostic log:", text);
+    }
+  }
+
+  function dismissCrashLog() {
+    clearCrashLog();
+    setCrashLogAvailable(false);
+  }
+
   const cameraUi = !open ? (
     <div className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-white">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
@@ -1645,6 +1720,35 @@ export default function AILiveInspectionCamera({
         Pick a category, capture a photo or video, and AI drafts it for your
         approval. Nothing saves until you accept it.
       </p>
+
+      {crashLogAvailable && (
+        <div className="mt-3 rounded-xl border border-amber-400/50 bg-amber-400/10 p-3">
+          <p className="text-sm font-semibold text-amber-200">
+            ⚠️ The camera closed unexpectedly last time.
+          </p>
+          <p className="mt-0.5 text-xs text-amber-100/80">
+            A diagnostic log of what led up to it was saved. Copy it and send it
+            to support so we can fix it.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={copyCrashLog}
+              className="rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-black active:scale-95 [touch-action:manipulation]"
+            >
+              📋 Copy diagnostic log
+            </button>
+            <button
+              type="button"
+              onClick={dismissCrashLog}
+              className="rounded-lg border border-white/20 px-3 py-2 text-xs font-semibold text-white/70 [touch-action:manipulation]"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => {
