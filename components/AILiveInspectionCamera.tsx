@@ -253,6 +253,9 @@ export default function AILiveInspectionCamera({
   // never overlaps what a photo already recognized.
   const voiceRecognitionRef = useRef<any>(null);
   const voiceTranscriptRef = useRef("");
+  // Synchronous guard so a double-tap during the async mic-start sequence can't
+  // start the native recognizer twice (two concurrent starts crash on iOS).
+  const voiceStartingRef = useRef(false);
   const [voiceListening, setVoiceListening] = useState(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [voiceFilled, setVoiceFilled] = useState<
@@ -401,6 +404,24 @@ export default function AILiveInspectionCamera({
     const timer = window.setTimeout(() => setToast(""), 2600);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  // Stop the native speech recognizer if the camera unmounts while listening, so
+  // a voice session + partialResults listener are never left orphaned (orphaned
+  // native sessions were a mic-crash source).
+  useEffect(() => {
+    return () => {
+      if (Capacitor.isNativePlatform()) {
+        NativeSpeechRecognition.stop().catch(() => {});
+        NativeSpeechRecognition.removeAllListeners().catch(() => {});
+      } else {
+        try {
+          voiceRecognitionRef.current?.stop?.();
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -554,6 +575,16 @@ export default function AILiveInspectionCamera({
     mediaRecorderRef.current = null;
     recordedChunksRef.current = [];
     setRecordingVideo(false);
+
+    // Release the native speech recognizer on EVERY camera-stop path (close,
+    // unmount, facing/lens switch). An orphaned recognizer keeps the iOS audio
+    // session open and crashes the next getUserMedia/mic use — the top cause of
+    // "works once, crashes the next time" mic crashes.
+    if (Capacitor.isNativePlatform()) {
+      NativeSpeechRecognition.stop().catch(() => {});
+      NativeSpeechRecognition.removeAllListeners().catch(() => {});
+    }
+    setVoiceListening(false);
 
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -934,16 +965,37 @@ export default function AILiveInspectionCamera({
       return;
     }
 
+    if (voiceStartingRef.current) return; // double-tap guard during async start
+    voiceStartingRef.current = true;
     voiceTranscriptRef.current = "";
     setVoiceFilled(null);
 
     try {
       if (Capacitor.isNativePlatform()) {
+        // Free the iOS audio session BEFORE the native recognizer grabs it. The
+        // live camera's getUserMedia holds the microphone, and on iOS the native
+        // SFSpeechRecognizer fighting an active getUserMedia audio track over
+        // AVAudioSession crashes the app — this is the "mic crashes" seen in the
+        // field. Stopping the camera's audio track(s) frees the session; the
+        // video preview is unaffected (photos don't use audio).
+        try {
+          streamRef.current?.getAudioTracks().forEach((track) => track.stop());
+        } catch {
+          /* ignore */
+        }
+
         // Native iOS/Android speech (same plugin as Voice-Only mode).
         const permission = await NativeSpeechRecognition.requestPermissions();
         if (permission.speechRecognition !== "granted") {
           setToast("Microphone permission was not granted.");
           return;
+        }
+        // Clear any listener left over from a previous session before adding a
+        // new one, so partialResults listeners never stack up across sessions.
+        try {
+          await NativeSpeechRecognition.removeAllListeners();
+        } catch {
+          /* ignore */
         }
         await NativeSpeechRecognition.addListener("partialResults", (event: any) => {
           const transcript = String(event?.matches?.[0] || "").trim();
@@ -990,7 +1042,23 @@ export default function AILiveInspectionCamera({
       }
     } catch (error: any) {
       setVoiceListening(false);
+      // A failed start can leave a native listener/session half-attached — clean
+      // it up so the next attempt starts fresh (and doesn't stack listeners).
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await NativeSpeechRecognition.stop();
+        } catch {
+          /* ignore */
+        }
+        try {
+          await NativeSpeechRecognition.removeAllListeners();
+        } catch {
+          /* ignore */
+        }
+      }
       setToast(error?.message || "Couldn't start the mic.");
+    } finally {
+      voiceStartingRef.current = false;
     }
   }
 
@@ -1004,10 +1072,16 @@ export default function AILiveInspectionCamera({
   }
 
   async function handlePhotoShutter() {
-    const frame = captureFrame();
-    if (!frame) return;
-    const file = dataUrlToFile(frame, `ai-camera-${category}`);
-    await proceedAfterCapture(file, frame, false);
+    try {
+      const frame = captureFrame();
+      if (!frame) return;
+      const file = dataUrlToFile(frame, `ai-camera-${category}`);
+      await proceedAfterCapture(file, frame, false);
+    } catch (error: any) {
+      // A malformed frame / decode failure should surface as a retryable toast,
+      // never an uncaught rejection that could wedge the camera.
+      setToast(error?.message || "Couldn't capture that shot — try again.");
+    }
   }
 
   function toggleVideoRecording() {
@@ -1045,7 +1119,10 @@ export default function AILiveInspectionCamera({
         ? new MediaStream(stream.getVideoTracks())
         : stream;
       const recorder = new MediaRecorder(recordStream, {
-        videoBitsPerSecond: 10_000_000,
+        // 6 Mbps is plenty for inspection clips and roughly halves the in-memory
+        // File size vs 10 Mbps — a ~60s clip drops from ~75MB to ~45MB, which
+        // (with the photo tray) was pushing the iOS WebView into a memory crash.
+        videoBitsPerSecond: 6_000_000,
         ...(muteAudio ? {} : { audioBitsPerSecond: 128_000 }),
         ...(mimeType ? { mimeType } : {}),
       });
@@ -1105,6 +1182,37 @@ export default function AILiveInspectionCamera({
     void handlePhotoShutter();
   }
 
+  // Retry transient AI failures (network blips, 5xx) automatically with a short
+  // backoff, so the inspector doesn't have to keep tapping "Try AI Again" for a
+  // momentary hiccup. Non-transient errors (4xx with a real message) return on
+  // the first try and fall through to the capture_error screen as before. Same
+  // call signature as fetch(), so call sites only swap the function name.
+  async function fetchWithRetry(
+    input: string,
+    init?: RequestInit,
+    retries = 2,
+  ): Promise<Response> {
+    let lastErr: any;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        const res = await fetch(input, init);
+        if (res.status >= 500 && attempt < retries) {
+          await new Promise((r) => window.setTimeout(r, 400 * (attempt + 1)));
+          continue;
+        }
+        return res;
+      } catch (err) {
+        lastErr = err;
+        if (attempt < retries) {
+          await new Promise((r) => window.setTimeout(r, 400 * (attempt + 1)));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastErr;
+  }
+
   async function runDraft(
     frameDataUrl: string,
     file: File,
@@ -1119,12 +1227,20 @@ export default function AILiveInspectionCamera({
     // its full resolution. Speeds up the upload and the model's response.
     const rawAiFrames =
       allFrames && allFrames.length ? allFrames : [frameDataUrl];
-    const aiFrames = await Promise.all(rawAiFrames.map((f) => shrinkForAi(f)));
+    // Shrink SEQUENTIALLY, not with Promise.all — shrinking decodes a full-res
+    // image onto a canvas, and decoding every shot at once (a multi-angle finding)
+    // spikes WebView memory hard enough to crash iOS right when "Analyze" is
+    // tapped. One decode alive at a time trades a little time for stability.
+    const aiFrames: string[] = [];
+    for (const f of rawAiFrames) {
+      // eslint-disable-next-line no-await-in-loop
+      aiFrames.push(await shrinkForAi(f));
+    }
     const aiFrame = aiFrames[0] || frameDataUrl;
 
     try {
       if (category === "finding") {
-        const response = await fetch("/api/ai-capture", {
+        const response = await fetchWithRetry("/api/ai-capture", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           cache: "no-store",
@@ -1179,7 +1295,7 @@ export default function AILiveInspectionCamera({
       }
 
       if (category === "limitation") {
-        const response = await fetch("/api/ai/live-inspection-camera", {
+        const response = await fetchWithRetry("/api/ai/live-inspection-camera", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           cache: "no-store",
@@ -1223,7 +1339,7 @@ export default function AILiveInspectionCamera({
         formData.append("inspection_id", selectedReport || "");
         if (note.trim()) formData.append("note", note.trim());
 
-        const response = await fetch("/api/analyze-equipment", {
+        const response = await fetchWithRetry("/api/analyze-equipment", {
           method: "POST",
           body: formData,
         });
@@ -1789,6 +1905,25 @@ export default function AILiveInspectionCamera({
           className="absolute inset-x-0 bottom-0 z-20 px-4"
           style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
         >
+          {/* Escape hatch when you came here from "Add another angle": if you
+              decide NOT to snap another, tap to go straight back to reviewing the
+              shots you already have (re-runs the AI on them). Without this the
+              only way out was Retake, which discarded everything. */}
+          {shots.length > 0 && (
+            <div className="mx-auto mb-3 flex max-w-[520px] items-center justify-between gap-2 rounded-2xl border border-cyan-400/40 bg-cyan-500/15 px-3 py-2 backdrop-blur">
+              <span className="text-xs font-semibold text-cyan-100">
+                {shots.length} shot{shots.length === 1 ? "" : "s"} ready
+              </span>
+              <button
+                type="button"
+                onClick={() => void analyzeShots()}
+                className="rounded-full bg-cyan-400 px-4 py-1.5 text-xs font-bold text-black active:scale-95 [touch-action:manipulation]"
+              >
+                ✨ Review {shots.length} shot{shots.length === 1 ? "" : "s"} →
+              </button>
+            </div>
+          )}
+
           {/* Category selector, always in reach and never in the way. Replaces
               the full-screen "what are you capturing?" gate that used to stand
               between opening the camera and taking a picture. Equal quarters so
