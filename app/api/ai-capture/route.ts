@@ -191,40 +191,43 @@ export async function POST(req: Request) {
       );
     }
 
-    const inspectorLearningPatterns = await learningEngine.getPatterns(180);
+    // Subject used for defect-knowledge / standards / example retrieval.
+    const retrievalSubject = `${note || ""} ${existingObservation || ""}`.trim();
+
+    // The three DB-bound inputs that feed the prompt — inspector learning
+    // patterns, company writing config, and this inspector's few-shot published
+    // examples — share NO data dependency, so fetch them CONCURRENTLY instead of
+    // one-after-another. This removes ~6-8 serial round-trips stacked in front of
+    // the model. The model still receives the EXACT same inputs; only the fetch
+    // is parallelized, so wording quality is unchanged. Examples are best-effort
+    // (a miss just leaves the already-strong style + learning prompt untouched).
+    const [inspectorLearningPatterns, writingConfig, publishedExamples] =
+      await Promise.all([
+        learningEngine.getPatterns(180, attributedUserId),
+        loadWritingConfigForUser(attributedUserId),
+        getInspectorFindingExamples({
+          userId: attributedUserId,
+          inspectionId,
+          section: requestedSection || null,
+          subject: retrievalSubject,
+          limit: 3,
+        }).catch(() => [] as any),
+      ]);
+
     const inspectorLearningMemory = learningEngine.formatPatternsForPrompt(
       inspectorLearningPatterns,
     );
-
     // Company AI Writing Studio preferences (SOP, length, detail, tone, per-severity).
-    const writingConfig = await loadWritingConfigForUser(attributedUserId);
     const writingStyleBlock = buildWritingStyleInstructions(writingConfig);
-
-    // Shared FLOW Writer brain: matched defect knowledge + few-shot examples
-    // pulled from THIS inspector's own published findings. Best-effort — a miss
-    // just leaves the (already strong) style + learning prompt untouched.
-    const retrievalSubject = `${note || ""} ${existingObservation || ""}`.trim();
+    // Shared FLOW Writer brain: matched defect knowledge for the subject.
     const defectKnowledgeBlock = buildDefectKnowledge(retrievalSubject);
-
     // Standards Brain: if the note/subject names a defect tied to a recognized
     // safety standard, hand the model that standard so its recommendation aligns
     // with it (advisory reference, not a legal citation).
     const standardsContext = matchStandards(retrievalSubject)
       .map((s) => `- ${s.title} (${s.citation}): ${s.note}`)
       .join("\n");
-    let publishedExamplesBlock = "";
-    try {
-      const examples = await getInspectorFindingExamples({
-        userId: attributedUserId,
-        inspectionId,
-        section: requestedSection || null,
-        subject: retrievalSubject,
-        limit: 3,
-      });
-      publishedExamplesBlock = formatExamplesForPrompt(examples);
-    } catch {
-      publishedExamplesBlock = "";
-    }
+    const publishedExamplesBlock = formatExamplesForPrompt(publishedExamples);
 
     const systemPrompt = `
 You are FLOW AI Report Writer 3.0, a senior certified home inspector and careful report editor.

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { getAIModel } from "../../../../lib/openai";
+import { getFastAIModel } from "../../../../lib/openai";
 import {
   getSessionUser,
   getAdminClient,
@@ -82,7 +82,10 @@ Return ONLY valid JSON: { "sectionInfo": { <field>: <value>, ... } } — include
     ];
 
     const aiResponse = await openai.chat.completions.create({
-      model: getAIModel(),
+      // Fast model: constrained material selection from a fixed option list,
+      // re-validated server-side (presence fields forced Yes/dropped) — not prose
+      // — so the fast model is equivalent and quicker.
+      model: getFastAIModel(),
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },

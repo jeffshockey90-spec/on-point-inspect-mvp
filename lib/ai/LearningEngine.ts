@@ -44,6 +44,18 @@ function firstWords(value: any, maxWords = 16) {
   return cleanText(value).split(" ").slice(0, maxWords).join(" ");
 }
 
+// Short-TTL, per-process cache for the distilled learning patterns so the live
+// camera doesn't re-pull + re-reduce ~180 rows of learning JSON on EVERY capture
+// during a burst. MUST be keyed per-user (getPatterns is RLS-scoped to the
+// signed-in inspector), so the key includes the caller-supplied user id; callers
+// that don't pass one are never cached. TTL bounds staleness to seconds, and only
+// successful non-empty results are cached. Same patterns, just not re-fetched.
+const PATTERNS_TTL_MS = 90 * 1000;
+const patternsCache = new Map<
+  string,
+  { value: InspectorLearningPatterns; expires: number }
+>();
+
 export class LearningEngine {
   async record(event: LearningEvent) {
     try {
@@ -90,7 +102,10 @@ export class LearningEngine {
     }
   }
 
-  async getPatterns(limit = 180): Promise<InspectorLearningPatterns> {
+  async getPatterns(
+    limit = 180,
+    cacheUserId?: string | null,
+  ): Promise<InspectorLearningPatterns> {
     const empty: InspectorLearningPatterns = {
       preferredPhrases: [],
       avoidedPhrases: [],
@@ -100,6 +115,14 @@ export class LearningEngine {
       acceptedSuggestionTypes: [],
       ignoredSuggestionTypes: [],
     };
+
+    // Per-user cache key; empty string = don't cache (no user id supplied).
+    const cacheKey = cacheUserId ? `${cacheUserId}:${limit}` : "";
+    if (cacheKey) {
+      const hit = patternsCache.get(cacheKey);
+      if (hit && hit.expires > Date.now()) return hit.value;
+      if (hit) patternsCache.delete(cacheKey);
+    }
 
     try {
       const supabase = await createClient();
@@ -158,7 +181,7 @@ export class LearningEngine {
         }
       }
 
-      return {
+      const result: InspectorLearningPatterns = {
         preferredPhrases: unique(preferred, 16),
         avoidedPhrases: unique(avoided, 12),
         recommendationStyle: unique(recommendationStyle, 10),
@@ -167,6 +190,15 @@ export class LearningEngine {
         acceptedSuggestionTypes: unique(acceptedTypes, 8),
         ignoredSuggestionTypes: unique(ignoredTypes, 8),
       };
+
+      if (cacheKey) {
+        patternsCache.set(cacheKey, {
+          value: result,
+          expires: Date.now() + PATTERNS_TTL_MS,
+        });
+      }
+
+      return result;
     } catch (error) {
       console.error("LearningEngine.getPatterns", error);
       return empty;

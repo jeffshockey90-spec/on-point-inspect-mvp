@@ -6,6 +6,7 @@ import {
   DEFAULT_AI_WRITING_CONFIG,
   normalizeWritingConfig,
 } from "../../../lib/ai/writingStyle";
+import { invalidateWritingConfigCache } from "../../../lib/ai/loadWritingConfig";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -131,6 +132,10 @@ export async function POST(req: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Drop the in-process config cache so the next AI capture uses the new config
+  // immediately rather than waiting out the short TTL.
+  invalidateWritingConfigCache();
 
   return NextResponse.json({ ok: true, config });
 }

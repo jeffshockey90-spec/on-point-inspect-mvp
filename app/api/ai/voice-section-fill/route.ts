@@ -6,7 +6,7 @@ import {
   notFound,
   unauthorized,
 } from "../../../../lib/apiAuth";
-import { openai, getAIModel, getAIVersion, requireOpenAIKey } from "../../../../lib/openai";
+import { openai, getFastAIModel, getAIVersion, requireOpenAIKey } from "../../../../lib/openai";
 import { logAIEvent } from "../../../../lib/logging";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import { CHECKLIST_LIBRARY } from "../../../../lib/checklistLibrary";
@@ -90,7 +90,11 @@ ${transcript}
 
 Return the JSON fills now.`;
 
-    const model = getAIModel();
+    // Fast model: this is constrained slot-filling (map spoken words to a fixed
+    // checklist option list), re-validated server-side against CHECKLIST_LIBRARY
+    // below — not prose generation — so the fast model is equivalent here and
+    // noticeably quicker. (Writer wording lives in ai-capture, left untouched.)
+    const model = getFastAIModel();
     let completion;
     try {
       completion = await openai.chat.completions.create({
