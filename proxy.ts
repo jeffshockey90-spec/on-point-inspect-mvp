@@ -140,7 +140,42 @@ function createAdminClient() {
   });
 }
 
-async function getAccountRoute(user: { id: string; email?: string | null }) {
+// Short-TTL, per-process cache of the resolved account role, keyed by the
+// VALIDATED user id (the session is always verified by getUser() before this
+// runs). Server memory only — nothing a client can forge or inject — so it can
+// never escalate access; it just avoids re-running the 2-3 role DB queries on
+// every navigation within the window. Only POSITIVE roles are cached, so a
+// transient DB/service-key failure (which returns the fail-closed "/login"
+// result) never sticks and locks a real user out.
+type AccountRoute = {
+  isInspector: boolean;
+  isRealtor: boolean;
+  isClient: boolean;
+  isOwner: boolean;
+  destination: string;
+};
+const ROLE_CACHE_TTL_MS = 60 * 1000;
+const roleCache = new Map<string, { value: AccountRoute; expires: number }>();
+
+async function getAccountRoute(
+  user: { id: string; email?: string | null },
+): Promise<AccountRoute> {
+  const cached = roleCache.get(user.id);
+  if (cached && cached.expires > Date.now()) return cached.value;
+
+  const result = await computeAccountRoute(user);
+
+  if (result.isInspector || result.isRealtor || result.isClient || result.isOwner) {
+    roleCache.set(user.id, {
+      value: result,
+      expires: Date.now() + ROLE_CACHE_TTL_MS,
+    });
+  }
+
+  return result;
+}
+
+async function computeAccountRoute(user: { id: string; email?: string | null }) {
   const email = cleanEmail(user.email);
   const isOwner = OWNER_EMAILS.includes(email);
 

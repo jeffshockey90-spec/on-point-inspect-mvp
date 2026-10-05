@@ -237,6 +237,10 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
           data: { user },
         } = await supabase.auth.getUser();
 
+        // Set the email from THIS same getUser() call — a second effect used to
+        // make its own duplicate getUser() just for the email, doubling the auth
+        // round-trips on every mount.
+        setUserEmail(user?.email || "");
         await loadAccountRouting(user?.email || "");
       } catch {
         applyRoutingFallback();
@@ -252,11 +256,13 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
           event === "INITIAL_SESSION" ||
           event === "USER_UPDATED"
         ) {
+          setUserEmail(session?.user?.email || "");
           void loadAccountRouting(session?.user?.email || "");
           return;
         }
 
         if (event === "SIGNED_OUT") {
+          setUserEmail("");
           accountRoutingAbortRef.current?.abort();
           accountRoutingInFlightRef.current = false;
           setRoutingResolved(false);
@@ -269,28 +275,6 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
       accountRoutingAbortRef.current?.abort();
       accountRoutingAbortRef.current = null;
       accountRoutingInFlightRef.current = false;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (active) setUserEmail(data?.user?.email || "");
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!active) return;
-      if (event === "SIGNED_OUT") {
-        setUserEmail("");
-        return;
-      }
-      setUserEmail(session?.user?.email || "");
-    });
-
-    return () => {
-      active = false;
       listener.subscription.unsubscribe();
     };
   }, []);
