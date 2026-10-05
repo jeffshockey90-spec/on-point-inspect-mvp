@@ -2939,24 +2939,28 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 Report &amp; Share
               </p>
               <div className="flex flex-wrap gap-3">
+                {/* One clear PRIMARY (the real server-rendered PDF download),
+                    with the two browser-print paths as consistent secondary
+                    (ghost) buttons — was three different solid colors incl. a
+                    bg-white/text-black that broke in light mode. */}
                 <ReportDownloadButton
                   href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?type=full`}
                   filename={`inspection-report-${inspection.id}-full.pdf`}
                   preparingText="Preparing PDF..."
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 font-bold text-black hover:bg-cyan-400"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-bold text-black transition hover:bg-teal-400"
                 >
                   Download PDF
                 </ReportDownloadButton>
 
                 <PrintButton
                   label="Print / Save PDF"
-                  className="rounded-xl bg-[var(--fl-surface-2)] px-5 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                 />
 
                 <FastLinkButton
                   href={`/reports/${inspection.id}/print`}
                   loadingText="Opening PDF..."
-                  className="rounded-xl bg-white px-5 py-3 font-bold text-black hover:bg-slate-200"
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                 >
                   Export PDF
                 </FastLinkButton>

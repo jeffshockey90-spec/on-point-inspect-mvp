@@ -40,7 +40,9 @@ body {
 /* Branded text selection */
 ::selection {
   background: rgba(20, 200, 210, 0.28);
-  color: #ffffff;
+  /* Theme-aware so selected text stays legible in light mode (was hard-coded
+     white, which vanished on a light background). */
+  color: var(--fl-text);
 }
 
 /* Slim, themed scrollbars (premium feel, app-wide) */
@@ -223,9 +225,9 @@ img {
   }
   20%,
   60% {
-    box-shadow: 0 0 0 5px rgba(45, 212, 191, 0.3);
-    border-color: #2dd4bf;
-    background-color: rgba(45, 212, 191, 0.12);
+    box-shadow: 0 0 0 5px var(--fl-accent-line);
+    border-color: var(--fl-accent);
+    background-color: var(--fl-accent-bg);
   }
   40%,
   80% {
@@ -251,7 +253,7 @@ img {
 }
 
 .fc .fc-toolbar-title {
-  color: #2dd4bf;
+  color: var(--fl-accent-text);
   font-weight: 800;
   font-size: 1.4rem;
 }
@@ -266,12 +268,12 @@ img {
 }
 
 .fc .fc-button:hover {
-  background: #14b8a6 !important;
+  background: var(--fl-accent) !important;
   color: var(--fl-ground) !important;
 }
 
 .fc .fc-button-active {
-  background: #14b8a6 !important;
+  background: var(--fl-accent) !important;
   color: var(--fl-ground) !important;
 }
 
@@ -283,12 +285,12 @@ img {
 
 .fc-col-header-cell {
   background: var(--fl-surface-2);
-  color: #2dd4bf;
+  color: var(--fl-accent-text);
   font-weight: bold;
 }
 
 .fc-col-header-cell-cushion {
-  color: #2dd4bf;
+  color: var(--fl-accent-text);
   text-decoration: none;
 }
 
@@ -311,7 +313,7 @@ img {
 }
 
 .fc-day-today {
-  background: rgba(20, 184, 166, 0.08) !important;
+  background: var(--fl-accent-bg) !important;
 }
 
 /* Per-event colors (set on each event by ScheduleCalendar so every inspection
