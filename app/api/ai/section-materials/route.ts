@@ -122,7 +122,10 @@ Return ONLY valid JSON: { "sectionInfo": { <field>: <value>, ... } } — include
         const authorized = await authorizeInspection(admin, user.id, inspectionId, "id");
         if (authorized) {
           const fills = buildMaterialFills(section, sectionInfo);
-          if (fills.length) written = await writeChecklistFills(admin, inspectionId, fills);
+          // Stamp inspector_id = the acting inspector: this is a service-role
+          // client, so otherwise the rows save with inspector_id = null and the
+          // RLS'd builder read (keyed on inspector_id) can't see them.
+          if (fills.length) written = await writeChecklistFills(admin, inspectionId, fills, { inspectorId: user.id });
         }
       } catch (writeErr) {
         console.error("Section-materials write failed:", writeErr);

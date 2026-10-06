@@ -178,7 +178,13 @@ Return the JSON fills now.`;
       applied.push({ section: fill.section, group: fill.groupTitle, value: fill.value });
     }
 
-    const written = toWrite.length ? await writeChecklistFills(supabaseAdmin, inspectionId, toWrite) : 0;
+    // Stamp inspector_id = the acting inspector. This is a SERVICE-ROLE client,
+    // so without it the rows save with inspector_id = null and the RLS'd builder
+    // read (keyed on inspector_id) can't see them — the boxes show unchecked even
+    // though they saved. user.id matches what a manual checkbox insert records.
+    const written = toWrite.length
+      ? await writeChecklistFills(supabaseAdmin, inspectionId, toWrite, { inspectorId: user.id })
+      : 0;
 
     await logAIEvent({
       userId,

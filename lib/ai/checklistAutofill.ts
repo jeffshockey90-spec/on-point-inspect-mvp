@@ -421,10 +421,20 @@ export async function writeChecklistFills(
   supabase: any,
   inspectionId: string,
   fills: ChecklistFill[],
-  opts: { overwrite?: boolean } = {},
+  opts: { overwrite?: boolean; inspectorId?: string | null } = {},
 ): Promise<number> {
   if (!inspectionId || !Array.isArray(fills) || fills.length === 0) return 0;
   let written = 0;
+
+  // When called with a SERVICE-ROLE client (the AI server routes), inserts get
+  // inspector_id = null because there is no auth.uid() — and the report
+  // builder reads section_checklist_selections through the RLS'd browser client,
+  // whose policy is keyed on inspector_id, so those null rows are INVISIBLE and
+  // the boxes show unchecked (the "mic/photo didn't check the boxes" bug). A
+  // browser-client caller relies on the auth.uid() column default instead, so we
+  // ONLY stamp inspector_id when one is explicitly provided — passing null here
+  // would override that default and reintroduce the bug for those callers.
+  const ownerFields = opts.inspectorId ? { inspector_id: opts.inspectorId } : {};
 
   for (const f of fills) {
     if (!f?.section || !f?.groupTitle || !String(f.value || "").trim()) continue;
@@ -446,7 +456,7 @@ export async function writeChecklistFills(
     if (f.kind === "text") {
       const { error: textError } = await supabase
         .from("section_checklist_selections")
-        .insert({ inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: "__TEXT_VALUE__", custom_text: f.value });
+        .insert({ inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: "__TEXT_VALUE__", custom_text: f.value, ...ownerFields });
       if (!textError) written += 1;
 
       const unitLabel = String(f.unit || "").trim();
@@ -462,7 +472,7 @@ export async function writeChecklistFills(
         if (!unitExisting || unitExisting.length === 0) {
           await supabase
             .from("section_checklist_selections")
-            .insert({ inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: unitLabel });
+            .insert({ inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: unitLabel, ...ownerFields });
         }
       }
       continue;
@@ -471,7 +481,7 @@ export async function writeChecklistFills(
     let row: Record<string, any>;
     if (f.matched) {
       // Value IS a built-in option -> just check that box.
-      row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: f.value };
+      row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: f.value, ...ownerFields };
     } else {
       // Value the AI read isn't a built-in option. Promote it to a real,
       // reusable custom OPTION for this company (section_checklist_options,
@@ -500,12 +510,12 @@ export async function writeChecklistFills(
       if (!already) {
         await supabase
           .from("section_checklist_options")
-          .insert({ section: f.section, group_title: f.groupTitle, option_label: `__CUSTOM__:${label}`, replacement_label: label, hidden: false });
+          .insert({ section: f.section, group_title: f.groupTitle, option_label: `__CUSTOM__:${label}`, replacement_label: label, hidden: false, ...ownerFields });
       }
 
       // A custom option's checked-state is keyed by its display label (not the
       // "__CUSTOM__:" prefix), matching how the checklist UI toggles it.
-      row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: label };
+      row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: label, ...ownerFields };
     }
 
     const { error } = await supabase.from("section_checklist_selections").insert(row);
