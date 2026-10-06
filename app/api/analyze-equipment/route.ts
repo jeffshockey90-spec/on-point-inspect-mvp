@@ -1278,7 +1278,7 @@ function getRecallAwareness(manufacturer: string, model: string, serial: string)
   return `No live recall determination was made from image analysis. Verify ${manufacturer} model ${model} against current manufacturer and CPSC recall records. ${serialNote}`;
 }
 
-function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
+function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1, inspectorNote = "") {
   const category = inferCategory(parsed);
   const manufacturer = normalizeManufacturer(parsed.manufacturer);
   const equipmentType =
@@ -1326,7 +1326,16 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
     cleanText(parsed.recallAwareness) || getRecallAwareness(manufacturer, model, serial);
   const r22 = hasR22(parsed);
   const problemPanel = hasProblemPanel(parsed);
-  const condition = problemPanel || getAgeCondition(age, category, equipmentType);
+  // When the inspector noted something (e.g. "not working"), the model's
+  // note-driven condition is authoritative — don't overwrite it with the generic
+  // age-based line, which would wrongly read "No specific deficiency noted" on a
+  // unit the inspector flagged as defective. No note → keep the age-based signal.
+  const modelCondition = cleanText(parsed.condition);
+  const condition =
+    problemPanel ||
+    (inspectorNote.trim() && modelCondition
+      ? modelCondition
+      : getAgeCondition(age, category, equipmentType));
   const section = chooseSection(parsed, category);
 
   const severity = chooseSeverity({
@@ -1428,15 +1437,25 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1) {
     });
   }
 
-  const recommendation = buildCleanRecommendation({
-    age,
-    category,
-    equipmentType,
-    severity,
-    condition,
-    r22,
-    problemPanel,
-  });
+  // The recommendation is normally curated from age/severity/condition, but when
+  // the inspector noted a condition/defect the model's note-driven recommendation
+  // (e.g. "recommend evaluation and replacement by a licensed HVAC contractor")
+  // is authoritative — otherwise a flagged-as-broken unit could still get a
+  // generic "maintain per manufacturer" line.
+  const noteRecommendation = inspectorNote.trim()
+    ? cleanText(parsed.recommendation)
+    : "";
+  const recommendation =
+    noteRecommendation ||
+    buildCleanRecommendation({
+      age,
+      category,
+      equipmentType,
+      severity,
+      condition,
+      r22,
+      problemPanel,
+    });
 
   const maintenanceLevel = cleanText(parsed.maintenanceLevel) || getMaintenanceLevel({
     age,
@@ -1660,6 +1679,8 @@ export async function POST(req: Request) {
       draft: { note: inspectorNote },
       extra: `INPUT: one or more equipment photos to be treated as ONE equipment record — one photo may show the full unit, another the data plate, another the serial/model label.
 
+INSPECTOR NOTE — AUTHORITATIVE ON CONDITION: When an inspector note is provided and states or corrects an observed condition or defect (for example: not working, inoperable, not operational, no power/heat/cooling, leaking, rusted through, cracked heat exchanger, failed, damaged, deteriorated, at or past service life, recommend replacement), that stated condition is the SOURCE OF TRUTH and is FINAL. Reflect it directly in "condition", "equipmentStatus", "observation", "implication", "recommendation", and "clientSummary", and set "severity" to match the stated defect. NEVER report the unit as working, functional, operational, serviceable, "good", "normal", or "maintain per manufacturer" when the inspector note says otherwise. The data plate and photos are for IDENTIFICATION ONLY (brand, model, serial, manufacture date, capacity, fuel, refrigerant) — they must NEVER override the inspector's observed condition. If the note gives only identification context with no condition stated, assess condition conservatively from the visible evidence, and never assert that a unit is working/operational unless that is actually supported.
+
 You are the FLOW Equipment Intelligence Engine, an expert home inspection equipment analyst and data-plate reader. Think in passes: first read all visible text, then identify logos/brand marks, then identify equipment type, model, serial, manufacture date, capacity, fuel/refrigerant, and finally cross-check the result. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions only when strongly supported by visible evidence. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown. Include confidence scores and evidence for inspector review. Keep maintenance recommendations separate from identification notes. If inspector-specific learning memory is provided, match this inspector's demonstrated wording and style in the observation/implication/recommendation/clientSummary fields without changing factual identification data.
 
 Image-narration discipline: describe the equipment/component and its condition directly, NOT the photo. Never write "in this photo", "this image shows", "pictured", or "as seen".
@@ -1740,7 +1761,7 @@ Return ONLY valid JSON in this exact format (return every key):
 Analyze these equipment photos together. Use all provided images as one equipment record. One photo may show the full unit, another may show the data plate, and another may show the serial/model label.
 
 Number of photos provided: ${imageFiles.length}
-Inspector-provided context, if any: ${inspectorNote || "None"}
+Inspector note (AUTHORITATIVE on condition — obey the INSPECTOR NOTE rule in the system instructions; it overrides the photos on condition): ${inspectorNote || "None"}
 
 Inspector-specific learning memory from prior edits and decisions:
 ${inspectorLearningMemory || "None yet"}
@@ -1871,7 +1892,7 @@ Rules:
       };
     }
 
-    const enhanced = parsed?.error ? parsed : enhanceAnalysis(parsed || {}, imageFiles.length);
+    const enhanced = parsed?.error ? parsed : enhanceAnalysis(parsed || {}, imageFiles.length, inspectorNote);
 
     await logAIEvent({
       userId: attributedUserId,
