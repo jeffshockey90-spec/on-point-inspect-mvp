@@ -971,6 +971,20 @@ export default function AILiveInspectionCamera({
         ? Number(data.written)
         : applied.length;
 
+      // Tell the report builder's checklists to reload so the boxes show as
+      // checked the moment the camera closes — otherwise an already-open builder
+      // keeps showing them unchecked until a manual reload.
+      if (written > 0 && typeof window !== "undefined") {
+        const sections = Array.from(
+          new Set(applied.map((a: any) => a?.section).filter(Boolean)),
+        );
+        window.dispatchEvent(
+          new CustomEvent("opi:checklist-updated", {
+            detail: { inspectionId: selectedReport, sections },
+          }),
+        );
+      }
+
       if (written > 0 && written >= applied.length) {
         setVoiceFilled(applied);
         setToast(`✓ Filled ${written} box${written === 1 ? "" : "es"}`);

@@ -72,6 +72,10 @@ function SectionInformationChecklist({
   const [open, setOpen] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [selections, setSelections] = useState<SelectionRow[]>([]);
+  // Bumped to force a reload of selections — e.g. after the live-camera voice
+  // fill or photo autofill writes boxes for this section while the builder is
+  // already open (those write from a separate view and don't refresh the page).
+  const [reloadKey, setReloadKey] = useState(0);
   const [optionOverrides, setOptionOverrides] = useState<OptionOverride[]>([]);
   const [otherTextByGroup, setOtherTextByGroup] = useState<Record<string, string>>({});
   const [textValueByGroup, setTextValueByGroup] = useState<Record<string, string>>({});
@@ -281,7 +285,31 @@ function SectionInformationChecklist({
     }
 
     load();
-  }, [inspectionId, section, inspectorId]);
+  }, [inspectionId, section, inspectorId, reloadKey]);
+
+  // Reload when voice fill / photo autofill writes checklist boxes for THIS
+  // inspection (and this section, when the event names sections) from the live
+  // camera — otherwise the already-open builder keeps showing them unchecked
+  // until a manual reload.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    function onChecklistUpdated(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      if (String(detail.inspectionId || "") !== String(inspectionId)) return;
+      const secs = Array.isArray(detail.sections) ? detail.sections : null;
+      if (secs && !secs.includes(section)) return;
+      setReloadKey((k) => k + 1);
+    }
+    window.addEventListener(
+      "opi:checklist-updated",
+      onChecklistUpdated as EventListener,
+    );
+    return () =>
+      window.removeEventListener(
+        "opi:checklist-updated",
+        onChecklistUpdated as EventListener,
+      );
+  }, [inspectionId, section]);
 
   function getGroupOptions(group: ChecklistGroup): RenderOption[] {
     const overridesForGroup = optionOverrides.filter((item) => item.group_title === group.title);
