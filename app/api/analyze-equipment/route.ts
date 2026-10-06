@@ -845,9 +845,11 @@ function buildNarrativeEquipmentSummary({
 
   if (r22) {
     sentences.push("The system appears to use R-22 refrigerant.");
-  } else {
-    sentences.push("Unit appeared functional at the time of inspection.");
   }
+  // No blanket "appeared functional" claim: the equipment analyzer documents the
+  // unit from its data plate and does NOT test operation, so asserting it
+  // appeared functional would overstate what was actually done. Condition/testing
+  // status comes from the inspector's note (or is left unstated), not a default.
 
   return sentences.join("\n\n");
 }
@@ -1396,18 +1398,27 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1, inspectorNot
       problemPanel,
     });
 
-  const clientSummary = buildNarrativeEquipmentSummary({
-    equipmentType,
-    manufacturer,
-    model,
-    manufactureYear,
-    capacity: estimatedBTU || cleanText(parsed.capacity),
-    fuelType: cleanText(parsed.fuelType),
-    refrigerant: refrigerantValue,
-    category,
-    r22,
-    problemPanel,
-  });
+  // When the inspector noted a condition or testing limitation, use the model's
+  // note-driven summary (which, per the prompt, states the defect / "not tested"
+  // and never claims functional). The hardcoded narrative below is only for the
+  // no-note case. Guard against a metadata-dump summary.
+  const noteStated = Boolean(inspectorNote.trim());
+  const modelClientSummary = cleanText(parsed.clientSummary);
+  const clientSummary =
+    noteStated && modelClientSummary && !isEquipmentMetadataDump(modelClientSummary)
+      ? modelClientSummary
+      : buildNarrativeEquipmentSummary({
+          equipmentType,
+          manufacturer,
+          model,
+          manufactureYear,
+          capacity: estimatedBTU || cleanText(parsed.capacity),
+          fuelType: cleanText(parsed.fuelType),
+          refrigerant: refrigerantValue,
+          category,
+          r22,
+          problemPanel,
+        });
 
   let observation = cleanText(parsed.observation);
   let implication = cleanText(parsed.implication);
@@ -1679,7 +1690,7 @@ export async function POST(req: Request) {
       draft: { note: inspectorNote },
       extra: `INPUT: one or more equipment photos to be treated as ONE equipment record — one photo may show the full unit, another the data plate, another the serial/model label.
 
-INSPECTOR NOTE — AUTHORITATIVE ON CONDITION: When an inspector note is provided and states or corrects an observed condition or defect (for example: not working, inoperable, not operational, no power/heat/cooling, leaking, rusted through, cracked heat exchanger, failed, damaged, deteriorated, at or past service life, recommend replacement), that stated condition is the SOURCE OF TRUTH and is FINAL. Reflect it directly in "condition", "equipmentStatus", "observation", "implication", "recommendation", and "clientSummary", and set "severity" to match the stated defect. NEVER report the unit as working, functional, operational, serviceable, "good", "normal", or "maintain per manufacturer" when the inspector note says otherwise. The data plate and photos are for IDENTIFICATION ONLY (brand, model, serial, manufacture date, capacity, fuel, refrigerant) — they must NEVER override the inspector's observed condition. If the note gives only identification context with no condition stated, assess condition conservatively from the visible evidence, and never assert that a unit is working/operational unless that is actually supported.
+INSPECTOR NOTE — AUTHORITATIVE ON CONDITION: When an inspector note is provided and states or corrects (a) an observed condition or defect (for example: not working, inoperable, not operational, no power/heat/cooling, leaking, rusted through, cracked heat exchanger, failed, damaged, deteriorated, at or past service life, recommend replacement), OR (b) a TESTING LIMITATION (for example: not tested, could not be tested/evaluated/verified, not operated, water/power/gas was off, breaker off, access limited, winterized), that stated condition/limitation is the SOURCE OF TRUTH and is FINAL. Reflect it directly in "condition", "equipmentStatus", "observation", "implication", "recommendation", and "clientSummary", and set "severity" to match. CRITICAL: NEVER state or imply the unit was working, functional, operational, serviceable, "good", "normal", "appeared functional", or "maintain per manufacturer" when the note states a defect OR that it was not tested — this analysis reads the DATA PLATE only and does NOT test operation, so you may never claim a unit appeared functional. When the note says it was not tested, the observation and clientSummary MUST say the unit was not tested and state the reason (e.g. "The water heater was not tested because the water was shut off at the time of inspection."). The data plate and photos are for IDENTIFICATION ONLY (brand, model, serial, manufacture date, capacity, fuel, refrigerant) — they must NEVER override the inspector's stated condition or limitation. If the note gives only identification context with no condition stated, describe what was documented from the data plate and never assert the unit was tested or functional.
 
 You are the FLOW Equipment Intelligence Engine, an expert home inspection equipment analyst and data-plate reader. Think in passes: first read all visible text, then identify logos/brand marks, then identify equipment type, model, serial, manufacture date, capacity, fuel/refrigerant, and finally cross-check the result. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions only when strongly supported by visible evidence. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown. Include confidence scores and evidence for inspector review. Keep maintenance recommendations separate from identification notes. If inspector-specific learning memory is provided, match this inspector's demonstrated wording and style in the observation/implication/recommendation/clientSummary fields without changing factual identification data.
 
