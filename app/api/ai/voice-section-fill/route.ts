@@ -155,35 +155,60 @@ Return the JSON fills now.`;
       }
     }
 
-    // Only fill EMPTY groups — never overlap what a photo already recognized or
-    // the inspector already set. Build the applied list for the UI's confirmation.
+    // Add each spoken value as its own checkbox. Option groups are MULTI-SELECT
+    // (e.g. Wall Material = Drywall AND Paneling, Floor Coverings = Tile AND
+    // Vinyl), exactly like the manual checklist — so we DON'T skip a group just
+    // because it already has a value; we only skip the EXACT value that's already
+    // checked (no duplicates). Text fields (a single number like Insulation
+    // Depth) stay single-value: skip if the group already has a text value.
     const applied: Array<{ section: string; group: string; value: string }> = [];
     const toWrite: ChecklistFill[] = [];
+    let alreadySet = 0;
     const seen = new Set<string>();
     for (const fill of proposed) {
-      const key = `${fill.section}::${fill.groupTitle}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
+      // De-dupe WITHIN this one utterance by the exact target, so "drywall and
+      // paneling" keeps BOTH (same group, different value) but "drywall drywall"
+      // collapses to one.
+      const dedupeKey =
+        fill.kind === "text"
+          ? `${fill.section}::${fill.groupTitle}::__TEXT__`
+          : `${fill.section}::${fill.groupTitle}::${normKey(fill.value)}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
 
-      const { data: existing } = await supabaseAdmin
+      let existsQuery = supabaseAdmin
         .from("section_checklist_selections")
         .select("id")
         .eq("inspection_id", inspectionId)
         .eq("section", fill.section)
-        .eq("group_title", fill.groupTitle)
-        .limit(1);
-      if (existing && existing.length > 0) continue; // already set — skip (no overlap)
+        .eq("group_title", fill.groupTitle);
+      // Options: already-checked only when this SAME value exists (multi-select).
+      // Text: already-set when the group has any text value (single-value).
+      existsQuery =
+        fill.kind === "text"
+          ? existsQuery.eq("value", "__TEXT_VALUE__")
+          : existsQuery.eq("value", fill.value);
+      const { data: existing } = await existsQuery.limit(1);
+      if (existing && existing.length > 0) {
+        alreadySet += 1; // understood, but that box is already checked — not a miss
+        continue;
+      }
 
       toWrite.push(fill);
       applied.push({ section: fill.section, group: fill.groupTitle, value: fill.value });
     }
 
-    // Stamp inspector_id = the acting inspector. This is a SERVICE-ROLE client,
-    // so without it the rows save with inspector_id = null and the RLS'd builder
-    // read (keyed on inspector_id) can't see them — the boxes show unchecked even
-    // though they saved. user.id matches what a manual checkbox insert records.
+    // overwrite:true because we've already de-duped above against the exact
+    // (group,value); without it writeChecklistFills would re-apply its own
+    // group-is-empty guard and block the 2nd option of a multi-select group.
+    // Stamp inspector_id = the acting inspector: this is a SERVICE-ROLE client,
+    // so otherwise the rows save with inspector_id = null and the RLS'd builder
+    // read (keyed on inspector_id) can't see them. user.id matches a manual insert.
     const written = toWrite.length
-      ? await writeChecklistFills(supabaseAdmin, inspectionId, toWrite, { inspectorId: user.id })
+      ? await writeChecklistFills(supabaseAdmin, inspectionId, toWrite, {
+          inspectorId: user.id,
+          overwrite: true,
+        })
       : 0;
 
     await logAIEvent({
@@ -191,14 +216,14 @@ Return the JSON fills now.`;
       inspectionId,
       tool: "voice_section_fill",
       prompt: "Voice section fill",
-      response: { proposed: proposed.length, applied: applied.length, written },
+      response: { proposed: proposed.length, applied: applied.length, written, alreadySet },
       tokensUsed: completion.usage?.total_tokens ?? null,
       status: "success",
       model,
       aiVersion: getAIVersion("voice-section-fill"),
     });
 
-    return NextResponse.json({ success: true, written, applied });
+    return NextResponse.json({ success: true, written, applied, alreadySet });
   } catch (error: any) {
     const svc = classifyAIServiceError(error);
     return NextResponse.json(

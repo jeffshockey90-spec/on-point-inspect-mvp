@@ -985,6 +985,10 @@ export default function AILiveInspectionCamera({
         );
       }
 
+      const alreadySet = Number.isFinite(Number(data.alreadySet))
+        ? Number(data.alreadySet)
+        : 0;
+
       if (written > 0 && written >= applied.length) {
         setVoiceFilled(applied);
         setToast(`✓ Filled ${written} box${written === 1 ? "" : "es"}`);
@@ -998,6 +1002,13 @@ export default function AILiveInspectionCamera({
         // Matched fields but NOTHING saved — never claim success.
         setVoiceFilled(null);
         setToast("Couldn't save those — please try again.");
+      } else if (alreadySet > 0) {
+        // Understood the inspector, but those exact boxes were already checked —
+        // say so instead of the misleading "didn't catch any matching fields".
+        setVoiceFilled(null);
+        setToast(
+          `Already checked — ${alreadySet} box${alreadySet === 1 ? " was" : "es were"} already set`,
+        );
       } else {
         setToast("Didn't catch any matching fields — try again.");
       }
