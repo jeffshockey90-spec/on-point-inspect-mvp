@@ -963,9 +963,27 @@ export default function AILiveInspectionCamera({
         return;
       }
       const applied = Array.isArray(data.applied) ? data.applied : [];
-      if (applied.length) {
+      // Confirm by the ACTUAL saved count (written), not what the AI merely
+      // matched (applied). A write can silently save fewer than it matched, and
+      // "✓ Filled N" off applied would falsely confirm boxes that never saved —
+      // which is exactly the "it said successful but nothing was checked" bug.
+      const written = Number.isFinite(Number(data.written))
+        ? Number(data.written)
+        : applied.length;
+
+      if (written > 0 && written >= applied.length) {
         setVoiceFilled(applied);
-        setToast(`✓ Filled ${applied.length} box${applied.length === 1 ? "" : "es"}`);
+        setToast(`✓ Filled ${written} box${written === 1 ? "" : "es"}`);
+      } else if (written > 0) {
+        // Partial save — be honest and tell them to re-check the section.
+        setVoiceFilled(applied.slice(0, written));
+        setToast(
+          `Saved ${written} of ${applied.length} — reopen the section to check`,
+        );
+      } else if (applied.length > 0) {
+        // Matched fields but NOTHING saved — never claim success.
+        setVoiceFilled(null);
+        setToast("Couldn't save those — please try again.");
       } else {
         setToast("Didn't catch any matching fields — try again.");
       }
