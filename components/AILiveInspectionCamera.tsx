@@ -239,10 +239,11 @@ export default function AILiveInspectionCamera({
 
   // "Always use the compass" preference: auto-start it so the inspector never has
   // to tap "Enable compass". iOS REQUIRES a user gesture to request motion access,
-  // and calling requestPermission() outside one rejects (and can block the next
-  // real attempt) — so we start ONLY from the first touch inside the camera. Once
-  // iOS has granted it, that first-touch call resolves silently (no prompt).
-  // Android/desktop don't gate the sensor, so the hook already auto-attaches there.
+  // and is picky about WHICH event counts — the manual button works because it's a
+  // `click`, so we mirror that exactly: start on the first click/tap-release inside
+  // the camera (touchstart alone can be rejected). Once iOS has granted it, that
+  // call resolves silently. Calling it on mount (no gesture) is the bug that kept
+  // it stuck on "Enable compass", so we never do that. Android/desktop auto-attach.
   useEffect(() => {
     if (!compassAutoEnable) return;
     let done = false;
@@ -250,14 +251,14 @@ export default function AILiveInspectionCamera({
       if (done) return;
       done = true;
       void compass.start();
-      window.removeEventListener("pointerdown", onGesture, true);
-      window.removeEventListener("touchstart", onGesture, true);
+      window.removeEventListener("click", onGesture, true);
+      window.removeEventListener("touchend", onGesture, true);
     };
-    window.addEventListener("pointerdown", onGesture, true);
-    window.addEventListener("touchstart", onGesture, true);
+    window.addEventListener("click", onGesture, true);
+    window.addEventListener("touchend", onGesture, true);
     return () => {
-      window.removeEventListener("pointerdown", onGesture, true);
-      window.removeEventListener("touchstart", onGesture, true);
+      window.removeEventListener("click", onGesture, true);
+      window.removeEventListener("touchend", onGesture, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compassAutoEnable]);
