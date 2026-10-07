@@ -965,6 +965,21 @@ function FieldPageContent() {
   const [showOfflineReportViewer, setShowOfflineReportViewer] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
   const [queueTick, setQueueTick] = useState(0);
+  // Beta: background AI drafting in the live camera (global kill switch AND the
+  // inspector's own opt-in). Fail-safe false — a fetch error keeps today's flow.
+  const [asyncDraftEnabled, setAsyncDraftEnabled] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/settings/async-draft", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active && d) setAsyncDraftEnabled(Boolean(d.enabled));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   const voiceRecognitionRef = useRef<any>(null);
   const voiceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceTranscriptRef = useRef("");
@@ -4968,6 +4983,7 @@ function FieldPageContent() {
                 {assistantTab === "live" && (
                   <AILiveInspectionCamera
                     online={online}
+                    asyncDraftEnabled={asyncDraftEnabled}
                     selectedReport={selectedReport}
                     currentSection={section}
                     currentSeverity={severity}

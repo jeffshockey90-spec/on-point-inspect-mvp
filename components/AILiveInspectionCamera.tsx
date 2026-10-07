@@ -9,6 +9,18 @@ import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
 import {
+  enqueueDraft,
+  getDraftCounts,
+  getDraftItems,
+  loadDraftForApproval,
+  discardDraft,
+  requeueDraft,
+  processDraftQueue,
+  DRAFT_QUEUE_EVENT,
+  type LoadedDraft,
+  type DraftCounts,
+} from "../lib/offline/draftQueue";
+import {
   logCam,
   detectPriorCrash,
   beginCamSession,
@@ -60,6 +72,9 @@ type Props = {
     files: File[],
     draft?: FindingDraft,
   ) => Promise<void>;
+  // Beta: when true, tapping Analyze queues the capture and drafts in the
+  // background (the inspector keeps shooting) instead of blocking on the draft.
+  asyncDraftEnabled?: boolean;
 };
 
 const CATEGORIES: {
@@ -166,6 +181,7 @@ async function shrinkForAi(
 
 export default function AILiveInspectionCamera({
   online,
+  asyncDraftEnabled,
   selectedReport,
   currentSection,
   currentSeverity,
@@ -255,6 +271,22 @@ export default function AILiveInspectionCamera({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [toast, setToast] = useState("");
+
+  // --- Async draft (beta): background generation + approval popup ---
+  const [draftCounts, setDraftCounts] = useState<DraftCounts>({
+    pending: 0,
+    generating: 0,
+    ready: 0,
+    failed: 0,
+  });
+  // The draft currently open for approval in the overlay (null = closed). The
+  // overlay sits ON TOP of the live view, so an in-progress capture is never
+  // disturbed when the inspector reviews a finished draft.
+  const [approvingDraft, setApprovingDraft] = useState<LoadedDraft | null>(null);
+  const [approvingBusy, setApprovingBusy] = useState(false);
+  const [approvingError, setApprovingError] = useState("");
+  // Object URLs created for the approval overlay's photo previews (revoked on close).
+  const approvePreviewUrlsRef = useRef<string[]>([]);
 
   // Voice section-fill: speak as you go ("asphalt shingles, water shutoff in the
   // basement") to tick section-info checkboxes. Fills only empty boxes, so it
@@ -857,12 +889,236 @@ export default function AILiveInspectionCamera({
   // frames are sent to the model (photos + each video's representative frame).
   async function analyzeShots() {
     if (!shots.length) return;
+
+    // Async beta: queue the capture and keep shooting. Findings, limitations and
+    // equipment all draft in the background; reference photos never draft here.
+    if (
+      asyncDraftEnabled &&
+      selectedReport &&
+      (category === "finding" || category === "limitation" || category === "equipment")
+    ) {
+      // Snapshot everything the draft needs BEFORE resetting, so the inspector
+      // returns to the viewfinder instantly and generation runs detached.
+      const cat = category;
+      const frames = shots.map((s) => s.frame).filter(Boolean);
+      const files = shots.map((s) => s.file);
+      const note = noteText;
+      const section = currentSection;
+      const avail = sections;
+      const loc = composedLocation();
+      const sev = cat === "limitation" ? currentSeverity : "";
+      const label = note || CATEGORIES.find((c) => c.key === cat)?.label || "Draft";
+
+      resetCaptureState();
+      setStage("note_entry");
+      setToast("Queued — drafting in the background");
+      logCam("async-draft:queued", { category: cat, shots: files.length });
+
+      // Shrink frames (sequential, memory-safe) + persist, then kick the worker.
+      void (async () => {
+        try {
+          const aiFrames: string[] = [];
+          for (const f of frames) {
+            // eslint-disable-next-line no-await-in-loop
+            aiFrames.push(await shrinkForAi(f));
+          }
+          await enqueueDraft({
+            inspectionId: selectedReport,
+            category: cat,
+            note,
+            section,
+            availableSections: avail,
+            location: loc,
+            severity: sev,
+            aiFrames,
+            files,
+            label,
+          });
+          void processDraftQueue();
+          void refreshDraftCounts();
+        } catch (err: any) {
+          logCam("async-draft:enqueue-error", { msg: String(err?.message || err) });
+          setToast("Couldn't queue that draft — try again.");
+        }
+      })();
+      return;
+    }
+
     const last = shots[shots.length - 1];
     const frames = shots.map((s) => s.frame).filter(Boolean);
     const files = shots.map((s) => s.file);
     setStage("drafting");
     await runDraft(last.frame, last.file, undefined, frames, files);
   }
+
+  // --- Async draft helpers ---------------------------------------------------
+
+  async function refreshDraftCounts() {
+    if (!selectedReport) return;
+    try {
+      setDraftCounts(await getDraftCounts(selectedReport));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Open the oldest ready draft (or a specific one) in the approval overlay.
+  async function openDraftForApproval(id?: string) {
+    if (!selectedReport) return;
+    try {
+      let targetId = id;
+      if (!targetId) {
+        const counts = await getDraftCounts(selectedReport);
+        if (counts.ready <= 0) return;
+        // loadDraftForApproval needs an id — find the oldest needs_review item.
+        const ready = (await getDraftItems(selectedReport))
+          .filter((i) => i.status === "needs_review")
+          .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+        targetId = ready[0]?.id;
+      }
+      if (!targetId) return;
+      const loaded = await loadDraftForApproval(targetId);
+      if (!loaded) return;
+      // Build preview object URLs for the confirm card (revoked on close).
+      revokeApprovePreviews();
+      approvePreviewUrlsRef.current = loaded.files.map((f) => URL.createObjectURL(f));
+      setApprovingError("");
+      setApprovingDraft(loaded);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function revokeApprovePreviews() {
+    for (const url of approvePreviewUrlsRef.current) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        /* ignore */
+      }
+    }
+    approvePreviewUrlsRef.current = [];
+  }
+
+  function closeApprovalOverlay() {
+    revokeApprovePreviews();
+    setApprovingDraft(null);
+    setApprovingBusy(false);
+    setApprovingError("");
+  }
+
+  // Approve the open draft: save it through the normal path, record learning,
+  // then remove it from the queue.
+  async function approveLoadedDraft(editedDraft: CaptureDraft) {
+    const loaded = approvingDraft;
+    if (!loaded) return;
+    setApprovingBusy(true);
+    setApprovingError("");
+    try {
+      await onAccept(loaded.category, editedDraft, loaded.files);
+
+      // Learning: the pinned first draft (baseline) vs. what was approved.
+      if (loaded.category === "finding" && editedDraft.kind === "finding" && loaded.baseline) {
+        try {
+          void fetch("/api/ai/learning", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              inspectionId: selectedReport,
+              tool: "live_camera",
+              original: loaded.baseline,
+              updated: {
+                title: editedDraft.title,
+                section: editedDraft.section,
+                severity: editedDraft.severity,
+                observation: editedDraft.observation,
+                implication: editedDraft.implication,
+                recommendation: editedDraft.recommendation,
+              },
+              accepted: true,
+              notes: "Inspector approved a background-drafted finding.",
+            }),
+          }).catch(() => {});
+        } catch {
+          /* learning never blocks the save */
+        }
+      }
+
+      await discardDraft(loaded.id);
+      setToast("Saved to the report.");
+      closeApprovalOverlay();
+      void refreshDraftCounts();
+    } catch (error: any) {
+      setApprovingError(error?.message || "Could not save. Try again.");
+      setApprovingBusy(false);
+    }
+  }
+
+  // Redraft the open draft with an inspector nudge (new note); it regenerates in
+  // the background and the popup reappears when ready.
+  async function redraftLoadedDraft(note: string) {
+    const loaded = approvingDraft;
+    if (!loaded) return;
+    try {
+      await requeueDraft(loaded.id, note);
+      setToast("Redrafting in the background…");
+      closeApprovalOverlay();
+      void refreshDraftCounts();
+    } catch {
+      setApprovingError("Could not redraft — try again.");
+    }
+  }
+
+  // Discard the open draft (never saves it to the report).
+  async function discardLoadedDraft() {
+    const loaded = approvingDraft;
+    if (!loaded) return;
+    try {
+      await discardDraft(loaded.id);
+    } catch {
+      /* ignore */
+    }
+    setToast("Draft discarded.");
+    closeApprovalOverlay();
+    void refreshDraftCounts();
+  }
+
+  // Drive the background draft worker and keep the ready/generating counts fresh
+  // whenever the beta is on. Also resumes generation on foreground/online (the
+  // iOS WebView refires these when the app returns), so queued drafts never stall.
+  useEffect(() => {
+    if (!asyncDraftEnabled || !selectedReport) return;
+    let active = true;
+    const kick = () => {
+      if (!active) return;
+      void processDraftQueue();
+      void refreshDraftCounts();
+    };
+    const refresh = () => {
+      if (active) void refreshDraftCounts();
+    };
+    kick();
+    window.addEventListener(DRAFT_QUEUE_EVENT, refresh);
+    window.addEventListener("online", kick);
+    window.addEventListener("focus", kick);
+    const onVis = () => {
+      if (document.visibilityState === "visible") kick();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    const interval = window.setInterval(kick, 20000);
+    return () => {
+      active = false;
+      window.removeEventListener(DRAFT_QUEUE_EVENT, refresh);
+      window.removeEventListener("online", kick);
+      window.removeEventListener("focus", kick);
+      document.removeEventListener("visibilitychange", onVis);
+      window.clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asyncDraftEnabled, selectedReport]);
+
+  // Revoke any approval-preview object URLs on unmount.
+  useEffect(() => () => revokeApprovePreviews(), []);
 
   // Retry AI after a capture_error. Findings/limitations/equipment come through
   // the shots tray, so re-run analyzeShots (shows the "drafting" spinner AND
@@ -1945,6 +2201,44 @@ export default function AILiveInspectionCamera({
         </div>
       )}
 
+      {/* Async-draft (beta): a tappable "draft ready" popup over the live view,
+          plus a quiet "drafting…" progress chip. Never interrupts the viewfinder —
+          tap it when you're ready to review & approve. */}
+      {asyncDraftEnabled &&
+        !approvingDraft &&
+        stage !== "confirm" &&
+        (draftCounts.ready > 0 ||
+          draftCounts.generating > 0 ||
+          draftCounts.pending > 0 ||
+          draftCounts.failed > 0) && (
+          <div className="absolute left-1/2 top-16 z-30 w-[min(92%,22rem)] -translate-x-1/2">
+            {draftCounts.ready > 0 ? (
+              <button
+                type="button"
+                onClick={() => openDraftForApproval()}
+                className="flex w-full items-center justify-between gap-2 rounded-2xl border border-emerald-400/60 bg-neutral-900/95 p-3 text-left text-white shadow-2xl backdrop-blur [touch-action:manipulation]"
+              >
+                <span className="text-sm font-bold text-emerald-300">
+                  ✓ {draftCounts.ready} draft{draftCounts.ready === 1 ? "" : "s"} ready — tap to review
+                </span>
+                {draftCounts.generating + draftCounts.pending > 0 && (
+                  <span className="shrink-0 text-xs text-white/60">
+                    +{draftCounts.generating + draftCounts.pending} drafting
+                  </span>
+                )}
+              </button>
+            ) : draftCounts.generating + draftCounts.pending > 0 ? (
+              <div className="w-full rounded-2xl border border-white/15 bg-neutral-900/90 p-2.5 text-center text-xs font-semibold text-white/70 shadow-xl backdrop-blur">
+                Drafting {draftCounts.generating + draftCounts.pending} in the background…
+              </div>
+            ) : (
+              <div className="w-full rounded-2xl border border-amber-400/40 bg-neutral-900/90 p-2.5 text-center text-xs font-semibold text-amber-300 shadow-xl backdrop-blur">
+                {draftCounts.failed} draft{draftCounts.failed === 1 ? "" : "s"} couldn&apos;t finish — review in the report
+              </div>
+            )}
+          </div>
+        )}
+
       {/* Collapsible zoom tab: a small pill showing the current zoom that opens the
           preset picker + fine slider, then closes on select or outside tap. Pinch-
           to-zoom on the camera view works too (see the preview container). */}
@@ -2538,6 +2832,30 @@ export default function AILiveInspectionCamera({
           }
           onAddAngle={
             draft.kind === "finding" || draft.kind === "equipment" ? handleAddAngle : undefined
+          }
+        />
+      )}
+
+      {/* Async-draft approval overlay — the SAME confirm card, opened from the
+          "draft ready" popup. Sits on top of the live view without disturbing an
+          in-progress capture. Approve saves via the normal path; redraft requeues. */}
+      {approvingDraft && (
+        <CaptureConfirmCard
+          mediaPreviewUrl={approvePreviewUrlsRef.current[0] || ""}
+          isVideo={(approvingDraft.files[0]?.type || "").startsWith("video")}
+          draft={approvingDraft.draft as unknown as CaptureDraft}
+          inspectionId={selectedReport ? String(selectedReport) : undefined}
+          sections={sections}
+          busy={approvingBusy}
+          error={approvingError}
+          initialNote={approvingDraft.note}
+          onAccept={approveLoadedDraft}
+          onRegenerate={redraftLoadedDraft}
+          onRetake={discardLoadedDraft}
+          extraPreviewUrls={
+            approvePreviewUrlsRef.current.length > 1
+              ? approvePreviewUrlsRef.current.slice(1)
+              : undefined
           }
         />
       )}

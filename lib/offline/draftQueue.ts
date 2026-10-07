@@ -314,6 +314,29 @@ export async function loadDraftForApproval(id: string): Promise<LoadedDraft | nu
   };
 }
 
+// Redraft with an inspector nudge: update the note, record the nudge, and push
+// the item back to pending so the worker regenerates. The popup reappears when
+// the new draft is ready.
+export async function requeueDraft(id: string, note: string): Promise<void> {
+  await updateOfflineQueueItem(id, (c) => {
+    const nudges = Array.isArray(c.nudges) ? c.nudges.slice() : [];
+    if (note && note.trim()) nudges.push(note.trim());
+    return {
+      ...c,
+      status: "draft_pending",
+      retryCount: 0,
+      nextAttemptAt: undefined,
+      lastError: undefined,
+      draft: undefined,
+      nudges,
+      payload: { ...c.payload, note: note || c.payload?.note || "" },
+      updatedAt: new Date().toISOString(),
+    };
+  });
+  notifyDraftChange();
+  void processDraftQueue();
+}
+
 // Retry a failed draft (push it back to pending).
 export async function retryDraft(id: string): Promise<void> {
   await updateOfflineQueueItem(id, (c) => ({ ...c, status: "draft_pending", retryCount: 0, nextAttemptAt: undefined, lastError: undefined, updatedAt: new Date().toISOString() }));
