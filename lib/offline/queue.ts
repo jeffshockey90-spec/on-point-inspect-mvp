@@ -18,6 +18,7 @@ import {
   mediaKindForType,
   isIndexedDbAvailable,
   QUEUE_STORE,
+  DRAFT_STATUSES,
   type OfflineQueueRecord,
   type OfflineQueueItemType,
   type OfflineQueueStatus,
@@ -263,12 +264,24 @@ export async function addOfflineQueueItem({
   payload,
   media = [],
   id,
+  status = "queued",
+  draftKind,
+  draft,
+  aiBaseline,
+  nudges,
 }: {
   type: OfflineQueueItemType;
   payload: Record<string, any>;
   media?: OfflineMediaInput[];
   /** Optional explicit id (for idempotency); defaults to a new UUID. */
   id?: string;
+  /** Initial status. Defaults to "queued" (ready to sync). Async-draft callers
+   *  pass "draft_pending" so the item is held for background generation. */
+  status?: OfflineQueueStatus;
+  draftKind?: OfflineQueueItemType;
+  draft?: Record<string, any>;
+  aiBaseline?: Record<string, any>;
+  nudges?: string[];
 }): Promise<OfflineQueueItem | null> {
   const now = new Date().toISOString();
   const record: OfflineQueueRecord = {
@@ -279,7 +292,11 @@ export async function addOfflineQueueItem({
     createdAt: now,
     updatedAt: now,
     retryCount: 0,
-    status: "queued",
+    status,
+    ...(draftKind ? { draftKind } : {}),
+    ...(draft ? { draft } : {}),
+    ...(aiBaseline ? { aiBaseline } : {}),
+    ...(nudges ? { nudges } : {}),
   };
 
   const db = await getDb();
@@ -374,7 +391,11 @@ export async function markOfflineQueueItemFailed(
 // ---------------------------------------------------------------------------
 
 export async function getOfflineQueueSummary() {
-  const queue = await getOfflineQueue();
+  // Only count SYNC items here — async-draft items (captured, awaiting AI/approval)
+  // are tracked separately and must not show up as "pending upload".
+  const queue = (await getOfflineQueue()).filter(
+    (item) => !DRAFT_STATUSES.includes(item.status),
+  );
 
   const totalBytes = queue.reduce((sum, item) => {
     const mediaBytes = (item.media || []).reduce(
@@ -548,6 +569,10 @@ export async function processOfflineQueue({
   const queue = (await getOfflineQueue())
     .filter((item) => {
       if (item.status === "conflict") return false;
+      // Async-draft items are not ready to upload — they're captured and waiting
+      // for background AI generation + the inspector's approval. The draft worker
+      // (lib/offline/draftQueue) owns them until approval flips them to "queued".
+      if (DRAFT_STATUSES.includes(item.status)) return false;
       const nextAttempt = item.nextAttemptAt
         ? new Date(item.nextAttemptAt).getTime()
         : 0;

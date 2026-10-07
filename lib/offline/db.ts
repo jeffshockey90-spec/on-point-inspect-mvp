@@ -26,7 +26,29 @@ export type OfflineQueueItemType =
   | "limitation"
   | "equipment";
 
-export type OfflineQueueStatus = "queued" | "syncing" | "failed" | "conflict";
+// "queued" | "syncing" | "failed" | "conflict" are the SYNC lifecycle (an item
+// that is ready to be uploaded to the server). The remaining values are the
+// async-DRAFT lifecycle: an item captured in the live camera whose AI draft is
+// being generated in the background and awaits the inspector's approval. Draft
+// items are deliberately IGNORED by processOfflineQueue (they are not ready to
+// upload); on approval a draft item flips to "queued" and syncs like any other.
+export type OfflineQueueStatus =
+  | "queued"
+  | "syncing"
+  | "failed"
+  | "conflict"
+  | "draft_pending" // captured; AI draft not started yet
+  | "generating" // AI draft in progress
+  | "needs_review" // AI draft ready; awaiting approve/redraft
+  | "draft_failed"; // AI draft errored after retries; shown for manual review
+
+/** The async-draft statuses, which the sync worker must NOT upload. */
+export const DRAFT_STATUSES: ReadonlyArray<OfflineQueueStatus> = [
+  "draft_pending",
+  "generating",
+  "needs_review",
+  "draft_failed",
+];
 
 export type OfflineMediaKind = "image" | "video";
 
@@ -77,6 +99,16 @@ export type OfflineQueueRecord = {
   conflict?: Record<string, any>;
   /** Set when this record was imported from the old localStorage queue. */
   migratedFrom?: "localStorage";
+
+  // --- Async-draft fields (only on items in a DRAFT_STATUSES state) ---
+  /** The AI kind to generate: finding | limitation | equipment. */
+  draftKind?: OfflineQueueItemType;
+  /** The generated AI draft (a CaptureDraft shape), filled when needs_review. */
+  draft?: Record<string, any>;
+  /** The FIRST AI draft, pinned for the learning diff after approval. */
+  aiBaseline?: Record<string, any>;
+  /** Redraft instructions the inspector added, accumulated across redrafts. */
+  nudges?: string[];
 };
 
 /** Reports index entry (mirrors `CachedInspection`). */
