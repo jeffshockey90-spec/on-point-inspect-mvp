@@ -238,12 +238,13 @@ export default function AILiveInspectionCamera({
   const compass = useCompassHeading();
 
   // "Always use the compass" preference: auto-start it so the inspector never has
-  // to tap "Enable compass". iOS requires a user gesture to request motion access
-  // the first time, so try immediately (Android/desktop, or iOS once granted —
-  // then it resolves silently) AND start on the first touch inside the camera.
+  // to tap "Enable compass". iOS REQUIRES a user gesture to request motion access,
+  // and calling requestPermission() outside one rejects (and can block the next
+  // real attempt) — so we start ONLY from the first touch inside the camera. Once
+  // iOS has granted it, that first-touch call resolves silently (no prompt).
+  // Android/desktop don't gate the sensor, so the hook already auto-attaches there.
   useEffect(() => {
     if (!compassAutoEnable) return;
-    void compass.start();
     let done = false;
     const onGesture = () => {
       if (done) return;
