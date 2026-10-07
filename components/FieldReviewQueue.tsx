@@ -194,7 +194,8 @@ export default function FieldReviewQueue({
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm font-bold text-[var(--fl-warn-text)]">
-              These were captured in the field and polished by AI after syncing.
+              AI-drafted in the field and waiting for your approval. They stay out
+              of the report and any client copy until you approve them.
             </p>
             <button
               type="button"
