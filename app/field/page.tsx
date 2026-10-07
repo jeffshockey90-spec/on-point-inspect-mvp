@@ -91,6 +91,7 @@ import {
   startOfflineQueueAutoSync,
 } from "../../lib/offline/queue";
 import { migrateOfflineFromLocalStorage } from "../../lib/offline/migrate";
+import { processDraftQueue } from "../../lib/offline/draftQueue";
 import {
   cacheReportsForOffline,
   getCachedInspectionPreload,
@@ -978,6 +979,39 @@ function FieldPageContent() {
       .catch(() => {});
     return () => {
       active = false;
+    };
+  }, []);
+
+  // Native resume: iOS suspends the WebView when backgrounded, freezing timers
+  // and in-flight work. The web focus/visibilitychange events are unreliable on
+  // native, so drive BOTH the sync queue and the background draft worker off
+  // Capacitor's appStateChange when the app returns to the foreground.
+  useEffect(() => {
+    let remove: (() => void) | null = null;
+    (async () => {
+      try {
+        const { Capacitor } = await import("@capacitor/core");
+        if (!Capacitor.isNativePlatform?.()) return;
+        const { App } = await import("@capacitor/app");
+        const handle = await App.addListener("appStateChange", (state: any) => {
+          if (state?.isActive) {
+            void processOfflineQueue();
+            void processDraftQueue();
+          }
+        });
+        remove = () => {
+          try {
+            void handle.remove();
+          } catch {
+            /* ignore */
+          }
+        };
+      } catch {
+        /* @capacitor/app unavailable (web) — the web listeners cover it */
+      }
+    })();
+    return () => {
+      remove?.();
     };
   }, []);
   const voiceRecognitionRef = useRef<any>(null);
