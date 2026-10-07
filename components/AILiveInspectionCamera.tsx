@@ -2139,6 +2139,28 @@ export default function AILiveInspectionCamera({
               {voiceBusy ? "…" : voiceListening ? "■" : "🎤"}
             </button>
           )}
+
+          {/* Async-draft (beta): a small spinning FLOW mark right next to the mic
+              while drafts generate in the background (count when more than one). */}
+          {asyncDraftEnabled && draftCounts.generating + draftCounts.pending > 0 && (
+            <span
+              className="relative flex h-12 w-9 shrink-0 items-center justify-center"
+              aria-label="AI drafting in the background"
+              title="AI drafting in the background"
+            >
+              <img
+                src="/flow-mark-icon.png"
+                alt=""
+                className="h-7 w-7 animate-spin"
+                style={{ animationDuration: "1.4s" }}
+              />
+              {draftCounts.generating + draftCounts.pending > 1 && (
+                <span className="absolute -right-1 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-black shadow">
+                  {draftCounts.generating + draftCounts.pending}
+                </span>
+              )}
+            </span>
+          )}
         </div>
 
         {activeCategoryMeta && stage !== "note_entry" && (
@@ -2176,7 +2198,7 @@ export default function AILiveInspectionCamera({
       {voiceFilled && voiceFilled.length > 0 && (
         <div
           className="absolute left-1/2 z-30 w-[min(92%,22rem)] -translate-x-1/2 rounded-2xl border border-emerald-400/60 bg-neutral-900/95 p-3 text-white shadow-2xl backdrop-blur"
-          style={{ top: "calc(env(safe-area-inset-top) + 5.5rem)" }}
+          style={{ top: "calc(env(safe-area-inset-top) + 3.75rem)" }}
         >
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-bold text-emerald-300">
@@ -2211,51 +2233,21 @@ export default function AILiveInspectionCamera({
         !approvingDraft &&
         !(voiceFilled && voiceFilled.length > 0) &&
         stage !== "confirm" &&
-        (draftCounts.ready > 0 ||
-          draftCounts.generating > 0 ||
-          draftCounts.pending > 0 ||
-          draftCounts.failed > 0) && (
+        (draftCounts.ready > 0 || draftCounts.failed > 0) && (
           <div
             className="absolute left-1/2 z-30 flex w-[min(92%,22rem)] -translate-x-1/2 flex-col items-center gap-1.5"
-            style={{ top: "calc(env(safe-area-inset-top) + 5.5rem)" }}
+            style={{ top: "calc(env(safe-area-inset-top) + 3.75rem)" }}
           >
             {draftCounts.ready > 0 ? (
               <button
                 type="button"
                 onClick={() => openDraftForApproval()}
-                className="flex w-full items-center justify-between gap-2 rounded-2xl border border-emerald-400/60 bg-neutral-900/95 p-3 text-left text-white shadow-2xl backdrop-blur [touch-action:manipulation]"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-400/60 bg-neutral-900/95 p-3 text-center text-white shadow-2xl backdrop-blur [touch-action:manipulation]"
               >
                 <span className="text-sm font-bold text-emerald-300">
                   ✓ {draftCounts.ready} draft{draftCounts.ready === 1 ? "" : "s"} ready — tap to review
                 </span>
-                {draftCounts.generating + draftCounts.pending > 0 && (
-                  <span
-                    className="inline-block shrink-0 animate-spin text-base leading-none"
-                    style={{ animationDuration: "1.5s" }}
-                    aria-label="Drafting"
-                  >
-                    ✨
-                  </span>
-                )}
               </button>
-            ) : draftCounts.generating + draftCounts.pending > 0 ? (
-              // Drafting in the background: a small spinning AI sparkle (+ count
-              // only when more than one is in flight). Compact so it stays out of
-              // the way while the inspector keeps shooting.
-              <div className="flex items-center gap-1.5 rounded-full bg-neutral-900/80 px-2.5 py-1.5 shadow-xl backdrop-blur">
-                <span
-                  className="inline-block animate-spin text-base leading-none"
-                  style={{ animationDuration: "1.5s" }}
-                  aria-label="AI drafting"
-                >
-                  ✨
-                </span>
-                {draftCounts.generating + draftCounts.pending > 1 && (
-                  <span className="pr-0.5 text-xs font-semibold text-white/70">
-                    {draftCounts.generating + draftCounts.pending}
-                  </span>
-                )}
-              </div>
             ) : (
               <div className="rounded-full border border-amber-400/40 bg-neutral-900/90 px-3 py-1.5 text-center text-xs font-semibold text-amber-300 shadow-xl backdrop-blur">
                 {draftCounts.failed} draft{draftCounts.failed === 1 ? "" : "s"} couldn&apos;t finish — review in the report
@@ -2968,7 +2960,7 @@ export default function AILiveInspectionCamera({
       {toast && (
         <div
           className="pointer-events-none absolute left-1/2 z-40 -translate-x-1/2 rounded-full bg-emerald-500/90 px-4 py-2 text-xs font-semibold text-black shadow-2xl"
-          style={{ top: "calc(env(safe-area-inset-top) + 9rem)" }}
+          style={{ top: "calc(env(safe-area-inset-top) + 7rem)" }}
         >
           ✓ {toast}
         </div>
