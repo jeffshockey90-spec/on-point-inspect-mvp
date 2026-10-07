@@ -42,6 +42,7 @@ const SETTINGS_TABS = [
 ];
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import NotificationSettings from "../../components/NotificationSettings";
+import AsyncDraftSetting from "../../components/AsyncDraftSetting";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
 import W9Section from "./W9Section";
@@ -956,6 +957,18 @@ export default async function SettingsPage({
 
             <div className="mt-6">
               <NotificationSettings />
+            </div>
+          </section>
+
+          <section id="live-camera" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 sm:p-6 md:p-8">
+            <h2 className="text-xl font-semibold text-[var(--fl-accent-text)] sm:text-2xl">
+              Live Camera
+            </h2>
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
+              Speed options for the AI inspection camera.
+            </p>
+            <div className="mt-6">
+              <AsyncDraftSetting />
             </div>
           </section>
 
