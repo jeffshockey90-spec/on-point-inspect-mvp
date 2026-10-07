@@ -75,6 +75,9 @@ type Props = {
   // Beta: when true, tapping Analyze queues the capture and drafts in the
   // background (the inspector keeps shooting) instead of blocking on the draft.
   asyncDraftEnabled?: boolean;
+  // When true, auto-enable the compass each session so the inspector never has to
+  // tap "Enable compass" (iOS still prompts once for motion-sensor access).
+  compassAutoEnable?: boolean;
 };
 
 const CATEGORIES: {
@@ -182,6 +185,7 @@ async function shrinkForAi(
 export default function AILiveInspectionCamera({
   online,
   asyncDraftEnabled,
+  compassAutoEnable,
   selectedReport,
   currentSection,
   currentSeverity,
@@ -232,6 +236,31 @@ export default function AILiveInspectionCamera({
   // Location captured BEFORE the AI runs, so the model gets confirmed facts (which
   // wall / level / room) instead of guessing. Side auto-fills from the compass.
   const compass = useCompassHeading();
+
+  // "Always use the compass" preference: auto-start it so the inspector never has
+  // to tap "Enable compass". iOS requires a user gesture to request motion access
+  // the first time, so try immediately (Android/desktop, or iOS once granted —
+  // then it resolves silently) AND start on the first touch inside the camera.
+  useEffect(() => {
+    if (!compassAutoEnable) return;
+    void compass.start();
+    let done = false;
+    const onGesture = () => {
+      if (done) return;
+      done = true;
+      void compass.start();
+      window.removeEventListener("pointerdown", onGesture, true);
+      window.removeEventListener("touchstart", onGesture, true);
+    };
+    window.addEventListener("pointerdown", onGesture, true);
+    window.addEventListener("touchstart", onGesture, true);
+    return () => {
+      window.removeEventListener("pointerdown", onGesture, true);
+      window.removeEventListener("touchstart", onGesture, true);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compassAutoEnable]);
+
   const [locSide, setLocSide] = useState("");
   const [locLevel, setLocLevel] = useState("");
   const [locRoom, setLocRoom] = useState("");

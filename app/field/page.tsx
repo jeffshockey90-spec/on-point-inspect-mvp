@@ -969,12 +969,20 @@ function FieldPageContent() {
   // Beta: background AI drafting in the live camera (global kill switch AND the
   // inspector's own opt-in). Fail-safe false — a fetch error keeps today's flow.
   const [asyncDraftEnabled, setAsyncDraftEnabled] = useState(false);
+  // Beta: auto-enable the compass in the live camera every session (opt-in).
+  const [compassAutoEnable, setCompassAutoEnable] = useState(false);
   useEffect(() => {
     let active = true;
     fetch("/api/settings/async-draft", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (active && d) setAsyncDraftEnabled(Boolean(d.enabled));
+      })
+      .catch(() => {});
+    fetch("/api/settings/compass-auto", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active && d) setCompassAutoEnable(Boolean(d.enabled));
       })
       .catch(() => {});
     return () => {
@@ -5030,6 +5038,7 @@ function FieldPageContent() {
                   <AILiveInspectionCamera
                     online={online}
                     asyncDraftEnabled={asyncDraftEnabled}
+                    compassAutoEnable={compassAutoEnable}
                     selectedReport={selectedReport}
                     currentSection={section}
                     currentSeverity={severity}

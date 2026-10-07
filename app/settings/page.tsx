@@ -43,6 +43,7 @@ const SETTINGS_TABS = [
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import NotificationSettings from "../../components/NotificationSettings";
 import AsyncDraftSetting from "../../components/AsyncDraftSetting";
+import CompassAutoSetting from "../../components/CompassAutoSetting";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
 import W9Section from "./W9Section";
@@ -968,6 +969,9 @@ export default async function SettingsPage({
               Speed options for the AI inspection camera.
             </p>
             <div className="mt-6">
+              <CompassAutoSetting />
+            </div>
+            <div className="mt-6 border-t border-[var(--fl-line)] pt-6">
               <AsyncDraftSetting />
             </div>
           </section>
