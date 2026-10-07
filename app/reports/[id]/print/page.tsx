@@ -598,6 +598,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .from("findings")
     .select("*")
     .eq("inspection_id", inspection.id)
+    // Exclude drafts still awaiting approval (needs_review) from the printed/PDF
+    // report. `not is true` keeps false AND legacy null rows.
+    .not("needs_review", "is", true)
     // Honor the inspector's manual in-section order (findings.sort_order);
     // nulls last, created_at tiebreak.
     .order("sort_order", { ascending: true, nullsFirst: false })

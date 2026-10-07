@@ -1367,6 +1367,9 @@ export default async function PublicSharePage({
       .from("findings")
       .select("*")
       .eq("inspection_id", inspectionId)
+      // Never show drafts still awaiting the inspector's approval (needs_review)
+      // in the client report. `not is true` keeps false AND legacy null rows.
+      .not("needs_review", "is", true)
       // Honor the inspector's manual in-section order (findings.sort_order);
       // nulls last, created_at tiebreak — unchanged until a report is reordered.
       .order("sort_order", { ascending: true, nullsFirst: false })

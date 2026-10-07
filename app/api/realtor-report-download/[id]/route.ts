@@ -2688,6 +2688,9 @@ export async function GET(req: Request, { params }: RouteProps) {
       .from("findings")
       .select("*")
       .eq("inspection_id", inspectionId)
+      // Exclude drafts still awaiting approval (needs_review) from the realtor
+      // report. `not is true` keeps false AND legacy null rows.
+      .not("needs_review", "is", true)
       // Honor the inspector's manual in-section order (findings.sort_order);
       // nulls last, created_at tiebreak.
       .order("sort_order", { ascending: true, nullsFirst: false })

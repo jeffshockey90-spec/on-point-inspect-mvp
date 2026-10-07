@@ -2355,9 +2355,16 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     title: getNumberedFindingTitle(finding),
   }));
 
+  // Drafts still awaiting approval (needs_review) render ONLY in the FieldReviewQueue
+  // at the top — not in the main section list (no double-render) and not in the
+  // priced report content — until the inspector approves them.
+  const editorFindings = findingsForEditor.filter(
+    (finding: any) => finding.needs_review !== true,
+  );
+
   const groupedFindingsArray = activeSectionOrder.map((section) => ({
     section,
-    findings: findingsForEditor.filter((finding: any) => finding.section === section),
+    findings: editorFindings.filter((finding: any) => finding.section === section),
   }));
 
   // Mirror the share page: findings whose (normalized) section is no longer in
@@ -2365,7 +2372,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   // or hidden by service mode - would otherwise silently vanish for the
   // inspector. Bucket them into "Other" so they still render, appended after
   // the normal sections. Only added when such orphaned findings exist.
-  const otherFindingsForEditor = findingsForEditor.filter(
+  const otherFindingsForEditor = editorFindings.filter(
     (finding: any) => !activeSectionOrder.includes(finding.section),
   );
 
@@ -3790,7 +3797,7 @@ Service-life information is a general industry estimate only. Actual service lif
             <PriorityRepairsPanel
               inspectionId={String(inspection.id)}
               downloadId={reportDownloadId}
-              findings={findingsForEditor.map((f: any) => ({
+              findings={editorFindings.map((f: any) => ({
                 id: String(f.id),
                 title: f.title || "Finding",
                 severity: f.severity || "",
