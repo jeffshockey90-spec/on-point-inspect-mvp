@@ -91,7 +91,7 @@ import {
   startOfflineQueueAutoSync,
 } from "../../lib/offline/queue";
 import { migrateOfflineFromLocalStorage } from "../../lib/offline/migrate";
-import { processDraftQueue } from "../../lib/offline/draftQueue";
+import { processDraftQueue, flushAllFindingDrafts } from "../../lib/offline/draftQueue";
 import {
   cacheReportsForOffline,
   getCachedInspectionPreload,
@@ -1012,6 +1012,18 @@ function FieldPageContent() {
     })();
     return () => {
       remove?.();
+    };
+  }, []);
+
+  // Leaving the field tool: park any un-approved FINDING drafts in the report
+  // builder's review queue (findings.needs_review) so they're never stranded on
+  // this device, then kick a sync. They wait there for the inspector to approve
+  // (Option A) and never enter the report or a client copy until approved.
+  useEffect(() => {
+    return () => {
+      void flushAllFindingDrafts().then((n) => {
+        if (n > 0) void processOfflineQueue();
+      });
     };
   }, []);
   const voiceRecognitionRef = useRef<any>(null);

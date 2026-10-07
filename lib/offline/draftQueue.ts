@@ -349,3 +349,70 @@ export async function discardDraft(id: string): Promise<void> {
   await removeOfflineQueueItem(id);
   notifyDraftChange();
 }
+
+// --- Flush to the builder review queue (cross-device + survives app kill) -----
+//
+// When the inspector leaves the field tool with un-approved FINDING drafts, send
+// them to the report builder's review queue (findings.needs_review=true) instead
+// of stranding them on this device. Already-drafted items carry their AI draft
+// (no re-gen); not-yet-drafted items are flagged run_ai_after_sync so the SERVER
+// generates them from the note + photos. Either way the finding lands as a
+// pending review that the inspector approves in the builder (Option A — never
+// auto-entered into the report, excluded from client reports until approved).
+//
+// Only findings flush today; limitation/equipment drafts stay in the in-camera
+// popup until approved (they have no server review-queue surface yet).
+export async function flushFindingDraftToReviewQueue(id: string): Promise<boolean> {
+  const items = await getDraftItems();
+  const item = items.find((i) => i.id === id);
+  if (!item) return false;
+  const p = item.payload || {};
+  if ((p.category || "finding") !== "finding") return false;
+
+  const d = item.draft || {};
+  const note = String(p.note || "");
+  const files = filesFromItem(item);
+
+  await addOfflineQueueItem({
+    type: "finding",
+    status: "queued",
+    media: files,
+    payload: {
+      inspection_id: String(p.inspection_id || ""),
+      title: d.title || note.slice(0, 70) || "Field finding",
+      section: d.section || p.section || "",
+      severity: d.severity || "",
+      observation: d.observation || note || "",
+      implication: d.implication || "",
+      recommendation: d.recommendation || "",
+      location: p.location || "",
+      inspector_note: note,
+      note,
+      // confirmed_live:false → the server flags the created finding needs_review.
+      confirmed_live: false,
+      // Re-generate on the server ONLY when no client draft exists yet.
+      run_ai_after_sync: item.draft ? false : true,
+      ai_after_sync: item.draft ? false : true,
+      offline_created_at: item.createdAt,
+      async_draft_flushed: true,
+    },
+  });
+
+  await removeOfflineQueueItem(item.id);
+  notifyDraftChange();
+  return true;
+}
+
+// Flush every un-approved FINDING draft (any state) to the review queue, then
+// kick a sync. Returns how many were flushed. Safe to call on field-tool exit.
+export async function flushAllFindingDrafts(inspectionId?: string): Promise<number> {
+  const items = await getDraftItems(inspectionId);
+  const findingDrafts = items.filter((i) => (i.payload?.category || "finding") === "finding");
+  let flushed = 0;
+  for (const item of findingDrafts) {
+    // eslint-disable-next-line no-await-in-loop
+    const ok = await flushFindingDraftToReviewQueue(item.id).catch(() => false);
+    if (ok) flushed += 1;
+  }
+  return flushed;
+}
