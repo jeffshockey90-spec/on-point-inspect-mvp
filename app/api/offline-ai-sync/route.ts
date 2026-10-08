@@ -758,6 +758,25 @@ export async function POST(req: Request) {
 
       if (limitationError) throw limitationError;
 
+      // Flag for the Field Review queue, same rule as findings: a live-camera
+      // capture confirmed on the spot (confirmed_live) is final; anything else
+      // (a flushed background draft, a quick offline capture) needs verifying.
+      // Best-effort — the columns only exist after add-async-draft.sql, so a
+      // missing-column error must never break the sync of an already-saved row.
+      if (payload?.confirmed_live !== true) {
+        const { error: limReviewError } = await supabase
+          .from("section_limitations")
+          .update({ needs_review: true, offline_captured: true })
+          .eq("id", savedLimitation.id)
+          .eq("inspection_id", inspectionId);
+        if (limReviewError) {
+          console.warn(
+            "Could not set limitation review flags (run supabase/add-async-draft.sql):",
+            limReviewError.message,
+          );
+        }
+      }
+
       let photoCount = 0;
       for (const photo of offlinePhotos) {
         const upload = await uploadOfflinePhoto({
@@ -836,15 +855,39 @@ export async function POST(req: Request) {
         file_path: mainImagePath || "",
       };
 
-      const { error: enhancedError } = await supabase
+      let equipmentRowId: any = null;
+      const { data: enhancedRow, error: enhancedError } = await supabase
         .from("equipment_inventory")
-        .insert({ ...inventoryEnhanced, ...imageStamp });
+        .insert({ ...inventoryEnhanced, ...imageStamp })
+        .select("id")
+        .single();
 
       if (enhancedError) {
-        const { error: baseError } = await supabase
+        const { data: baseRow, error: baseError } = await supabase
           .from("equipment_inventory")
-          .insert({ ...inventoryBase, ...imageStamp });
+          .insert({ ...inventoryBase, ...imageStamp })
+          .select("id")
+          .single();
         if (baseError) throw baseError;
+        equipmentRowId = baseRow?.id ?? null;
+      } else {
+        equipmentRowId = enhancedRow?.id ?? null;
+      }
+
+      // Field Review flag (same rule as findings/limitations): a confirmed-live
+      // capture is final; a flushed background draft needs verifying. Best-effort
+      // so a missing column never breaks the sync of the already-saved row.
+      if (equipmentRowId != null && payload?.confirmed_live !== true) {
+        const { error: eqReviewError } = await supabase
+          .from("equipment_inventory")
+          .update({ needs_review: true, offline_captured: true })
+          .eq("id", equipmentRowId);
+        if (eqReviewError) {
+          console.warn(
+            "Could not set equipment review flags (run supabase/add-async-draft.sql):",
+            eqReviewError.message,
+          );
+        }
       }
 
       let findingId: string | number | null = null;
@@ -861,6 +904,9 @@ export async function POST(req: Request) {
             implication: cleanText(f.implication),
             recommendation: cleanText(f.recommendation),
             image_url: mainImageUrl,
+            // The equipment + its derived finding are one unit: if the equipment
+            // is awaiting review, keep its finding out of the client report too.
+            needs_review: payload?.confirmed_live !== true ? true : false,
           })
           .select()
           .single();

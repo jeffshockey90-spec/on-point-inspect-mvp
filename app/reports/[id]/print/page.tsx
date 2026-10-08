@@ -710,6 +710,8 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .from("section_limitations")
     .select("*")
     .eq("inspection_id", inspection.id)
+    // Hide limitations still awaiting inspector review (async background drafts).
+    .not("needs_review", "is", true)
     .order("created_at", { ascending: true });
 
   const limitationIds = (limitationRows || []).map((item: any) => item.id);
@@ -804,6 +806,8 @@ export default async function PrintableReportPage({ params }: PageProps) {
     .from("equipment_inventory")
     .select("*")
     .eq("inspection_id", inspection.id)
+    // Hide equipment still awaiting inspector review (async background drafts).
+    .not("needs_review", "is", true)
     .order("created_at", { ascending: true });
 
   if (equipmentInventoryError) {

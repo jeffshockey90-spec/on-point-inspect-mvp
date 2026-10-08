@@ -1666,6 +1666,8 @@ export default async function PublicSharePage({
       .from("section_limitations")
       .select("*")
       .eq("inspection_id", inspectionId)
+      // Hide limitations still awaiting inspector review (async background drafts).
+      .not("needs_review", "is", true)
       .order("created_at", { ascending: true }),
   ]);
 
@@ -1843,6 +1845,8 @@ export default async function PublicSharePage({
     .from("equipment_inventory")
     .select("*")
     .eq("inspection_id", inspectionId)
+    // Hide equipment still awaiting inspector review (async background drafts).
+    .not("needs_review", "is", true)
     .order("created_at", { ascending: true });
 
   if (equipmentInventoryError) {

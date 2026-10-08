@@ -2605,11 +2605,13 @@ export async function GET(req: Request, { params }: RouteProps) {
         // identical and the download would serve the previous PDF from cache.
         sel("findings", "id,title,observation,implication,recommendation,severity,section,component,report_item_number,defect_type,reinspection_status,reinspection_summary,source_finding_id"),
         sel("photos", "id,finding_id,file_path,thumbnail_path,thumbnail_url,caption,is_video"),
-        sel("equipment_inventory", "id,equipment_type,manufacturer,model,serial,manufacture_year,estimated_age,capacity,fuel_type,condition,notes,file_path,thumbnail_path"),
+        // Exclude review-pending rows from the signature too, so approving one
+        // changes the signature and the cached PDF regenerates with it included.
+        sel("equipment_inventory", "id,equipment_type,manufacturer,model,serial,manufacture_year,estimated_age,capacity,fuel_type,condition,notes,file_path,thumbnail_path").not("needs_review", "is", true),
         sel("report_disclaimers", "id,topic,disclaimer_text"),
         sel("section_checklist_selections", "id,section,group_title,value,custom_text"),
         sel("section_reference_photos", "id,section,caption,file_path,thumbnail_path"),
-        sel("section_limitations", "id,section,label,limitation_comment,custom_text"),
+        sel("section_limitations", "id,section,label,limitation_comment,custom_text").not("needs_review", "is", true),
         admin.from("report_section_notes").select("section_name,notes").eq("inspection_id", inspectionId).order("section_name", { ascending: true }),
         sigRealtorEmail
           ? admin.from("realtor_profiles").select("name,brokerage,photo_url").ilike("email", sigRealtorEmail).maybeSingle()
@@ -2735,6 +2737,8 @@ export async function GET(req: Request, { params }: RouteProps) {
       .from("section_limitations")
       .select("section, label, limitation_comment, ai_notes, custom_text, created_at")
       .eq("inspection_id", inspectionId)
+      // Hide limitations still awaiting inspector review (async background drafts).
+      .not("needs_review", "is", true)
       .order("created_at", { ascending: true });
     const limitations = (limitationsRaw || []).map((lim: any) => ({
       section: cleanText(lim.section),
@@ -2803,6 +2807,8 @@ export async function GET(req: Request, { params }: RouteProps) {
       .from("equipment_inventory")
       .select("*")
       .eq("inspection_id", inspectionId)
+      // Hide equipment still awaiting inspector review (async background drafts).
+      .not("needs_review", "is", true)
       .order("created_at", { ascending: true });
     const equipPhotoPaths = ((equipRows as any[]) || []).flatMap((e: any) =>
       [e.thumbnail_path, e.file_path].filter(Boolean),
