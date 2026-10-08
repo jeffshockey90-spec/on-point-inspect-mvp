@@ -79,6 +79,15 @@ type Props = {
   // When true, auto-enable the compass each session so the inspector never has to
   // tap "Enable compass" (iOS still prompts once for motion-sensor access).
   compassAutoEnable?: boolean;
+  // When the camera is launched as a modal (e.g. from the report builder), the
+  // parent passes onClose to unmount it, and autoStart to open straight to the
+  // live shutter instead of the collapsed "Open AI Camera" card.
+  onClose?: () => void;
+  autoStart?: boolean;
+  // Restrict which capture categories are offered (default: all). The report
+  // builder launch passes finding/limitation/reference (equipment's save is
+  // field-tool-only for now).
+  categories?: CaptureCategory[];
 };
 
 // Max angles collected into one finding/equipment item before the inspector must
@@ -134,6 +143,9 @@ export default function AILiveInspectionCamera({
   online,
   asyncDraftEnabled,
   compassAutoEnable,
+  onClose,
+  autoStart,
+  categories,
   selectedReport,
   currentSection,
   currentSeverity,
@@ -210,6 +222,18 @@ export default function AILiveInspectionCamera({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compassAutoEnable]);
+
+  // Modal launch (report builder): open straight to the live shutter on mount,
+  // mirroring the "Open AI Camera" button, instead of the collapsed card.
+  useEffect(() => {
+    if (!autoStart) return;
+    setOpen(true);
+    setCategory("finding");
+    setStage("note_entry");
+    const t = window.setTimeout(() => void startCamera(facingMode), 50);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [locSide, setLocSide] = useState("");
   const [locLevel, setLocLevel] = useState("");
@@ -1865,9 +1889,15 @@ export default function AILiveInspectionCamera({
     setCategory(null);
     setStage("idle");
     setOpen(false);
+    // Modal launch (e.g. report builder): let the parent unmount us.
+    onClose?.();
   }
 
   const activeCategoryMeta = CATEGORIES.find((c) => c.key === category) || null;
+  const visibleCategories =
+    categories && categories.length
+      ? CATEGORIES.filter((c) => categories.includes(c.key))
+      : CATEGORIES;
 
   async function copyCrashLog() {
     const text = formatCrashLog();
@@ -2215,9 +2245,10 @@ export default function AILiveInspectionCamera({
           <div
             role="radiogroup"
             aria-label="Capture category"
-            className="mx-auto mb-3 grid max-w-[520px] grid-cols-4 gap-1 rounded-full border border-white/15 bg-black/35 p-1 backdrop-blur-md"
+            className="mx-auto mb-3 grid max-w-[520px] gap-1 rounded-full border border-white/15 bg-black/35 p-1 backdrop-blur-md"
+            style={{ gridTemplateColumns: `repeat(${visibleCategories.length}, minmax(0, 1fr))` }}
           >
-            {CATEGORIES.map((cat) => {
+            {visibleCategories.map((cat) => {
               const active = cat.key === category;
               return (
                 <button
@@ -2509,12 +2540,16 @@ export default function AILiveInspectionCamera({
           {/* Wrong category? Re-label the shots you already took instead of
               retaking them. */}
           <div className="flex flex-wrap gap-2 px-4 pt-2">
-            {([
-              ["finding", "Findings"],
-              ["limitation", "Limitation"],
-              ["equipment", "Equipment"],
-              ["reference", "Reference"],
-            ] as const).map(([cat, label]) => (
+            {(
+              [
+                ["finding", "Findings"],
+                ["limitation", "Limitation"],
+                ["equipment", "Equipment"],
+                ["reference", "Reference"],
+              ] as const
+            )
+              .filter(([cat]) => visibleCategories.some((c) => c.key === cat))
+              .map(([cat, label]) => (
               <button
                 key={cat}
                 type="button"
