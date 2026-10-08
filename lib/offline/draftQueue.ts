@@ -26,7 +26,8 @@ import {
   type OfflineQueueItem,
   type OfflineMediaInput,
 } from "./queue";
-import { fetchWithRetry, fileToDataUrl, shrinkForAi } from "../aiFrame";
+import { fileToDataUrl, shrinkForAi } from "../aiFrame";
+import { generateLiveDraft } from "../ai/liveDraftGen";
 
 export const DRAFT_QUEUE_EVENT = "opi:draft-queue-changed";
 
@@ -149,89 +150,17 @@ async function generateDraftForItem(
     aiFrames = built;
   }
 
-  if (category === "finding") {
-    const res = await fetchWithRetry("/api/ai-capture", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({
-        note: p.note || "",
-        inspectionId,
-        section: p.section || "",
-        availableSections: p.availableSections || [],
-        location: p.location || "",
-        severity: "",
-        images: aiFrames,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.error || "AI could not draft this finding.");
-    const draft = {
-      kind: "finding",
-      title: data.title,
-      section: data.section,
-      severity: data.severity,
-      observation: data.observation,
-      implication: data.implication,
-      recommendation: data.recommendation,
-      confidence: data.confidence,
-      sectionInfo: data.sectionInfo || {},
-      location: p.location || "",
-    };
-    const baseline = {
-      title: data.title || "",
-      section: data.section || "",
-      severity: data.severity || "",
-      observation: data.observation || "",
-      implication: data.implication || "",
-      recommendation: data.recommendation || "",
-    };
-    return { draft, baseline };
-  }
-
-  if (category === "limitation") {
-    const res = await fetchWithRetry("/api/ai/live-inspection-camera", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({
-        imageDataUrl: aiFrames[0] || "",
-        inspectionId,
-        currentSection: p.section || "",
-        currentSeverity: p.severity || "",
-        availableSections: p.availableSections || [],
-        focus: "limitation",
-        note: p.note || "",
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.error || "AI could not draft this limitation.");
-    const lim = data.limitation || {};
-    const draft = {
-      kind: "limitation",
-      title: lim.title || p.note || "Inspection Limitation",
-      section: lim.section || p.section || "",
-      limitation: lim.limitation || p.note || "",
-      reason: lim.reason || "",
-      recommendation: lim.recommendation || "",
-      confidence: lim.confidence,
-    };
-    return { draft, baseline: null };
-  }
-
-  // equipment — multipart with the full-res angle files
-  const formData = new FormData();
-  const files = filesFromItem(item, true);
-  for (const f of files) formData.append("images", f);
-  if (files[0]) formData.append("image", files[0]);
-  formData.append("inspectionId", inspectionId);
-  formData.append("inspection_id", inspectionId);
-  if (String(p.note || "").trim()) formData.append("note", String(p.note).trim());
-
-  const res = await fetchWithRetry("/api/analyze-equipment", { method: "POST", body: formData });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data?.error) throw new Error(data?.error || "AI could not analyze this equipment.");
-  return { draft: { ...data, kind: "equipment" }, baseline: null };
+  // One shared generator for both the sync camera path and this worker.
+  return generateLiveDraft(category, {
+    note: String(p.note || ""),
+    inspectionId,
+    section: String(p.section || ""),
+    availableSections: Array.isArray(p.availableSections) ? p.availableSections : [],
+    location: String(p.location || ""),
+    severity: String(p.severity || ""),
+    aiFrames,
+    files: category === "equipment" ? filesFromItem(item, true) : [],
+  });
 }
 
 let draftWorkerRunning = false;

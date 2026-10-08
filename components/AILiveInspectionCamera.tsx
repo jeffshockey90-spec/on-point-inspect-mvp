@@ -8,7 +8,8 @@ import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
-import { shrinkForAi, dataUrlToFile, fetchWithRetry } from "../lib/aiFrame";
+import { shrinkForAi, dataUrlToFile } from "../lib/aiFrame";
+import { generateLiveDraft, type LiveDraftCategory } from "../lib/ai/liveDraftGen";
 import {
   enqueueDraft,
   getDraftCounts,
@@ -1552,124 +1553,40 @@ export default function AILiveInspectionCamera({
       // eslint-disable-next-line no-await-in-loop
       aiFrames.push(await shrinkForAi(f));
     }
-    const aiFrame = aiFrames[0] || frameDataUrl;
     logCam("ai:frames-ready", { count: aiFrames.length });
 
     try {
-      if (category === "finding") {
-        const response = await fetchWithRetry("/api/ai-capture", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          body: JSON.stringify({
-            note,
-            inspectionId: selectedReport,
-            section: currentSection,
-            availableSections: sections,
-            // Confirmed location captured before generating — a stated FACT for
-            // the model (which wall / level / room), not something it should infer.
-            location: composedLocation(),
-            // Let the AI choose the severity from the evidence rather than
-            // biasing it to the field's current value (which made everything come
-            // back "Recommended Repair"). The inspector can still adjust on confirm.
-            severity: "",
-            images: aiFrames,
-          }),
-        });
-
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data?.error || "AI could not draft this finding.");
-
-        setDraft({
-          kind: "finding",
-          title: data.title,
-          section: data.section,
-          severity: data.severity,
-          observation: data.observation,
-          implication: data.implication,
-          recommendation: data.recommendation,
-          confidence: data.confidence,
-          sectionInfo: data.sectionInfo || {},
+      // One shared generator for the sync camera path AND the background worker,
+      // so the request bodies + draft shapes can never drift apart.
+      const { draft: generated, baseline } = await generateLiveDraft(
+        category as LiveDraftCategory,
+        {
+          note,
+          inspectionId: selectedReport,
+          section: currentSection,
+          availableSections: sections,
           location: composedLocation(),
-        });
-        // Capture the FIRST AI draft exactly as generated (pre-edit) for
-        // learning. Only set it once per capture — a "tell how" regenerate must
-        // NOT overwrite it, or the learning delta (original wrong draft → final
-        // corrected finding) collapses to nothing and the AI learns nothing from
-        // the correction. Reset happens in resetCaptureState() on a new capture.
-        if (!aiFindingBaselineRef.current) {
-          aiFindingBaselineRef.current = {
-            title: data.title || "",
-            section: data.section || "",
-            severity: data.severity || "",
-            observation: data.observation || "",
-            implication: data.implication || "",
-            recommendation: data.recommendation || "",
-          };
-        }
-        setStage("confirm");
-        return;
+          severity: category === "limitation" ? currentSeverity : "",
+          aiFrames,
+          files: allFiles && allFiles.length ? allFiles : [file],
+        },
+      );
+
+      setDraft(generated as unknown as CaptureDraft);
+      // Pin the FIRST AI finding draft (pre-edit) for the learning diff — once per
+      // capture; a "tell how" regenerate must NOT overwrite it, or the delta
+      // (original draft → corrected finding) collapses and the AI learns nothing.
+      if (category === "finding" && baseline && !aiFindingBaselineRef.current) {
+        aiFindingBaselineRef.current = {
+          title: String(baseline.title || ""),
+          section: String(baseline.section || ""),
+          severity: String(baseline.severity || ""),
+          observation: String(baseline.observation || ""),
+          implication: String(baseline.implication || ""),
+          recommendation: String(baseline.recommendation || ""),
+        };
       }
-
-      if (category === "limitation") {
-        const response = await fetchWithRetry("/api/ai/live-inspection-camera", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          body: JSON.stringify({
-            imageDataUrl: aiFrame,
-            inspectionId: selectedReport,
-            currentSection,
-            currentSeverity,
-            availableSections: sections,
-            focus: "limitation",
-            note,
-          }),
-        });
-
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data?.error || "AI could not draft this limitation.");
-
-        const limitation = data.limitation;
-        setDraft({
-          kind: "limitation",
-          title: limitation?.title || note || "Inspection Limitation",
-          section: limitation?.section || currentSection,
-          limitation: limitation?.limitation || note || "",
-          reason: limitation?.reason || "",
-          recommendation: limitation?.recommendation || "",
-          confidence: limitation?.confidence,
-        });
-        setStage("confirm");
-        return;
-      }
-
-      if (category === "equipment") {
-        const formData = new FormData();
-        // Send every captured angle of this one equipment item (unit + data
-        // plate + serial/model label). The analyze route reads them as ONE
-        // record and caps at 6. Falls back to the single capture.
-        const equipmentFiles = allFiles && allFiles.length ? allFiles : [file];
-        for (const f of equipmentFiles) formData.append("images", f);
-        formData.append("image", equipmentFiles[0]);
-        formData.append("inspectionId", selectedReport || "");
-        formData.append("inspection_id", selectedReport || "");
-        if (note.trim()) formData.append("note", note.trim());
-
-        const response = await fetchWithRetry("/api/analyze-equipment", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || data?.error) {
-          throw new Error(data?.error || "AI could not analyze this equipment.");
-        }
-
-        setDraft({ ...data, kind: "equipment" });
-        setStage("confirm");
-        return;
-      }
+      setStage("confirm");
     } catch (error: any) {
       logCam("ai:error", { category, msg: String(error?.message || error) });
       setDraftError(error?.message || "AI drafting failed.");
