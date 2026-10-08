@@ -2,6 +2,20 @@
 // worker (lib/offline/draftQueue). Extracted from AILiveInspectionCamera so both
 // the synchronous and the async-draft paths prepare frames identically.
 
+// Read a File/Blob into a data-URL (for feeding the vision model). Browser-only.
+export function fileToDataUrl(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result || ""));
+      r.onerror = () => reject(r.error || new Error("read failed"));
+      r.readAsDataURL(file);
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
 // Rebuild a File from a data-URL (e.g. a captured frame).
 export function dataUrlToFile(dataUrl: string, namePrefix = "ai-camera-frame"): File {
   const [header, base64] = dataUrl.split(",");

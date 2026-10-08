@@ -26,7 +26,7 @@ import {
   type OfflineQueueItem,
   type OfflineMediaInput,
 } from "./queue";
-import { fetchWithRetry } from "../aiFrame";
+import { fetchWithRetry, fileToDataUrl, shrinkForAi } from "../aiFrame";
 
 export const DRAFT_QUEUE_EVENT = "opi:draft-queue-changed";
 
@@ -129,8 +129,25 @@ async function generateDraftForItem(
 ): Promise<{ draft: Record<string, any>; baseline: Record<string, any> | null }> {
   const p = item.payload || {};
   const category: DraftCategory = p.category || "finding";
-  const aiFrames: string[] = Array.isArray(p.aiFrames) ? p.aiFrames : [];
+  let aiFrames: string[] = Array.isArray(p.aiFrames) ? p.aiFrames : [];
   const inspectionId = String(p.inspection_id || "");
+
+  // Persist-first path: the capture was stored WITHOUT pre-shrunk frames so the
+  // bytes landed on disk before the inspector moved on. Build the AI frames now
+  // from the stored full-res image files — one decode at a time (memory-safe).
+  // These are throwaway inputs for the vision model; the saved photo (the full-res
+  // File) is never touched, so delivered photo quality is unaffected.
+  if (aiFrames.length === 0 && category !== "equipment") {
+    const imgs = filesFromItem(item, true);
+    const built: string[] = [];
+    for (const f of imgs) {
+      // eslint-disable-next-line no-await-in-loop
+      const dataUrl = await fileToDataUrl(f);
+      // eslint-disable-next-line no-await-in-loop
+      built.push(await shrinkForAi(dataUrl));
+    }
+    aiFrames = built;
+  }
 
   if (category === "finding") {
     const res = await fetchWithRetry("/api/ai-capture", {

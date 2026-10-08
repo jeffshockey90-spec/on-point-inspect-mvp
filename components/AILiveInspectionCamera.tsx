@@ -80,6 +80,10 @@ type Props = {
   compassAutoEnable?: boolean;
 };
 
+// Max angles collected into one finding/equipment item before the inspector must
+// analyze/save — a memory backstop against unbounded full-res frames (iOS jetsam).
+const MAX_SHOTS_PER_ITEM = 15;
+
 const CATEGORIES: {
   key: CaptureCategory;
   label: string;
@@ -898,6 +902,16 @@ export default function AILiveInspectionCamera({
       if (category === "reference" && shots.length === 0) {
         setReferenceSection(currentSection);
       }
+      // Memory backstop: cap angles per item so a runaway multi-angle session
+      // can't pile up unbounded full-res frames and OOM-kill the WebView. The
+      // just-taken photo is already saved to the device gallery, so nothing is
+      // truly lost — the inspector just analyzes/saves this item before adding
+      // more. 15 is far above any real finding/equipment capture.
+      if (shots.length >= MAX_SHOTS_PER_ITEM) {
+        setToast(`Max ${MAX_SHOTS_PER_ITEM} angles — analyze or save this one first`);
+        setStage("collecting");
+        return;
+      }
       logCam("shots:add", {
         count: shots.length + 1,
         category,
@@ -921,57 +935,55 @@ export default function AILiveInspectionCamera({
   async function analyzeShots() {
     if (!shots.length) return;
 
-    // Async beta: queue the capture and keep shooting. Findings, limitations and
-    // equipment all draft in the background; reference photos never draft here.
-    if (
-      asyncDraftEnabled &&
-      selectedReport &&
-      (category === "finding" || category === "limitation" || category === "equipment")
-    ) {
-      // Snapshot everything the draft needs BEFORE resetting, so the inspector
-      // returns to the viewfinder instantly and generation runs detached.
+    // Async beta: queue the capture and keep shooting. FINDINGS ONLY — findings
+    // flush to the builder's review queue on exit (cross-device, never lost),
+    // whereas equipment/limitation have no server review surface yet, so they
+    // stay on the synchronous+durable path below to avoid a device-only draft
+    // that could be silently lost. Reference photos never draft here.
+    // Video findings use a still frame (not the video file) as the AI input, which
+    // the background worker can't reconstruct from stored image files — so an
+    // all-photo finding goes async; a video finding stays on the sync path.
+    const hasVideoShot = shots.some((s) => s.isVideo);
+    if (asyncDraftEnabled && selectedReport && category === "finding" && !hasVideoShot) {
+      // Snapshot everything the draft needs BEFORE resetting.
       const cat = category;
-      const frames = shots.map((s) => s.frame).filter(Boolean);
       const files = shots.map((s) => s.file);
       const note = noteText;
       const section = currentSection;
       const avail = sections;
       const loc = composedLocation();
-      const sev = cat === "limitation" ? currentSeverity : "";
       const label = note || CATEGORIES.find((c) => c.key === cat)?.label || "Draft";
+
+      try {
+        // PERSIST FIRST — write the full-res capture to disk BEFORE telling the
+        // inspector it's queued, so a crash during background work can't lose a
+        // capture they were told was saved. AI frames are built later in the
+        // worker from these same full-res files (never pre-shrunk here), so the
+        // saved photo is full quality and nothing is held in memory meanwhile.
+        await enqueueDraft({
+          inspectionId: selectedReport,
+          category: cat,
+          note,
+          section,
+          availableSections: avail,
+          location: loc,
+          severity: "",
+          aiFrames: [],
+          files,
+          label,
+        });
+      } catch (err: any) {
+        logCam("async-draft:enqueue-error", { msg: String(err?.message || err) });
+        setToast("Couldn't queue that draft — try again.");
+        return; // keep the capture on screen; do NOT reset/lose it
+      }
 
       resetCaptureState();
       setStage("note_entry");
       setToast("Queued — drafting in the background");
       logCam("async-draft:queued", { category: cat, shots: files.length });
-
-      // Shrink frames (sequential, memory-safe) + persist, then kick the worker.
-      void (async () => {
-        try {
-          const aiFrames: string[] = [];
-          for (const f of frames) {
-            // eslint-disable-next-line no-await-in-loop
-            aiFrames.push(await shrinkForAi(f));
-          }
-          await enqueueDraft({
-            inspectionId: selectedReport,
-            category: cat,
-            note,
-            section,
-            availableSections: avail,
-            location: loc,
-            severity: sev,
-            aiFrames,
-            files,
-            label,
-          });
-          void processDraftQueue();
-          void refreshDraftCounts();
-        } catch (err: any) {
-          logCam("async-draft:enqueue-error", { msg: String(err?.message || err) });
-          setToast("Couldn't queue that draft — try again.");
-        }
-      })();
+      void processDraftQueue();
+      void refreshDraftCounts();
       return;
     }
 
