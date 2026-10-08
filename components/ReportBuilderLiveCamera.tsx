@@ -20,13 +20,21 @@ const AILiveInspectionCamera = dynamic(
 type Props = {
   inspectionId: string;
   sections: string[];
+  /** Button styling + label, so the builder can place it in a button row. */
+  className?: string;
+  label?: string;
 };
 
 // Launch the live camera as a modal from the report builder. Saves into THIS
 // inspection (unambiguous — it's the report you're viewing), through the SAME
 // durable offline queue the field tool uses. Findings / limitations / reference
 // photos only; equipment capture stays in the field tool.
-export default function ReportBuilderLiveCamera({ inspectionId, sections }: Props) {
+export default function ReportBuilderLiveCamera({
+  inspectionId,
+  sections,
+  className,
+  label,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [online, setOnlineState] = useState(true);
   // Beta flags, fetched lazily on first open (not on builder load).
@@ -161,9 +169,12 @@ export default function ReportBuilderLiveCamera({ inspectionId, sections }: Prop
       <button
         type="button"
         onClick={openCamera}
-        className="inline-flex items-center gap-2 rounded-xl border border-teal-400/50 bg-teal-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500/20 [touch-action:manipulation]"
+        className={
+          className ||
+          "inline-flex items-center gap-2 rounded-xl border border-teal-400/50 bg-teal-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500/20 [touch-action:manipulation]"
+        }
       >
-        📷 Live Camera
+        {label || "📷 Live Camera"}
       </button>
 
       {open && (

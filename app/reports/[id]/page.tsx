@@ -3108,37 +3108,37 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 })()}
               </div>
 
-              {/* One obvious primary action. Everything (Live Camera, equipment
-                  scan, multi-photo AI) lives inside the Field Tool. */}
-              {findings.length > 0 || photosWithUrls.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-3">
+              {/* Capture — Live Camera (fast, right in this report) is the primary
+                  action; Field Tool opens the full capture workspace (equipment,
+                  bulk AI, offline review). Continue jumps to the findings. */}
+              <div className="flex flex-wrap items-center gap-3">
+                <ReportBuilderLiveCamera
+                  inspectionId={String(inspection.id)}
+                  sections={activeSectionOrder}
+                  label="📷 Live Camera"
+                  className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-6 py-3.5 text-base font-bold text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-[0.98] [touch-action:manipulation]"
+                />
+                <FastLinkButton
+                  href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
+                  loadingText="Opening Field Tool..."
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                >
+                  🧰 Field Tool
+                </FastLinkButton>
+                {(findings.length > 0 || photosWithUrls.length > 0) && (
                   <a
                     href="#report-findings"
-                    className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-6 py-3.5 text-base font-bold text-slate-950 transition hover:bg-teal-400"
+                    className="inline-flex items-center gap-2 rounded-xl px-4 py-3 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 [touch-action:manipulation]"
                   >
-                    Continue Report →
+                    Continue report →
                   </a>
-                  <FastLinkButton
-                    href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-                    loadingText="Opening Field Tool..."
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                  >
-                    📷 Capture more — Field Tool
-                  </FastLinkButton>
-                </div>
-              ) : (
-                <div>
-                  <p className="mb-3 text-sm text-[var(--fl-muted)]">
-                    No findings captured yet — head into the field to start. Everything you need (Live Camera, equipment scan, multi-photo AI) is inside the Field Tool.
-                  </p>
-                  <FastLinkButton
-                    href={`/field?inspection_id=${inspection.id}&return_to=/reports/${inspection.id}`}
-                    loadingText="Opening Field Tool..."
-                    className="inline-flex items-center gap-2 rounded-2xl bg-teal-500 px-7 py-4 text-lg font-bold text-slate-950 shadow-lg shadow-teal-500/20 transition hover:bg-teal-400 active:scale-[0.98]"
-                  >
-                    📷 Start Capturing — Field Tool
-                  </FastLinkButton>
-                </div>
+                )}
+              </div>
+
+              {findings.length === 0 && photosWithUrls.length === 0 && (
+                <p className="mt-3 text-sm text-[var(--fl-muted)]">
+                  No findings yet — tap Live Camera to capture right into this report, or open the Field Tool for equipment scans and bulk AI.
+                </p>
               )}
 
               {/* The old standalone buttons — all redundant with the Field Tool,
@@ -3782,16 +3782,6 @@ Service-life information is a general industry estimate only. Actual service lif
           </section>
 
           <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <p className="text-sm text-[var(--fl-muted)]">
-                Need another shot? Capture straight into this report.
-              </p>
-              <ReportBuilderLiveCamera
-                inspectionId={String(inspection.id)}
-                sections={activeSectionOrder}
-              />
-            </div>
-
             <FieldReviewQueue
               inspectionId={String(inspection.id)}
               reviewFindings={fieldReviewFindings}
