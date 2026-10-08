@@ -2165,45 +2165,6 @@ export default function AILiveInspectionCamera({
           {selectedReport && (
             <FieldFindingLinker inspectionId={String(selectedReport)} compact />
           )}
-
-          {selectedReport && (
-            <button
-              type="button"
-              onClick={toggleVoiceFill}
-              disabled={voiceBusy}
-              aria-label="Voice-fill section info"
-              title="Speak to fill section-info checkboxes"
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-xl shadow-2xl backdrop-blur transition active:scale-95 disabled:opacity-60 ${
-                voiceListening
-                  ? "animate-pulse border-red-400 bg-red-500/80 text-white"
-                  : "border-white/15 bg-neutral-900/85 text-cyan-300"
-              }`}
-            >
-              {voiceBusy ? "…" : voiceListening ? "■" : "🎤"}
-            </button>
-          )}
-
-          {/* Async-draft (beta): a small spinning FLOW mark right next to the mic
-              while drafts generate in the background (count when more than one). */}
-          {asyncDraftEnabled && draftCounts.generating + draftCounts.pending > 0 && (
-            <span
-              className="relative flex h-12 w-9 shrink-0 items-center justify-center"
-              aria-label="AI drafting in the background"
-              title="AI drafting in the background"
-            >
-              <img
-                src="/flow-mark-icon.png"
-                alt=""
-                className="h-7 w-7 animate-spin"
-                style={{ animationDuration: "1.4s" }}
-              />
-              {draftCounts.generating + draftCounts.pending > 1 && (
-                <span className="absolute -right-1 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-black shadow">
-                  {draftCounts.generating + draftCounts.pending}
-                </span>
-              )}
-            </span>
-          )}
         </div>
 
         {activeCategoryMeta && stage !== "note_entry" && (
@@ -2215,18 +2176,6 @@ export default function AILiveInspectionCamera({
         )}
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleTorch}
-            className={`flex h-12 w-12 items-center justify-center rounded-full border text-lg shadow-2xl backdrop-blur active:scale-95 ${
-              torchOn
-                ? "border-yellow-300 bg-yellow-400/30 text-amber-300"
-                : "border-white/15 bg-neutral-900/85 text-white"
-            }`}
-            aria-label="Toggle flash"
-          >
-            ⚡
-          </button>
           <button
             type="button"
             onClick={toggleFacingCamera}
@@ -2603,7 +2552,58 @@ export default function AILiveInspectionCamera({
                 {muteAudio ? "🔇" : "🔊"}
               </button>
             ) : (
-              <div />
+              /* Mic + torch live here — a thumb-reachable bottom row beside the
+                 shutter (instead of the top corners). The background-draft spinner
+                 rides on the mic's corner so the row stays narrow. */
+              <div className="flex items-center justify-self-end gap-2">
+                {selectedReport && (
+                  <button
+                    type="button"
+                    onClick={toggleVoiceFill}
+                    disabled={voiceBusy}
+                    aria-label="Voice-fill section info"
+                    title="Speak to fill section-info checkboxes"
+                    className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-xl shadow-2xl backdrop-blur transition active:scale-95 disabled:opacity-60 ${
+                      voiceListening
+                        ? "animate-pulse border-red-400 bg-red-500/80 text-white"
+                        : "border-white/15 bg-neutral-900/85 text-cyan-300"
+                    }`}
+                  >
+                    {voiceBusy ? "…" : voiceListening ? "■" : "🎤"}
+                    {asyncDraftEnabled &&
+                      draftCounts.generating + draftCounts.pending > 0 && (
+                        <span
+                          className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-white/20 bg-neutral-900 px-0.5"
+                          aria-label="AI drafting in the background"
+                        >
+                          <img
+                            src="/flow-mark-icon.png"
+                            alt=""
+                            className="h-3.5 w-3.5 animate-spin"
+                            style={{ animationDuration: "1.4s" }}
+                          />
+                          {draftCounts.generating + draftCounts.pending > 1 && (
+                            <span className="pl-0.5 text-[9px] font-bold leading-none text-white">
+                              {draftCounts.generating + draftCounts.pending}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={toggleTorch}
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border text-lg shadow-2xl backdrop-blur active:scale-95 ${
+                    torchOn
+                      ? "border-yellow-300 bg-yellow-400/30 text-amber-300"
+                      : "border-white/15 bg-neutral-900/85 text-white"
+                  }`}
+                  aria-label="Toggle flash"
+                >
+                  ⚡
+                </button>
+              </div>
             )}
           </div>
         </div>
