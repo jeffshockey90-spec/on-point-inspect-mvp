@@ -8,6 +8,7 @@ import { saveFileToDeviceGallery } from "../lib/nativeGallery";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
+import { shrinkForAi, dataUrlToFile, fetchWithRetry } from "../lib/aiFrame";
 import {
   enqueueDraft,
   getDraftCounts,
@@ -47,7 +48,6 @@ type Stage =
   | "collecting"
   | "drafting"
   | "confirm"
-  | "ref_preview"
   | "capture_error";
 
 type ExistingFinding = { id: string; title?: string; section?: string; severity?: string };
@@ -126,65 +126,8 @@ const CATEGORIES: {
   },
 ];
 
-function dataUrlToFile(dataUrl: string, namePrefix = "ai-camera-frame") {
-  const [header, base64] = dataUrl.split(",");
-  const mimeMatch = header.match(/data:(.*?);base64/);
-  const mimeType = mimeMatch?.[1] || "image/jpeg";
-  const binary = atob(base64 || "");
-  const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return new File([bytes], `${namePrefix}-${Date.now()}.jpg`, {
-    type: mimeType,
-    lastModified: Date.now(),
-  });
-}
-
-// Downscale a captured frame to a smaller copy JUST for the AI request — a
-// smaller image uploads faster and the vision model responds faster. This never
-// touches the SAVED photo (that's the full-res File made from the original
-// frame); it only shrinks the throwaway analysis image. Fail-open: returns the
-// original on any error, and never upscales, so the AI call can't be broken by it.
-async function shrinkForAi(
-  // Matches the app's established AI-upload baseline (lib/imageCompression:
-  // 1600px / q0.72) that the field tool already uses for these same endpoints,
-  // so accuracy stays at the proven level while cutting the live camera's
-  // heavier 1920px / q0.9 frame down to a faster payload.
-  dataUrl: string,
-  maxWidth = 1600,
-  quality = 0.72,
-): Promise<string> {
-  try {
-    if (typeof document === "undefined") return dataUrl;
-    if (!dataUrl || !dataUrl.startsWith("data:image/")) return dataUrl;
-
-    const img = document.createElement("img");
-    const loaded = new Promise<HTMLImageElement>((resolve, reject) => {
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-    });
-    img.src = dataUrl;
-    await loaded;
-
-    const w = img.naturalWidth || img.width;
-    const h = img.naturalHeight || img.height;
-    if (!w || !h || w <= maxWidth) return dataUrl; // already small enough
-
-    const scale = maxWidth / w;
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(w * scale));
-    canvas.height = Math.max(1, Math.round(h * scale));
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return dataUrl;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", quality);
-  } catch {
-    return dataUrl;
-  }
-}
+// dataUrlToFile, shrinkForAi and fetchWithRetry live in lib/aiFrame (shared with
+// the background draft worker) — imported at the top of this file.
 
 export default function AILiveInspectionCamera({
   online,
@@ -1585,32 +1528,6 @@ export default function AILiveInspectionCamera({
   // momentary hiccup. Non-transient errors (4xx with a real message) return on
   // the first try and fall through to the capture_error screen as before. Same
   // call signature as fetch(), so call sites only swap the function name.
-  async function fetchWithRetry(
-    input: string,
-    init?: RequestInit,
-    retries = 2,
-  ): Promise<Response> {
-    let lastErr: any;
-    for (let attempt = 0; attempt <= retries; attempt += 1) {
-      try {
-        const res = await fetch(input, init);
-        if (res.status >= 500 && attempt < retries) {
-          await new Promise((r) => window.setTimeout(r, 400 * (attempt + 1)));
-          continue;
-        }
-        return res;
-      } catch (err) {
-        lastErr = err;
-        if (attempt < retries) {
-          await new Promise((r) => window.setTimeout(r, 400 * (attempt + 1)));
-          continue;
-        }
-        throw err;
-      }
-    }
-    throw lastErr;
-  }
-
   async function runDraft(
     frameDataUrl: string,
     file: File,
@@ -2016,7 +1933,6 @@ export default function AILiveInspectionCamera({
     const pendingDecision =
       stage === "drafting" ||
       stage === "confirm" ||
-      stage === "ref_preview" ||
       stage === "collecting";
 
     if (
@@ -2253,7 +2169,6 @@ export default function AILiveInspectionCamera({
           to-zoom on the camera view works too (see the preview container). */}
       {(zoomMax > zoomMin || hasUltraWide) &&
         stage !== "confirm" &&
-        stage !== "ref_preview" &&
         (() => {
           const wideStops: number[] = [1];
           if (zoomMax >= 2) wideStops.push(2);
@@ -2918,86 +2833,6 @@ export default function AILiveInspectionCamera({
               : undefined
           }
         />
-      )}
-
-      {stage === "ref_preview" && (
-        <div className="absolute inset-0 z-30 flex flex-col bg-black/85 backdrop-blur-sm">
-          <div className="flex-1 overflow-y-auto px-4 py-3">
-            <div className="overflow-hidden rounded-xl border border-white/10 bg-neutral-900/85">
-              <img
-                src={capturedPreviewUrl}
-                alt="Reference photo"
-                className="max-h-64 w-full object-cover"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={openMarkup}
-              disabled={saving}
-              className="mt-3 w-full rounded-xl border border-cyan-400/60 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-300 disabled:opacity-50"
-            >
-              🖊 Markup Photo (optional)
-            </button>
-
-            <div className="mt-4">
-              <label className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                Section
-              </label>
-              <select
-                className="mt-1 w-full rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-                value={referenceSection}
-                onChange={(event) => setReferenceSection(event.target.value)}
-              >
-                {sections.map((sectionOption) => (
-                  <option key={sectionOption} value={sectionOption}>
-                    {sectionOption}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mt-4">
-              <label className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                Caption (optional)
-              </label>
-              <input
-                className="mt-1 w-full rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-                value={referenceCaption}
-                onChange={(event) => setReferenceCaption(event.target.value)}
-                placeholder="What does this photo show?"
-              />
-            </div>
-            {saveError && (
-              <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-                {saveError}
-              </div>
-            )}
-          </div>
-          <div
-            className="grid grid-cols-2 gap-2 border-t border-white/10 px-4 py-3"
-            style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
-          >
-            <button
-              type="button"
-              onClick={handleRetake}
-              disabled={saving}
-              className="min-h-12 rounded-xl border border-white/15 px-2 py-3 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              Retake
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                void handleAccept({ kind: "reference", caption: referenceCaption })
-              }
-              disabled={saving}
-              className="min-h-12 rounded-xl bg-emerald-400 px-2 py-3 text-sm font-semibold text-black disabled:opacity-50"
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </div>
       )}
 
       {toast && (
