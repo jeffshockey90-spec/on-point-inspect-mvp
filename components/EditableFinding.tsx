@@ -4,6 +4,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
+import { markLocalEdit } from "../lib/localEditSignal";
 import { useSeverityConfig } from "../lib/severity/useSeverityConfig";
 import { severityOptions } from "../lib/severity/severityConfig";
 
@@ -504,7 +505,9 @@ function EditableFinding({
         );
       }
 
-      refreshKeepScroll(router);
+      // The builder's opi:findings-changed listener already un-collapses the
+      // target section and runs a single refreshKeepScroll — calling it here too
+      // fired a second refresh/restore-dance for one move. Let the listener own it.
     } catch (error: any) {
       showMessage(
         "error",
@@ -610,6 +613,9 @@ function EditableFinding({
 
       setDeleteLabel("Deleted!");
       showMessage("success", "Finding deleted.");
+      // Mark the edit so RealtimeReportSync ignores this delete's DB echo
+      // instead of firing the full refresh this instant-delete path avoids.
+      markLocalEdit();
       // Drop the card from the list INSTANTLY instead of re-fetching the whole
       // report — the row is already gone from the DB. The report page listens
       // for this and removes it from local state right away, so deleting a

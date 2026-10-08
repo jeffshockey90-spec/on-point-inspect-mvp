@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
+import { matchesInspectionEvent } from "../lib/inspectionEvents";
 
 const SECTIONS = [
   "Inspection Details",
@@ -95,16 +96,23 @@ export default function LimitationEquipmentReview({
 
   useEffect(() => {
     void load();
-    function onChange() {
+    // Only reload when the event is for THIS inspection — opi:inspection-data-changed
+    // fires on many unrelated builder actions (finding edits, photo moves, etc.),
+    // and refetching limitations+equipment+photos on each of those is wasted work.
+    function onInspectionChange(event: Event) {
+      if (matchesInspectionEvent(event, inspectionId)) void load();
+    }
+    // Draft-queue changes (a flush produced new review items) always warrant a reload.
+    function onDraftChange() {
       void load();
     }
-    window.addEventListener("opi:inspection-data-changed", onChange);
-    window.addEventListener("opi:draft-queue-changed", onChange);
+    window.addEventListener("opi:inspection-data-changed", onInspectionChange);
+    window.addEventListener("opi:draft-queue-changed", onDraftChange);
     return () => {
-      window.removeEventListener("opi:inspection-data-changed", onChange);
-      window.removeEventListener("opi:draft-queue-changed", onChange);
+      window.removeEventListener("opi:inspection-data-changed", onInspectionChange);
+      window.removeEventListener("opi:draft-queue-changed", onDraftChange);
     };
-  }, [load]);
+  }, [load, inspectionId]);
 
   const sectionOptions = useMemo(
     () =>

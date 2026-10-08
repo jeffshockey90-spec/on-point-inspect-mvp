@@ -18,6 +18,7 @@ import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import RelatedFindingsEditor from "../../../components/RelatedFindingsEditor";
 import { supabase } from "../../../lib/supabaseClient";
 import { refreshKeepScroll } from "../../../lib/refreshKeepScroll";
+import { markLocalEdit } from "../../../lib/localEditSignal";
 import { createVideoThumbnailForUpload } from "../../../lib/videoThumbnail";
 import { useSeverityConfig } from "../../../lib/severity/useSeverityConfig";
 import { severityOptions, severityLabel, severityBadgeStyle, resolveSeverity } from "../../../lib/severity/severityConfig";
@@ -359,6 +360,9 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   const [reorderingFindingId, setReorderingFindingId] = useState<string | null>(
     null,
   );
+  // Mirrors a reorder-in-flight so the groupedFindings resync effect can avoid
+  // clobbering the optimistic order with a concurrent server refresh mid-persist.
+  const reorderingRef = useRef(false);
   const [photoPickerLoaded, setPhotoPickerLoaded] = useState(false);
   // Stable handler so passing it to every FindingCard doesn't break its memo().
   const handleNeedPhotoPicker = useCallback(() => setPhotoPickerLoaded(true), []);
@@ -393,22 +397,35 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         g.section === sectionName ? { ...g, findings: renumbered } : g,
       ),
     );
+    // Mark the edit so RealtimeReportSync ignores the DB echo of these writes
+    // instead of firing a full refresh ~800ms later (the "it re-settles by
+    // itself" twitch). Hold a ref too so the resync effect won't revert us.
+    markLocalEdit();
+    reorderingRef.current = true;
     setReorderingFindingId(String(findingId));
 
     try {
-      await Promise.all(
-        renumbered.map((f: any, i: number) =>
-          supabase
-            .from("findings")
-            .update({ sort_order: i })
-            .eq("id", f.id)
-            .eq("inspection_id", inspectionId),
-        ),
+      // Only persist the rows whose sort_order actually changed (an adjacent
+      // move is typically 2), instead of re-writing every finding in the section.
+      const changed = renumbered.filter(
+        (f: any, i: number) => list[i]?.sort_order !== i,
       );
+      if (changed.length > 0) {
+        await Promise.all(
+          changed.map((f: any) =>
+            supabase
+              .from("findings")
+              .update({ sort_order: f.sort_order })
+              .eq("id", f.id)
+              .eq("inspection_id", inspectionId),
+          ),
+        );
+      }
     } catch {
       // Re-sync from the server if the persist failed.
       refreshKeepScroll(router);
     } finally {
+      reorderingRef.current = false;
       setReorderingFindingId(null);
     }
   }
@@ -416,7 +433,13 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   useEffect(() => {
     const nextGroups = groupedFindings || [];
 
-    setOrderedGroups(nextGroups);
+    // Don't overwrite an in-flight optimistic reorder with a concurrent server
+    // refresh — it would snap the order back until the persist + next refresh
+    // land. The optimistic order already matches what we're persisting; the next
+    // genuine refresh reconciles once the reorder completes.
+    if (!reorderingRef.current) {
+      setOrderedGroups(nextGroups);
+    }
     // Reconcile the section open/closed map WITHOUT collapsing everything on
     // every server refresh. The old `getAllSectionsClosed` reset closed EVERY
     // section on each refresh — closed sections render null, so the whole page
@@ -1975,6 +1998,9 @@ function AddSectionFindingForm({
       } else {
         // Instant add: drop the new (already-persisted) card straight into the
         // list, no full server refetch. The report page listens for this.
+        // Mark the edit so RealtimeReportSync ignores this insert's DB echo
+        // instead of firing the full refresh this path exists to avoid.
+        markLocalEdit();
         if (typeof window !== "undefined") {
           window.dispatchEvent(
             new CustomEvent("opi:finding-added-optimistic", {
@@ -3664,6 +3690,9 @@ function FindingCardBase({
     event?.stopPropagation();
     const next = !isFlagged;
     setLocalFinding((current: any) => ({ ...(current || finding), flagged: next }));
+    // Mark the edit so the realtime echo of this flag write doesn't trigger a
+    // full refresh a beat after the tap.
+    markLocalEdit();
     try {
       const { error } = await supabase
         .from("findings")
