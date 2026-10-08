@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import { supabase } from "../lib/supabaseClient";
+import EnvironmentalPhotos from "./EnvironmentalPhotos";
 
 type MoldTest = {
   air_samples?: number | null;
@@ -435,6 +436,8 @@ function MoldForm({
           )}
         </div>
       </div>
+
+      <EnvironmentalPhotos inspectionId={inspectionId} kind="mold" title="Mold Photos" />
 
       <div className="mt-4 flex items-center gap-3">
         <button

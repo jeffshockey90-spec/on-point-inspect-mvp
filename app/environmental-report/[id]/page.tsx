@@ -243,6 +243,33 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
     .eq("inspection_id", inspection.id)
     .maybeSingle();
 
+  // Mold photos (owner view). Signed URLs, falling back to public_url.
+  let moldPhotos: { url: string; caption: string }[] = [];
+  {
+    const { data: moldPhotoRows } = await supabase
+      .from("environmental_photos")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .eq("kind", "mold")
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true });
+    const rows = (moldPhotoRows || []) as any[];
+    const paths = rows.map((r) => r.file_path).filter(Boolean) as string[];
+    const signed: Record<string, string> = {};
+    if (paths.length) {
+      const { data: signedData } = await supabase.storage
+        .from("inspection-photos")
+        .createSignedUrls(paths, 60 * 60 * 24 * 7);
+      (signedData || []).forEach((it: any, i: number) => {
+        const p = it?.path || paths[i];
+        if (p && it?.signedUrl) signed[p] = it.signedUrl;
+      });
+    }
+    moldPhotos = rows
+      .map((r) => ({ url: signed[r.file_path] || r.public_url || "", caption: r.caption || "" }))
+      .filter((p) => p.url);
+  }
+
   const reportTitle = getReportTitle(inspection);
   const propertyPhoto = getPropertyPhoto(inspection);
   const address =
@@ -469,6 +496,32 @@ export default async function EnvironmentalReportPage({ params }: PageProps) {
                   >
                     Open Lab Report
                   </a>
+                </div>
+              )}
+
+              {moldPhotos.length > 0 && (
+                <div className="avoid-break mt-6">
+                  <h3 className="text-xl font-semibold text-slate-950">Photos</h3>
+                  <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {moldPhotos.map((photo, i) => (
+                      <figure
+                        key={i}
+                        className="avoid-break overflow-hidden rounded-xl border border-slate-300 bg-white"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photo.url}
+                          alt={photo.caption || "Mold photo"}
+                          className="w-full object-cover"
+                        />
+                        {photo.caption && (
+                          <figcaption className="px-4 py-3 text-sm text-slate-700">
+                            {photo.caption}
+                          </figcaption>
+                        )}
+                      </figure>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
