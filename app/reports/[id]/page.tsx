@@ -1833,6 +1833,17 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
+  // Service detection (used to conditionally load the mold/radon panels). Needs
+  // only the inspection row, so computed here to let those reads join the main
+  // wave below instead of running as serial tail queries.
+  const inspectionServiceType = String(
+    inspection.service_mode || inspection.inspection_type || inspection.services || "",
+  ).toLowerCase();
+  const hasMoldService =
+    inspectionServiceType.includes("mold") || inspection.mold === true;
+  const hasRadonService =
+    inspectionServiceType.includes("radon") || inspection.radon === true;
+
   // Every one of these reads only needs inspection.id, so run them in a single
   // concurrent wave. This route is force-dynamic, so this whole render (and all
   // these queries) re-runs on every server action -- batching them turns what
@@ -1852,6 +1863,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     agreementContactsResult,
     reportDisclaimersResult,
     severityConfig,
+    moldTestResult,
+    radonTestResult,
+    refPhotoCountResult,
   ] = await Promise.all([
       loadEmailLogs(supabase, inspection.id),
       supabase
@@ -1916,12 +1930,70 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         .order("created_at", { ascending: true }),
       // Company severity config by company_id (no duplicate inspection read).
       loadSeverityConfigForCompany(inspection.company_id),
+      // Mold / radon test rows + reference-photo count all key only on
+      // inspection.id, so they ride the main wave instead of serial tail reads.
+      hasMoldService
+        ? supabase.from("mold_tests").select("*").eq("inspection_id", inspection.id).maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      hasRadonService
+        ? supabase.from("radon_tests").select("*").eq("inspection_id", inspection.id).maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from("section_reference_photos")
+        .select("id", { count: "exact", head: true })
+        .eq("inspection_id", inspection.id),
     ]);
 
   const officeAddress = officeAddressResult?.data?.office_address || null;
   const companyCurrency = normalizeCurrency(officeAddressResult?.data?.currency);
   const socialReleaseEnabled =
     (officeAddressResult?.data as any)?.social_media_release_enabled === true;
+
+  // --- Post-wave fetches, kicked off together so they OVERLAP -----------------
+  // These need the main wave's output (findings, repair shares, office address)
+  // but not each other, so starting them here lets the photos load, the repair-
+  // response history, and the driving-distance lookup run concurrently instead of
+  // as serial tail round-trips. Each is awaited below where its result is used.
+  const findingsRaw = findingsResult.data || [];
+  const findingIds = findingsRaw.map((finding: any) => finding.id);
+
+  async function loadAllPhotos(): Promise<{ photos: any[]; error: any }> {
+    // Page past Supabase's 1000-row cap so photo-heavy inspections load every photo.
+    if (findingIds.length === 0) return { photos: [], error: null };
+    const PAGE = 1000;
+    let out: any[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from("photos")
+        .select("*")
+        .in("finding_id", findingIds)
+        // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
+        .order("sort_order", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) return { photos: out, error };
+      out = out.concat(data || []);
+      if (!data || data.length < PAGE) break;
+    }
+    return { photos: out, error: null };
+  }
+  const photosPromise = loadAllPhotos();
+
+  const { data: repairRequestSharesRaw, error: repairRequestSharesError } = repairSharesResult;
+  if (repairRequestSharesError) {
+    console.error("Repair request history load error:", repairRequestSharesError);
+  }
+  const repairRequestShares = repairRequestSharesRaw || [];
+  const repairRequestShareIds = repairRequestShares
+    .map((share: any) => share.id)
+    .filter(Boolean);
+  const repairResponsesPromise =
+    repairRequestShareIds.length > 0
+      ? supabase
+          .from("repair_request_responses")
+          .select("*")
+          .in("share_id", repairRequestShareIds)
+      : Promise.resolve({ data: [] as any[], error: null });
 
   let liveDistanceMiles = inspection.distance_miles ?? null;
   let liveDriveMinutes = inspection.drive_minutes ?? null;
@@ -2007,24 +2079,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const equipmentInventoryRaw = (equipmentResult.data || []).filter(
     (item: any) => item?.needs_review !== true,
   );
-  const findingsRaw = findingsResult.data || [];
-
-  const { data: repairRequestSharesRaw, error: repairRequestSharesError } = repairSharesResult;
-
-  if (repairRequestSharesError) {
-    console.error("Repair request history load error:", repairRequestSharesError);
-  }
-
-  const repairRequestShares = repairRequestSharesRaw || [];
-  const repairRequestShareIds = repairRequestShares.map((share: any) => share.id).filter(Boolean);
-
+  // findingsRaw, repairRequestShares/Ids and the photos/repair-response/distance
+  // fetches were all hoisted above (post-wave overlap). Just collect the
+  // repair-response result here, where it's first used.
   const { data: repairRequestResponsesRaw, error: repairRequestResponsesError } =
-    repairRequestShareIds.length > 0
-      ? await supabase
-          .from("repair_request_responses")
-          .select("*")
-          .in("share_id", repairRequestShareIds)
-      : { data: [], error: null };
+    await repairResponsesPromise;
 
   if (repairRequestResponsesError) {
     console.error("Repair request response history load error:", repairRequestResponsesError);
@@ -2152,45 +2211,19 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const clientReadingSeconds = getFinalReadingSeconds(clientEngagementViews);
   const realtorReadingSeconds = getFinalReadingSeconds(realtorEngagementViews);
 
-  const findingIds = findingsRaw.map((finding: any) => finding.id);
-
-  // Page past Supabase's 1000-row cap so photo-heavy inspections load every photo.
-  let photosRaw: any[] = [];
-  let photosError: any = null;
-  if (findingIds.length > 0) {
-    const PAGE = 1000;
-    for (let from = 0; ; from += PAGE) {
-      const { data, error } = await supabase
-        .from("photos")
-        .select("*")
-        .in("finding_id", findingIds)
-        // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
-        .order("sort_order", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: true })
-        .range(from, from + PAGE - 1);
-      if (error) {
-        photosError = error;
-        break;
-      }
-      photosRaw = photosRaw.concat(data || []);
-      if (!data || data.length < PAGE) break;
-    }
-  }
+  // Photos were loaded concurrently with the repair-response + distance fetches
+  // above (findingIds hoisted). Collect the result here where signing begins.
+  const { photos: photosRaw, error: photosError } = await photosPromise;
 
   if (photosError) console.error("Photos load error:", photosError);
 
   // Section reference-gallery photos live in their own table (not `photos`), but
   // they're still pictures in the report — count them into the Media stat so the
   // workspace total matches what's actually in the report.
-  let referencePhotoCount = 0;
-  {
-    const { count, error: refCountError } = await supabase
-      .from("section_reference_photos")
-      .select("id", { count: "exact", head: true })
-      .eq("inspection_id", inspection.id);
-    if (refCountError) console.error("Reference photo count error:", refCountError);
-    referencePhotoCount = count || 0;
+  if (refPhotoCountResult?.error) {
+    console.error("Reference photo count error:", refPhotoCountResult.error);
   }
+  const referencePhotoCount = refPhotoCountResult?.count || 0;
 
   // PERFORMANCE + IMAGE FIX:
   // The editable report uses a private Supabase storage bucket in some installs.
@@ -2543,36 +2576,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const sampleShareTitle = getSampleReportTitle(inspection);
   const sampleShareDescription = getSampleReportDescription(inspection);
 
-  const inspectionServiceType = String(
-    inspection.service_mode || inspection.inspection_type || inspection.services || ""
-  ).toLowerCase();
-  const hasMoldService =
-    inspectionServiceType.includes("mold") || inspection.mold === true;
-  const hasRadonService =
-    inspectionServiceType.includes("radon") || inspection.radon === true;
-
-  let moldTestForPanel = null;
-  let radonTestForPanel = null;
-
-  if (hasMoldService) {
-    const { data } = await supabase
-      .from("mold_tests")
-      .select("*")
-      .eq("inspection_id", inspection.id)
-      .maybeSingle();
-
-    moldTestForPanel = data;
-  }
-
-  if (hasRadonService) {
-    const { data } = await supabase
-      .from("radon_tests")
-      .select("*")
-      .eq("inspection_id", inspection.id)
-      .maybeSingle();
-
-    radonTestForPanel = data;
-  }
+  // Mold/radon rows now come from the main wave (service detection + reads moved up).
+  const moldTestForPanel = moldTestResult?.data || null;
+  const radonTestForPanel = radonTestResult?.data || null;
 
   // Read signed agreements with the service-role client: inspection_agreements
   // has RLS enabled with no inspector SELECT policy, so the RLS-scoped `supabase`
