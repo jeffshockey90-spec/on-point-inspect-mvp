@@ -290,6 +290,13 @@ export default function AILiveInspectionCamera({
   const [approvingError, setApprovingError] = useState("");
   // Object URLs created for the approval overlay's photo previews (revoked on close).
   const approvePreviewUrlsRef = useRef<string[]>([]);
+  // Markup inside the approval overlay. Self-contained: it edits the loaded
+  // draft's own files (approvingDraft.files) + preview URLs, never the live
+  // capture state, so reviewing a background draft can't clobber an in-progress
+  // shot. null = closed; otherwise the index of the file being marked up.
+  const [approvalMarkupIdx, setApprovalMarkupIdx] = useState<number | null>(null);
+  const [approvalMarkupPicker, setApprovalMarkupPicker] = useState(false);
+  const [savingApprovalMarkup, setSavingApprovalMarkup] = useState(false);
 
   // Voice section-fill: speak as you go ("asphalt shingles, water shutoff in the
   // basement") to tick section-info checkboxes. Fills only empty boxes, so it
@@ -299,6 +306,11 @@ export default function AILiveInspectionCamera({
   // Synchronous guard so a double-tap during the async mic-start sequence can't
   // start the native recognizer twice (two concurrent starts crash on iOS).
   const voiceStartingRef = useRef(false);
+  // Once-per-session guard so a session is finalized exactly once. iOS can end
+  // the recognizer on its own (after a pause / a result / an error — common on
+  // longer, multi-item phrases); without this, that auto-stop AND a later manual
+  // stop both fire, double-stopping a dead native session, which crashes iOS.
+  const voiceFinalizedRef = useRef(false);
   // True when the previous camera session ended abnormally (likely a crash) and
   // its breadcrumb log was preserved for copying.
   const [crashLogAvailable, setCrashLogAvailable] = useState(false);
@@ -1016,6 +1028,71 @@ export default function AILiveInspectionCamera({
     setApprovingDraft(null);
     setApprovingBusy(false);
     setApprovingError("");
+    setApprovalMarkupIdx(null);
+    setApprovalMarkupPicker(false);
+  }
+
+  // Which files in the open draft are photos (markupable). Async drafts are
+  // findings-only photos today, but this stays correct if that widens.
+  function approvalImageIndices(): number[] {
+    if (!approvingDraft) return [];
+    return approvingDraft.files
+      .map((f, i) => ({ isImage: (f?.type || "").startsWith("image/"), i }))
+      .filter((x) => x.isImage)
+      .map((x) => x.i);
+  }
+
+  // Open markup from the approval overlay. One photo → straight to the editor;
+  // several → a small picker (mark one, reopen to mark another).
+  function openApprovalMarkup() {
+    const idxs = approvalImageIndices();
+    if (idxs.length === 0) return;
+    if (idxs.length > 1) {
+      setApprovalMarkupPicker(true);
+      return;
+    }
+    setApprovalMarkupIdx(idxs[0]);
+  }
+
+  // Save a marked-up photo back into the OPEN draft (in-memory): swap the File
+  // and its preview URL at that index. approveLoadedDraft delivers
+  // approvingDraft.files, so the annotated photo is what lands on the report.
+  // Full-res is preserved — the flattened markup is the delivered image, same as
+  // the sync path; nothing here downscales the photo.
+  async function saveApprovalMarkup(_items: any[], flattenedDataUrl: string) {
+    if (approvalMarkupIdx == null || !approvingDraft || savingApprovalMarkup) return;
+    setSavingApprovalMarkup(true);
+    try {
+      const response = await fetch(flattenedDataUrl);
+      const blob = await response.blob();
+      if (!blob.size) {
+        throw new Error("The marked-up photo was empty.");
+      }
+      const idx = approvalMarkupIdx;
+      const original = approvingDraft.files[idx];
+      const baseName = String(original?.name || "ai-camera-photo")
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[^a-zA-Z0-9-_]/g, "-")
+        .slice(0, 70);
+      const markedFile = new File([blob], `${baseName}-marked.jpg`, {
+        type: "image/jpeg",
+        lastModified: Date.now(),
+      });
+      const files = approvingDraft.files.slice();
+      files[idx] = markedFile;
+      try {
+        URL.revokeObjectURL(approvePreviewUrlsRef.current[idx]);
+      } catch {
+        /* ignore */
+      }
+      approvePreviewUrlsRef.current[idx] = URL.createObjectURL(markedFile);
+      setApprovingDraft({ ...approvingDraft, files });
+      setApprovalMarkupIdx(null);
+    } catch (error: any) {
+      setApprovingError(error?.message || "Could not save the photo markup.");
+    } finally {
+      setSavingApprovalMarkup(false);
+    }
   }
 
   // Approve the open draft: save it through the normal path, record learning,
@@ -1286,19 +1363,33 @@ export default function AILiveInspectionCamera({
     }
   }
 
-  async function stopVoiceFill() {
-    logCam("mic:stop");
+  // End the NATIVE voice session exactly once, from whichever trigger fires
+  // first: a manual tap, iOS auto-stopping the recognizer, or a native error.
+  // Guarded so the auto-stop event and a later manual stop can't both run and
+  // double-tear-down a dead session (the iOS crash on longer phrases).
+  function finalizeVoiceSession(opts: { submit: boolean; alreadyStopped?: boolean }) {
+    if (voiceFinalizedRef.current) return;
+    voiceFinalizedRef.current = true;
+    logCam("mic:finalize", { submit: opts.submit, alreadyStopped: !!opts.alreadyStopped });
     setVoiceListening(false);
     if (Capacitor.isNativePlatform()) {
-      try {
-        await NativeSpeechRecognition.stop();
-        await NativeSpeechRecognition.removeAllListeners();
-      } catch {
-        /* ignore */
+      // Don't call stop() again when iOS already stopped the session — stopping
+      // an already-torn-down native recognizer is the crash we're avoiding.
+      if (!opts.alreadyStopped) {
+        NativeSpeechRecognition.stop().catch(() => {});
       }
-      const text = voiceTranscriptRef.current.trim();
-      if (text) void submitVoiceTranscript(text);
+      NativeSpeechRecognition.removeAllListeners().catch(() => {});
+    }
+    const text = voiceTranscriptRef.current.trim();
+    if (opts.submit && text) void submitVoiceTranscript(text);
+  }
+
+  async function stopVoiceFill() {
+    logCam("mic:stop");
+    if (Capacitor.isNativePlatform()) {
+      finalizeVoiceSession({ submit: true });
     } else {
+      setVoiceListening(false);
       try {
         voiceRecognitionRef.current?.stop?.();
       } catch {
@@ -1320,6 +1411,7 @@ export default function AILiveInspectionCamera({
     if (voiceStartingRef.current) return; // double-tap guard during async start
     voiceStartingRef.current = true;
     voiceTranscriptRef.current = "";
+    voiceFinalizedRef.current = false; // fresh session
     setVoiceFilled(null);
     logCam("mic:start", { native: Capacitor.isNativePlatform() });
 
@@ -1354,8 +1446,32 @@ export default function AILiveInspectionCamera({
           /* ignore */
         }
         await NativeSpeechRecognition.addListener("partialResults", (event: any) => {
-          const transcript = String(event?.matches?.[0] || "").trim();
+          // iOS SFSpeechRecognizer accumulates the whole utterance into matches[0];
+          // accumulatedText is the fuller text on continuous-PTT builds. Either way
+          // keep the latest complete transcript so multi-item phrases aren't clipped.
+          const transcript = String(
+            event?.accumulatedText || event?.matches?.[0] || "",
+          ).trim();
           if (transcript) voiceTranscriptRef.current = transcript;
+        });
+        // iOS ends the recognizer on its own after a pause, a result, or a time
+        // limit — very common on longer, multi-checkbox phrases. Finalize on that
+        // event (don't re-stop: it's already stopped) so the UI never sits in a
+        // stale "listening" state that a later manual stop would crash on.
+        await NativeSpeechRecognition.addListener("listeningState", (event: any) => {
+          const state = String(event?.state || event?.status || "");
+          if (state === "stopped") {
+            finalizeVoiceSession({ submit: true, alreadyStopped: true });
+          }
+        });
+        // A mid-recognition native error (audio-session glitch, etc.) must not
+        // wedge the session — submit whatever we captured and tear down cleanly.
+        await NativeSpeechRecognition.addListener("error", (event: any) => {
+          logCam("mic:native-error", {
+            code: String(event?.code || ""),
+            msg: String(event?.message || ""),
+          });
+          finalizeVoiceSession({ submit: true });
         });
         await NativeSpeechRecognition.start({
           language: "en-US",
@@ -2779,6 +2895,7 @@ export default function AILiveInspectionCamera({
           onAccept={approveLoadedDraft}
           onRegenerate={redraftLoadedDraft}
           onRetake={discardLoadedDraft}
+          onMarkup={approvalImageIndices().length > 0 ? openApprovalMarkup : undefined}
           extraPreviewUrls={
             approvePreviewUrlsRef.current.length > 1
               ? approvePreviewUrlsRef.current.slice(1)
@@ -2786,6 +2903,73 @@ export default function AILiveInspectionCamera({
           }
         />
       )}
+
+      {/* Approval-overlay markup picker (several photos on one draft). */}
+      {approvalMarkupPicker && approvingDraft && (
+        <div
+          className="absolute inset-0 z-[58] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm [touch-action:manipulation]"
+          onClick={() => setApprovalMarkupPicker(false)}
+        >
+          <div
+            className="max-h-[86vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/15 bg-neutral-950 p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-white">Pick a photo to mark up</p>
+              <button
+                type="button"
+                onClick={() => setApprovalMarkupPicker(false)}
+                className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white/70 [touch-action:manipulation]"
+              >
+                Close ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {approvalImageIndices().map((idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setApprovalMarkupPicker(false);
+                    setApprovalMarkupIdx(idx);
+                  }}
+                  className="group relative block h-28 w-full overflow-hidden rounded-xl border border-white/15 bg-neutral-900 text-left transition hover:border-purple-400 [touch-action:manipulation]"
+                  title="Mark up this photo"
+                >
+                  <img
+                    src={approvePreviewUrlsRef.current[idx]}
+                    alt={`Photo ${idx + 1}`}
+                    className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+                  />
+                  <span className="absolute bottom-1.5 right-1.5 rounded-full border border-purple-400/60 bg-neutral-950/90 px-2 py-0.5 text-[11px] font-semibold text-purple-200">
+                    ✏️
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-[11px] text-white/50">
+              Mark one up and save, then reopen to mark up another.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Approval-overlay markup editor — edits the open draft's photo in place. */}
+      {approvalMarkupIdx != null &&
+        approvingDraft &&
+        approvePreviewUrlsRef.current[approvalMarkupIdx] && (
+          <div className="absolute inset-0 z-[60]">
+            <PhotoMarkupEditor
+              imageUrl={approvePreviewUrlsRef.current[approvalMarkupIdx]}
+              severity={(approvingDraft.draft as any)?.severity || currentSeverity}
+              onSave={saveApprovalMarkup}
+              onCancel={() => {
+                if (savingApprovalMarkup) return;
+                setApprovalMarkupIdx(null);
+              }}
+            />
+          </div>
+        )}
 
       {toast && (
         <div
