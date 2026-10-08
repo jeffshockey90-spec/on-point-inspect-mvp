@@ -425,7 +425,14 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
       recommendation,
       maintenanceTip,
       liabilityNote: cleanText(parsed.liabilityNote),
-      confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 82)),
+      // Use the model's confidence when it actually returned one; a MISSING or
+      // non-numeric value defaults to a moderate 60, not a high 82 — a draft the
+      // model gave no confidence for shouldn't read as high-confidence to a
+      // rushing inspector. (|| 82 also wrongly coerced a real 0 to 82.)
+      confidence: (() => {
+        const c = Number(parsed.confidence);
+        return Number.isFinite(c) ? Math.max(0, Math.min(100, c)) : 60;
+      })(),
       evidence: Array.isArray(parsed.evidence)
         ? parsed.evidence.map(cleanText).filter(Boolean).slice(0, 4)
         : [],

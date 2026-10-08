@@ -222,12 +222,6 @@ function decodeManufactureYearFromSerial({
     return year;
   }
 
-  // Some data plates include a plain four-digit manufacture year in or near the serial.
-  for (let index = 0; index <= cleanSerial.length - 4; index += 1) {
-    const possibleYear = yearFromFourDigitsAt(index);
-    if (possibleYear) return possibleYear;
-  }
-
   if (
     brand.includes("a.o. smith") ||
     brand.includes("ao smith") ||
@@ -339,6 +333,15 @@ function decodeManufactureYearFromSerial({
     const yySecond = Number(cleanSerial.slice(2, 4));
     const mmYear = yearFromTwoDigits(yySecond);
     if (mmYear && monthIsValid(mmFirst)) return mmYear;
+  }
+
+  // LAST RESORT: a plain four-digit year somewhere in the serial. Brand-specific
+  // decoders run first (above), so a model/lot number that happens to contain
+  // e.g. "2015" can't pre-empt a correct brand decode — this only fires when no
+  // brand pattern matched.
+  for (let index = 0; index <= cleanSerial.length - 4; index += 1) {
+    const possibleYear = yearFromFourDigitsAt(index);
+    if (possibleYear) return possibleYear;
   }
 
   return null;
