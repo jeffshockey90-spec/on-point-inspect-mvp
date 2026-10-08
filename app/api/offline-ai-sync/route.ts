@@ -198,7 +198,14 @@ async function uploadOfflinePhoto({
       cacheControl: "31536000",
     });
 
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    // Legacy base64 path only (modern items pre-upload client-side). Return null
+    // so the caller's loop skips this photo (`if (!upload) continue`) instead of
+    // throwing AFTER the finding/limitation row is created — a throw there aborts
+    // before the idempotency receipt and the client's retry duplicates the row.
+    console.warn("Offline sync: legacy photo upload failed, skipping:", uploadError.message);
+    return null;
+  }
 
   const { data: publicData } = supabase.storage
     .from(PHOTO_BUCKET)
@@ -626,7 +633,13 @@ export async function POST(req: Request) {
           thumbnail_path: null,
         });
 
-        if (photoError) throw photoError;
+        if (photoError) {
+          // Best-effort: the photo is already in storage; NEVER throw after the
+          // finding row exists, or the client's retry creates a DUPLICATE finding
+          // (the receipt that dedups retries is only written further below).
+          console.warn("Offline sync: finding photo link failed, continuing:", photoError.message);
+          continue;
+        }
 
         uploadedPhotoInputs.push({
           ...upload,
@@ -764,7 +777,12 @@ export async function POST(req: Request) {
             thumbnail_path: upload.filePath,
           });
 
-        if (photoError) throw photoError;
+        if (photoError) {
+          // Best-effort — never throw after the limitation row exists (a throw
+          // here aborts before the receipt and the retry duplicates the limitation).
+          console.warn("Offline sync: limitation photo link failed, continuing:", photoError.message);
+          continue;
+        }
         photoCount += 1;
       }
 
@@ -865,7 +883,11 @@ export async function POST(req: Request) {
           const { error: photoError } = await supabase
             .from("photos")
             .insert(photoRows);
-          if (photoError) throw photoError;
+          if (photoError) {
+            // Best-effort — never throw after the equipment row exists (a throw
+            // here aborts before the receipt and the retry duplicates the equipment).
+            console.warn("Offline sync: equipment photo link failed, continuing:", photoError.message);
+          }
         }
       }
 
