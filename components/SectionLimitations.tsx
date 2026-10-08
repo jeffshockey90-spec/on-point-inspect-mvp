@@ -227,6 +227,9 @@ function SectionLimitations({
       .select("*")
       .eq("inspection_id", inspectionId)
       .eq("section", section)
+      // Limitations still awaiting review (async background drafts) show only in
+      // the Field Review queue at the top of the builder, not in this editor.
+      .not("needs_review", "is", true)
       .order("created_at", { ascending: true });
 
     if (error) {

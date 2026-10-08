@@ -78,6 +78,7 @@ import InspectorToolsDrawer, {
 } from "../../../components/InspectorToolsDrawer";
 import PendingSubmitButton from "../../../components/PendingSubmitButton";
 import FieldReviewQueue from "../../../components/FieldReviewQueue";
+import LimitationEquipmentReview from "../../../components/LimitationEquipmentReview";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -2000,7 +2001,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
   const emailLogs = emailLogsResult.data || [];
   const viewLogs = viewLogsResult.data || [];
-  const equipmentInventoryRaw = equipmentResult.data || [];
+  // Equipment still awaiting review (async background drafts) renders ONLY in the
+  // LimitationEquipmentReview queue — not in the normal equipment list, and not in
+  // any client copy — until the inspector approves it.
+  const equipmentInventoryRaw = (equipmentResult.data || []).filter(
+    (item: any) => item?.needs_review !== true,
+  );
   const findingsRaw = findingsResult.data || [];
 
   const { data: repairRequestSharesRaw, error: repairRequestSharesError } = repairSharesResult;
@@ -3785,6 +3791,11 @@ Service-life information is a general industry estimate only. Actual service lif
             <FieldReviewQueue
               inspectionId={String(inspection.id)}
               reviewFindings={fieldReviewFindings}
+              availableSections={fieldReviewSections}
+            />
+
+            <LimitationEquipmentReview
+              inspectionId={String(inspection.id)}
               availableSections={fieldReviewSections}
             />
 
