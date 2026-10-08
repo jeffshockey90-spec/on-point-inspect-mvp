@@ -915,16 +915,16 @@ export default function AILiveInspectionCamera({
   async function analyzeShots() {
     if (!shots.length) return;
 
-    // Async beta: queue the capture and keep shooting. FINDINGS ONLY — findings
-    // flush to the builder's review queue on exit (cross-device, never lost),
-    // whereas equipment/limitation have no server review surface yet, so they
-    // stay on the synchronous+durable path below to avoid a device-only draft
-    // that could be silently lost. Reference photos never draft here.
-    // Video findings use a still frame (not the video file) as the AI input, which
-    // the background worker can't reconstruct from stored image files — so an
-    // all-photo finding goes async; a video finding stays on the sync path.
+    // Async beta: queue the capture and keep shooting. Findings, LIMITATIONS and
+    // EQUIPMENT all draft in the background — each flushes to the builder's review
+    // queue on exit (needs_review, cross-device, never lost). Reference photos
+    // never draft here. Video captures use a still frame (not the video file) as
+    // the AI input, which the background worker can't reconstruct from stored
+    // image files — so an all-photo capture goes async; a video one stays sync.
     const hasVideoShot = shots.some((s) => s.isVideo);
-    if (asyncDraftEnabled && selectedReport && category === "finding" && !hasVideoShot) {
+    const asyncEligible =
+      category === "finding" || category === "limitation" || category === "equipment";
+    if (asyncDraftEnabled && selectedReport && asyncEligible && !hasVideoShot) {
       // Snapshot everything the draft needs BEFORE resetting.
       const cat = category;
       const files = shots.map((s) => s.file);
@@ -933,6 +933,9 @@ export default function AILiveInspectionCamera({
       const avail = sections;
       const loc = composedLocation();
       const label = note || CATEGORIES.find((c) => c.key === cat)?.label || "Draft";
+      // Finding lets the AI pick severity; limitation carries the current one;
+      // equipment doesn't use severity.
+      const sev = cat === "limitation" ? currentSeverity : "";
 
       try {
         // PERSIST FIRST — write the full-res capture to disk BEFORE telling the
@@ -947,7 +950,7 @@ export default function AILiveInspectionCamera({
           section,
           availableSections: avail,
           location: loc,
-          severity: "",
+          severity: sev,
           aiFrames: [],
           files,
           label,

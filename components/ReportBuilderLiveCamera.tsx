@@ -7,6 +7,11 @@ import {
   processOfflineQueue,
   isOnline,
 } from "../lib/offline/queue";
+import { flushAllDrafts } from "../lib/offline/draftQueue";
+import {
+  buildEquipmentSavePayload,
+  type EquipmentResult,
+} from "../lib/equipment/equipmentSave";
 import type { CaptureCategory, CaptureDraft } from "../lib/ai/captureTypes";
 
 // Lazy-loaded: the camera's heavy code (speech plugin, markup editor, the 2900-
@@ -73,6 +78,21 @@ export default function ReportBuilderLiveCamera({
   function openCamera() {
     void loadFlags(); // parallel; camera opens immediately, flags apply on arrival
     setOpen(true);
+  }
+
+  // Closing the camera: send any un-approved background drafts to the builder's
+  // review queue (needs_review) so nothing is stranded on this device, then
+  // refresh so the review panel the inspector lands on shows them immediately.
+  function closeCamera() {
+    setOpen(false);
+    void flushAllDrafts(inspectionId)
+      .then((n) => {
+        if (n > 0) {
+          if (isOnline()) void processOfflineQueue().then(notifyChanged).catch(() => {});
+          else notifyChanged();
+        }
+      })
+      .catch(() => {});
   }
 
   function notifyChanged() {
@@ -160,8 +180,38 @@ export default function ReportBuilderLiveCamera({
       return;
     }
 
-    // Equipment is restricted out of this launcher; defensive guard.
-    throw new Error("Equipment capture is available in the Field Tool.");
+    if (category === "equipment" && draft.kind === "equipment") {
+      // The launcher doesn't CAPTURE equipment, but the shared draft queue can
+      // surface an equipment draft started in the field tool; approve it here
+      // too (same mapping the field tool uses) rather than dead-ending.
+      const { inventory, inventory_base, create_finding, finding } =
+        buildEquipmentSavePayload(
+          draft as unknown as EquipmentResult,
+          "",
+          inspectionId,
+        );
+      const queued = await addOfflineQueueItem({
+        type: "equipment",
+        payload: {
+          inspection_id: inspectionId,
+          inventory,
+          inventory_base,
+          create_finding,
+          finding,
+          confirmed_live: true,
+          offline_created_at: new Date().toISOString(),
+        },
+        media: files,
+      });
+      if (!queued) {
+        throw new Error("This device can't save offline — reconnect to save this equipment.");
+      }
+      if (isOnline()) void processOfflineQueue().then(notifyChanged).catch(() => {});
+      else notifyChanged();
+      return;
+    }
+
+    throw new Error("Unsupported capture type.");
   }
 
   return (
@@ -183,7 +233,7 @@ export default function ReportBuilderLiveCamera({
           asyncDraftEnabled={flags.async}
           compassAutoEnable={flags.compass}
           autoStart
-          onClose={() => setOpen(false)}
+          onClose={closeCamera}
           categories={["finding", "limitation", "reference"]}
           selectedReport={inspectionId}
           currentSection={sections[0] || ""}

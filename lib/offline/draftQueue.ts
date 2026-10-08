@@ -28,6 +28,10 @@ import {
 } from "./queue";
 import { fileToDataUrl, shrinkForAi } from "../aiFrame";
 import { generateLiveDraft } from "../ai/liveDraftGen";
+import {
+  buildEquipmentSavePayload,
+  type EquipmentResult,
+} from "../equipment/equipmentSave";
 
 export const DRAFT_QUEUE_EVENT = "opi:draft-queue-changed";
 
@@ -298,31 +302,20 @@ export async function discardDraft(id: string): Promise<void> {
 
 // --- Flush to the builder review queue (cross-device + survives app kill) -----
 //
-// When the inspector leaves the field tool with un-approved FINDING drafts, send
-// them to the report builder's review queue (findings.needs_review=true) instead
-// of stranding them on this device. Already-drafted items carry their AI draft
-// (no re-gen); not-yet-drafted items are flagged run_ai_after_sync so the SERVER
-// generates them from the note + photos. Either way the finding lands as a
-// pending review that the inspector approves in the builder (Option A — never
-// auto-entered into the report, excluded from client reports until approved).
-//
-// Only findings flush today; limitation/equipment drafts stay in the in-camera
-// popup until approved (they have no server review-queue surface yet).
-export async function flushFindingDraftToReviewQueue(id: string): Promise<boolean> {
-  const items = await getDraftItems();
-  const item = items.find((i) => i.id === id);
-  if (!item) return false;
+// When the inspector leaves with un-approved drafts, send them to the report
+// builder's review queue (needs_review=true) instead of stranding them on this
+// device. The server stamps needs_review because we send confirmed_live:false
+// (see app/api/offline-ai-sync). Each lands as a pending review the inspector
+// approves in the builder (Option A — never auto-entered into the report,
+// excluded from every client copy until approved). All three categories flush.
+async function flushFindingItem(item: OfflineQueueItem): Promise<boolean> {
   const p = item.payload || {};
-  if ((p.category || "finding") !== "finding") return false;
-
   const d = item.draft || {};
   const note = String(p.note || "");
-  const files = filesFromItem(item);
-
   await addOfflineQueueItem({
     type: "finding",
     status: "queued",
-    media: files,
+    media: filesFromItem(item),
     payload: {
       inspection_id: String(p.inspection_id || ""),
       title: d.title || note.slice(0, 70) || "Field finding",
@@ -334,7 +327,6 @@ export async function flushFindingDraftToReviewQueue(id: string): Promise<boolea
       location: p.location || "",
       inspector_note: note,
       note,
-      // confirmed_live:false → the server flags the created finding needs_review.
       confirmed_live: false,
       // Re-generate on the server ONLY when no client draft exists yet.
       run_ai_after_sync: item.draft ? false : true,
@@ -343,22 +335,105 @@ export async function flushFindingDraftToReviewQueue(id: string): Promise<boolea
       async_draft_flushed: true,
     },
   });
-
   await removeOfflineQueueItem(item.id);
   notifyDraftChange();
   return true;
 }
 
-// Flush every un-approved FINDING draft (any state) to the review queue, then
-// kick a sync. Returns how many were flushed. Safe to call on field-tool exit.
-export async function flushAllFindingDrafts(inspectionId?: string): Promise<number> {
+async function flushLimitationItem(item: OfflineQueueItem): Promise<boolean> {
+  const p = item.payload || {};
+  const d = item.draft || {};
+  const note = String(p.note || "");
+  const images = filesFromItem(item, true);
+  // The server limitation sync needs at least one photo; without one it 400s.
+  if (images.length === 0) return false;
+  await addOfflineQueueItem({
+    type: "limitation",
+    status: "queued",
+    media: images,
+    payload: {
+      inspection_id: String(p.inspection_id || ""),
+      section: d.section || p.section || "Exterior",
+      title: d.title || note.slice(0, 70) || "Field Limitation",
+      limitation: d.limitation || note || "",
+      reason: d.reason || "",
+      recommendation: d.recommendation || "",
+      // confirmed_live:false → the server stamps section_limitations.needs_review.
+      confirmed_live: false,
+      offline_created_at: item.createdAt,
+      async_draft_flushed: true,
+    },
+  });
+  await removeOfflineQueueItem(item.id);
+  notifyDraftChange();
+  return true;
+}
+
+async function flushEquipmentItem(item: OfflineQueueItem): Promise<boolean> {
+  const p = item.payload || {};
+  const note = String(p.note || "");
+  // Use the generated EquipmentResult if the draft finished; otherwise an empty
+  // one so a not-yet-drafted capture still lands (photo + blank fields the
+  // inspector completes) rather than being stranded on this device.
+  const er =
+    item.draft && (item.draft as any).kind === "equipment"
+      ? (item.draft as unknown as EquipmentResult)
+      : ({} as EquipmentResult);
+  const { inventory, inventory_base, create_finding, finding } =
+    buildEquipmentSavePayload(er, note, String(p.inspection_id || ""));
+  await addOfflineQueueItem({
+    type: "equipment",
+    status: "queued",
+    media: filesFromItem(item),
+    payload: {
+      inspection_id: String(p.inspection_id || ""),
+      inventory,
+      inventory_base,
+      create_finding,
+      finding,
+      // confirmed_live:false → the server stamps equipment_inventory.needs_review
+      // (and the derived finding, if any).
+      confirmed_live: false,
+      offline_created_at: item.createdAt,
+      async_draft_flushed: true,
+    },
+  });
+  await removeOfflineQueueItem(item.id);
+  notifyDraftChange();
+  return true;
+}
+
+// Flush one draft (any category) to the review queue by id.
+export async function flushDraftToReviewQueue(id: string): Promise<boolean> {
+  const items = await getDraftItems();
+  const item = items.find((i) => i.id === id);
+  if (!item) return false;
+  const category = (item.payload?.category || "finding") as DraftCategory;
+  if (category === "limitation") return flushLimitationItem(item);
+  if (category === "equipment") return flushEquipmentItem(item);
+  return flushFindingItem(item);
+}
+
+// Back-compat: the finding-only flush kept its original name.
+export async function flushFindingDraftToReviewQueue(id: string): Promise<boolean> {
+  const items = await getDraftItems();
+  const item = items.find((i) => i.id === id);
+  if (!item || (item.payload?.category || "finding") !== "finding") return false;
+  return flushFindingItem(item);
+}
+
+// Flush every un-approved draft (all categories, any state) to the review queue,
+// then kick a sync. Returns how many were flushed. Safe to call on exit.
+export async function flushAllDrafts(inspectionId?: string): Promise<number> {
   const items = await getDraftItems(inspectionId);
-  const findingDrafts = items.filter((i) => (i.payload?.category || "finding") === "finding");
   let flushed = 0;
-  for (const item of findingDrafts) {
+  for (const item of items) {
     // eslint-disable-next-line no-await-in-loop
-    const ok = await flushFindingDraftToReviewQueue(item.id).catch(() => false);
+    const ok = await flushDraftToReviewQueue(item.id).catch(() => false);
     if (ok) flushed += 1;
   }
   return flushed;
 }
+
+// Back-compat alias for the original finding-only name (now flushes all).
+export const flushAllFindingDrafts = flushAllDrafts;
