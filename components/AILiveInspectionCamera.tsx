@@ -2600,7 +2600,7 @@ export default function AILiveInspectionCamera({
                   muteAudio ? "bg-red-600/80 text-white" : "bg-neutral-900/85 text-white"
                 }`}
               >
-                {muteAudio ? "🔇" : "🎤"}
+                {muteAudio ? "🔇" : "🔊"}
               </button>
             ) : (
               <div />
@@ -2678,7 +2678,7 @@ export default function AILiveInspectionCamera({
               retaking them. */}
           <div className="flex flex-wrap gap-2 px-4 pt-2">
             {([
-              ["finding", "Defect"],
+              ["finding", "Findings"],
               ["limitation", "Limitation"],
               ["equipment", "Equipment"],
               ["reference", "Reference"],
