@@ -1347,6 +1347,7 @@ function FieldPageContent() {
       observation?: string;
       implication?: string;
       recommendation?: string;
+      location?: string;
     },
   ) {
     const target = existingFindings.find(
@@ -1399,6 +1400,11 @@ function FieldPageContent() {
               observation: draft.observation || "",
               implication: draft.implication || "",
               recommendation: draft.recommendation || "",
+              // Compass-confirmed location of THIS added photo, so the merged
+              // write-up can enumerate every affected spot (e.g. "windows on the
+              // north and south elevations"). The combine-capture route already
+              // weaves incoming.location into the rewrite.
+              location: (draft as any).location || "",
             },
           }),
         });
