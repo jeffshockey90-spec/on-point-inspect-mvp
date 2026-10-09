@@ -1098,6 +1098,30 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  // Combine the open draft into an EXISTING finding (same as the sync confirm
+  // card's "Combine with an existing defect"), using the loaded draft's own
+  // files rather than the live capture tray. onAttachToExisting adds the photos
+  // to that finding and AI-rewrites it to cover both; then we drop the draft.
+  async function attachLoadedDraftToExisting(
+    findingId: string,
+    editedDraft?: CaptureDraft,
+  ) {
+    const loaded = approvingDraft;
+    if (!loaded || !findingId || !onAttachToExisting) return;
+    setApprovingBusy(true);
+    setApprovingError("");
+    try {
+      await onAttachToExisting(findingId, loaded.files, editedDraft as any);
+      await discardDraft(loaded.id);
+      setToast("Combined into the existing defect.");
+      closeApprovalOverlay();
+      void refreshDraftCounts();
+    } catch (error: any) {
+      setApprovingError(error?.message || "Could not combine. Try again.");
+      setApprovingBusy(false);
+    }
+  }
+
   // Approve the open draft: save it through the normal path, record learning,
   // then remove it from the queue.
   async function approveLoadedDraft(editedDraft: CaptureDraft) {
@@ -2895,8 +2919,10 @@ export default function AILiveInspectionCamera({
           busy={approvingBusy}
           error={approvingError}
           initialNote={approvingDraft.note}
+          existingFindings={onAttachToExisting ? existingFindings : undefined}
           onAccept={approveLoadedDraft}
           onRegenerate={redraftLoadedDraft}
+          onAttachToExisting={onAttachToExisting ? attachLoadedDraftToExisting : undefined}
           onRetake={discardLoadedDraft}
           onMarkup={approvalImageIndices().length > 0 ? openApprovalMarkup : undefined}
           extraPreviewUrls={
