@@ -23,6 +23,11 @@ import {
   type DraftCounts,
 } from "../lib/offline/draftQueue";
 import {
+  addOfflineQueueItem,
+  processOfflineQueue,
+  isOnline,
+} from "../lib/offline/queue";
+import {
   logCam,
   detectPriorCrash,
   beginCamSession,
@@ -1332,12 +1337,52 @@ export default function AILiveInspectionCamera({
     const refCaption = referenceCaption.trim();
     const refShots = shots.slice(); // snapshot before reset
 
-    // Async beta: keep shooting — upload the reference photos in the BACKGROUND
-    // and return to the viewfinder immediately, same "move on" feel as findings.
+    // Async beta: keep shooting. Persist the reference photos to the DURABLE
+    // offline queue (ArrayBuffer bytes, idempotent, retried) so they survive an
+    // app close / lost signal, then return to the viewfinder immediately. The
+    // server (offline-ai-sync, type "reference_photo") inserts section_reference_photos.
     if (asyncDraftEnabled) {
+      let queued = false;
+      try {
+        queued = Boolean(
+          await addOfflineQueueItem({
+            type: "reference_photo",
+            payload: {
+              inspection_id: selectedReport,
+              section: refSection,
+              caption: refCaption,
+              offline_created_at: new Date().toISOString(),
+            },
+            media: refShots.map((s) => s.file),
+          }),
+        );
+      } catch (err: any) {
+        logCam("reference:enqueue-error", { msg: String(err?.message || err) });
+      }
+
+      if (queued) {
+        autofillReferenceMaterials(refSection, refShots.map((s) => s.frame).filter(Boolean));
+        resetCaptureState();
+        setStage("note_entry");
+        setToast("Reference photos saved — syncing in the background");
+        if (isOnline()) void processOfflineQueue().catch(() => {});
+        try {
+          window.dispatchEvent(
+            new CustomEvent("opi:inspection-data-changed", {
+              detail: { inspectionId: selectedReport, source: "live-camera-reference" },
+            }),
+          );
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+
+      // Durable storage unavailable (e.g. IndexedDB blocked): fall back to an
+      // immediate direct upload so the photos are never silently dropped.
       resetCaptureState();
       setStage("note_entry");
-      setToast("Saving reference photos in the background…");
+      setToast("Saving reference photos…");
       void (async () => {
         const failed = await uploadReferenceShotsNow(refShots, refSection, refCaption);
         if (failed > 0) {
