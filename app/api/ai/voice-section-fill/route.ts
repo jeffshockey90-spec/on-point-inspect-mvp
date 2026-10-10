@@ -29,7 +29,8 @@ function normKey(value: string) {
 function buildVocab() {
   const lines: string[] = [];
   for (const [section, groups] of Object.entries(CHECKLIST_LIBRARY)) {
-    if (section === "Inspection Details") continue; // attendance/weather, not spoken field data
+    // Include EVERY section — all checkboxes are voice-fillable, including
+    // Inspection Details (Style, Type of Building, weather, attendance).
     for (const g of groups as any[]) {
       if (g.type === "text") {
         lines.push(`${section} > ${g.title}: <number or short text>`);
