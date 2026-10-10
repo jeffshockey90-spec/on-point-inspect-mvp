@@ -73,5 +73,18 @@ export async function POST(req: Request) {
 
   const { data, error } = await admin.from("invoices").insert(insert).select("*").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Phone is best-effort so a pre-migration DB (no client_phone column) never
+  // breaks invoice creation — run supabase/add-invoice-phone.sql to enable it.
+  const phone = body?.client_phone ? String(body.client_phone).slice(0, 40) : "";
+  if (phone && data?.id) {
+    const { error: phoneErr } = await admin
+      .from("invoices")
+      .update({ client_phone: phone })
+      .eq("id", data.id);
+    if (phoneErr) console.warn("Invoice client_phone not saved (run add-invoice-phone.sql):", phoneErr.message);
+    else (data as any).client_phone = phone;
+  }
+
   return NextResponse.json({ invoice: data });
 }

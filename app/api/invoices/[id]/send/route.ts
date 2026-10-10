@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { listUnsubscribeHeaders } from "../../../../../lib/emailUnsubscribe";
+import { isSmsConfigured, sendSms } from "../../../../../lib/sms";
 import {
   getSessionUser,
   getAdminClient,
@@ -231,9 +232,36 @@ export async function POST(req: Request, { params }: RouteProps) {
     sentCount += 1;
   }
 
-  if (sentCount === 0) {
+  // Best-effort SMS to the payer with the pay link (requires a phone on the
+  // invoice + Twilio configured). Never blocks the email result.
+  let smsSent = false;
+  const invoicePhone = String(invoice.client_phone || "").trim();
+  if (isSmsConfigured() && invoicePhone) {
+    const smsBody = isReminder
+      ? `${branding.name}: Friendly reminder — ${baseLabel} balance ${money(invoice.total)}. Pay: ${payLink}`
+      : `${branding.name}: ${baseLabel} for ${money(invoice.total)} is ready. Pay: ${payLink}`;
+    const smsResult = await sendSms({ to: invoicePhone, body: smsBody }).catch(() => null);
+    smsSent = Boolean(smsResult?.ok);
+    try {
+      await admin.from("email_logs").insert({
+        inspection_id_bigint: invoice.inspection_id ? Number(invoice.inspection_id) : null,
+        recipient: invoicePhone,
+        recipient_email: invoicePhone,
+        email_type: isReminder ? "invoice_reminder_sms" : "invoice_sms",
+        subject,
+        message: smsSent ? payLink : smsResult?.error || "Invoice SMS failed.",
+        status: smsSent ? "sent" : "failed",
+        sent_at: smsSent ? new Date().toISOString() : null,
+        metadata: { invoice_id: invoice.id, payLink, channel: "sms" },
+      });
+    } catch (logError) {
+      console.error("Invoice SMS log insert failed:", logError);
+    }
+  }
+
+  if (sentCount === 0 && !smsSent) {
     return NextResponse.json(
-      { error: lastError?.message || "Invoice email failed to send." },
+      { error: lastError?.message || "Invoice could not be sent." },
       { status: 500 }
     );
   }
@@ -243,5 +271,5 @@ export async function POST(req: Request, { params }: RouteProps) {
     .update({ status: invoice.status === "paid" ? "paid" : "sent", sent_at: new Date().toISOString() })
     .eq("id", invoice.id);
 
-  return NextResponse.json({ success: true, sent: sentCount });
+  return NextResponse.json({ success: true, sent: sentCount, smsSent });
 }

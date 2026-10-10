@@ -86,6 +86,19 @@ export async function PATCH(req: Request, { params }: RouteProps) {
     .select("*")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Phone best-effort (separate update) so a pre-migration DB never fails the
+  // whole PATCH — run supabase/add-invoice-phone.sql to enable it.
+  if (body?.client_phone !== undefined) {
+    const phone = String(body.client_phone || "").slice(0, 40) || null;
+    const { error: phoneErr } = await admin
+      .from("invoices")
+      .update({ client_phone: phone })
+      .eq("id", id);
+    if (phoneErr) console.warn("Invoice client_phone not saved (run add-invoice-phone.sql):", phoneErr.message);
+    else if (data) (data as any).client_phone = phone;
+  }
+
   return NextResponse.json({ invoice: data });
 }
 

@@ -19,6 +19,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
 
   const [clientName, setClientName] = useState(initialInvoice?.client_name || "");
   const [clientEmail, setClientEmail] = useState(initialInvoice?.client_email || "");
+  const [clientPhone, setClientPhone] = useState(initialInvoice?.client_phone || "");
   const [invoiceNumber, setInvoiceNumber] = useState(initialInvoice?.invoice_number || "");
   const [dueDate, setDueDate] = useState(initialInvoice?.due_date || "");
   const [notes, setNotes] = useState(initialInvoice?.notes || "");
@@ -97,6 +98,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
     const payload = {
       client_name: clientName,
       client_email: clientEmail,
+      client_phone: clientPhone,
       invoice_number: invoiceNumber,
       due_date: dueDate || null,
       notes,
@@ -185,6 +187,10 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
         <label className="block">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Client email</span>
           <input className={inputClass} type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="client@email.com" />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Client phone (for text)</span>
+          <input className={inputClass} type="tel" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="(555) 123-4567" />
         </label>
         <label className="block">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Invoice # (optional)</span>
