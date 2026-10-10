@@ -12,6 +12,8 @@ import {
   buildEquipmentSavePayload,
   type EquipmentResult,
 } from "../lib/equipment/equipmentSave";
+import { uploadFindingMediaFile } from "../lib/uploadFindingMedia";
+import { supabase } from "../lib/supabaseClient";
 import type { CaptureCategory, CaptureDraft } from "../lib/ai/captureTypes";
 
 // Lazy-loaded: the camera's heavy code (speech plugin, markup editor, the 2900-
@@ -48,6 +50,24 @@ export default function ReportBuilderLiveCamera({
     compass: false,
   });
   const [flagsLoaded, setFlagsLoaded] = useState(false);
+  // Existing findings in THIS report, so the camera can offer "Combine with an
+  // existing defect". Loaded lazily on open (RLS scopes it to the owner).
+  const [existingFindings, setExistingFindings] = useState<any[]>([]);
+
+  async function loadExistingFindings() {
+    try {
+      const { data } = await supabase
+        .from("findings")
+        .select("id, title, section, observation, location, severity")
+        .eq("inspection_id", inspectionId)
+        .not("needs_review", "is", true)
+        .order("section", { ascending: true })
+        .order("created_at", { ascending: true });
+      setExistingFindings(Array.isArray(data) ? data : []);
+    } catch {
+      /* combine just won't be offered */
+    }
+  }
 
   useEffect(() => {
     const update = () => setOnlineState(typeof navigator === "undefined" ? true : navigator.onLine !== false);
@@ -77,7 +97,48 @@ export default function ReportBuilderLiveCamera({
 
   function openCamera() {
     void loadFlags(); // parallel; camera opens immediately, flags apply on arrival
+    void loadExistingFindings(); // for "Combine with an existing defect"
     setOpen(true);
+  }
+
+  // Combine a new capture into an EXISTING finding (same as the field tool): add
+  // the photo(s) to that finding and, when a draft is provided, AI-rewrite it to
+  // cover both locations. Carries the capture's compass location so the merged
+  // write-up can enumerate every affected spot.
+  async function handleAttachToExisting(
+    findingId: string,
+    files: File[],
+    draft?: Record<string, any>,
+  ) {
+    if (!findingId || !files?.length) return;
+    for (const file of files) {
+      // eslint-disable-next-line no-await-in-loop
+      await uploadFindingMediaFile(inspectionId, String(findingId), file);
+    }
+    if (draft) {
+      try {
+        await fetch("/api/findings/combine-capture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inspectionId,
+            findingId,
+            newFinding: {
+              title: draft.title || "",
+              section: draft.section || "",
+              severity: draft.severity || "",
+              observation: draft.observation || "",
+              implication: draft.implication || "",
+              recommendation: draft.recommendation || "",
+              location: draft.location || "",
+            },
+          }),
+        });
+      } catch {
+        /* photos are attached; the AI rewrite is best-effort */
+      }
+    }
+    notifyChanged();
   }
 
   // Closing the camera: send any un-approved background drafts to the builder's
@@ -239,6 +300,8 @@ export default function ReportBuilderLiveCamera({
           currentSection={sections[0] || ""}
           currentSeverity="Recommended Repair"
           sections={sections}
+          existingFindings={existingFindings}
+          onAttachToExisting={handleAttachToExisting}
           onAccept={handleAccept}
         />
       )}
