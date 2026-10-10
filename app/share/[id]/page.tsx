@@ -1285,16 +1285,49 @@ export default async function PublicSharePage({
 
   if (!allowShareView) {
     // The report IS published and the only thing standing between the client and
-    // their report is payment (no "Deliver anyway" override) — so send them to
-    // pay instead of a dead end, and tell them it unlocks right after payment.
+    // their report is a requirement (no "Deliver anyway" override) — so direct
+    // them to resolve it instead of a dead end. Order: sign the agreement first,
+    // then pay.
+    const gatedPublished =
+      resolvedByToken && Boolean(deliveryState?.published) && !deliveryState?.override;
+    const clientToken = String(inspection.public_share_token || shareLookup || inspectionId);
+
+    const needsAgreement = gatedPublished && !deliveryState?.agreementComplete;
     const unpaidButPublished =
-      resolvedByToken &&
-      Boolean(deliveryState?.published) &&
-      !deliveryState?.override &&
-      !deliveryState?.paymentComplete;
+      gatedPublished && Boolean(deliveryState?.agreementComplete) && !deliveryState?.paymentComplete;
+
+    if (needsAgreement) {
+      const signLink = `/client-agreement/${clientToken}`;
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center shadow-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-teal-400/50 bg-teal-500/15 text-2xl">
+              ✍️
+            </div>
+            <h1 className="mt-5 text-2xl font-semibold text-[var(--fl-accent-text)]">
+              Your report is ready
+            </h1>
+            <p className="mt-3 leading-7 text-[var(--fl-muted)]">
+              Before we can release your report, your inspection agreement needs
+              to be signed. It unlocks for viewing and download as soon as the
+              agreement is signed.
+            </p>
+            <Link
+              href={signLink}
+              className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-teal-500 px-5 py-3.5 font-semibold text-slate-950 transition hover:bg-teal-400"
+            >
+              Review &amp; sign my agreement
+            </Link>
+            <p className="mt-3 text-xs leading-5 text-[var(--fl-muted)]">
+              Once signed, return to this link to view your full report. Questions?
+              Contact your inspector.
+            </p>
+          </div>
+        </main>
+      );
+    }
 
     if (unpaidButPublished) {
-      const clientToken = String(inspection.public_share_token || shareLookup || inspectionId);
       const portalLink = `/client-portal/${clientToken}`;
       const invoiceAmt =
         Number(
