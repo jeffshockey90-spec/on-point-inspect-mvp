@@ -61,16 +61,25 @@ async function authorizeInvoice(admin: any, userId: string, invoiceId: string) {
   return null;
 }
 
-// POST /api/invoices/[id]/send — email the client the itemized invoice with a
-// "Pay Invoice" button that points at the Connect checkout route.
-export async function POST(_req: Request, { params }: RouteProps) {
+// POST /api/invoices/[id]/send — email the itemized invoice with a "Pay Invoice"
+// button that points at the Connect checkout route. Pass { reminder: true } to
+// send the SAME invoice framed as a friendly payment reminder (same recipients
+// the invoice went to — e.g. the third party you billed for the client's report).
+export async function POST(req: Request, { params }: RouteProps) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
+
+  const body = await req.json().catch(() => ({}) as any);
+  const isReminder = Boolean(body?.reminder);
 
   const { id } = await params;
   const admin = getAdminClient();
   const invoice = await authorizeInvoice(admin, user.id, id);
   if (!invoice) return notFound("Invoice not found.");
+
+  if (isReminder && String(invoice.status || "").toLowerCase() === "paid") {
+    return NextResponse.json({ error: "This invoice is already paid." }, { status: 400 });
+  }
 
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: "Email is not configured (missing RESEND_API_KEY)." }, { status: 500 });
@@ -138,7 +147,10 @@ export async function POST(_req: Request, { params }: RouteProps) {
     )
     .join("");
 
-  const subject = `Invoice${invoice.invoice_number ? ` ${invoice.invoice_number}` : ""} from ${branding.name}`;
+  const baseLabel = `Invoice${invoice.invoice_number ? ` ${invoice.invoice_number}` : ""}`;
+  const subject = isReminder
+    ? `Payment reminder — ${baseLabel} from ${branding.name}`
+    : `${baseLabel} from ${branding.name}`;
 
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:640px;margin:auto;">
@@ -149,7 +161,7 @@ export async function POST(_req: Request, { params }: RouteProps) {
       <div style="border:1px solid #cbd5e1;border-top:none;padding:30px;border-radius:0 0 12px 12px;background:#ffffff;">
         <h2 style="color:#0f766e;margin-top:0;">Invoice${invoice.invoice_number ? ` ${escapeHtml(invoice.invoice_number)}` : ""}</h2>
         ${invoice.client_name ? `<p>Hello ${escapeHtml(invoice.client_name)},</p>` : ""}
-        <p>Please find your invoice below.${invoice.due_date ? ` Payment is due by <strong>${escapeHtml(invoice.due_date)}</strong>.` : ""}</p>
+        <p>${isReminder ? "This is a friendly reminder that the invoice below still has a balance due." : "Please find your invoice below."}${invoice.due_date ? ` Payment is due by <strong>${escapeHtml(invoice.due_date)}</strong>.` : ""}</p>
 
         <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;">
           <thead>
@@ -199,7 +211,7 @@ export async function POST(_req: Request, { params }: RouteProps) {
         inspection_id_bigint: invoice.inspection_id ? Number(invoice.inspection_id) : null,
         recipient,
         recipient_email: recipient,
-        email_type: "invoice",
+        email_type: isReminder ? "invoice_reminder" : "invoice",
         subject,
         message: sendError ? `Invoice email failed: ${sendError.message}` : payLink,
         html,

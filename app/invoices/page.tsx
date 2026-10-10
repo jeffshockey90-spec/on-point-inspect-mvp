@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import InvoicePaymentButton from "../../components/InvoicePaymentButton";
 import InvoiceReminderButton from "../../components/InvoiceReminderButton";
+import InvoiceRemindButton from "../../components/InvoiceRemindButton";
 import { formatUsd } from "../../lib/currency";
 import { resolveInspectionAccessFilter } from "../../lib/inspectionAccess";
 
@@ -277,6 +278,9 @@ export default async function InvoicesPage() {
                       <span className="font-semibold text-[var(--fl-text)] [font-variant-numeric:tabular-nums]">
                         {money(inv.total)}
                       </span>
+                      {status === "sent" && (
+                        <InvoiceRemindButton invoiceId={String(inv.id)} />
+                      )}
                       <Link
                         href={`/invoices/${inv.id}/edit`}
                         className="whitespace-nowrap rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
