@@ -1286,28 +1286,73 @@ export default function AILiveInspectionCamera({
     }).catch(() => {});
   }
 
-  async function saveReferenceShots() {
-    if (!shots.length) return;
-    setSaving(true);
-    setSaveError("");
-    try {
-      const refSection = referenceSection;
-      const refFrames = shots.map((s) => s.frame).filter(Boolean);
-      const refCaption = referenceCaption.trim();
-      for (const s of shots) {
+  // Upload the tray's reference photos to section_reference_photos (no AI draft).
+  async function uploadReferenceShotsNow(
+    refShots: typeof shots,
+    refSection: string,
+    refCaption: string,
+  ): Promise<number> {
+    let failed = 0;
+    for (const s of refShots) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
         await uploadSectionReferencePhoto({
           inspectionId: selectedReport,
-          section: referenceSection,
+          section: refSection,
           file: s.file,
           caption: refCaption,
         });
+      } catch (err: any) {
+        failed += 1;
+        logCam("reference:upload-error", { msg: String(err?.message || err) });
       }
-      // Reference photos normally run no AI. Kick off a light material-
-      // recognition pass so they STILL auto-fill this section's materials
-      // (siding, roof covering, flooring, etc.). Fire-and-forget — the values
-      // persist server-side and show when the report builder loads.
-      autofillReferenceMaterials(refSection, refFrames);
-      setToast("Reference photos saved.");
+    }
+    // Light material recognition so reference photos STILL auto-fill this
+    // section's materials (siding, roof covering, flooring, …). Fire-and-forget.
+    autofillReferenceMaterials(refSection, refShots.map((s) => s.frame).filter(Boolean));
+    // Let an open builder refresh its reference gallery.
+    try {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("opi:inspection-data-changed", {
+            detail: { inspectionId: selectedReport, source: "live-camera-reference" },
+          }),
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+    return failed;
+  }
+
+  async function saveReferenceShots() {
+    if (!shots.length) return;
+
+    const refSection = referenceSection;
+    const refCaption = referenceCaption.trim();
+    const refShots = shots.slice(); // snapshot before reset
+
+    // Async beta: keep shooting — upload the reference photos in the BACKGROUND
+    // and return to the viewfinder immediately, same "move on" feel as findings.
+    if (asyncDraftEnabled) {
+      resetCaptureState();
+      setStage("note_entry");
+      setToast("Saving reference photos in the background…");
+      void (async () => {
+        const failed = await uploadReferenceShotsNow(refShots, refSection, refCaption);
+        if (failed > 0) {
+          setToast(`${failed} reference photo${failed === 1 ? "" : "s"} didn't save — recapture if needed`);
+        }
+      })();
+      return;
+    }
+
+    // Async off: keep the blocking save (wait, then confirm).
+    setSaving(true);
+    setSaveError("");
+    try {
+      const failed = await uploadReferenceShotsNow(refShots, refSection, refCaption);
+      setToast(failed > 0 ? `Saved — ${failed} photo(s) failed` : "Reference photos saved.");
       resetCaptureState();
       setStage("note_entry");
     } catch (error: any) {
