@@ -1023,14 +1023,14 @@ function SectionLimitations({
                 Select a title here. The full saved limitation text is inserted into the report.
               </p>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {templates.map((template) => {
                   const selected = isTemplateSelected(template);
 
                   return (
                     <div
                       key={template.id}
-                      className={`flex items-center gap-2 rounded-xl border px-2 py-2 transition ${
+                      className={`flex min-w-0 items-center gap-2 rounded-xl border px-2 py-2 transition ${
                         selected
                           ? "border-cyan-300 bg-cyan-500/20"
                           : "border-[var(--fl-line)] bg-[var(--fl-ground)] hover:border-cyan-400"
@@ -1052,7 +1052,7 @@ function SectionLimitations({
                         >
                           {selected ? "✓" : ""}
                         </span>
-                        <span className={`truncate font-bold ${selected ? "text-[var(--fl-info-text)]" : "text-[var(--fl-text)]"}`}>
+                        <span className={`min-w-0 break-words font-bold ${selected ? "text-[var(--fl-info-text)]" : "text-[var(--fl-text)]"}`}>
                           {template.title}
                         </span>
                       </button>
