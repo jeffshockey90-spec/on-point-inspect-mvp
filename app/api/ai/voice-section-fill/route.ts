@@ -67,17 +67,22 @@ export async function POST(req: Request) {
 
     const systemPrompt = `You convert a home inspector's SPOKEN notes into section-info checklist selections.
 
-You are given the checklist as "Section > Field: [allowed options]" (or "<number or short text>" for free fields). For each thing the inspector clearly states, output which field it fills and the value, inferring the section from the content. Examples:
+You are given the checklist as "Section > Field: [allowed options]" (or "<number or short text>" for free fields). For each thing the inspector clearly states, output which field it fills and the value, inferring the section from the content.
+
+The inspector speaks NATURALLY and CONVERSATIONALLY, often listing several attributes in ONE sentence — e.g. "the floor covering is vinyl, the walls are drywall, the countertops are granite, and the hood exhaust is vented". Split such a sentence into a SEPARATE fill per attribute and map each to its field. Ignore filler/connective words ("the", "is", "are", "and", "um", "so", "then").
+
+Examples:
 - "asphalt shingles" -> Roof > Roof Covering Material -> "Asphalt"
 - "water shut off in the basement" -> Plumbing > Main Water Shutoff Location -> "Basement"
 - "200 amp panel" / "two hundred amp" -> Electrical > Panel Capacity -> "200 AMP"
 - "double hung windows" -> Doors, Windows & Interior > Window Type -> "Double-hung"
 - "copper supply lines" -> Plumbing > Water Supply Material -> "Copper"
+- "the floor covering is vinyl, the walls are drywall, the countertops are granite, and the hood exhaust is vented" -> FOUR fills: Floor Coverings -> "Vinyl"; Wall Material -> "Drywall"; Countertop Material -> "Granite"; Exhaust Hood Type -> closest option (e.g. "Vented")
 
 Rules:
 - Choose the single best-matching ALLOWED option for each field. For a <number or short text> field, output the spoken value (e.g. "12" for insulation depth).
 - Only include fields the inspector CLEARLY stated. Never invent. If unsure which field or value, omit it.
-- One utterance can set several fields; output all of them.
+- One utterance can set MANY fields across different sections; output ALL of them, one per stated attribute.
 - Return ONLY valid JSON: { "fills": [ { "section": "", "field": "", "value": "" } ] }.`;
 
     const userPrompt = `Checklist (Section > Field: options):
