@@ -1262,8 +1262,11 @@ export default async function PublicSharePage({
     if (sampleRow && (sampleRow as any).is_enabled !== false) allowShareView = true;
   }
 
+  let deliveryState: Awaited<ReturnType<typeof getReportDeliveryState>> | null = null;
+
   if (!allowShareView) {
     const delivery = await getReportDeliveryState(supabase, inspection as any);
+    deliveryState = delivery;
 
     // A delivered report is public ONLY through its unguessable share token.
     // Reached by a guessed numeric id (no token match), it still requires the
@@ -1281,6 +1284,72 @@ export default async function PublicSharePage({
   }
 
   if (!allowShareView) {
+    // The report IS published and the only thing standing between the client and
+    // their report is payment (no "Deliver anyway" override) — so send them to
+    // pay instead of a dead end, and tell them it unlocks right after payment.
+    const unpaidButPublished =
+      resolvedByToken &&
+      Boolean(deliveryState?.published) &&
+      !deliveryState?.override &&
+      !deliveryState?.paymentComplete;
+
+    if (unpaidButPublished) {
+      const clientToken = String(inspection.public_share_token || shareLookup || inspectionId);
+      const portalLink = `/client-portal/${clientToken}`;
+      const invoiceAmt =
+        Number(
+          (inspection as any).invoice_amount ??
+            (inspection as any).total_price ??
+            (inspection as any).total ??
+            (inspection as any).price ??
+            0,
+        ) || 0;
+      const paidAmt = Number((inspection as any).amount_paid ?? 0) || 0;
+      const dueRaw =
+        (inspection as any).balance_due !== null && (inspection as any).balance_due !== undefined
+          ? Number((inspection as any).balance_due)
+          : invoiceAmt - paidAmt;
+      const due = Math.max(0, Number(dueRaw) || 0);
+      const dueLabel = due > 0 ? due.toLocaleString("en-US", { style: "currency", currency: "USD" }) : "";
+
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center shadow-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-teal-400/50 bg-teal-500/15 text-2xl">
+              🔒
+            </div>
+            <h1 className="mt-5 text-2xl font-semibold text-[var(--fl-accent-text)]">
+              Your report is ready
+            </h1>
+            <p className="mt-3 leading-7 text-[var(--fl-muted)]">
+              Your inspection report is complete. It unlocks for viewing and
+              download as soon as your payment is received.
+            </p>
+
+            {dueLabel && (
+              <div className="mt-6 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--fl-muted)]">
+                  Balance Due
+                </p>
+                <p className="mt-1 text-3xl font-bold text-[var(--fl-text)]">{dueLabel}</p>
+              </div>
+            )}
+
+            <Link
+              href={portalLink}
+              className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-teal-500 px-5 py-3.5 font-semibold text-slate-950 transition hover:bg-teal-400"
+            >
+              Pay &amp; unlock my report
+            </Link>
+            <p className="mt-3 text-xs leading-5 text-[var(--fl-muted)]">
+              You&apos;ll be able to view and download the full report immediately
+              after payment. Questions? Contact your inspector.
+            </p>
+          </div>
+        </main>
+      );
+    }
+
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
         <div className="max-w-md rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center">
