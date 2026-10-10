@@ -18,6 +18,8 @@ export type PreparedReport = {
   createdAtMs: number;
   published: boolean;
   paymentComplete: boolean;
+  // Can the CLIENT view the report yet (the share-page delivery gate)?
+  deliverable: boolean;
   agreementRequiredCount: number;
   agreementUnsignedCount: number;
   // Social-media consent: true = OK to post, false = declined, null/absent = not answered.
@@ -223,6 +225,21 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                     className="relative z-10 object-cover transition duration-200 group-hover:scale-[1.03]"
                   />
                 ) : null}
+              </div>
+
+              {/* Lock/unlock chip — whether the report is viewable BY THE CLIENT
+                  (the share-page delivery gate). Decorative overlay; the card
+                  stays clickable (pointer-events-none, above the stretched link). */}
+              <div className="pointer-events-none absolute right-3 top-3 z-20">
+                {report.deliverable ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-1 text-xs font-bold text-[var(--fl-good-text)] shadow-lg backdrop-blur-sm">
+                    🔓 Unlocked
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-amber-500/25 px-2.5 py-1 text-xs font-bold text-[var(--fl-warn-text)] shadow-lg backdrop-blur-sm">
+                    🔒 Locked
+                  </span>
+                )}
               </div>
 
               <div className="p-6">

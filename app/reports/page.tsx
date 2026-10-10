@@ -404,6 +404,12 @@ export default async function ReportsPage() {
       id: inspection.id,
       published: isPublished(inspection),
       paymentComplete: isPaymentComplete(inspection),
+      // Can the CLIENT view the report yet? (the share-page delivery gate):
+      // published AND (deliver-anyway override OR payment complete + agreements signed).
+      deliverable:
+        isPublished(inspection) &&
+        (inspection.delivery_override === true ||
+          (isPaymentComplete(inspection) && agreementStats.unsignedCount === 0)),
       agreementRequiredCount: agreementStats.requiredCount,
       agreementUnsignedCount: agreementStats.unsignedCount,
       address: inspection.property_address || "Untitled Inspection",
