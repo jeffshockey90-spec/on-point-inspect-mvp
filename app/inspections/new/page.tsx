@@ -20,6 +20,7 @@ import NewInspectionAgreementPicker from "../../../components/NewInspectionAgree
 import DroneAirspaceCard from "../../../components/DroneAirspaceCard";
 import { buildPropertyFills, writeChecklistFills } from "../../../lib/ai/checklistAutofill";
 import { isAppleActive } from "../../../lib/entitlements";
+import { toPhoneDigits } from "../../../lib/phone";
 
 declare global {
   interface Window {
@@ -1043,14 +1044,14 @@ function NewInspectionPageContent() {
 
             client_name: clientName,
             client_email: clientEmail.trim().toLowerCase(),
-            client_phone: clientPhone,
+            client_phone: toPhoneDigits(clientPhone) || null,
             client_organization_name: clientOrganization.trim() || null,
 
             realtor_id: realtorId || null,
             realtor_contact_id: realtorId || null,
             realtor_name: realtorName || null,
             realtor_email: realtorEmail.trim().toLowerCase() || null,
-            realtor_phone: realtorPhone || null,
+            realtor_phone: toPhoneDigits(realtorPhone) || null,
             agent_name: realtorName || null,
             agent_email: realtorEmail.trim().toLowerCase() || null,
 
@@ -1246,7 +1247,7 @@ function NewInspectionPageContent() {
           inspector_id: user.id,
           name: clientName,
           email: clientEmail.trim().toLowerCase(),
-          phone: clientPhone || null,
+          phone: toPhoneDigits(clientPhone) || null,
           role: "client",
           agreement_required: true,
           portal_access: true,
@@ -1259,7 +1260,7 @@ function NewInspectionPageContent() {
           inspector_id: user.id,
           name: coClient.name,
           email: coClient.email,
-          phone: coClient.phone || null,
+          phone: toPhoneDigits(coClient.phone) || null,
           role: "co-client",
           agreement_required: true,
           portal_access: true,
@@ -1272,7 +1273,7 @@ function NewInspectionPageContent() {
           inspector_id: user.id,
           name: realtorName || "Realtor",
           email: realtorEmail.trim().toLowerCase(),
-          phone: realtorPhone || null,
+          phone: toPhoneDigits(realtorPhone) || null,
           role: "realtor",
           agreement_required: false,
           portal_access: true,

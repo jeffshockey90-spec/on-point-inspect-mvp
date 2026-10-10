@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, getAdminClient, unauthorized, notFound } from "../../../../lib/apiAuth";
 import { computeInvoiceTotals } from "../../../../lib/invoiceTotals";
+import { toPhoneDigits } from "../../../../lib/phone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -90,7 +91,7 @@ export async function PATCH(req: Request, { params }: RouteProps) {
   // Phone best-effort (separate update) so a pre-migration DB never fails the
   // whole PATCH — run supabase/add-invoice-phone.sql to enable it.
   if (body?.client_phone !== undefined) {
-    const phone = String(body.client_phone || "").slice(0, 40) || null;
+    const phone = toPhoneDigits(body.client_phone).slice(0, 40) || null;
     const { error: phoneErr } = await admin
       .from("invoices")
       .update({ client_phone: phone })

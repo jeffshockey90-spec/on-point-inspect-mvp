@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, getAdminClient, unauthorized } from "../../../lib/apiAuth";
 import { computeInvoiceTotals } from "../../../lib/invoiceTotals";
+import { toPhoneDigits } from "../../../lib/phone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
 
   // Phone is best-effort so a pre-migration DB (no client_phone column) never
   // breaks invoice creation — run supabase/add-invoice-phone.sql to enable it.
-  const phone = body?.client_phone ? String(body.client_phone).slice(0, 40) : "";
+  const phone = body?.client_phone ? toPhoneDigits(body.client_phone).slice(0, 40) : "";
   if (phone && data?.id) {
     const { error: phoneErr } = await admin
       .from("invoices")

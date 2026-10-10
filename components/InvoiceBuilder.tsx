@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "../lib/locale";
+import { toPhoneDigits } from "../lib/phone";
 
 type LineItem = { description: string; quantity: number; unitPrice: number };
 
@@ -190,7 +191,7 @@ export default function InvoiceBuilder({ initialInvoice, inspectionId, currency 
         </label>
         <label className="block">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Client phone (for text)</span>
-          <input className={inputClass} type="tel" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="(555) 123-4567" />
+          <input className={inputClass} type="tel" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} onBlur={(e) => setClientPhone(toPhoneDigits(e.target.value))} placeholder="(555) 123-4567" />
         </label>
         <label className="block">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Invoice # (optional)</span>
