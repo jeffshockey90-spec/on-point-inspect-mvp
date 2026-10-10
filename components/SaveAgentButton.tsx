@@ -39,7 +39,10 @@ export default function SaveAgentButton() {
         setMsg({ type: "error", text: data?.error || "Could not save the agent." });
         return;
       }
-      setMsg({ type: "success", text: `${name} saved to your agents.` });
+      setMsg({
+        type: "success",
+        text: data?.deduped ? `${name} is already in your agents.` : `${name} saved to your agents.`,
+      });
     } catch (error: any) {
       setMsg({ type: "error", text: error?.message || "Could not save the agent." });
     } finally {

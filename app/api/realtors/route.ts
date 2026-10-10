@@ -79,6 +79,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Name is required." }, { status: 400 });
     }
 
+    // Dedup: never create a second agent for the same person — if one already
+    // exists on the team (same email, or same name when no email), return it
+    // instead of inserting. Makes a double-tap / re-save a no-op.
+    const teamIds = await resolveTeamInspectorIds(supabase, user.id);
+    let existingQuery = supabase.from("realtors").select("*").in("inspector_id", teamIds);
+    existingQuery = email
+      ? existingQuery.ilike("email", email)
+      : existingQuery.ilike("name", name);
+    const { data: existing } = await existingQuery.limit(1);
+    if (existing && existing.length > 0) {
+      return NextResponse.json({ realtor: existing[0], deduped: true });
+    }
+
     const { data, error } = await supabase
       .from("realtors")
       .insert({
