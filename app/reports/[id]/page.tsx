@@ -79,6 +79,7 @@ import InspectorToolsDrawer, {
 import PendingSubmitButton from "../../../components/PendingSubmitButton";
 import FieldReviewQueue from "../../../components/FieldReviewQueue";
 import LimitationEquipmentReview from "../../../components/LimitationEquipmentReview";
+import SaveAgentButton from "../../../components/SaveAgentButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -4679,6 +4680,7 @@ Service-life information is a general industry estimate only. Actual service lif
                   value={inspection.realtor_phone}
                   type="tel"
                 />
+                <SaveAgentButton />
                 <EditItem
                   label="Inspection Date"
                   name="inspection_date"
