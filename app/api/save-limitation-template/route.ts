@@ -73,3 +73,36 @@ export async function POST(req: Request) {
     );
   }
 }
+
+// Delete one of the inspector's own saved limitation templates.
+export async function DELETE(req: Request) {
+  try {
+    const { id } = await req.json().catch(() => ({}));
+    const templateId = String(id || "").trim();
+    if (!templateId) {
+      return NextResponse.json({ error: "Template id is required." }, { status: 400 });
+    }
+
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { error } = await supabase
+      .from("limitation_templates")
+      .delete()
+      .eq("id", templateId)
+      .eq("inspector_id", user.id);
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error?.message || "Failed to delete limitation template." },
+      { status: 500 }
+    );
+  }
+}

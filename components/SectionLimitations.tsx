@@ -194,8 +194,8 @@ function SectionLimitations({
   const [photosByLimitationId, setPhotosByLimitationId] = useState<
     Record<string, LimitationPhoto[]>
   >({});
-  const [customText, setCustomText] = useState("");
   const [aiNotes, setAiNotes] = useState("");
+  const [generatedTitle, setGeneratedTitle] = useState("");
   const [generatedComment, setGeneratedComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -239,15 +239,8 @@ function SectionLimitations({
 
     const rows = data || [];
     setSaved(rows);
-
-    const aiRow = rows.find(
-      (item: LimitationRow) => item.label === "AI Limitation Note"
-    );
-
-    if (aiRow?.ai_notes) setAiNotes(aiRow.ai_notes);
-    if (aiRow?.limitation_comment || aiRow?.custom_text) {
-      setGeneratedComment(aiRow.limitation_comment || aiRow.custom_text || "");
-    }
+    // The add box always starts fresh now (multiple AI limitations are allowed),
+    // so it is no longer pre-filled from a single "AI Limitation Note" row.
 
     const limitationIds = rows.map((row: LimitationRow) => row.id);
 
@@ -476,36 +469,6 @@ function SectionLimitations({
     }
   }
 
-  async function addCustomLimitation() {
-    const clean = customText.trim();
-
-    if (!clean || !inspectionId || !section || saving) return;
-
-    setSaving(true);
-
-    try {
-      const { data, error } = await supabase
-        .from("section_limitations")
-        .insert({
-          inspection_id: inspectionId,
-          section,
-          label: "Other",
-          custom_text: clean,
-        })
-        .select("*")
-        .single();
-
-      if (error) throw error;
-
-      if (data) setSaved((prev) => [...prev, data]);
-      setCustomText("");
-    } catch (error: any) {
-      showMessage("error", error?.message || "Failed to save custom limitation.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function removeLimitation(id: string) {
     if (saving) return;
 
@@ -705,6 +668,7 @@ function SectionLimitations({
       }
 
       setGeneratedComment(data.comment || "");
+      if (data.title) setGeneratedTitle(String(data.title));
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to generate limitation note.");
     } finally {
@@ -712,57 +676,45 @@ function SectionLimitations({
     }
   }
 
-  async function saveAiLimitationComment() {
-    const cleanNotes = aiNotes.trim();
+  // Add the generated (or manually typed) limitation to THIS section as a NEW
+  // row — the title becomes the label, the wording the comment. Multiple allowed;
+  // the box clears afterward so you can add another.
+  async function addGeneratedLimitation() {
+    const cleanTitle = generatedTitle.trim() || "Inspection Limitation";
     const cleanComment = generatedComment.trim();
+    const cleanNotes = aiNotes.trim();
 
     if (!cleanComment) {
-      showMessage("error", "No AI limitation comment to save.");
+      showMessage("error", "Generate or type the limitation wording first.");
       return;
     }
+    if (!inspectionId || !section || saving) return;
 
     setSaving(true);
 
     try {
-      if (aiSaved) {
-        const { data, error } = await supabase
-          .from("section_limitations")
-          .update({
-            ai_notes: cleanNotes,
-            limitation_comment: cleanComment,
-            custom_text: null,
-          })
-          .eq("id", aiSaved[0]?.id)
-          .select("*")
-          .single();
+      const { data, error } = await supabase
+        .from("section_limitations")
+        .insert({
+          inspection_id: inspectionId,
+          section,
+          label: cleanTitle,
+          ai_notes: cleanNotes || null,
+          limitation_comment: cleanComment,
+          custom_text: null,
+        })
+        .select("*")
+        .single();
 
-        if (error) throw error;
+      if (error) throw error;
 
-        setSaved((prev) =>
-          prev.map((item) => (item.id === aiSaved[0]?.id ? data : item))
-        );
-      } else {
-        const { data, error } = await supabase
-          .from("section_limitations")
-          .insert({
-            inspection_id: inspectionId,
-            section,
-            label: "AI Limitation Note",
-            ai_notes: cleanNotes,
-            limitation_comment: cleanComment,
-            custom_text: null,
-          })
-          .select("*")
-          .single();
-
-        if (error) throw error;
-
-        if (data) setSaved((prev) => [...prev, data]);
-      }
-
-      showMessage("success", "Limitation note saved.");
+      if (data) setSaved((prev) => [...prev, data]);
+      setAiNotes("");
+      setGeneratedTitle("");
+      setGeneratedComment("");
+      showMessage("success", "Limitation added.");
     } catch (error: any) {
-      showMessage("error", error?.message || "Failed to save AI limitation note.");
+      showMessage("error", error?.message || "Failed to add limitation.");
     } finally {
       setSaving(false);
     }
@@ -776,12 +728,17 @@ function SectionLimitations({
       return;
     }
 
-    const title = window.prompt(
-      "Template title to show in the checkbox list:",
-      section ? `${section} Limitation` : "Saved Limitation"
-    );
-
-    const cleanTitle = String(title || "").trim();
+    // Use the title field (AI-generated or typed). Only fall back to a prompt if
+    // it's somehow empty.
+    let cleanTitle = generatedTitle.trim();
+    if (!cleanTitle) {
+      cleanTitle = String(
+        window.prompt(
+          "Name for this saved limitation:",
+          section ? `${section} Limitation` : "Saved Limitation",
+        ) || "",
+      ).trim();
+    }
 
     if (!cleanTitle) return;
 
@@ -814,6 +771,28 @@ function SectionLimitations({
       showMessage("success", "Limitation saved to library.");
     } catch (error: any) {
       showMessage("error", error?.message || "Failed to save limitation template.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteTemplate(templateId: string) {
+    if (saving) return;
+    if (!window.confirm("Delete this saved limitation?")) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/save-limitation-template", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: templateId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Failed to delete saved limitation.");
+      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+      limitationTemplatesCache = null; // other sections reload fresh
+      showMessage("success", "Saved limitation deleted.");
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to delete saved limitation.");
     } finally {
       setSaving(false);
     }
@@ -1049,30 +1028,45 @@ function SectionLimitations({
                   const selected = isTemplateSelected(template);
 
                   return (
-                    <button
+                    <div
                       key={template.id}
-                      type="button"
-                      onClick={() => toggleTemplate(template)}
-                      disabled={saving}
-                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                      className={`flex items-center gap-2 rounded-xl border px-2 py-2 transition ${
                         selected
-                          ? "border-cyan-300 bg-cyan-500/20 text-[var(--fl-info-text)]"
-                          : "border-[var(--fl-line)] bg-[var(--fl-ground)] text-[var(--fl-text)] hover:border-cyan-400 hover:bg-cyan-500/10"
-                      } disabled:cursor-not-allowed disabled:opacity-60`}
-                      title={template.limitation_text}
+                          ? "border-cyan-300 bg-cyan-500/20"
+                          : "border-[var(--fl-line)] bg-[var(--fl-ground)] hover:border-cyan-400"
+                      }`}
                     >
-                      <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 ${
-                          selected
-                            ? "border-cyan-200 bg-cyan-300 text-slate-950"
-                            : "border-white"
-                        }`}
+                      <button
+                        type="button"
+                        onClick={() => toggleTemplate(template)}
+                        disabled={saving}
+                        className="flex min-w-0 flex-1 items-center gap-3 px-2 py-1 text-left disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                        title={template.limitation_text}
                       >
-                        {selected ? "✓" : ""}
-                      </span>
-
-                      <span className="font-bold">{template.title}</span>
-                    </button>
+                        <span
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 ${
+                            selected
+                              ? "border-cyan-200 bg-cyan-300 text-slate-950"
+                              : "border-white"
+                          }`}
+                        >
+                          {selected ? "✓" : ""}
+                        </span>
+                        <span className={`truncate font-bold ${selected ? "text-[var(--fl-info-text)]" : "text-[var(--fl-text)]"}`}>
+                          {template.title}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteTemplate(template.id)}
+                        disabled={saving}
+                        title="Delete this saved limitation"
+                        aria-label="Delete saved limitation"
+                        className="shrink-0 rounded-lg border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-red-500/60 hover:text-[var(--fl-crit-text)] disabled:opacity-50 [touch-action:manipulation]"
+                      >
+                        🗑
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -1169,83 +1163,76 @@ function SectionLimitations({
             </div>
           )}
 
-          <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
-            <p className="mb-3 text-sm font-bold uppercase tracking-wide text-[var(--fl-muted)]">
-              + Other Limitation
-            </p>
-
-            <div className="flex flex-col gap-3 md:flex-row">
-              <input
-                value={customText}
-                onChange={(event) => setCustomText(event.target.value)}
-                placeholder="Enter custom limitation..."
-                className="min-w-0 flex-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
-              />
-
-              <button
-                type="button"
-                onClick={addCustomLimitation}
-                disabled={saving || !customText.trim()}
-                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Add Other
-              </button>
-            </div>
-          </div>
-
           <div className="rounded-xl border border-purple-500/40 bg-purple-500/10 p-4">
             <p className="text-sm font-bold uppercase tracking-wide text-[var(--fl-purple-text)]">
-              AI Limitation Note
+              + Add a limitation
             </p>
-
             <p className="mt-1 text-sm text-[var(--fl-muted)]">
-              Add your rough note, then let AI turn it into a professional limitation comment.
+              Type a quick note and let AI write the title + wording — or just fill
+              them in yourself. Add it to this report, and optionally save it to your
+              limitations to reuse later.
             </p>
 
+            {/* Rough note → AI */}
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+              Quick note
+            </label>
             <textarea
               value={aiNotes}
               onChange={(event) => setAiNotes(event.target.value)}
-              rows={3}
-              placeholder="Example: attic only viewed from opening due to limited access and stored items..."
-              className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-purple-400"
+              rows={2}
+              placeholder="e.g. attic only viewed from the opening — stored items and limited access blocked a full walk"
+              className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-purple-400"
+            />
+            <button
+              type="button"
+              onClick={generateAiLimitationComment}
+              disabled={generating || saving || !aiNotes.trim()}
+              className="mt-2 inline-flex items-center gap-2 rounded-xl bg-purple-500 px-5 py-2.5 font-semibold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+            >
+              {generating ? "Generating…" : "✨ Generate with AI"}
+            </button>
+
+            {/* Editable title + wording (AI-filled or typed manually) */}
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+              Title
+            </label>
+            <input
+              value={generatedTitle}
+              onChange={(event) => setGeneratedTitle(event.target.value)}
+              placeholder="Limitation title (e.g. Attic Access Limited)"
+              className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-purple-400"
+            />
+
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+              Wording shown on the report
+            </label>
+            <textarea
+              value={generatedComment}
+              onChange={(event) => setGeneratedComment(event.target.value)}
+              rows={4}
+              placeholder="The limitation wording the client will see…"
+              className="mt-2 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-purple-400"
             />
 
             <div className="mt-3 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={generateAiLimitationComment}
-                disabled={generating || saving || !aiNotes.trim()}
-                className="rounded-xl bg-purple-500 px-5 py-3 font-semibold text-white hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {generating ? "Generating..." : "AI Fill Limitation Comment"}
-              </button>
-
-              <button
-                type="button"
-                onClick={saveAiLimitationComment}
+                onClick={addGeneratedLimitation}
                 disabled={saving || !generatedComment.trim()}
-                className="rounded-xl border border-teal-500 px-5 py-3 font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
-                Save AI Note
+                + Add to report
               </button>
-
               <button
                 type="button"
                 onClick={saveGeneratedCommentToLibrary}
                 disabled={saving || !generatedComment.trim()}
-                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-[var(--fl-info-text)] hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
               >
-                Save To Library
+                ☆ Save to my limitations
               </button>
             </div>
-
-            <textarea
-              value={generatedComment}
-              onChange={(event) => setGeneratedComment(event.target.value)}
-              rows={4}
-              placeholder="AI limitation comment will appear here..."
-              className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] outline-none focus:border-purple-400"
-            />
           </div>
         </div>
       )}
