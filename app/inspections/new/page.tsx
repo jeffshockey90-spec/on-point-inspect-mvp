@@ -745,6 +745,27 @@ function NewInspectionPageContent() {
       setPropertyImage(uploadedUrl);
       setPropertyImageLoadError(false);
       setPropertyLookupStatus("Property photo updated. This photo will be used for the report.");
+
+      // AI: recognize the home's architectural style from the property photo and
+      // auto-fill the Style field (which fills the "Style" checkbox on save via
+      // buildPropertyFills). Best-effort + fire-and-forget — never blocks upload.
+      void (async () => {
+        try {
+          const styleRes = await fetch("/api/ai/exterior-review", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imageUrl: uploadedUrl }),
+          });
+          const styleData = await styleRes.json().catch(() => ({}));
+          const detected = String(styleData?.house_style || "").trim();
+          if (styleRes.ok && detected && detected.toLowerCase() !== "unknown") {
+            setPropertyStyle(detected);
+            setPropertyLookupStatus(`AI recognized the home style as "${detected}" from the photo.`);
+          }
+        } catch {
+          /* best-effort; the inspector can still pick the style manually */
+        }
+      })();
     } catch (error: any) {
       setPropertyPhotoError(error?.message || "Property photo upload failed.");
     } finally {

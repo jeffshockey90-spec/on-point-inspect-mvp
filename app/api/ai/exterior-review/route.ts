@@ -53,16 +53,20 @@ Use this exact format:
 
 garage must be either "Yes", "No", or "Unknown".
 
-Allowed house styles:
-Ranch
-Colonial
-Cape Cod
-Split Foyer
-Bi-Level
-Townhouse
-Duplex
-Two Story
+house_style MUST be EXACTLY one of these (pick the closest; "Unknown" only if truly unclear):
 Manufactured
+Modular
+Modern
+Bungalow
+Victorian
+Row House
+Raised Ranch
+Rambler
+Ranch
+Multi-level
+Contemporary
+Colonial
+Townhouse
 Unknown
 
 Allowed roof styles:
