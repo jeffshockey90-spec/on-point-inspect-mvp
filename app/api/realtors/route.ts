@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { resolveTeamInspectorIds } from "../../../lib/inspectionAccess";
+import { toPhoneDigits } from "../../../lib/phone";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -72,7 +73,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
-    const phone = String(body.phone || "").trim();
+    // Store only the digits (matches client/realtor phones elsewhere).
+    const phone = toPhoneDigits(String(body.phone || "").trim());
     const lastContactDate = String(body.last_contact_date || "");
 
     if (!name) {

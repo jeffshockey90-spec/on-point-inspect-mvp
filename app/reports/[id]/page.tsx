@@ -4680,7 +4680,11 @@ Service-life information is a general industry estimate only. Actual service lif
                   value={inspection.realtor_phone}
                   type="tel"
                 />
-                <SaveAgentButton />
+                <SaveAgentButton
+                  name={inspection.realtor_name}
+                  email={inspection.realtor_email || inspection.agent_email}
+                  phone={inspection.realtor_phone}
+                />
                 <EditItem
                   label="Inspection Date"
                   name="inspection_date"
