@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 function SubmitButton({ published }: { published: boolean }) {
@@ -34,6 +35,32 @@ export default function PublishReportActionButton({
   inspectionId: string;
   published: boolean;
 }) {
+  // How many AI drafts are still awaiting approval (findings + limitations +
+  // equipment). These are HELD OUT of the published report until approved, so
+  // we warn before publishing so none gets silently left off. Best-effort: a
+  // failed/zero count just falls back to the normal confirm.
+  const [pendingDrafts, setPendingDrafts] = useState(0);
+
+  useEffect(() => {
+    if (published || !inspectionId) return;
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/field-review/pending?inspectionId=${encodeURIComponent(inspectionId)}`,
+          { cache: "no-store" },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (active && res.ok) setPendingDrafts(Number(data?.counts?.total) || 0);
+      } catch {
+        /* non-blocking — fall back to the normal confirm */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [inspectionId, published]);
+
   return (
     <form
       action={action}
@@ -44,7 +71,11 @@ export default function PublishReportActionButton({
         }
 
         const confirmed = window.confirm(
-          "Publish this report and email it to all report recipients?",
+          pendingDrafts > 0
+            ? `${pendingDrafts} AI draft${pendingDrafts === 1 ? "" : "s"} ${
+                pendingDrafts === 1 ? "is" : "are"
+              } still awaiting your approval and will NOT appear in the published report until approved (see the review queue at the top).\n\nPublish and email the report anyway?`
+            : "Publish this report and email it to all report recipients?",
         );
 
         if (!confirmed) {

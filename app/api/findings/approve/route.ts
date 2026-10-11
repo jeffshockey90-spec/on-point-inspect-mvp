@@ -6,9 +6,60 @@ import {
   notFound,
   authorizeInspection,
 } from "../../../../lib/apiAuth";
+import { learningEngine } from "../../../../lib/ai/LearningEngine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const FINDING_LEARN_SELECT =
+  "id, inspection_id, section, severity, needs_review, title, observation, implication, recommendation, ai_prediction";
+
+function eqText(a: any, b: any) {
+  return String(a || "").trim() === String(b || "").trim();
+}
+
+// Emit a learning signal for each approved draft. Findings approved AS-IS (or
+// with only a section/severity correction) never otherwise feed the loop —
+// EditableFinding only learns when the body wording is edited, and by the time
+// a background draft is approved from the review queue its in-memory baseline
+// is long gone. We read the pinned ai_prediction (stored at sync time) and
+// compare. If the BODY wording was rewritten we skip, since EditableFinding
+// already recorded that edit (no double-counting). Fully best-effort.
+async function recordApprovalLearning(inspectionId: string, rows: any[]) {
+  for (const row of rows || []) {
+    const pred = row?.ai_prediction;
+    if (!pred || typeof pred !== "object") continue;
+
+    const updated = {
+      title: String(row.title || ""),
+      section: String(row.section || ""),
+      severity: String(row.severity || ""),
+      observation: String(row.observation || ""),
+      implication: String(row.implication || ""),
+      recommendation: String(row.recommendation || ""),
+    };
+
+    const bodyKept =
+      eqText(pred.title, updated.title) &&
+      eqText(pred.observation, updated.observation) &&
+      eqText(pred.implication, updated.implication) &&
+      eqText(pred.recommendation, updated.recommendation);
+    if (!bodyKept) continue;
+
+    // eslint-disable-next-line no-await-in-loop
+    await learningEngine
+      .record({
+        inspectionId,
+        tool: "field_review_approve",
+        aiPrediction: pred,
+        inspectorResult: updated,
+        accepted: true,
+        notes:
+          "Inspector approved an AI-drafted finding from the review queue. Body wording kept; any section/severity difference is a routing/severity preference.",
+      })
+      .catch(() => null);
+  }
+}
 
 const VALID_SECTIONS = [
   "Inspection Details",
@@ -70,9 +121,11 @@ export async function POST(req: Request) {
         .update({ needs_review: false })
         .eq("inspection_id", inspectionId)
         .eq("needs_review", true)
-        .select("id");
+        .select(FINDING_LEARN_SELECT);
 
       if (error) throw error;
+
+      await recordApprovalLearning(inspectionId, data || []);
 
       return NextResponse.json({
         ok: true,
@@ -108,13 +161,24 @@ export async function POST(req: Request) {
       .update(updatePayload)
       .eq("id", findingId)
       .eq("inspection_id", inspectionId)
-      .select("id, section, severity, needs_review")
+      .select(FINDING_LEARN_SELECT)
       .maybeSingle();
 
     if (error) throw error;
     if (!data) return notFound("Finding not found.");
 
-    return NextResponse.json({ ok: true, approved: 1, finding: data });
+    await recordApprovalLearning(inspectionId, [data]);
+
+    return NextResponse.json({
+      ok: true,
+      approved: 1,
+      finding: {
+        id: data.id,
+        section: data.section,
+        severity: data.severity,
+        needs_review: data.needs_review,
+      },
+    });
   } catch (error: any) {
     console.error("Approve finding error:", error);
     return NextResponse.json(

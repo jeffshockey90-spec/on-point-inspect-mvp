@@ -383,6 +383,18 @@ Preserve the inspector's intent. Improve the report language, but do not drift a
     ai_model: AI_OFFLINE_MODEL,
     ai_version: AI_OFFLINE_VERSION,
     ai_reasoning: aiReasoning || null,
+    // Pin the AI's draft as the learning baseline BEFORE the inspector reviews
+    // it. In-memory baselines (EditableFinding) are gone by the time a
+    // background draft is approved later from the Field Review queue, so the
+    // approve step reads this to learn accept-as-is + section/severity fixes.
+    ai_prediction: {
+      title: nextTitle,
+      section: nextSection,
+      severity: nextSeverity,
+      observation: nextObservation,
+      implication: nextImplication,
+      recommendation: nextRecommendation,
+    },
   };
 
   const { error: enhancedError } = await supabase

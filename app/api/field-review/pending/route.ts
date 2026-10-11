@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     const authorized = await authorizeInspection(admin, user.id, inspectionId, "id");
     if (!authorized) return notFound();
 
-    const [limRes, eqRes] = await Promise.all([
+    const [limRes, eqRes, findRes] = await Promise.all([
       admin
         .from("section_limitations")
         .select("*")
@@ -43,12 +43,30 @@ export async function GET(req: Request) {
         .eq("inspection_id", inspectionId)
         .eq("needs_review", true)
         .order("created_at", { ascending: true }),
+      // Findings have their own review UI (FieldReviewQueue), but include a
+      // HEAD count here so this stays the single authoritative "drafts still
+      // awaiting approval" source — e.g. the pre-publish warning.
+      admin
+        .from("findings")
+        .select("id", { count: "exact", head: true })
+        .eq("inspection_id", inspectionId)
+        .eq("needs_review", true),
     ]);
+
+    const limitations = limRes.data || [];
+    const equipment = eqRes.data || [];
+    const findingsCount = findRes.count || 0;
 
     return NextResponse.json({
       ok: true,
-      limitations: limRes.data || [],
-      equipment: eqRes.data || [],
+      limitations,
+      equipment,
+      counts: {
+        findings: findingsCount,
+        limitations: limitations.length,
+        equipment: equipment.length,
+        total: findingsCount + limitations.length + equipment.length,
+      },
     });
   } catch (error: any) {
     console.error("Field review pending error:", error);
