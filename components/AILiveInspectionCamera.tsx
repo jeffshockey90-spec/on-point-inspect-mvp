@@ -270,6 +270,11 @@ export default function AILiveInspectionCamera({
   const [shots, setShots] = useState<
     { file: File; frame: string; isVideo: boolean }[]
   >([]);
+  // Speed default: a single-shot finding/limitation auto-advances straight to
+  // the draft step on the shutter tap (no extra "Analyze" tap). The inspector
+  // opts INTO the multi-angle tray per capture with the "＋ Angles" toggle at
+  // the viewfinder — equipment/reference always collect (multi-angle by nature).
+  const [multiAngleMode, setMultiAngleMode] = useState(false);
   const [attachTargetId, setAttachTargetId] = useState("");
   const [referenceCaption, setReferenceCaption] = useState("");
   const [referenceSection, setReferenceSection] = useState(currentSection);
@@ -903,10 +908,26 @@ export default function AILiveInspectionCamera({
         isVideo,
         fileKB: Math.round((file.size || 0) / 1024),
       });
-      setShots((current) => [
-        ...current,
-        { file, frame: frameDataUrlForAi, isVideo },
-      ]);
+      const nextShot = { file, frame: frameDataUrlForAi, isVideo };
+      setShots((current) => [...current, nextShot]);
+
+      // AUTO-ADVANCE: a single-shot finding/limitation goes straight to the
+      // draft step (async queue or sync draft) on this one tap — no tray, no
+      // separate "Analyze" tap. Skipped when the inspector opted into
+      // multi-angle, for video (handled sync via the tray), or for a 2nd+ shot.
+      // Equipment/reference always collect (they're multi-angle by nature).
+      const canAutoAdvance =
+        (category === "finding" || category === "limitation") &&
+        !multiAngleMode &&
+        !isVideo &&
+        shots.length === 0;
+      if (canAutoAdvance) {
+        // Pass the just-captured shot explicitly — `shots` state hasn't
+        // re-rendered yet this tick.
+        void analyzeShots([nextShot]);
+        return;
+      }
+
       setStage("collecting");
       return;
     }
@@ -917,8 +938,12 @@ export default function AILiveInspectionCamera({
 
   // Run the AI on ALL the tray media → one finding/limitation. Only real still
   // frames are sent to the model (photos + each video's representative frame).
-  async function analyzeShots() {
-    if (!shots.length) return;
+  async function analyzeShots(shotsOverride?: typeof shots) {
+    // Auto-advance (single-shot finding/limitation) calls this straight from
+    // proceedAfterCapture, before the `shots` state has re-rendered — so it
+    // passes the just-captured shot(s) explicitly. Everywhere else uses state.
+    const activeShots = shotsOverride ?? shots;
+    if (!activeShots.length) return;
 
     // Async beta: queue the capture and keep shooting. Findings, LIMITATIONS and
     // EQUIPMENT all draft in the background — each flushes to the builder's review
@@ -926,13 +951,13 @@ export default function AILiveInspectionCamera({
     // never draft here. Video captures use a still frame (not the video file) as
     // the AI input, which the background worker can't reconstruct from stored
     // image files — so an all-photo capture goes async; a video one stays sync.
-    const hasVideoShot = shots.some((s) => s.isVideo);
+    const hasVideoShot = activeShots.some((s) => s.isVideo);
     const asyncEligible =
       category === "finding" || category === "limitation" || category === "equipment";
     if (asyncDraftEnabled && selectedReport && asyncEligible && !hasVideoShot) {
       // Snapshot everything the draft needs BEFORE resetting.
       const cat = category;
-      const files = shots.map((s) => s.file);
+      const files = activeShots.map((s) => s.file);
       const note = noteText;
       const section = currentSection;
       const avail = sections;
@@ -975,9 +1000,9 @@ export default function AILiveInspectionCamera({
       return;
     }
 
-    const last = shots[shots.length - 1];
-    const frames = shots.map((s) => s.frame).filter(Boolean);
-    const files = shots.map((s) => s.file);
+    const last = activeShots[activeShots.length - 1];
+    const frames = activeShots.map((s) => s.frame).filter(Boolean);
+    const files = activeShots.map((s) => s.file);
     setStage("drafting");
     await runDraft(last.frame, last.file, undefined, frames, files);
   }
@@ -2088,6 +2113,7 @@ export default function AILiveInspectionCamera({
     setCapturedIsVideo(false);
     setCapturedFrameForAi("");
     setShots([]);
+    setMultiAngleMode(false); // per-capture choice; back to fast single-shot
     setAttachTargetId("");
     setDraft(null);
     setDraftError("");
@@ -2579,6 +2605,39 @@ export default function AILiveInspectionCamera({
                 </div>
               </div>
             )}
+
+            {/* Multi-angle opt-in. A finding/limitation auto-advances to the
+                draft on a single shutter tap (fastest path). Turn this ON first
+                when you want several angles on ONE item — then the shots collect
+                in the tray and you review them together. Resets after each item.
+                Equipment/reference always collect, so no toggle there. */}
+            {(activeCategoryMeta.key === "finding" ||
+              activeCategoryMeta.key === "limitation") &&
+              shots.length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => setMultiAngleMode((on) => !on)}
+                  aria-pressed={multiAngleMode}
+                  className={`mt-2 flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition [touch-action:manipulation] ${
+                    multiAngleMode
+                      ? "border-cyan-400/60 bg-cyan-500/15 text-cyan-100"
+                      : "border-white/10 bg-black/25 text-white/70"
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span aria-hidden>{multiAngleMode ? "✓" : "＋"}</span>
+                    {multiAngleMode ? "Multi-angle on — collecting shots" : "Add multiple angles to this one"}
+                  </span>
+                  <span
+                    aria-hidden
+                    className={`inline-flex h-4 w-7 items-center rounded-full px-0.5 transition ${
+                      multiAngleMode ? "justify-end bg-cyan-400" : "justify-start bg-white/20"
+                    }`}
+                  >
+                    <span className="h-3 w-3 rounded-full bg-white" />
+                  </span>
+                </button>
+              )}
           </div>
 
           <div className="grid grid-cols-3 items-center">
