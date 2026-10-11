@@ -171,6 +171,29 @@ Return the JSON fills now.`;
     const toWrite: ChecklistFill[] = [];
     let alreadySet = 0;
     const seen = new Set<string>();
+
+    // Pull every existing selection for this inspection ONCE, then test each
+    // proposed fill in memory. A long conversational sentence produces many
+    // fills; doing a round-trip per fill was the slow tail. Build two lookups:
+    //   optionKeys  — section::group::normValue for multi-select option rows
+    //   textGroups  — section::group for groups that already hold a text value
+    const { data: existingRows } = await supabaseAdmin
+      .from("section_checklist_selections")
+      .select("section, group_title, value")
+      .eq("inspection_id", inspectionId);
+    const optionKeys = new Set<string>();
+    const textGroups = new Set<string>();
+    for (const row of existingRows || []) {
+      const section = String((row as any).section || "");
+      const group = String((row as any).group_title || "");
+      const value = String((row as any).value ?? "");
+      if (value === "__TEXT_VALUE__") {
+        textGroups.add(`${section}::${group}`);
+      } else {
+        optionKeys.add(`${section}::${group}::${normKey(value)}`);
+      }
+    }
+
     for (const fill of proposed) {
       // De-dupe WITHIN this one utterance by the exact target, so "drywall and
       // paneling" keeps BOTH (same group, different value) but "drywall drywall"
@@ -182,20 +205,13 @@ Return the JSON fills now.`;
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
 
-      let existsQuery = supabaseAdmin
-        .from("section_checklist_selections")
-        .select("id")
-        .eq("inspection_id", inspectionId)
-        .eq("section", fill.section)
-        .eq("group_title", fill.groupTitle);
       // Options: already-checked only when this SAME value exists (multi-select).
-      // Text: already-set when the group has any text value (single-value).
-      existsQuery =
+      // Text: already-set when the group already holds any text value.
+      const already =
         fill.kind === "text"
-          ? existsQuery.eq("value", "__TEXT_VALUE__")
-          : existsQuery.eq("value", fill.value);
-      const { data: existing } = await existsQuery.limit(1);
-      if (existing && existing.length > 0) {
+          ? textGroups.has(`${fill.section}::${fill.groupTitle}`)
+          : optionKeys.has(`${fill.section}::${fill.groupTitle}::${normKey(fill.value)}`);
+      if (already) {
         alreadySet += 1; // understood, but that box is already checked — not a miss
         continue;
       }

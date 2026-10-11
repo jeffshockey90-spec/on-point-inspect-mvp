@@ -316,10 +316,17 @@ export default function AILiveInspectionCamera({
   // longer, multi-item phrases); without this, that auto-stop AND a later manual
   // stop both fire, double-stopping a dead native session, which crashes iOS.
   const voiceFinalizedRef = useRef(false);
+  // Where this voice session's transcript goes: "checklist" ticks section-info
+  // boxes (voice-section-fill), "note" dictates straight into the capture's note
+  // box. A ref because finalizeVoiceSession/onend read it after async teardown.
+  const voiceTargetRef = useRef<"checklist" | "note">("checklist");
   // True when the previous camera session ended abnormally (likely a crash) and
   // its breadcrumb log was preserved for copying.
   const [crashLogAvailable, setCrashLogAvailable] = useState(false);
   const [voiceListening, setVoiceListening] = useState(false);
+  // Reactive mirror of voiceTargetRef so the correct mic (note vs checklist)
+  // shows the active/listening state.
+  const [voiceTarget, setVoiceTarget] = useState<"checklist" | "note">("checklist");
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [voiceFilled, setVoiceFilled] = useState<
     Array<{ section: string; group: string; value: string }> | null
@@ -1407,6 +1414,20 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  // Route a finished transcript to wherever this session was aimed: dictate it
+  // into the note box, or send it to the section-info checklist filler.
+  function deliverVoiceTranscript(text: string) {
+    const transcript = text.trim();
+    if (!transcript) return;
+    if (voiceTargetRef.current === "note") {
+      setNoteText((prev) => (prev ? `${prev.trim()} ${transcript}` : transcript).trim());
+      setToast("📝 Added to note");
+      logCam("mic:dictated-note", { len: transcript.length });
+      return;
+    }
+    void submitVoiceTranscript(transcript);
+  }
+
   async function submitVoiceTranscript(text: string) {
     const transcript = text.trim();
     if (!transcript || !selectedReport) return;
@@ -1498,7 +1519,7 @@ export default function AILiveInspectionCamera({
       NativeSpeechRecognition.removeAllListeners().catch(() => {});
     }
     const text = voiceTranscriptRef.current.trim();
-    if (opts.submit && text) void submitVoiceTranscript(text);
+    if (opts.submit && text) deliverVoiceTranscript(text);
   }
 
   async function stopVoiceFill() {
@@ -1515,8 +1536,10 @@ export default function AILiveInspectionCamera({
     }
   }
 
-  async function toggleVoiceFill() {
-    if (!selectedReport) {
+  async function toggleVoiceFill(target: "checklist" | "note" = "checklist") {
+    // Checklist fill writes to the DB and so needs a report; note dictation just
+    // types into the capture's note box, so it works before one is selected.
+    if (target === "checklist" && !selectedReport) {
       setToast("Select a report first.");
       return;
     }
@@ -1527,6 +1550,8 @@ export default function AILiveInspectionCamera({
 
     if (voiceStartingRef.current) return; // double-tap guard during async start
     voiceStartingRef.current = true;
+    voiceTargetRef.current = target;
+    setVoiceTarget(target);
     voiceTranscriptRef.current = "";
     voiceFinalizedRef.current = false; // fresh session
     setVoiceFilled(null);
@@ -1598,7 +1623,11 @@ export default function AILiveInspectionCamera({
         });
         setVoiceListening(true);
         logCam("mic:listening", { native: true });
-        setToast("🎤 Listening — say what you see…");
+        setToast(
+          voiceTargetRef.current === "note"
+            ? "🎤 Dictating your note — speak…"
+            : "🎤 Listening — say what you see…",
+        );
       } else {
         // Browser Web Speech API fallback.
         const SR =
@@ -1614,7 +1643,11 @@ export default function AILiveInspectionCamera({
         recognition.interimResults = true;
         recognition.onstart = () => {
           setVoiceListening(true);
-          setToast("🎤 Listening — say what you see…");
+          setToast(
+            voiceTargetRef.current === "note"
+              ? "🎤 Dictating your note — speak…"
+              : "🎤 Listening — say what you see…",
+          );
         };
         recognition.onresult = (event: any) => {
           for (let i = event.resultIndex; i < event.results.length; i += 1) {
@@ -1626,7 +1659,7 @@ export default function AILiveInspectionCamera({
         recognition.onend = () => {
           setVoiceListening(false);
           const text = voiceTranscriptRef.current.trim();
-          if (text) void submitVoiceTranscript(text);
+          if (text) deliverVoiceTranscript(text);
         };
         recognition.start();
       }
@@ -1676,9 +1709,33 @@ export default function AILiveInspectionCamera({
     }
   }
 
-  function toggleVideoRecording() {
+  // Voice-fill STOPS the camera's audio track to free the iOS audio session
+  // (SFSpeechRecognizer vs getUserMedia crash). That track doesn't come back on
+  // its own, so a video recorded later in the same camera session would be
+  // SILENT. Before recording (when not muted), re-acquire an audio track if the
+  // stream has none live and add it back. Best-effort: on failure we just
+  // record video-only rather than block the capture.
+  async function ensureCameraAudioForRecording() {
+    if (muteAudio) return;
     const stream = streamRef.current;
+    if (!stream) return;
+    const hasLiveAudio = stream
+      .getAudioTracks()
+      .some((track) => track.readyState === "live");
+    if (hasLiveAudio) return;
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const track = audioStream.getAudioTracks()[0];
+      if (track) {
+        stream.addTrack(track);
+        logCam("mic:audio-restored", {});
+      }
+    } catch (err: any) {
+      logCam("mic:audio-restore-failed", { msg: String(err?.message || err) });
+    }
+  }
 
+  async function toggleVideoRecording() {
     if (recordingVideo) {
       try {
         mediaRecorderRef.current?.stop();
@@ -1688,12 +1745,17 @@ export default function AILiveInspectionCamera({
       return;
     }
 
-    if (!stream || typeof MediaRecorder === "undefined") {
+    if (!streamRef.current || typeof MediaRecorder === "undefined") {
       setCameraError(
         "Video recording is not supported by this device/browser.",
       );
       return;
     }
+
+    // Bring audio back if voice-fill freed it earlier this session.
+    await ensureCameraAudioForRecording();
+    const stream = streamRef.current;
+    if (!stream) return;
 
     try {
       const supportedTypes = [
@@ -1775,7 +1837,7 @@ export default function AILiveInspectionCamera({
 
   function handlePrimaryCapture() {
     if (captureMode === "video") {
-      toggleVideoRecording();
+      void toggleVideoRecording();
       return;
     }
     void handlePhotoShutter();
@@ -2504,16 +2566,31 @@ export default function AILiveInspectionCamera({
             })}
           </div>
           <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-neutral-900/85 p-3 backdrop-blur">
-            <textarea
-              value={noteText}
-              onChange={(event) => setNoteText(event.target.value)}
-              placeholder={
-                activeCategoryMeta.key === "reference"
-                  ? "Optional caption (add after capture too)"
-                  : "Tell the AI what to look at…"
-              }
-              className="min-h-16 w-full resize-none rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-            />
+            <div className="relative">
+              <textarea
+                value={noteText}
+                onChange={(event) => setNoteText(event.target.value)}
+                placeholder={
+                  activeCategoryMeta.key === "reference"
+                    ? "Optional caption (add after capture too)"
+                    : "Tell the AI what to look at… or 🎤 dictate"
+                }
+                className="min-h-16 w-full resize-none rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 pr-12 text-sm text-white outline-none focus:border-cyan-400"
+              />
+              <button
+                type="button"
+                onClick={() => toggleVoiceFill("note")}
+                aria-label="Dictate the note"
+                title="Speak your note instead of typing"
+                className={`absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-full border text-base transition active:scale-95 [touch-action:manipulation] ${
+                  voiceListening && voiceTarget === "note"
+                    ? "animate-pulse border-red-400 bg-red-500/80 text-white"
+                    : "border-white/15 bg-black/40 text-cyan-300"
+                }`}
+              >
+                {voiceListening && voiceTarget === "note" ? "■" : "🎤"}
+              </button>
+            </div>
 
             {activeCategoryMeta.key !== "reference" && (
               <div className="mt-2 rounded-lg border border-white/10 bg-black/25 p-2">
@@ -2655,7 +2732,7 @@ export default function AILiveInspectionCamera({
                 {selectedReport && (
                   <button
                     type="button"
-                    onClick={toggleVoiceFill}
+                    onClick={() => toggleVoiceFill("checklist")}
                     disabled={voiceBusy}
                     aria-label="Voice-fill section info"
                     title="Speak to fill section-info checkboxes"
@@ -2878,12 +2955,27 @@ export default function AILiveInspectionCamera({
                   <label className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
                     Note for AI (optional)
                   </label>
-                  <textarea
-                    value={noteText}
-                    onChange={(event) => setNoteText(event.target.value)}
-                    placeholder="e.g. 'cracked heat exchanger — call it a safety concern', or leave blank and AI describes what it sees"
-                    className="mt-1 min-h-16 w-full resize-none rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-                  />
+                  <div className="relative mt-1">
+                    <textarea
+                      value={noteText}
+                      onChange={(event) => setNoteText(event.target.value)}
+                      placeholder="e.g. 'cracked heat exchanger — call it a safety concern', or 🎤 dictate, or leave blank and AI describes what it sees"
+                      className="min-h-16 w-full resize-none rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 pr-12 text-sm text-white outline-none focus:border-cyan-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleVoiceFill("note")}
+                      aria-label="Dictate the note"
+                      title="Speak your note instead of typing"
+                      className={`absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-full border text-base transition active:scale-95 [touch-action:manipulation] ${
+                        voiceListening && voiceTarget === "note"
+                          ? "animate-pulse border-red-400 bg-red-500/80 text-white"
+                          : "border-white/15 bg-black/40 text-cyan-300"
+                      }`}
+                    >
+                      {voiceListening && voiceTarget === "note" ? "■" : "🎤"}
+                    </button>
+                  </div>
                 </div>
               </>
             )}

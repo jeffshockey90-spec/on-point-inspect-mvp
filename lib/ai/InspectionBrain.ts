@@ -17,7 +17,17 @@ export type InspectionAIRequest = {
   // Use the fast model (lower latency) for real-time / draft output the
   // inspector reviews — e.g. the live camera and field write-ups.
   fast?: boolean;
+  // Cap the response length. Structured extraction tasks (equipment) have a
+  // bounded JSON answer, so a cap keeps the model from running long and trims
+  // the slowest tail of the wait. Omit for open-ended prose tasks.
+  maxTokens?: number;
+  // Hard ceiling on the request so a stalled call can't hang the capture.
+  timeoutMs?: number;
 };
+
+// Default request timeout. A hung OpenAI call otherwise blocks the inspector's
+// capture indefinitely; 60s is far above a normal vision completion.
+const DEFAULT_TIMEOUT_MS = 60_000;
 
 export class InspectionBrain {
   private client: OpenAI;
@@ -52,24 +62,28 @@ export class InspectionBrain {
 
     const model = request.fast ? getFastAIModel() : getAIModel();
 
-    const response = await this.client.chat.completions.create({
-      model,
-      temperature: request.temperature ?? 0.2,
-      response_format:
-        request.responseFormat === "json_object"
-          ? { type: "json_object" }
-          : undefined,
-      messages: [
-        {
-          role: "system",
-          content: request.systemPrompt,
-        },
-        {
-          role: "user",
-          content,
-        },
-      ],
-    });
+    const response = await this.client.chat.completions.create(
+      {
+        model,
+        temperature: request.temperature ?? 0.2,
+        ...(request.maxTokens ? { max_tokens: request.maxTokens } : {}),
+        response_format:
+          request.responseFormat === "json_object"
+            ? { type: "json_object" }
+            : undefined,
+        messages: [
+          {
+            role: "system",
+            content: request.systemPrompt,
+          },
+          {
+            role: "user",
+            content,
+          },
+        ],
+      },
+      { timeout: request.timeoutMs ?? DEFAULT_TIMEOUT_MS },
+    );
 
     return {
       model,

@@ -1891,6 +1891,13 @@ Rules:
       }),
       temperature: 0.1,
       responseFormat: "json_object",
+      // Equipment was the slowest wait in the camera: it ran on the heavy model
+      // while findings use the fast one. This is bounded structured extraction
+      // from a data plate (vision-capable fast model handles it, and the result
+      // is inspector-reviewed), so the fast model + a token cap cut the latency
+      // with no quality loss on the fields that matter.
+      fast: true,
+      maxTokens: 1500,
     });
 
     const text = brainResult.text || "{}";
@@ -1941,7 +1948,7 @@ Rules:
         reviewRequired: (enhanced as any)?.reviewRequired,
         reviewFlags: (enhanced as any)?.reviewFlags,
         intelligenceFlags: (enhanced as any)?.intelligenceFlags,
-        aiModel: AI_EQUIPMENT_MODEL,
+        aiModel: brainResult.model || AI_EQUIPMENT_MODEL,
         aiVersion: AI_EQUIPMENT_VERSION,
         photoCount: imageFiles.length,
       },
