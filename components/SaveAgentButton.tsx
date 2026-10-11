@@ -12,10 +12,12 @@ export default function SaveAgentButton({
   name: nameProp = "",
   email: emailProp = "",
   phone: phoneProp = "",
+  wrapperClassName = "mt-2 print:hidden",
 }: {
   name?: string | null;
   email?: string | null;
   phone?: string | null;
+  wrapperClassName?: string;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
   const [busy, setBusy] = useState(false);
@@ -76,7 +78,7 @@ export default function SaveAgentButton({
   }
 
   return (
-    <div className="mt-2 print:hidden">
+    <div className={wrapperClassName}>
       <button
         ref={ref}
         type="button"

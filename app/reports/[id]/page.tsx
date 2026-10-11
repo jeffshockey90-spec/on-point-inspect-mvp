@@ -3040,12 +3040,21 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                 Send &amp; Communicate
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <SendFullReportButton
                   inspectionId={String(inspection.id)}
                   clientEmail={inspection.client_email}
                   realtorEmail={inspection.realtor_email || inspection.agent_email}
                 />
+
+                {inspection.realtor_name ? (
+                  <SaveAgentButton
+                    name={inspection.realtor_name}
+                    email={inspection.realtor_email || inspection.agent_email}
+                    phone={inspection.realtor_phone}
+                    wrapperClassName="print:hidden"
+                  />
+                ) : null}
 
                 <SendReviewRequestButton
                   inspectionId={String(inspection.id)}
