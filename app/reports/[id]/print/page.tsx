@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { resolveReportSections } from "../../../../lib/reportSections";
@@ -522,6 +523,13 @@ export default async function PrintableReportPage({ params }: PageProps) {
     inspection = inspectionByPublishedId;
   }
 
+  // True when we got here via a PUBLIC published token/id (a client/realtor),
+  // not the signed-in owner path below. The public path must honor the same
+  // payment/agreement delivery gate as /share — `published` alone is exactly
+  // the gated state, so without this the PDF was a full paywall/agreement
+  // bypass (open /reports/{token}/print instead of /share/{token}).
+  const resolvedByPublic = Boolean(inspection);
+
   if (!inspection) {
     const {
       data: { user },
@@ -541,6 +549,33 @@ export default async function PrintableReportPage({ params }: PageProps) {
     if (inspectionError || !inspectionByOwner) redirect("/reports");
 
     inspection = inspectionByOwner;
+  }
+
+  // DELIVERY GATE for the public path: a published-but-not-yet-deliverable
+  // report (payment/agreement outstanding, no override) must NOT render its
+  // full printable PDF. Demo + enabled public samples stay open (same as
+  // /share). Anything else that isn't deliverable is redirected to /share,
+  // which shows the proper Pay-to-unlock / Sign-to-unlock screens. The
+  // signed-in owner path above is never gated — the inspector can always
+  // print their own report.
+  if (resolvedByPublic) {
+    let allow = (inspection as any).is_demo === true;
+    if (!allow) {
+      const { data: sampleRow } = await supabase
+        .from("public_sample_reports")
+        .select("inspection_id, is_enabled")
+        .eq("inspection_id", inspection.id)
+        .maybeSingle();
+      if (sampleRow && (sampleRow as any).is_enabled !== false) allow = true;
+    }
+    if (!allow) {
+      const delivery = await getReportDeliveryState(supabase, inspection as any);
+      if (!delivery.deliverable) {
+        redirect(
+          `/share/${encodeURIComponent(String(inspection.public_share_token || shareLookup))}`,
+        );
+      }
+    }
   }
 
   const branding = await getCompanyBrandingById(inspection.company_id);
