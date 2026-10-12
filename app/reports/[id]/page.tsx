@@ -1595,7 +1595,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         condition,
         inspector_note: inspectorNote,
         maintenance_note: maintenanceNote,
-        equipment_status: equipmentStatus || undefined,
+        // `|| undefined` dropped the key on JSON serialization, so a cleared
+        // status never saved. Use null so clearing it actually persists (the
+        // sibling note fields already persist their empty strings).
+        equipment_status: equipmentStatus || null,
       })
       .eq("id", equipmentId)
       .eq("inspection_id", inspectionId);
@@ -1634,7 +1637,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     // complete reports in Draft with no way to override from this button.)
     const now = new Date().toISOString();
 
-    const { error } = await supabase
+    const { data: publishedRows, error } = await supabase
       .from("inspections")
       .update({
         report_status: "Published",
@@ -1642,10 +1645,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         published_at: now,
       })
       .eq("id", inspectionId)
-      .eq(accessFilter.column, accessFilter.value);
+      .eq(accessFilter.column, accessFilter.value)
+      .select("id");
 
-    if (error) {
-      console.error("Publish report error:", error);
+    // A 0-row match (stale/forged id that owns nothing) is NOT a PostgREST
+    // error, so without checking the affected rows the action would proceed and
+    // redirect as if it published. Treat no-rows-updated as a failure.
+    if (error || !publishedRows || publishedRows.length === 0) {
+      console.error("Publish report error:", error || "no matching inspection");
       redirect(`/reports/${inspectionId}?publish_error=1`);
     }
 

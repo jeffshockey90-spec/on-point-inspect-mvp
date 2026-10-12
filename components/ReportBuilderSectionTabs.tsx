@@ -74,9 +74,14 @@ export default function ReportBuilderSectionTabs({
   );
 
   useEffect(() => {
-    applyTab(tabs[0]?.key || "", false);
+    // Runs on mount AND whenever the tab set changes. Without the tabs
+    // dependency, a panel that appears after mount (e.g. the Equipment tab,
+    // which only shows once equipment exists) was never hidden and rendered
+    // under whatever tab was active. Keep the current tab if it still exists.
+    const stillExists = tabs.some((tab) => tab.key === activeKey);
+    applyTab(stillExists ? activeKey : tabs[0]?.key || "", false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tabs]);
 
   useEffect(() => {
     (window as any).__revealReportBuilderTab = revealAnchor;
