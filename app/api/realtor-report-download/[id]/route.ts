@@ -2603,7 +2603,12 @@ export async function GET(req: Request, { params }: RouteProps) {
         // reinspection_* are part of the signature on purpose: without them, changing a
         // verdict or re-drafting a re-inspection note would leave the signature
         // identical and the download would serve the previous PDF from cache.
-        sel("findings", "id,title,observation,implication,recommendation,severity,section,component,report_item_number,defect_type,reinspection_status,reinspection_summary,source_finding_id"),
+        // Exclude review-pending findings from the signature (like equipment +
+        // limitations below), so approving a draft changes the signature and the
+        // cached PDF regenerates WITH the now-approved finding. Without this,
+        // Approve-All / approve-as-is left the signature byte-identical and the
+        // realtor kept downloading a PDF missing the approved finding.
+        sel("findings", "id,title,observation,implication,recommendation,severity,section,component,report_item_number,defect_type,reinspection_status,reinspection_summary,source_finding_id").not("needs_review", "is", true),
         sel("photos", "id,finding_id,file_path,thumbnail_path,thumbnail_url,caption,is_video"),
         // Exclude review-pending rows from the signature too, so approving one
         // changes the signature and the cached PDF regenerates with it included.

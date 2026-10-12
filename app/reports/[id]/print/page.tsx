@@ -217,9 +217,14 @@ function groupChecklistRows(rows: any[]) {
   (rows || []).forEach((row: any) => {
     // Blank entries never render on the client report.
     if (!checklistRowDisplay(row)) return;
-    if (!grouped[row.section]) grouped[row.section] = {};
-    if (!grouped[row.section][row.group_title]) grouped[row.section][row.group_title] = [];
-    grouped[row.section][row.group_title].push(row);
+    // Normalize the section so legacy/aliased/null names (e.g. "General",
+    // "Attic/Insulation & Ventilation", imported Spectora/HomeGauge values) map
+    // to the canonical section the PDF groups by — otherwise this content shows
+    // on the share page (which normalizes) but silently drops from the PDF.
+    const section = normalizeSection(row.section);
+    if (!grouped[section]) grouped[section] = {};
+    if (!grouped[section][row.group_title]) grouped[section][row.group_title] = [];
+    grouped[section][row.group_title].push(row);
   });
 
   return grouped;
@@ -787,9 +792,14 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
   const referencePhotosBySection = sectionReferencePhotos.reduce(
     (acc: Record<string, any[]>, photo: any) => {
-      if (!photo.section) return acc;
-      if (!acc[photo.section]) acc[photo.section] = [];
-      acc[photo.section].push(photo);
+      // Normalize so aliased/legacy section names still match the canonical
+      // section list (the share page normalizes these; the PDF must match). A
+      // null/blank section normalizes to "Inspection Details" rather than being
+      // dropped, matching the share page.
+      const section = normalizeSection(photo.section);
+      if (!section) return acc;
+      if (!acc[section]) acc[section] = [];
+      acc[section].push(photo);
       return acc;
     },
     {}

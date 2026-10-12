@@ -2399,9 +2399,18 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   // Drafts still awaiting approval (needs_review) render ONLY in the FieldReviewQueue
   // at the top — not in the main section list (no double-render) and not in the
   // priced report content — until the inspector approves them.
-  const editorFindings = findingsForEditor.filter(
-    (finding: any) => finding.needs_review !== true,
-  );
+  // Number the editor's findings over the DRAFT-EXCLUDED set so item numbers
+  // have no gaps when a needs_review draft sits in a section — and so the
+  // builder's numbers match the client report (which also excludes drafts).
+  // numberedFindings/findingsForEditor above stay as-is for the review queue +
+  // summary counts.
+  const editorFindings = addRepairItemNumbers(
+    findings.filter((finding: any) => finding.needs_review !== true),
+    activeSectionOrder,
+  ).map((finding: any) => ({
+    ...finding,
+    title: getNumberedFindingTitle(finding),
+  }));
 
   const groupedFindingsArray = activeSectionOrder.map((section) => ({
     section,
