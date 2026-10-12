@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type SendType = "client" | "realtor" | "custom";
 type NoticeType = "success" | "error" | "info";
@@ -11,6 +11,7 @@ export default function SendW9Button({ inspectionId }: { inspectionId: string })
   const [contactClientEmail, setContactClientEmail] = useState("");
   const [contactRealtorEmail, setContactRealtorEmail] = useState("");
   const [notice, setNotice] = useState<{ type: NoticeType; message: string } | null>(null);
+  const sendingRef = useRef(false); // synchronous latch vs a ghost double-tap (duplicate email)
 
   useEffect(() => {
     async function loadContacts() {
@@ -50,7 +51,7 @@ export default function SendW9Button({ inspectionId }: { inspectionId: string })
   }
 
   async function sendW9(type: SendType) {
-    if (sending) return;
+    if (sendingRef.current || sending) return;
 
     const email =
       type === "client"
@@ -64,6 +65,7 @@ export default function SendW9Button({ inspectionId }: { inspectionId: string })
       return;
     }
 
+    sendingRef.current = true;
     setSending(type);
     setNotice(null);
 
@@ -86,6 +88,7 @@ export default function SendW9Button({ inspectionId }: { inspectionId: string })
     } catch (error: any) {
       showNotice("error", error?.message || "Failed to send W9.");
     } finally {
+      sendingRef.current = false;
       window.setTimeout(() => setSending(null), 700);
     }
   }

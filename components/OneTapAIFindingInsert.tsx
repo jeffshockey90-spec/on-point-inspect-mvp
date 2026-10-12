@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 import AITemplateSuggestions from "./AITemplateSuggestions";
 
@@ -41,6 +41,14 @@ export default function OneTapAIFindingInsert({ inspectionId }: Props) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  // Revoke the object URL when it's replaced or the component unmounts, so a
+  // large image/video blob isn't retained if the user navigates away with the
+  // modal open (instead of closing it, which already revokes).
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
   const isVideo = file?.type.startsWith("video/") || false;
   const isImage = file?.type.startsWith("image/") || false;
   const [inspectorNote, setInspectorNote] = useState("");

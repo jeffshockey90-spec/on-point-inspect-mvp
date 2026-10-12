@@ -1185,10 +1185,13 @@ export default async function PrintableReportPage({ params }: PageProps) {
           </section>
         )}
 
+        {/* Same report_summary the web client report shows under "Report
+            Summary" — keep the label identical (was "Realtor Summary", which
+            implied realtor-only content on the client's own PDF). */}
         {inspection.report_summary && (
           <section className="avoid-break page-break rounded-2xl border border-teal-200 bg-teal-50 p-6">
             <h2 className="text-3xl font-black text-teal-800">
-              Realtor Summary
+              Report Summary
             </h2>
 
             <p className="mt-4 whitespace-pre-wrap text-base leading-7 text-slate-800">

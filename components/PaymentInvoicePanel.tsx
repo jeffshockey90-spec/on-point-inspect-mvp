@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { formatMoney } from "../lib/locale";
 
@@ -66,6 +66,7 @@ export default function PaymentInvoicePanel({
     String(inspection.client_email || inspection.email || inspection.contact_email || ""),
   );
   const [receiptBusy, setReceiptBusy] = useState(false);
+  const receiptBusyRef = useRef(false);
   const [receiptMsg, setReceiptMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [receiptHtml, setReceiptHtml] = useState("");
   const [receiptLoading, setReceiptLoading] = useState(false);
@@ -96,12 +97,13 @@ export default function PaymentInvoicePanel({
   }
 
   async function sendReceipt() {
-    if (receiptBusy) return;
+    if (receiptBusyRef.current || receiptBusy) return;
     const to = receiptEmail.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
       setReceiptMsg({ type: "error", text: "Enter a valid email address." });
       return;
     }
+    receiptBusyRef.current = true;
     setReceiptBusy(true);
     setReceiptMsg(null);
     try {
@@ -120,6 +122,7 @@ export default function PaymentInvoicePanel({
     } catch (error: any) {
       setReceiptMsg({ type: "error", text: error?.message || "Could not send the receipt." });
     } finally {
+      receiptBusyRef.current = false;
       setReceiptBusy(false);
     }
   }

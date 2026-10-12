@@ -36,7 +36,12 @@ export default function EmailDeliveryAlert({
         if (!active || !data) return;
         const list: Bounce[] = data.byInspection?.[id] || [];
         const current = new Set(currentKey.split(",").filter(Boolean));
-        const relevant = current.size ? list.filter((b) => current.has(b.recipient)) : list;
+        // Lowercase the bounce recipient too — currentKey is lowercased, so a
+        // mixed-case recipient would otherwise fail the match and silently
+        // suppress a genuine bounce banner.
+        const relevant = current.size
+          ? list.filter((b) => current.has(String(b.recipient || "").trim().toLowerCase()))
+          : list;
         setBounces(relevant);
       })
       .catch(() => {});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function SendSignedAgreementButton({
   inspectionId,
@@ -13,15 +13,17 @@ export default function SendSignedAgreementButton({
 }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const busyRef = useRef(false);
 
   async function send() {
-    if (busy) return;
+    if (busyRef.current || busy) return;
     if (
       !window.confirm(
         `Email a copy of the signed agreement to ${clientEmail || "the client"}?`
       )
     )
       return;
+    busyRef.current = true;
     setBusy(true);
     setMsg(null);
     try {
@@ -36,6 +38,7 @@ export default function SendSignedAgreementButton({
     } catch (error: any) {
       setMsg({ ok: false, text: error?.message || "Failed to send." });
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }

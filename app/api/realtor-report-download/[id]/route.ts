@@ -2762,8 +2762,13 @@ export async function GET(req: Request, { params }: RouteProps) {
     for (const row of (checklistRows as any[]) || []) {
       const sec = normalizeSection(row.section);
       const group = cleanText(row.group_title) || "Details";
-      const val = cleanText(row.custom_text || row.value);
-      if (!val || val === "__TEXT_VALUE__") continue;
+      // Match share/print's checklistRowDisplay: a custom-text sentinel
+      // (__TEXT_VALUE__ or "OTHER") shows custom_text and is SKIPPED when blank
+      // — otherwise an "OTHER" row with no custom text printed the literal
+      // token "OTHER" here while share/print correctly rendered nothing.
+      const isCustom = row.value === "__TEXT_VALUE__" || row.value === "OTHER";
+      const val = isCustom ? cleanText(row.custom_text) : cleanText(row.value);
+      if (!val) continue;
       if (!checklistBySection[sec]) checklistBySection[sec] = {};
       if (!checklistBySection[sec][group]) checklistBySection[sec][group] = [];
       checklistBySection[sec][group].push(val);

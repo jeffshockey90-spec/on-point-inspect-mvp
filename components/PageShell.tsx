@@ -35,7 +35,7 @@ export default function PageShell({
   return (
     <div
       className={`min-h-screen pt-[env(safe-area-inset-top)] xl:pt-0 ${
-        showsNavShell ? "pb-28 md:pb-0 xl:pl-64" : ""
+        showsNavShell ? "pb-28 xl:pb-0 xl:pl-64" : ""
       }`}
     >
       {children}

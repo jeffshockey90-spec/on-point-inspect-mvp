@@ -23,6 +23,7 @@ export default function ReportTemplateSwitcher({
   const [templates, setTemplates] = useState<T[]>([]);
   const [value, setValue] = useState(currentTemplateId || "");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/report-templates", { cache: "no-store" })
@@ -34,15 +35,30 @@ export default function ReportTemplateSwitcher({
   if (templates.length === 0) return null;
 
   async function apply(next: string) {
+    const previous = value;
     setBusy(true);
-    setValue(next);
-    await fetch("/api/report-templates/apply", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inspectionId, templateId: next || null }),
-    }).catch(() => {});
-    setBusy(false);
-    refreshKeepScroll(router);
+    setError("");
+    setValue(next); // optimistic
+    try {
+      const res = await fetch("/api/report-templates/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, templateId: next || null }),
+      });
+      if (!res.ok) {
+        // Don't show a false success: revert the select and surface the error.
+        const data = await res.json().catch(() => ({}));
+        setValue(previous);
+        setError(data?.error || "Could not apply that template — try again.");
+        return;
+      }
+      refreshKeepScroll(router);
+    } catch {
+      setValue(previous);
+      setError("Could not apply that template — check your connection.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -60,6 +76,7 @@ export default function ReportTemplateSwitcher({
         ))}
       </select>
       {busy && <span className="text-xs text-[var(--fl-muted)]">Applying…</span>}
+      {error && <span className="text-xs font-semibold text-[var(--fl-crit-text)]">{error}</span>}
       <span className="ml-auto text-xs text-[var(--fl-faint)]">Switching never deletes findings.</span>
     </div>
   );

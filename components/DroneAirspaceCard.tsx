@@ -79,6 +79,7 @@ export default function DroneAirspaceCard(props: Props) {
   const [error, setError] = useState("");
   const lastKeyRef = useRef<string | null>(null);
   const autoRetriedRef = useRef<string | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const payload = buildPayload(props);
   const key = payload ? JSON.stringify(payload) : null;
@@ -104,7 +105,10 @@ export default function DroneAirspaceCard(props: Props) {
       const k = JSON.stringify(body);
       if (airspace?.status === "unknown" && autoRetriedRef.current !== k) {
         autoRetriedRef.current = k;
-        setTimeout(() => void runCheck(body), 2500);
+        // Track the retry timer so it's cleared on unmount (no setState after
+        // unmount if the user navigates away within the 2.5s window).
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => void runCheck(body), 2500);
       }
     } catch (err: any) {
       setError(err?.message || "Airspace check failed.");
@@ -124,6 +128,13 @@ export default function DroneAirspaceCard(props: Props) {
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, runCheck]);
+
+  // Clear the pending auto-retry on unmount.
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, []);
 
   const style = STYLES[result?.status || "unknown"];
 

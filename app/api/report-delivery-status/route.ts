@@ -19,9 +19,17 @@ function getNumber(value: any) {
 }
 
 function getInvoiceAmount(inspection: any) {
+  // Match lib/reportDelivery.ts's field list — omitting total_price/total/
+  // inspection_price/inspection_fee made a job priced via total_price report
+  // $0 due here, so the inspector saw a confusing "Balance due: $0" blocker
+  // that the real delivery gate doesn't raise.
   return (
     getNumber(inspection?.invoice_amount) ||
+    getNumber(inspection?.total_price) ||
+    getNumber(inspection?.total) ||
     getNumber(inspection?.price) ||
+    getNumber(inspection?.inspection_price) ||
+    getNumber(inspection?.inspection_fee) ||
     getNumber(inspection?.amount) ||
     getNumber(inspection?.fee) ||
     0
@@ -123,7 +131,12 @@ export async function GET(req: Request) {
       ? []
       : (contacts || []).filter(
           (contact: any) =>
-            contact.agreement_required && !contact.agreement_signed,
+            // Only client/co-client signatures gate delivery, matching
+            // lib/reportDelivery.ts's isAgreementComplete — a realtor row with
+            // agreement_required otherwise over-blocked vs the real gate.
+            ["client", "co-client"].includes(String(contact.role || "").toLowerCase()) &&
+            contact.agreement_required &&
+            !contact.agreement_signed,
         );
 
     const paymentComplete = isPaymentComplete(inspection);
