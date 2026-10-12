@@ -315,6 +315,7 @@ function ReviewList({
   emptyText,
   doneSet,
   onToggle,
+  reviewedIds,
   tone = "text-[var(--fl-text)]",
 }: {
   title: string;
@@ -322,9 +323,13 @@ function ReviewList({
   emptyText: string;
   doneSet: Set<string>;
   onToggle: (key: string) => void;
+  reviewedIds: Set<string>;
   tone?: string;
 }) {
-  const reviewedIds = useReviewedFindings();
+  // reviewedIds is resolved ONCE by the parent panel and passed down — each
+  // ReviewList used to call useReviewedFindings() itself, so up to 8 copies each
+  // attached a window "focus" + event listener and re-read localStorage + setState
+  // on every app refocus (iOS app-switching is frequent). One source now.
   // An item is "handled" if the inspector checked it off here OR its finding was
   // marked reviewed elsewhere. Handled items sink to the bottom, dimmed, so the
   // next thing to fix is always on top — but they never disappear.
@@ -398,6 +403,8 @@ export default function AIReportReviewPanel({
   // One shared checked-off set for the whole panel so every list stays in sync
   // and check-offs never bounce back.
   const { doneSet, toggle: onToggleItem } = useDoneItems(inspectionId);
+  // Resolve reviewed-finding ids ONCE for the whole panel (was per-ReviewList).
+  const reviewedIds = useReviewedFindings();
 
   // Restore the saved review on mount so returning to the panel shows the list
   // to keep working through — never a blank "Run AI Review" prompt, and never a
@@ -655,6 +662,7 @@ export default function AIReportReviewPanel({
       {review && (
         <div className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           <ReviewList
+            reviewedIds={reviewedIds}
             title="Critical Issues"
             items={review.criticalIssues}
             emptyText="No critical issues found."
@@ -664,6 +672,7 @@ export default function AIReportReviewPanel({
           />
 
           <ReviewList
+            reviewedIds={reviewedIds}
             title="Warnings"
             items={review.warnings}
             emptyText="No warnings found."
@@ -673,6 +682,7 @@ export default function AIReportReviewPanel({
           />
 
           <ReviewList
+            reviewedIds={reviewedIds}
             title="Missing Systems"
             items={review.missingSystems}
             emptyText="No missing systems flagged."
@@ -681,6 +691,7 @@ export default function AIReportReviewPanel({
           />
 
           <ReviewList
+            reviewedIds={reviewedIds}
             title="Photo Concerns"
             items={review.photoConcerns}
             emptyText="No photo concerns found."
@@ -689,6 +700,7 @@ export default function AIReportReviewPanel({
           />
 
           <ReviewList
+            reviewedIds={reviewedIds}
             title="Possible Duplicates"
             items={review.duplicateConcerns}
             emptyText="No duplicate concerns found."
@@ -697,6 +709,7 @@ export default function AIReportReviewPanel({
           />
 
           <ReviewList
+            reviewedIds={reviewedIds}
             title="Section Concerns"
             items={review.sectionConcerns}
             emptyText="No section concerns found."
@@ -705,6 +718,7 @@ export default function AIReportReviewPanel({
           />
 
           <ReviewList
+            reviewedIds={reviewedIds}
             title="Suggestions"
             items={review.suggestions}
             emptyText="No extra suggestions."
@@ -713,6 +727,7 @@ export default function AIReportReviewPanel({
           />
 
           <ReviewList
+            reviewedIds={reviewedIds}
             title="Automated Base Checks"
             items={review.baseIssues}
             emptyText="No base quality issues found."

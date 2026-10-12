@@ -1969,19 +1969,26 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     // Page past Supabase's 1000-row cap so photo-heavy inspections load every photo.
     if (findingIds.length === 0) return { photos: [], error: null };
     const PAGE = 1000;
+    // Chunk the finding-id list so a report with very many findings can't build
+    // an IN() querystring long enough to trip a 414/400 (which returned an
+    // error and silently rendered zero photos).
+    const ID_CHUNK = 300;
     let out: any[] = [];
-    for (let from = 0; ; from += PAGE) {
-      const { data, error } = await supabase
-        .from("photos")
-        .select("*")
-        .in("finding_id", findingIds)
-        // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
-        .order("sort_order", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: true })
-        .range(from, from + PAGE - 1);
-      if (error) return { photos: out, error };
-      out = out.concat(data || []);
-      if (!data || data.length < PAGE) break;
+    for (let i = 0; i < findingIds.length; i += ID_CHUNK) {
+      const idSlice = findingIds.slice(i, i + ID_CHUNK);
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("photos")
+          .select("*")
+          .in("finding_id", idSlice)
+          // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
+          .order("sort_order", { ascending: true, nullsFirst: false })
+          .order("created_at", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) return { photos: out, error };
+        out = out.concat(data || []);
+        if (!data || data.length < PAGE) break;
+      }
     }
     return { photos: out, error: null };
   }

@@ -294,12 +294,25 @@ function readDeclinedSuggestionTopics(inspectionId: string) {
 function writeDeclinedSuggestionTopics(inspectionId: string, topics: Set<string>) {
   if (typeof window === "undefined" || !inspectionId) return;
 
+  const list = Array.from(topics);
+
+  // localStorage mirror = instant no-flash on the next render of THIS device.
   try {
     window.localStorage.setItem(
       getDeclinedSuggestionStorageKey(inspectionId),
-      JSON.stringify(Array.from(topics))
+      JSON.stringify(list)
     );
   } catch {}
+
+  // DB is the source of truth so the choice follows the inspector across
+  // devices (iOS drops localStorage). Best-effort: if the column isn't there
+  // yet (migration not run), the update errors silently and the localStorage
+  // mirror still works. The inspector owns the inspection, so RLS allows it.
+  void supabase
+    .from("inspections")
+    .update({ declined_disclaimer_topics: list })
+    .eq("id", inspectionId)
+    .then(() => {});
 }
 
 
@@ -402,7 +415,38 @@ function ReportDisclaimers({
   }, [inspectionId]);
 
   useEffect(() => {
+    if (!inspectionId) return;
+    // Seed instantly from the localStorage mirror so there's no flash, then let
+    // the DB value (source of truth, cross-device) win once it loads. Kept as
+    // its own best-effort query so a pre-migration missing column can't 400 the
+    // main disclaimer load.
     setDeclinedSuggestionTopics(readDeclinedSuggestionTopics(inspectionId));
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("inspections")
+          .select("declined_disclaimer_topics")
+          .eq("id", inspectionId)
+          .maybeSingle();
+        if (cancelled || error || !data) return;
+        const list = Array.isArray((data as any).declined_disclaimer_topics)
+          ? (data as any).declined_disclaimer_topics.map((v: any) => String(v))
+          : [];
+        setDeclinedSuggestionTopics(new Set(list));
+        try {
+          window.localStorage.setItem(
+            getDeclinedSuggestionStorageKey(inspectionId),
+            JSON.stringify(list),
+          );
+        } catch {}
+      } catch {
+        /* pre-migration / offline — the localStorage seed stands */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [inspectionId]);
 
   const selectedTopics = useMemo(

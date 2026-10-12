@@ -681,10 +681,26 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
   }, [orderedGroups]);
 
+  // Cheap content signature over ONLY the fields the relationship scan reads.
+  // allFindings gets a fresh identity on every optimistic edit (reorder, flag,
+  // etc.), but those don't change any of these fields — so keying the O(n^2)
+  // scan below on this string value means it re-runs only when the content it
+  // actually depends on changes, not on every edit. O(n) here vs O(n^2) there.
+  const findingGraphSig = useMemo(
+    () =>
+      (allFindings || [])
+        .map(
+          (f: any) =>
+            `${f.id}:${f.section || ""}:${f.title || ""}:${f.observation || ""}:${f.location || ""}:${f.severity || ""}`,
+        )
+        .join("|"),
+    [allFindings],
+  );
+
   // House Graph: detect findings that likely share a physical cause (same-side
   // water path, roof/plumbing above a ceiling stain). Computed ONCE here and
-  // reused by both the per-finding hint and the summary below — the O(n^2) scan
-  // ran twice per render before, which added lag on big reports.
+  // reused by both the per-finding hint and the summary below. Keyed on the
+  // content signature so a reorder/flag no longer re-runs the O(n^2) scan.
   const findingGraph = useMemo(() => {
     const list = (allFindings || []).map((f: any) => ({
       id: String(f.id),
@@ -696,7 +712,8 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     }));
     const byId = new Map(list.map((f: any) => [f.id, f]));
     return { list, byId, rels: detectFindingRelationships(list) };
-  }, [allFindings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [findingGraphSig]);
 
   const relatedByFinding = useMemo(() => {
     const { byId, rels } = findingGraph;
