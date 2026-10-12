@@ -3081,6 +3081,17 @@ export async function GET(req: Request, { params }: RouteProps) {
     // and card styling but lays findings out flat in the inspector's priority
     // order. Returns early so the perfected report path below is never touched.
     if (priorityMode) {
+      // Honor the client-visibility toggle the share page gates on. Without
+      // this, hitting ?priority=1 directly exposed the inspector's private
+      // ranking + per-item reasons even when they left Priority Repairs hidden
+      // from the client.
+      if ((inspection as any)?.priority_summary_visible !== true) {
+        return reportErrorResponse(
+          req,
+          "Priority Repairs isn't shared for this report.",
+          403,
+        );
+      }
       const summary: any = (inspection as any)?.priority_summary;
       const items = summary && Array.isArray(summary.items) ? summary.items : [];
       // Number the findings the same way the full report does, so the priority

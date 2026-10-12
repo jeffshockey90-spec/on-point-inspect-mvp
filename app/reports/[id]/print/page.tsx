@@ -235,8 +235,11 @@ function groupLimitations(rows: any[], photosByLimitationId: Record<string, any[
   const grouped: Record<string, any[]> = {};
 
   (rows || []).forEach((row: any) => {
-    if (!grouped[row.section]) grouped[row.section] = [];
-    grouped[row.section].push({
+    // Normalize the section like the share page (groupLimitations there) so a
+    // limitation under a legacy/aliased section name still renders on the PDF.
+    const section = normalizeSection(row.section);
+    if (!grouped[section]) grouped[section] = [];
+    grouped[section].push({
       ...row,
       photos: photosByLimitationId[row.id] || [],
     });

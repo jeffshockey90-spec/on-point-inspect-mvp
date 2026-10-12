@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
-import { isPaymentComplete, hasDeliveryOverride } from "../../../lib/reportDelivery";
+import { isPaymentComplete, hasDeliveryOverride, isPublished } from "../../../lib/reportDelivery";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -297,11 +297,26 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
   }
 
   // Paywall: radon/mold lab results are what a standalone environmental job is
-  // paid for, so require payment before showing them. Gated on payment (not
-  // "published") so a client who has paid is never locked out, plus the
-  // "Deliver anyway" override. The owning inspector/owner can always preview.
+  // paid for, so require payment before showing them. A genuinely PAID job
+  // unlocks immediately (a paid client is never locked out), plus the "Deliver
+  // anyway" override. But a FREE/unpriced job must be explicitly published
+  // first — otherwise isPaymentComplete's "nothing to collect = complete"
+  // free-pass exposed lab results on an unpriced job before publish or any
+  // agreement, to anyone holding the token. The owning inspector/owner can
+  // always preview (below).
+  const envPrice = Number(
+    String(
+      (inspection as any).invoice_amount ??
+        (inspection as any).total_price ??
+        (inspection as any).total ??
+        (inspection as any).price ??
+        "",
+    ).replace(/[^0-9.-]/g, ""),
+  );
+  const envPriced = Number.isFinite(envPrice) && envPrice > 0;
   let allowEnvironmentalView =
-    isPaymentComplete(inspection) || hasDeliveryOverride(inspection);
+    hasDeliveryOverride(inspection) ||
+    (isPaymentComplete(inspection) && (envPriced || isPublished(inspection)));
 
   if (!allowEnvironmentalView) {
     const { createClient: createServerSupabase } = await import(

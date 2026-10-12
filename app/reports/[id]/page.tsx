@@ -4,6 +4,7 @@ import { isPaymentComplete } from "../../../lib/inspectionStatus";
 import { Camera } from "lucide-react";
 import { resolveActiveSections, filterSectionsForServiceMode, resolveReportSections } from "../../../lib/reportSections";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
+import { toPhoneDigits } from "../../../lib/phone";
 import { loadSeverityConfigForCompany } from "../../../lib/severity/loadSeverityConfig";
 import { severityIsCritical } from "../../../lib/severity/severityConfig";
 import { redirect } from "next/navigation";
@@ -1344,13 +1345,17 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           realtor_email: String(formData.get("realtor_email") || "")
             .trim()
             .toLowerCase(),
-          realtor_phone: String(formData.get("realtor_phone") || "").trim(),
-          client_phone: String(formData.get("client_phone") || "").trim(),
+          realtor_phone: toPhoneDigits(String(formData.get("realtor_phone") || "")),
+          client_phone: toPhoneDigits(String(formData.get("client_phone") || "")),
           notes: String(formData.get("notes") || "").trim(),
-          inspection_date: String(formData.get("inspection_date") || "").trim(),
-          inspection_time: String(formData.get("inspection_time") || "").trim(),
-          square_feet: String(formData.get("square_feet") || "").trim(),
-          year_built: String(formData.get("year_built") || "").trim(),
+          // Coerce empty date/time/numeric fields to NULL. These columns are
+          // date/time/integer typed, and writing "" 400s the ENTIRE update —
+          // so clearing a square-footage/date while fixing a client name lost
+          // the whole edit. null is valid for every one of these columns.
+          inspection_date: String(formData.get("inspection_date") || "").trim() || null,
+          inspection_time: String(formData.get("inspection_time") || "").trim() || null,
+          square_feet: String(formData.get("square_feet") || "").trim() || null,
+          year_built: String(formData.get("year_built") || "").trim() || null,
           city: String(formData.get("city") || "").trim(),
           state: String(formData.get("state") || "").trim(),
           zip: String(formData.get("zip") || "").trim(),
@@ -1403,6 +1408,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     revalidatePath(`/share/${inspectionId}`);
     revalidatePath(`/client-portal/${inspectionId}`);
     revalidatePath(`/client-agreement/${inspectionId}`);
+    // Environmental client surfaces render the same client name/address.
+    revalidatePath(`/environmental-share/${inspectionId}`);
+    revalidatePath(`/environmental-report/${inspectionId}`);
     revalidatePath("/reports");
     redirect(`/reports/${inspectionId}?details_updated=1`);
   }
@@ -1505,6 +1513,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     revalidatePath(`/reports/${inspectionId}/print`);
     revalidatePath(`/share/${inspectionId}`);
     revalidatePath(`/client-portal/${inspectionId}`);
+    // The property photo is the cover image on the environmental surfaces too.
+    revalidatePath(`/environmental-share/${inspectionId}`);
+    revalidatePath(`/environmental-report/${inspectionId}`);
     redirect(`/reports/${inspectionId}?property_photo_updated=1`);
   }
 
@@ -1767,13 +1778,25 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       redirect("/reports");
     }
 
-    const { data: companyUser } = await supabase
-      .from("company_users")
-      .select("company_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // Prefer the inspection's OWN company. Falling back to a bare
+    // company_users.maybeSingle() broke multi-company owners: when the user
+    // belongs to >1 company, maybeSingle() errors on multiple rows → null →
+    // a false "no_company" and the sample never publishes. Scope the fallback
+    // to the user's OWNER company (mirrors resolveInspectionAccessFilter).
+    let sampleCompanyId: any = (ownedInspection as any).company_id || null;
+    if (!sampleCompanyId) {
+      const { data: ownerCompany } = await supabase
+        .from("company_users")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .eq("role", "owner")
+        .not("company_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+      sampleCompanyId = ownerCompany?.company_id || null;
+    }
 
-    if (!companyUser?.company_id) {
+    if (!sampleCompanyId) {
       redirect(`/reports/${inspectionId}?sample_error=no_company`);
     }
 
@@ -1783,7 +1806,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       .from("public_sample_reports")
       .upsert(
         {
-          company_id: companyUser.company_id,
+          company_id: sampleCompanyId,
           inspection_id: Number(inspectionId),
           title: getSampleReportTitle(ownedInspection),
           description: getSampleReportDescription(ownedInspection),
