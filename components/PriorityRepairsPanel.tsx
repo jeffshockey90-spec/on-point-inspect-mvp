@@ -6,7 +6,7 @@
 // it never changes the findings themselves. Renders on the client report via the
 // share / client-portal / PDF / print surfaces when "Show on client report" is on.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type SlimFinding = { id: string; title: string; severity: string; section: string; itemNo?: string };
 type PriorityItem = { findingId: string; reason: string };
@@ -34,6 +34,7 @@ export default function PriorityRepairsPanel({
   const [visible, setVisible] = useState(false);
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const generatingRef = useRef(false);
   const [savingToggle, setSavingToggle] = useState(false);
   const [error, setError] = useState("");
 
@@ -68,6 +69,8 @@ export default function PriorityRepairsPanel({
   const unrankedCount = summary ? Math.max(0, findings.length - rankedRows.length) : 0;
 
   async function generate() {
+    if (generatingRef.current) return; // block a same-frame double-tap (duplicate AI cost + order race)
+    generatingRef.current = true;
     setGenerating(true);
     setError("");
     try {
@@ -80,6 +83,7 @@ export default function PriorityRepairsPanel({
       setError(e?.message || "Could not generate the priority list.");
     } finally {
       setGenerating(false);
+      generatingRef.current = false;
     }
   }
 

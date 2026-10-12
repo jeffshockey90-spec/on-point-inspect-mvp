@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCcw } from "lucide-react";
 
@@ -37,6 +37,9 @@ export default function CreateReinspectionButton({ inspectionId }: { inspectionI
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  // Synchronous latch: this POST creates a REAL report, and `disabled={busy}`
+  // lags a frame behind an iOS ghost double-tap → two re-inspection reports.
+  const creatingRef = useRef(false);
 
   async function openPicker() {
     setOpen(true);
@@ -66,10 +69,12 @@ export default function CreateReinspectionButton({ inspectionId }: { inspectionI
   const chosen = Object.keys(selected).filter((id) => selected[id]);
 
   async function create() {
+    if (creatingRef.current) return; // block a same-frame double-tap
     if (!chosen.length) {
       setError("Select at least one item to re-inspect.");
       return;
     }
+    creatingRef.current = true;
     setBusy(true);
     setError("");
     try {
@@ -80,10 +85,11 @@ export default function CreateReinspectionButton({ inspectionId }: { inspectionI
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.id) throw new Error(data?.error || "Could not create re-inspection.");
-      router.push(`/reports/${data.id}`);
+      router.push(`/reports/${data.id}`); // leave the latch set — navigating away
     } catch (e: any) {
       setError(e?.message || "Could not create re-inspection.");
       setBusy(false);
+      creatingRef.current = false;
     }
   }
 

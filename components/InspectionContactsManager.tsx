@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ROLE_OPTIONS = ["client", "co-client", "realtor", "transaction coordinator", "other"];
 
@@ -112,7 +112,15 @@ export default function InspectionContactsManager({
     }
   }
 
+  const seedingRef = useRef(false);
+
   async function seedDefaults() {
+    // Synchronous latch: a fast double-tap reads the same stale `contacts`
+    // snapshot in the dedupe below before loadContacts() runs, so both taps
+    // queue the same inserts → duplicate contacts.
+    if (seedingRef.current) return;
+    seedingRef.current = true;
+    try {
     // Skip anyone already on the inspection so "Add Existing" can't create
     // duplicate contacts (duplicate clients were showing up as extra "required
     // signature" rows).
@@ -130,6 +138,9 @@ export default function InspectionContactsManager({
     }
     await Promise.all(tasks);
     await loadContacts();
+    } finally {
+      seedingRef.current = false;
+    }
   }
 
   async function addContact(override?: { name: string; email: string; phone?: string; role: string; agreement_required: boolean; portal_access: boolean; silent?: boolean }) {
