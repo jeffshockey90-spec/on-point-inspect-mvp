@@ -846,7 +846,11 @@ export async function POST(req: Request) {
             ? ["client"]
             : recipientType === "realtor"
               ? ["realtor"]
-              : ["client", "realtor"]; // "all"/"custom" -> both parties
+              : recipientType === "all"
+                ? ["client", "realtor"] // "all" -> both parties
+                : []; // "custom" (an arbitrary 3rd-party email) -> DON'T text
+        //          the client/realtor. Previously "custom" fell through to both,
+        //          so emailing e.g. a lender surprise-texted the buyer + agent.
         for (const role of roles) {
           const phone =
             role === "client"

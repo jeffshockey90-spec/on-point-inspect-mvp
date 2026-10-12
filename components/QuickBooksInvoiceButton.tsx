@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Receipt } from "lucide-react";
 
 // One-tap "create/update this inspection's QuickBooks invoice". Renders only
@@ -15,6 +15,11 @@ export default function QuickBooksInvoiceButton({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [ok, setOk] = useState(false);
+  // Synchronous latch: `disabled={busy}` lags a frame behind a fast double-tap
+  // (iOS ghost-click), and QuickBooks' sync is a non-atomic check-then-create,
+  // so two near-simultaneous POSTs each create a REAL invoice. A ref blocks the
+  // second dispatch in the same frame.
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
     (async () => {
@@ -31,6 +36,8 @@ export default function QuickBooksInvoiceButton({
   if (!connected) return null;
 
   async function send() {
+    if (inFlightRef.current) return; // block a same-frame double-tap
+    inFlightRef.current = true;
     setBusy(true);
     setMsg("");
     try {
@@ -47,6 +54,7 @@ export default function QuickBooksInvoiceButton({
       setMsg("Sync failed.");
     } finally {
       setBusy(false);
+      inFlightRef.current = false;
     }
   }
 

@@ -135,19 +135,31 @@ export async function POST(req: Request) {
       text: `Here is a copy of your signed inspection agreement for ${property}.\n\nView / print / save a PDF: ${link}\n${signedWhen ? `\nSigned ${signedWhen}.` : ""}`,
     });
 
+    // Resend returns { data, error } and does NOT throw on a rejected send
+    // (bad domain, invalid address, rate limit). Without this check a failed
+    // send was logged as "sent" and reported ok:true — the inspector believed
+    // the client got their signed copy when they didn't.
+    const sendError = (sendResult as any)?.error;
     await admin.from("email_logs").insert({
       inspection_id_bigint: Number(inspectionId),
       recipient: to,
       recipient_email: to,
       email_type: "signed_agreement",
       subject: signedSubject,
-      message: link,
+      message: sendError ? String(sendError?.message || sendError) : link,
       html: signedHtml,
-      status: "sent",
+      status: sendError ? "failed" : "sent",
       resend_id: sendResult?.data?.id || null,
-      sent_at: new Date().toISOString(),
-      metadata: { type: "signed_agreement", link },
+      sent_at: sendError ? null : new Date().toISOString(),
+      metadata: { type: "signed_agreement", link, error: sendError ? String(sendError?.message || sendError) : null },
     });
+
+    if (sendError) {
+      return NextResponse.json(
+        { error: String(sendError?.message || sendError) || "The email failed to send." },
+        { status: 502 },
+      );
+    }
 
     return NextResponse.json({ ok: true, to });
   } catch (error: any) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Contact = {
   id?: string | number;
@@ -38,6 +38,7 @@ export default function SendReviewRequestButton({
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [sending, setSending] = useState(false);
+  const inFlightRef = useRef(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -105,7 +106,10 @@ export default function SendReviewRequestButton({
   }
 
   async function send() {
-    if (sending || selectedEmails.length === 0) return;
+    // Ref latch blocks a same-frame double-tap (state reads lag a frame); the
+    // endpoint has no dedup, so a second tap sends a second batch of emails.
+    if (inFlightRef.current || selectedEmails.length === 0) return;
+    inFlightRef.current = true;
     setSending(true);
     setMsg(null);
     try {
@@ -117,14 +121,17 @@ export default function SendReviewRequestButton({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setMsg({ ok: false, text: data.error || "Review request failed to send." });
+        inFlightRef.current = false;
+        setSending(false);
         return;
       }
       setMsg({ ok: true, text: data.message || "Review request sent." });
-      // Refresh so the review-status badge updates.
+      // Stay LOCKED until the reload replaces the page — re-enabling here (the
+      // reload is deferred 1200ms) let a second tap resend within that window.
       setTimeout(() => window.location.reload(), 1200);
     } catch (error: any) {
       setMsg({ ok: false, text: error?.message || "Review request failed to send." });
-    } finally {
+      inFlightRef.current = false;
       setSending(false);
     }
   }

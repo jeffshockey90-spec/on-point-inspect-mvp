@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 type Props = {
   inspectionId: string;
@@ -33,7 +33,15 @@ export default function SendFullReportButton({ inspectionId }: Props) {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<MessageType>("");
   const [guardResult, setGuardResult] = useState<PublishGuardResult | null>(null);
-  const [guardOverrideReady, setGuardOverrideReady] = useState(false);
+  const [guardOverrideReady, setGuardOverrideReadyState] = useState(false);
+  // Mirror the override flag in a ref so the deferred label reset in `finally`
+  // (which runs 900ms later with a stale closure) reads the CURRENT value —
+  // otherwise it reverted the armed "Send Anyway" label back to "Send Report".
+  const guardOverrideReadyRef = useRef(false);
+  const setGuardOverrideReady = (v: boolean) => {
+    guardOverrideReadyRef.current = v;
+    setGuardOverrideReadyState(v);
+  };
 
   function showMessage(type: MessageType, text: string) {
     setMessageType(type);
@@ -184,7 +192,7 @@ export default function SendFullReportButton({ inspectionId }: Props) {
     } finally {
       window.setTimeout(() => {
         setSending(false);
-        setStatusText(guardOverrideReady ? "Send Anyway" : "Send Report");
+        setStatusText(guardOverrideReadyRef.current ? "Send Anyway" : "Send Report");
       }, 900);
     }
   }
