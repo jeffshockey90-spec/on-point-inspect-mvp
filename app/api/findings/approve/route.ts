@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const FINDING_LEARN_SELECT =
-  "id, inspection_id, section, severity, needs_review, title, observation, implication, recommendation, ai_prediction";
+  "id, inspection_id, inspector_id, section, severity, needs_review, title, observation, implication, recommendation, ai_prediction";
 
 function eqText(a: any, b: any) {
   return String(a || "").trim() === String(b || "").trim();
@@ -25,7 +25,13 @@ function eqText(a: any, b: any) {
 // is long gone. We read the pinned ai_prediction (stored at sync time) and
 // compare. If the BODY wording was rewritten we skip, since EditableFinding
 // already recorded that edit (no double-counting). Fully best-effort.
-async function recordApprovalLearning(inspectionId: string, rows: any[]) {
+async function recordApprovalLearning(
+  admin: any,
+  inspectionId: string,
+  rows: any[],
+  fallbackInspectorId: string | null,
+) {
+  const events = [];
   for (const row of rows || []) {
     const pred = row?.ai_prediction;
     if (!pred || typeof pred !== "object") continue;
@@ -46,19 +52,25 @@ async function recordApprovalLearning(inspectionId: string, rows: any[]) {
       eqText(pred.recommendation, updated.recommendation);
     if (!bodyKept) continue;
 
-    // eslint-disable-next-line no-await-in-loop
-    await learningEngine
-      .record({
-        inspectionId,
-        tool: "field_review_approve",
-        aiPrediction: pred,
-        inspectorResult: updated,
-        accepted: true,
-        notes:
-          "Inspector approved an AI-drafted finding from the review queue. Body wording kept; any section/severity difference is a routing/severity preference.",
-      })
-      .catch(() => null);
+    events.push({
+      inspectionId,
+      // Attribute to the inspector who OWNS the finding (so a company owner
+      // clearing a teammate's queue teaches the teammate, not the owner),
+      // falling back to the inspection's inspector.
+      inspectorId: row.inspector_id || fallbackInspectorId || null,
+      tool: "field_review_approve",
+      aiPrediction: pred,
+      inspectorResult: updated,
+      accepted: true as const,
+      notes:
+        "Inspector approved an AI-drafted finding from the review queue. Body wording kept; any section/severity difference is a routing/severity preference.",
+    });
   }
+  if (!events.length) return;
+  // One batched insert via the service-role client (bypasses the cookie
+  // client's inspector_id = auth.uid() RLS so a teammate's id can be stamped),
+  // instead of a per-row re-auth + insert that blocked Approve-All.
+  await learningEngine.recordMany(events, { client: admin }).catch(() => null);
 }
 
 const VALID_SECTIONS = [
@@ -110,8 +122,9 @@ export async function POST(req: Request) {
 
     // Ownership gate: the caller may only approve findings on an inspection they
     // own (company owners get their whole team via authorizeInspection).
-    const authorized = await authorizeInspection(admin, user.id, inspectionId, "id");
+    const authorized = await authorizeInspection(admin, user.id, inspectionId, "id, inspector_id");
     if (!authorized) return notFound();
+    const inspectionInspectorId: string | null = (authorized as any)?.inspector_id ?? null;
 
     const approveAll = Boolean(body?.approveAll || body?.all);
 
@@ -125,7 +138,7 @@ export async function POST(req: Request) {
 
       if (error) throw error;
 
-      await recordApprovalLearning(inspectionId, data || []);
+      await recordApprovalLearning(admin, inspectionId, data || [], inspectionInspectorId);
 
       return NextResponse.json({
         ok: true,
@@ -167,7 +180,7 @@ export async function POST(req: Request) {
     if (error) throw error;
     if (!data) return notFound("Finding not found.");
 
-    await recordApprovalLearning(inspectionId, [data]);
+    await recordApprovalLearning(admin, inspectionId, [data], inspectionInspectorId);
 
     return NextResponse.json({
       ok: true,

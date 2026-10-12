@@ -44,7 +44,8 @@ export default function PublishReportActionButton({
   useEffect(() => {
     if (published || !inspectionId) return;
     let active = true;
-    (async () => {
+
+    const refresh = async () => {
       try {
         const res = await fetch(
           `/api/field-review/pending?inspectionId=${encodeURIComponent(inspectionId)}`,
@@ -55,9 +56,22 @@ export default function PublishReportActionButton({
       } catch {
         /* non-blocking — fall back to the normal confirm */
       }
-    })();
+    };
+
+    // Re-check whenever the queue could have changed (approve, background sync,
+    // app refocus) — a one-shot mount fetch went stale, so after Approve-All it
+    // could false-warn, or miss drafts that synced in after the page loaded.
+    void refresh();
+    const onFocus = () => void refresh();
+    const onChange = () => void refresh();
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("opi:draft-queue-changed", onChange);
+    window.addEventListener("opi:inspection-data-changed", onChange);
     return () => {
       active = false;
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("opi:draft-queue-changed", onChange);
+      window.removeEventListener("opi:inspection-data-changed", onChange);
     };
   }, [inspectionId, published]);
 

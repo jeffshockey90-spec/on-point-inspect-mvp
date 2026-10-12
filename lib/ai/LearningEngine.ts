@@ -8,6 +8,11 @@ export type LearningEvent = {
   confidence?: number;
   accepted?: boolean | null;
   notes?: string;
+  // Attribute the lesson to a SPECIFIC inspector (the one whose work this is),
+  // not the signed-in caller. Used when a company owner approves a teammate's
+  // drafts — otherwise the learning would be stamped to the owner. When omitted,
+  // falls back to auth.uid() (the normal single-user edit path).
+  inspectorId?: string | null;
 };
 
 export type InspectorLearningPatterns = {
@@ -57,43 +62,64 @@ const patternsCache = new Map<
 >();
 
 export class LearningEngine {
+  private buildRow(event: LearningEvent, fallbackInspectorId: string | null) {
+    const changes: Record<string, { ai: any; inspector: any }> = {};
+    const keys = new Set([
+      ...Object.keys(event.aiPrediction || {}),
+      ...Object.keys(event.inspectorResult || {}),
+    ]);
+    for (const key of keys) {
+      const ai = event.aiPrediction?.[key];
+      const human = event.inspectorResult?.[key];
+      if (JSON.stringify(ai) !== JSON.stringify(human)) {
+        changes[key] = { ai, inspector: human };
+      }
+    }
+    return {
+      inspector_id: event.inspectorId ?? fallbackInspectorId,
+      inspection_id: event.inspectionId ? Number(event.inspectionId) : null,
+      tool: event.tool,
+      ai_prediction: event.aiPrediction || {},
+      inspector_result: event.inspectorResult || {},
+      changed_fields: Object.keys(changes),
+      changes,
+      confidence: event.confidence ?? null,
+      accepted: event.accepted ?? null,
+      notes: event.notes ?? null,
+      created_at: new Date().toISOString(),
+    };
+  }
+
   async record(event: LearningEvent) {
+    return this.recordMany([event]);
+  }
+
+  // Insert one or more learning events in a SINGLE round-trip. Pass `client`
+  // (a service-role client) together with each event's `inspectorId` when
+  // attributing to someone other than the signed-in user (e.g. a company owner
+  // approving a teammate's drafts) — the cookie client's RLS would otherwise
+  // reject a row stamped with another inspector's id. When no client is given
+  // it uses the request's cookie client and falls back to auth.uid().
+  async recordMany(events: LearningEvent[], opts?: { client?: any }) {
     try {
-      const supabase = await createClient();
-      // Stamp the lesson with the current inspector so memory is per-inspector,
-      // not global. RLS also scopes reads to inspector_id = auth.uid().
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const changes: Record<string, { ai: any; inspector: any }> = {};
+      if (!events?.length) return { success: true };
+      const supabase = opts?.client ?? (await createClient());
 
-      const keys = new Set([
-        ...Object.keys(event.aiPrediction || {}),
-        ...Object.keys(event.inspectorResult || {}),
-      ]);
-
-      for (const key of keys) {
-        const ai = event.aiPrediction?.[key];
-        const human = event.inspectorResult?.[key];
-        if (JSON.stringify(ai) !== JSON.stringify(human)) {
-          changes[key] = { ai, inspector: human };
+      // Only resolve the signed-in user if some event needs the fallback.
+      let fallbackInspectorId: string | null = null;
+      if (events.some((e) => e.inspectorId == null)) {
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          fallbackInspectorId = user?.id ?? null;
+        } catch {
+          fallbackInspectorId = null;
         }
       }
 
-      const { error } = await supabase.from("ai_learning_events").insert({
-        inspector_id: user?.id ?? null,
-        inspection_id: event.inspectionId ? Number(event.inspectionId) : null,
-        tool: event.tool,
-        ai_prediction: event.aiPrediction || {},
-        inspector_result: event.inspectorResult || {},
-        changed_fields: Object.keys(changes),
-        changes,
-        confidence: event.confidence ?? null,
-        accepted: event.accepted ?? null,
-        notes: event.notes ?? null,
-        created_at: new Date().toISOString(),
-      });
-
+      const rows = events.map((event) => this.buildRow(event, fallbackInspectorId));
+      const { error } = await supabase.from("ai_learning_events").insert(rows);
       if (error) throw error;
       return { success: true };
     } catch (err) {

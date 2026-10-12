@@ -117,6 +117,7 @@ export default function FieldReviewQueue({
         return;
       }
 
+      emitDraftQueueChanged();
       refreshKeepScroll(router);
     } catch (err: any) {
       setItems(previous);
@@ -126,10 +127,21 @@ export default function FieldReviewQueue({
     }
   }
 
+  function emitDraftQueueChanged() {
+    // Let other surfaces (e.g. the pre-publish pending-drafts warning) re-check
+    // the queue without a remount.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("opi:draft-queue-changed", { detail: { inspectionId } }),
+      );
+    }
+  }
+
   function handleApproved(findingId: string) {
     setItems((current) =>
       current.filter((finding) => String(finding.id) !== String(findingId)),
     );
+    emitDraftQueueChanged();
     refreshKeepScroll(router);
   }
 

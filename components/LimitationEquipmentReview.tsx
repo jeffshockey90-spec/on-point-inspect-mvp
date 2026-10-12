@@ -125,6 +125,14 @@ export default function LimitationEquipmentReview({
   const count = limitations.length + equipment.length;
   if (count === 0) return null;
 
+  function emitDraftQueueChanged() {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("opi:draft-queue-changed", { detail: { inspectionId } }),
+      );
+    }
+  }
+
   async function approveLimitation(id: string, section?: string) {
     if (busyId) return;
     setBusyId(`lim:${id}`);
@@ -141,6 +149,7 @@ export default function LimitationEquipmentReview({
         return;
       }
       setLimitations((cur) => cur.filter((l) => String(l.id) !== String(id)));
+      emitDraftQueueChanged();
       refreshKeepScroll(router);
     } catch (err: any) {
       setError(err?.message || "Could not approve that limitation.");
@@ -165,6 +174,7 @@ export default function LimitationEquipmentReview({
         return;
       }
       setEquipment((cur) => cur.filter((e) => String(e.id) !== String(id)));
+      emitDraftQueueChanged();
       refreshKeepScroll(router);
     } catch (err: any) {
       setError(err?.message || "Could not approve that equipment.");
@@ -182,32 +192,40 @@ export default function LimitationEquipmentReview({
     setLimitations([]);
     setEquipment([]);
     try {
-      const calls: Promise<Response>[] = [];
-      if (prevLims.length) {
-        calls.push(
-          fetch("/api/limitations/approve", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ inspectionId, approveAll: true }),
-          }),
-        );
+      // Run the two category approvals independently and reconcile each on its
+      // OWN result — reverting BOTH when only one failed re-showed items that
+      // were actually approved server-side.
+      const [limRes, eqRes] = await Promise.all([
+        prevLims.length
+          ? fetch("/api/limitations/approve", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ inspectionId, approveAll: true }),
+            })
+          : Promise.resolve(null),
+        prevEqs.length
+          ? fetch("/api/equipment/approve", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ inspectionId, approveAll: true }),
+            })
+          : Promise.resolve(null),
+      ]);
+      let anyFail = false;
+      if (limRes && !limRes.ok) {
+        setLimitations(prevLims); // restore ONLY the category that failed
+        anyFail = true;
       }
-      if (prevEqs.length) {
-        calls.push(
-          fetch("/api/equipment/approve", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ inspectionId, approveAll: true }),
-          }),
-        );
-      }
-      const responses = await Promise.all(calls);
-      if (responses.some((r) => !r.ok)) {
-        setLimitations(prevLims);
+      if (eqRes && !eqRes.ok) {
         setEquipment(prevEqs);
+        anyFail = true;
+      }
+      if (anyFail) {
         setError("Some items couldn't be approved — try again.");
+        emitDraftQueueChanged(); // a category may have succeeded
         return;
       }
+      emitDraftQueueChanged();
       refreshKeepScroll(router);
     } catch (err: any) {
       setLimitations(prevLims);
