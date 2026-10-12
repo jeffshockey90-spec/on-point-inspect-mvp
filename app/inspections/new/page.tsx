@@ -902,6 +902,13 @@ function NewInspectionPageContent() {
 
       if (roof) setRoofStyle(String(roof));
 
+      // Backfill the separate fields from the parsed address so a pasted full
+      // address fills in a blank City/State/Zip (and a re-lookup then uses
+      // clean parts).
+      if (data.city && !cityName.trim()) setCity(String(data.city));
+      if (data.state && !stateName.trim()) setStateValue(String(data.state));
+      if (data.zip && !zipCode.trim()) setZip(String(data.zip));
+
       const foundData = Boolean(sqft || built || style || roof);
       if (foundData) {
         setPropertyLookupStatus("Property info found. Please verify before creating the inspection.");

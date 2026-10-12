@@ -163,6 +163,52 @@ function buildFullAddress({
   return [address, city, state, zip].filter(Boolean).join(", ").trim();
 }
 
+// A lot of the time the whole address ("315 Sanctuary Dr, Hedgesville, WV
+// 25427") gets typed into the Property Address box with City left blank. The
+// county-parcel matchers compare EVERY word of the address against a record
+// whose address is street-only ("315 Sanctuary Dr"), so "Hedgesville/WV/25427"
+// never match and the lookup finds nothing — and RentCast gets a malformed
+// doubled "…WV 25427, WV, 25427". Split the street out and backfill any empty
+// city/state/zip from the address so both lookups get clean inputs.
+function parseAddressParts(
+  rawAddress: string,
+  city: string,
+  state: string,
+  zip: string,
+) {
+  const raw = cleanText(rawAddress);
+  const commaIdx = raw.indexOf(",");
+  // No comma → it's already just a street line; keep the separate fields.
+  if (commaIdx === -1) {
+    return { street: raw, city, state, zip };
+  }
+
+  const street = raw.slice(0, commaIdx).trim();
+  const rest = raw.slice(commaIdx + 1);
+
+  const zipMatch = rest.match(/\b(\d{5})(?:-\d{4})?\b/);
+  const stateMatch =
+    rest.match(/,\s*([A-Za-z]{2})\b/) || rest.match(/\b([A-Za-z]{2})\s+\d{5}\b/);
+  const parsedZip = zipMatch ? zipMatch[1] : "";
+  const parsedState = stateMatch ? stateMatch[1].toUpperCase() : "";
+
+  // City = the remainder with the trailing state/zip stripped off.
+  const parsedCity = rest
+    .replace(/,?\s*[A-Za-z]{2}\s+\d{5}(?:-\d{4})?\s*$/, "")
+    .replace(/,?\s*\d{5}(?:-\d{4})?\s*$/, "")
+    .replace(/,?\s*[A-Za-z]{2}\s*$/, "")
+    .replace(/,/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return {
+    street: street || raw,
+    city: cleanText(city) || parsedCity,
+    state: cleanText(state) || parsedState,
+    zip: cleanZip(zip) || parsedZip,
+  };
+}
+
 function buildStreetViewImage(fullAddress: string) {
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -1363,13 +1409,25 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as PropertyLookupBody;
 
-    const address = cleanText(body.address);
-    const city = cleanText(body.city);
-    const state = cleanText(body.state || "MD").toUpperCase();
-    const zip = cleanZip(body.zip);
+    const rawAddress = cleanText(body.address);
 
-    if (!address)
+    if (!rawAddress)
       return NextResponse.json({ error: "Missing address" }, { status: 400 });
+
+    // Split a pasted full address into its parts and backfill any empty
+    // city/state/zip, so the parcel matchers and RentCast all get clean,
+    // street-only inputs instead of "315 Sanctuary Dr, Hedgesville, WV 25427"
+    // in the street field with a blank city.
+    const parts = parseAddressParts(
+      rawAddress,
+      cleanText(body.city),
+      cleanText(body.state),
+      cleanZip(body.zip),
+    );
+    const address = parts.street || rawAddress;
+    const city = parts.city;
+    const state = cleanText(parts.state || "MD").toUpperCase();
+    const zip = cleanZip(parts.zip);
 
     const fullAddress = buildFullAddress({ address, city, state, zip });
     const streetViewImage = buildStreetViewImage(fullAddress);
