@@ -112,6 +112,12 @@ function EditableFinding({
     implication: finding.implication || "",
     recommendation: finding.recommendation || "",
   });
+  // The repair-request controls live OUTSIDE the `editing` flag (they're in the
+  // always-visible Quick Tools row), so the prop-sync effect below would reset
+  // them mid-typing if an unrelated external change (e.g. an AI auto-retitle)
+  // bumped the finding. This tracks unsaved repair edits so the re-seed skips
+  // them until they're saved.
+  const repairDirtyRef = useRef(false);
 
   // Keep the editor's fields in sync with the finding as it changes on disk —
   // an AI rewrite (AI Inspector note / auto-retitle) or another device editing
@@ -145,9 +151,12 @@ function EditableFinding({
     setObservation(finding.observation || "");
     setImplication(finding.implication || "");
     setRecommendation(finding.recommendation || "");
-    setRepairRequest(finding.repair_request || false);
-    setRepairPriority(finding.repair_priority || "Recommended");
-    setRepairNotes(finding.repair_notes || "");
+    // Don't stomp unsaved repair-request edits (they're edited outside `editing`).
+    if (!repairDirtyRef.current) {
+      setRepairRequest(finding.repair_request || false);
+      setRepairPriority(finding.repair_priority || "Recommended");
+      setRepairNotes(finding.repair_notes || "");
+    }
     learningBaselineRef.current = {
       title: finding.title || "",
       section: finding.section || "",
@@ -210,6 +219,14 @@ function EditableFinding({
         showMessage("error", error.message);
         return;
       }
+
+      // Open the echo-suppression window NOW — the moment the DB write lands,
+      // before the awaited learning/retitle calls below. The realtime echo of
+      // this update fires immediately and RealtimeReportSync checks
+      // wasRecentLocalEdit() ~800ms later; on mobile the learning POST can take
+      // longer than that, so marking only inside refreshKeepScroll (after the
+      // await) missed the window → a redundant full reload ~1s after "Saved!".
+      markLocalEdit();
 
       const updatedLearningValue = {
         title,
@@ -331,6 +348,8 @@ function EditableFinding({
         return;
       }
 
+      repairDirtyRef.current = false; // persisted now matches; safe to re-seed
+      markLocalEdit();
       setRepairLabel("Saved!");
       showMessage("success", "Repair request saved.");
       refreshKeepScroll(router);
@@ -477,6 +496,11 @@ function EditableFinding({
         showMessage("error", error.message);
         return;
       }
+
+      // Open the echo-suppression window co-located with the write (the parent's
+      // opi:findings-changed listener also marks via refreshKeepScroll, but this
+      // guarantees it regardless of listener timing).
+      markLocalEdit();
 
       setSection(nextSection);
       setMovePanelOpen(false);
@@ -673,7 +697,10 @@ function EditableFinding({
 
             <button
               type="button"
-              onClick={() => setRepairRequest(!repairRequest)}
+              onClick={() => {
+                repairDirtyRef.current = true;
+                setRepairRequest(!repairRequest);
+              }}
               disabled={savingRepair}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-3 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
             >
@@ -696,7 +723,10 @@ function EditableFinding({
             <div className="mt-3 grid w-full max-w-full gap-2 md:grid-cols-2">
               <select
                 value={repairPriority}
-                onChange={(e) => setRepairPriority(e.target.value)}
+                onChange={(e) => {
+                  repairDirtyRef.current = true;
+                  setRepairPriority(e.target.value);
+                }}
                 disabled={savingRepair}
                 className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm font-bold text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -709,7 +739,10 @@ function EditableFinding({
               <textarea
                 placeholder="Repair request notes..."
                 value={repairNotes}
-                onChange={(e) => setRepairNotes(e.target.value)}
+                onChange={(e) => {
+                  repairDirtyRef.current = true;
+                  setRepairNotes(e.target.value);
+                }}
                 disabled={savingRepair}
                 className="min-h-[76px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm font-bold leading-6 text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
               />

@@ -363,6 +363,10 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
   // Mirrors a reorder-in-flight so the groupedFindings resync effect can avoid
   // clobbering the optimistic order with a concurrent server refresh mid-persist.
   const reorderingRef = useRef(false);
+  // Set when a server/cross-device groupedFindings update arrived WHILE a reorder
+  // was in flight (we skip applying it so the optimistic order doesn't snap). We
+  // reconcile once the reorder finishes so that update is never lost.
+  const skippedUpdateDuringReorderRef = useRef(false);
   const [photoPickerLoaded, setPhotoPickerLoaded] = useState(false);
   // Stable handler so passing it to every FindingCard doesn't break its memo().
   const handleNeedPhotoPicker = useCallback(() => setPhotoPickerLoaded(true), []);
@@ -427,6 +431,14 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     } finally {
       reorderingRef.current = false;
       setReorderingFindingId(null);
+      // If a server/cross-device change was skipped during the reorder, pull
+      // authoritative state now (our reorder is persisted, so this reconciles
+      // both). Only when something was actually skipped — no extra refresh in
+      // the common case.
+      if (skippedUpdateDuringReorderRef.current) {
+        skippedUpdateDuringReorderRef.current = false;
+        refreshKeepScroll(router);
+      }
     }
   }
 
@@ -439,6 +451,10 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     // genuine refresh reconciles once the reorder completes.
     if (!reorderingRef.current) {
       setOrderedGroups(nextGroups);
+    } else {
+      // A genuine update landed mid-reorder; remember to reconcile when the
+      // reorder completes (otherwise, if no further refresh arrives, it's lost).
+      skippedUpdateDuringReorderRef.current = true;
     }
     // Reconcile the section open/closed map WITHOUT collapsing everything on
     // every server refresh. The old `getAllSectionsClosed` reset closed EVERY
