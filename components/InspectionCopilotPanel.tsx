@@ -185,6 +185,26 @@ export default function InspectionCopilotPanel({
     }
   }, []);
 
+  // Stop any in-progress speech recognition AND text-to-speech when the panel
+  // unmounts — otherwise TTS kept talking after you navigated away and a live
+  // recognizer was left attached.
+  useEffect(() => {
+    return () => {
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        /* ignore */
+      }
+      try {
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+  }, []);
+
   const speak = useCallback((text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     const clean = String(text || "").trim();

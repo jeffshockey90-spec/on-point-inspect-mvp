@@ -74,9 +74,21 @@ export default function LiveHouseIntelligencePanel({
   useEffect(() => {
     if (!active) return;
 
+    // House memory is derived from the inspection's findings — it only changes
+    // when those do. Polling this PAID AI endpoint every 30s for the whole
+    // session was a steady, needless AI-spend/battery drain. Load once when the
+    // panel becomes active, refresh on an actual data-change event, and keep a
+    // long (5-min) fallback poll as a safety net.
     loadMemory();
-    const interval = window.setInterval(loadMemory, 30000);
-    return () => window.clearInterval(interval);
+    const onChange = () => void loadMemory();
+    window.addEventListener("opi:inspection-data-changed", onChange);
+    window.addEventListener("opi:findings-changed", onChange);
+    const interval = window.setInterval(loadMemory, 300000);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("opi:inspection-data-changed", onChange);
+      window.removeEventListener("opi:findings-changed", onChange);
+    };
   }, [active, loadMemory]);
 
   return (

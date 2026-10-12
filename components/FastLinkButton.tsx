@@ -80,7 +80,12 @@ export default function FastLinkButton({
 
     setOpening(true);
     if (resetTimer.current) clearTimeout(resetTimer.current);
-    resetTimer.current = setTimeout(() => setOpening(false), 1800);
+    // The real reset is the pathname/searchParams effect above (fires when the
+    // navigation actually commits). This is only a safety net for a nav that
+    // never changes the route. It was 1800ms, which on a slow iOS network
+    // undercut a still-pending navigation — the guard lifted and an impatient
+    // second tap re-navigated. 6s is comfortably longer than any real nav.
+    resetTimer.current = setTimeout(() => setOpening(false), 6000);
   }
 
   return (

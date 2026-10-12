@@ -111,10 +111,12 @@ export default function ReportBuilderLiveCamera({
     draft?: Record<string, any>,
   ) {
     if (!findingId || !files?.length) return;
-    for (const file of files) {
-      // eslint-disable-next-line no-await-in-loop
-      await uploadFindingMediaFile(inspectionId, String(findingId), file);
-    }
+    // Upload the angles concurrently instead of one-at-a-time — each does
+    // variant generation + two storage uploads + an insert, so a 4-5 photo
+    // combine sat in the spinner far longer than it needed to.
+    await Promise.all(
+      files.map((file) => uploadFindingMediaFile(inspectionId, String(findingId), file)),
+    );
     if (draft) {
       try {
         await fetch("/api/findings/combine-capture", {

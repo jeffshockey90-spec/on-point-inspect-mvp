@@ -2019,14 +2019,20 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         liveDistanceMiles = distance.miles;
         liveDriveMinutes = distance.minutes;
 
-        supabase
-          .from("inspections")
-          .update({
-            distance_miles: distance.miles,
-            drive_minutes: distance.minutes,
-          })
-          .eq("id", inspection.id)
-          .then(() => {});
+        // Persist via after() so the write is GUARANTEED to finish post-response.
+        // As a bare fire-and-forget promise it could be killed when the
+        // serverless response streamed before the update committed — leaving
+        // distance_miles null, so this external routing call re-ran on EVERY
+        // open of the report (latency + API quota burn).
+        after(async () => {
+          await supabase
+            .from("inspections")
+            .update({
+              distance_miles: distance.miles,
+              drive_minutes: distance.minutes,
+            })
+            .eq("id", inspection.id);
+        });
       }
     }
   }
