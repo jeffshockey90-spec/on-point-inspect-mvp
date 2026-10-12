@@ -1806,6 +1806,14 @@ function AddSectionFindingForm({
   const [generatingAi, setGeneratingAi] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  // Auto-clear the add-defect form message so a validation/error (or a
+  // transient "AI note filled in") doesn't linger under the form after a later
+  // action — matching the finding-level showMessage behavior.
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(""), 5000);
+    return () => clearTimeout(t);
+  }, [message]);
   // Photos/videos to attach as the defect is created (not only afterward).
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
@@ -2140,6 +2148,7 @@ function AddSectionFindingForm({
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               disabled={saving}
+              aria-label="Defect title"
               placeholder="Defect title"
               className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
@@ -2159,6 +2168,7 @@ function AddSectionFindingForm({
               value={location}
               onChange={(event) => setLocation(event.target.value)}
               disabled={saving}
+              aria-label="Location"
               placeholder="Location (e.g. Northeast corner, Master bathroom)"
               className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
             />
@@ -2167,6 +2177,7 @@ function AddSectionFindingForm({
               value={observation}
               onChange={(event) => setObservation(event.target.value)}
               disabled={saving}
+              aria-label="Observation"
               placeholder="Observation"
               className="min-h-[110px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
             />
@@ -2175,6 +2186,7 @@ function AddSectionFindingForm({
               value={implication}
               onChange={(event) => setImplication(event.target.value)}
               disabled={saving}
+              aria-label="Implication"
               placeholder="Implication / why it matters"
               className="min-h-[90px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
@@ -2183,6 +2195,7 @@ function AddSectionFindingForm({
               value={recommendation}
               onChange={(event) => setRecommendation(event.target.value)}
               disabled={saving}
+              aria-label="Recommendation"
               placeholder="Recommendation"
               className="min-h-[90px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             />
@@ -2988,6 +3001,26 @@ function FindingCardBase({
   const [showMarkupEditor, setShowMarkupEditor] = useState(false);
   // When a finding has several photos, "Markup Photo" first asks WHICH one.
   const [showMarkupPicker, setShowMarkupPicker] = useState(false);
+  // Lock body scroll + close on Escape while the "pick a photo to mark up"
+  // modal is open (the markup editor itself already does this) — otherwise the
+  // page behind scroll-chains through the overlay on iPhone and there's no
+  // keyboard way out.
+  useEffect(() => {
+    if (!showMarkupPicker || typeof document === "undefined") return;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowMarkupPicker(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [showMarkupPicker]);
   // Re-editable markup: the CLEAN base image the annotations are drawn on (so a
   // saved markup can be re-opened and CHANGED, not doubled on the flattened
   // image), plus the annotations to preload into the editor.
