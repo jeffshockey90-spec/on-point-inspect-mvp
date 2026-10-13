@@ -5,6 +5,7 @@ import { listUnsubscribeHeaders } from "../../../lib/emailUnsubscribe";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
+import { isSmsConfigured, sendSms } from "../../../lib/sms";
 
 export const runtime = "nodejs";
 
@@ -566,6 +567,7 @@ ${branding.name}`,
 
     const sent: any[] = [];
     const failed: any[] = [];
+    let smsSentCount = 0;
 
     for (const contact of clientContacts) {
       const email = String(contact.email || "").trim().toLowerCase();
@@ -714,6 +716,29 @@ ${branding.name}`,
           error: error?.message || "Failed to send agreement email.",
         });
       }
+
+      // Best-effort SMS to this signer with their own signing link (requires a
+      // phone on the contact + Twilio configured). Never blocks the email.
+      const contactPhone = String(contact.phone || "").trim();
+      if (isSmsConfigured() && contactPhone) {
+        const smsBody = `${branding.name}: Please review & sign your inspection agreement for ${property}. Sign: ${agreementUrl}`;
+        const smsResult = await sendSms({ to: contactPhone, body: smsBody }).catch(() => null);
+        if (smsResult?.ok) smsSentCount += 1;
+        await logEmailEvent({
+          inspectionId,
+          recipient: contactPhone,
+          subject: `Agreement SMS - ${property}`,
+          status: smsResult?.ok ? "sent" : "failed",
+          metadata: {
+            type: "agreement_sms",
+            agreementUrl,
+            contactId: contact.id,
+            contactRole: contact.role || "client",
+            channel: "sms",
+            error: smsResult?.ok ? undefined : smsResult?.error || "Agreement SMS failed.",
+          },
+        });
+      }
     }
 
     if (sent.length > 0) {
@@ -750,9 +775,12 @@ ${branding.name}`,
       success: true,
       message: `Agreement email sent to ${sent.length} client recipient${
         sent.length === 1 ? "" : "s"
-      } with separate signing links.`,
+      } with separate signing links${
+        smsSentCount > 0 ? ` (and texted to ${smsSentCount})` : ""
+      }.`,
       sent,
       failed,
+      smsSent: smsSentCount,
     });
   } catch (error: any) {
     console.error("Send agreement email error:", error);
