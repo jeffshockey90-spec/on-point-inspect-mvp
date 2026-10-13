@@ -72,6 +72,7 @@ export async function POST(req: Request, { params }: RouteProps) {
 
   const body = await req.json().catch(() => ({}) as any);
   const isReminder = Boolean(body?.reminder);
+  const isReceipt = Boolean(body?.receipt);
 
   const { id } = await params;
   const admin = getAdminClient();
@@ -149,9 +150,15 @@ export async function POST(req: Request, { params }: RouteProps) {
     .join("");
 
   const baseLabel = `Invoice${invoice.invoice_number ? ` ${invoice.invoice_number}` : ""}`;
-  const subject = isReminder
-    ? `Payment reminder — ${baseLabel} from ${branding.name}`
-    : `${baseLabel} from ${branding.name}`;
+  const paidAmount = Number(invoice.amount_paid) || Number(invoice.total) || 0;
+  const paidWhen = invoice.paid_at
+    ? new Date(invoice.paid_at).toLocaleDateString()
+    : "";
+  const subject = isReceipt
+    ? `Receipt — ${baseLabel} from ${branding.name}`
+    : isReminder
+      ? `Payment reminder — ${baseLabel} from ${branding.name}`
+      : `${baseLabel} from ${branding.name}`;
 
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;max-width:640px;margin:auto;">
@@ -160,9 +167,15 @@ export async function POST(req: Request, { params }: RouteProps) {
         <p style="color:#cbd5e1;margin-top:8px;">${escapeHtml(branding.tagline)}</p>
       </div>
       <div style="border:1px solid #cbd5e1;border-top:none;padding:30px;border-radius:0 0 12px 12px;background:#ffffff;">
-        <h2 style="color:#0f766e;margin-top:0;">Invoice${invoice.invoice_number ? ` ${escapeHtml(invoice.invoice_number)}` : ""}</h2>
+        <h2 style="color:#0f766e;margin-top:0;">${isReceipt ? "Receipt" : "Invoice"}${invoice.invoice_number ? ` ${escapeHtml(invoice.invoice_number)}` : ""}</h2>
         ${invoice.client_name ? `<p>Hello ${escapeHtml(invoice.client_name)},</p>` : ""}
-        <p>${isReminder ? "This is a friendly reminder that the invoice below still has a balance due." : "Please find your invoice below."}${invoice.due_date ? ` Payment is due by <strong>${escapeHtml(invoice.due_date)}</strong>.` : ""}</p>
+        <p>${
+          isReceipt
+            ? "Thank you — your payment has been received. Here is your receipt."
+            : isReminder
+              ? "This is a friendly reminder that the invoice below still has a balance due."
+              : "Please find your invoice below."
+        }${!isReceipt && invoice.due_date ? ` Payment is due by <strong>${escapeHtml(invoice.due_date)}</strong>.` : ""}</p>
 
         <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;">
           <thead>
@@ -180,11 +193,19 @@ export async function POST(req: Request, { params }: RouteProps) {
           Total: ${money(invoice.total)}
         </p>
 
-        <div style="text-align:center;margin:28px 0;">
+        ${
+          isReceipt
+            ? `<div style="text-align:center;margin:28px 0;">
+          <div style="display:inline-block;background:#dcfce7;color:#166534;padding:14px 26px;border-radius:10px;font-weight:bold;font-size:16px;border:1px solid #86efac;">
+            ✓ Paid ${money(paidAmount)}${paidWhen ? ` on ${escapeHtml(paidWhen)}` : ""}
+          </div>
+        </div>`
+            : `<div style="text-align:center;margin:28px 0;">
           <a href="${payLink}" style="display:inline-block;background:#14b8a6;color:#020617;padding:14px 26px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;">
             Pay Invoice Online
           </a>
-        </div>
+        </div>`
+        }
 
         ${invoice.notes ? `<p style="color:#475569;white-space:pre-wrap;">${escapeHtml(invoice.notes)}</p>` : ""}
 

@@ -1870,7 +1870,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   const [addOnInvoicesRes, addOnAgreementContactsRes] = await Promise.all([
     storageSupabase
       .from("invoices")
-      .select("id, line_items, total, status, balance_due, created_at")
+      .select("id, line_items, total, status, balance_due, paid_at, created_at")
       .eq("inspection_id", Number(inspection.id))
       .order("created_at", { ascending: true }),
     storageSupabase
@@ -1885,7 +1885,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       status === "paid" || status === "waived" || (total > 0 && Number(inv.balance_due) <= 0);
     const service =
       (Array.isArray(inv.line_items) && inv.line_items[0]?.description) || "Service";
-    return { id: String(inv.id), service: String(service), total, status, paid };
+    return {
+      id: String(inv.id),
+      service: String(service),
+      total,
+      status,
+      paid,
+      paidAt: inv.paid_at ? String(inv.paid_at) : null,
+    };
   });
   const addOnRequiredSigners = (addOnAgreementContactsRes.data || []).filter((c: any) => {
     const role = String(c?.role || "").toLowerCase();
@@ -3328,8 +3335,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             />
 
             <AddOnStatusPanel
+              inspectionId={String(inspection.id)}
               invoices={addOnInvoices}
               agreementSigned={addOnAgreementSigned}
+              clientEmail={inspection.client_email || inspection.realtor_email || ""}
             />
 
             <AgreementSelector

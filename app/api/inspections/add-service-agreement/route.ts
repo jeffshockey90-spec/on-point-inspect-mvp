@@ -28,10 +28,12 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const inspectionId = body.inspectionId || body.inspection_id;
+    // templateId optional: omitted = just re-prompt the client to sign the
+    // CURRENT set again (used by the add-on status panel's "Resend agreement").
     const templateId = String(body.templateId || body.template_id || "").trim();
 
-    if (!inspectionId || !templateId) {
-      return NextResponse.json({ error: "Missing inspection or agreement." }, { status: 400 });
+    if (!inspectionId) {
+      return NextResponse.json({ error: "Missing inspection." }, { status: 400 });
     }
 
     const admin = getAdminClient();
@@ -42,7 +44,9 @@ export async function POST(req: Request) {
     const currentIds: string[] = Array.isArray(insp.agreement_template_ids)
       ? insp.agreement_template_ids.map((v: any) => String(v))
       : [];
-    const nextIds = Array.from(new Set([...currentIds, templateId]));
+    const nextIds = templateId
+      ? Array.from(new Set([...currentIds, templateId]))
+      : currentIds;
 
     const published =
       insp.published === true ||
