@@ -11,8 +11,11 @@ import { learningEngine } from "../../../../lib/ai/LearningEngine";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// NOTE: findings has NO inspector_id column in this DB — selecting it 400s the
+// whole approve query ("column findings.inspector_id does not exist"). Learning
+// is attributed to the INSPECTION's inspector instead (resolved below).
 const FINDING_LEARN_SELECT =
-  "id, inspection_id, inspector_id, section, severity, needs_review, title, observation, implication, recommendation, ai_prediction";
+  "id, inspection_id, section, severity, needs_review, title, observation, implication, recommendation, ai_prediction";
 
 function eqText(a: any, b: any) {
   return String(a || "").trim() === String(b || "").trim();
@@ -54,10 +57,10 @@ async function recordApprovalLearning(
 
     events.push({
       inspectionId,
-      // Attribute to the inspector who OWNS the finding (so a company owner
-      // clearing a teammate's queue teaches the teammate, not the owner),
-      // falling back to the inspection's inspector.
-      inspectorId: row.inspector_id || fallbackInspectorId || null,
+      // Attribute to the inspection's inspector (findings has no inspector_id
+      // column here). Falls back to the signed-in user inside LearningEngine
+      // when this is null.
+      inspectorId: fallbackInspectorId || null,
       tool: "field_review_approve",
       aiPrediction: pred,
       inspectorResult: updated,
