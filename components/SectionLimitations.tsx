@@ -203,6 +203,13 @@ function SectionLimitations({
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [expandedPhotoUrl, setExpandedPhotoUrl] = useState("");
+  // Inline editing of an already-saved limitation's title + wording (the AI
+  // write-up), so a limitation can be changed after it's added.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editComment, setEditComment] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [improving, setImproving] = useState(false);
 
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
@@ -497,6 +504,93 @@ function SectionLimitations({
       showMessage("error", error?.message || "Failed to remove limitation.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function startEditLimitation(item: LimitationRow) {
+    setEditingId(item.id);
+    setEditTitle(String(item.custom_text || item.label || ""));
+    setEditComment(
+      String(item.limitation_comment || item.ai_notes || "").trim(),
+    );
+  }
+
+  function cancelEditLimitation() {
+    setEditingId(null);
+    setEditTitle("");
+    setEditComment("");
+  }
+
+  // Save edits to an already-added limitation's title + wording back to the row.
+  // Custom rows keep the title in custom_text; AI/standard rows keep it in label.
+  async function saveEditLimitation(item: LimitationRow) {
+    if (savingEdit) return;
+
+    const title = editTitle.trim();
+    const comment = editComment.trim();
+
+    if (!title && !comment) {
+      showMessage("error", "Add a title or wording for the limitation.");
+      return;
+    }
+
+    setSavingEdit(true);
+
+    try {
+      const patch = item.custom_text
+        ? { custom_text: title || item.custom_text, limitation_comment: comment || null }
+        : { label: title || item.label, limitation_comment: comment || null };
+
+      const { data, error } = await supabase
+        .from("section_limitations")
+        .update(patch)
+        .eq("id", item.id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      if (data) setSaved((prev) => prev.map((r) => (r.id === item.id ? data : r)));
+      cancelEditLimitation();
+      showMessage("success", "Limitation updated.");
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to update limitation.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  // Re-run the AI on the current wording to rewrite/clean it up while editing.
+  async function improveEditLimitation() {
+    const base = editComment.trim() || editTitle.trim();
+
+    if (!base) {
+      showMessage("error", "Add some wording for the AI to rewrite.");
+      return;
+    }
+
+    setImproving(true);
+
+    try {
+      const res = await fetch("/api/generate-limitation-note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section, notes: base, selectedLimitations: [] }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage("error", data.error || "Failed to rewrite the limitation.");
+        return;
+      }
+
+      if (data.comment) setEditComment(String(data.comment));
+      if (data.title && !editTitle.trim()) setEditTitle(String(data.title));
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to rewrite the limitation.");
+    } finally {
+      setImproving(false);
     }
   }
 
@@ -853,17 +947,73 @@ function SectionLimitations({
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 sm:flex-1">
-                      <p className="break-words font-semibold text-[var(--fl-warn-text)]">
-                        {label}
-                      </p>
-                      {comment && (
-                        <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-[var(--fl-muted)]">
-                          {comment}
-                        </p>
+                      {editingId === item.id ? (
+                        <div className="space-y-2">
+                          <input
+                            value={editTitle}
+                            onChange={(event) => setEditTitle(event.target.value)}
+                            placeholder="Limitation title"
+                            className="w-full rounded-xl border border-purple-400/50 bg-[var(--fl-surface-2)] px-3 py-2 text-sm font-semibold text-[var(--fl-text)] outline-none focus:border-purple-400"
+                          />
+                          <textarea
+                            value={editComment}
+                            onChange={(event) => setEditComment(event.target.value)}
+                            rows={4}
+                            placeholder="Wording shown on the report…"
+                            className="w-full rounded-xl border border-purple-400/50 bg-[var(--fl-surface-2)] p-3 text-sm leading-6 text-[var(--fl-text)] outline-none focus:border-purple-400"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={improveEditLimitation}
+                              disabled={improving || savingEdit}
+                              className="rounded-lg bg-purple-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                            >
+                              {improving ? "Rewriting…" : "✨ Rewrite with AI"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => saveEditLimitation(item)}
+                              disabled={savingEdit || improving}
+                              className="rounded-lg bg-teal-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                            >
+                              {savingEdit ? "Saving…" : "Save"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEditLimitation}
+                              disabled={savingEdit}
+                              className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:opacity-50 [touch-action:manipulation]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="break-words font-semibold text-[var(--fl-warn-text)]">
+                            {label}
+                          </p>
+                          {comment && (
+                            <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-[var(--fl-muted)]">
+                              {comment}
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
 
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {editingId !== item.id && (
+                        <button
+                          type="button"
+                          onClick={() => startEditLimitation(item)}
+                          className="rounded-full border border-purple-500/60 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-purple-text)] hover:bg-purple-500/20 [touch-action:manipulation]"
+                          title="Edit this limitation's wording"
+                        >
+                          ✎ Edit
+                        </button>
+                      )}
                       <label
                         className={`rounded-full border border-teal-500/60 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/20 [touch-action:manipulation] ${
                           uploadingForId === item.id ? "cursor-wait opacity-70" : "cursor-pointer"
