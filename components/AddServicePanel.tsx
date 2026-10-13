@@ -19,7 +19,8 @@ type AgreementTemplate = {
   body?: string;
 };
 
-function templateLabel(t: AgreementTemplate) {
+function templateLabel(t?: AgreementTemplate) {
+  if (!t) return "Agreement";
   return t.title || t.name || t.service_type || "Agreement";
 }
 
@@ -291,7 +292,7 @@ export default function AddServicePanel({
               {templateId && (
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-[var(--fl-accent-text)]">
-                    ✓ {templateLabel(templates.find((t) => String(t.id) === templateId) || {})}
+                    ✓ {templateLabel(templates.find((t) => String(t.id) === templateId))}
                   </span>
                   <button
                     type="button"
