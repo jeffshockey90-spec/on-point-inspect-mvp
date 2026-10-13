@@ -139,6 +139,36 @@ export default function SignupPage() {
       }
     }
 
+    // Accounts auto-confirm, so signUp already returned a logged-in session —
+    // drop the new user STRAIGHT INTO the app instead of making them sign in
+    // again. Mirror the login flow: settle the session cookie first, then route
+    // by role via /api/account-routing, then hard-navigate (so the fresh cookie
+    // is sent on the next request — avoids the SSR cookie race that bounces to
+    // /login). If there's no session (e.g. email confirmation gets turned on
+    // later), fall back to the sign-in page.
+    if (signUpData?.session) {
+      setMessage("Account created! Taking you to FLOW…");
+      try {
+        await supabase.auth.getSession();
+      } catch {}
+
+      let redirectTo = "/dashboard";
+      try {
+        const routeRes = await fetch("/api/account-routing", { cache: "no-store" });
+        const routePayload = await routeRes.json().catch(() => ({}));
+        if (routeRes.ok && routePayload?.authenticated) {
+          if (routePayload?.dashboardHref) redirectTo = routePayload.dashboardHref;
+          else if (routePayload?.isRealtor && !routePayload?.isInspector)
+            redirectTo = "/realtor-portal";
+        }
+      } catch {
+        /* fall back to /dashboard */
+      }
+
+      window.location.assign(redirectTo);
+      return;
+    }
+
     setMessage("Account created successfully. Redirecting to sign in...");
 
     setLoading(false);
