@@ -34,6 +34,7 @@ import SendW9Button from "../../../components/SendW9Button";
 import InspectionContactsManager from "../../../components/InspectionContactsManager";
 import EnvironmentalTestPanel from "../../../components/EnvironmentalTestPanel";
 import AgreementSelector from "../../../components/AgreementSelector";
+import AddServicePanel from "../../../components/AddServicePanel";
 import AgreementBodyEditor from "../../../components/AgreementBodyEditor";
 import AgreementStatusPanel from "../../../components/AgreementStatusPanel";
 import ReportDeliveryGuard from "../../../components/ReportDeliveryGuard";
@@ -3281,6 +3282,16 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </div>
 
             <div id="agreement-status" data-command-target="agreement-status">
+            <AddServicePanel
+              inspectionId={String(inspection.id)}
+              propertyState={inspection.state}
+              agreementState={inspection.agreement_state}
+              currentTemplateIds={inspection.agreement_template_ids}
+              clientName={inspection.client_name}
+              clientEmail={inspection.client_email}
+              clientPhone={inspection.client_phone}
+            />
+
             <AgreementSelector
               inspectionId={String(inspection.id)}
               initialAgreementState={inspection.agreement_state}
