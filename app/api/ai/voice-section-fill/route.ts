@@ -24,6 +24,17 @@ function normKey(value: string) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+// The allowed option list for a (section, group), so the camera can offer a
+// quick-correct dropdown on each voice-filled box if the recognizer misheard.
+// Returns [] for free-text groups (no fixed options).
+function getGroupOptions(section: string, groupTitle: string): string[] {
+  const groups = (CHECKLIST_LIBRARY as any)[section];
+  if (!groups) return [];
+  const group = groups.find((g: any) => normKey(g.title) === normKey(groupTitle));
+  if (!group || group.type === "text") return [];
+  return Array.isArray(group.options) ? group.options.map((o: any) => String(o)) : [];
+}
+
 // Compact vocabulary of every section-info field + its allowed options, so the
 // model knows exactly which checkboxes exist and what they can be set to.
 function buildVocab() {
@@ -167,7 +178,7 @@ Return the JSON fills now.`;
     // because it already has a value; we only skip the EXACT value that's already
     // checked (no duplicates). Text fields (a single number like Insulation
     // Depth) stay single-value: skip if the group already has a text value.
-    const applied: Array<{ section: string; group: string; value: string }> = [];
+    const applied: Array<{ section: string; group: string; value: string; options: string[] }> = [];
     const toWrite: ChecklistFill[] = [];
     let alreadySet = 0;
     const seen = new Set<string>();
@@ -217,7 +228,13 @@ Return the JSON fills now.`;
       }
 
       toWrite.push(fill);
-      applied.push({ section: fill.section, group: fill.groupTitle, value: fill.value });
+      applied.push({
+        section: fill.section,
+        group: fill.groupTitle,
+        value: fill.value,
+        // Options for the camera's quick-correct dropdown (empty for text fields).
+        options: fill.kind === "text" ? [] : getGroupOptions(fill.section, fill.groupTitle),
+      });
     }
 
     // overwrite:true because we've already de-duped above against the exact

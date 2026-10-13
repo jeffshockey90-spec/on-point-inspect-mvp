@@ -329,7 +329,7 @@ export default function AILiveInspectionCamera({
   const [voiceTarget, setVoiceTarget] = useState<"checklist" | "note">("checklist");
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [voiceFilled, setVoiceFilled] = useState<
-    Array<{ section: string; group: string; value: string }> | null
+    Array<{ section: string; group: string; value: string; options?: string[] }> | null
   >(null);
 
   useEffect(() => {
@@ -1416,6 +1416,55 @@ export default function AILiveInspectionCamera({
 
   // Route a finished transcript to wherever this session was aimed: dictate it
   // into the note box, or send it to the section-info checklist filler.
+  // Quick-correct a voice-filled checkbox when the recognizer misheard: swap
+  // the value for another option in the same group, update the confirmation
+  // chip, and tell the builder's checklist to reload.
+  async function correctVoiceFill(index: number, newValue: string) {
+    if (!selectedReport) return;
+    const item = voiceFilled?.[index];
+    if (!item || newValue === item.value) return;
+    const oldValue = item.value;
+
+    // Optimistic update of the chip.
+    setVoiceFilled((cur) =>
+      cur ? cur.map((f, i) => (i === index ? { ...f, value: newValue } : f)) : cur,
+    );
+
+    try {
+      const res = await fetch("/api/ai/voice-section-fill/correct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId: selectedReport,
+          section: item.section,
+          groupTitle: item.group,
+          oldValue,
+          newValue,
+        }),
+      });
+      if (!res.ok) {
+        // Roll back on failure.
+        setVoiceFilled((cur) =>
+          cur ? cur.map((f, i) => (i === index ? { ...f, value: oldValue } : f)) : cur,
+        );
+        setToast("Couldn't change that — try again.");
+        return;
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("opi:checklist-updated", {
+            detail: { inspectionId: selectedReport, sections: [item.section] },
+          }),
+        );
+      }
+    } catch {
+      setVoiceFilled((cur) =>
+        cur ? cur.map((f, i) => (i === index ? { ...f, value: oldValue } : f)) : cur,
+      );
+      setToast("Couldn't change that — try again.");
+    }
+  }
+
   function deliverVoiceTranscript(text: string) {
     const transcript = text.trim();
     if (!transcript) return;
@@ -2362,13 +2411,34 @@ export default function AILiveInspectionCamera({
               Dismiss
             </button>
           </div>
-          <ul className="mt-2 space-y-1">
+          <p className="mt-1 text-[11px] text-white/50">
+            Misheard? Tap a box to change it.
+          </p>
+          <ul className="mt-1.5 space-y-1.5">
             {voiceFilled.slice(0, 8).map((f, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs leading-5 text-white/90">
-                <span className="text-emerald-400">✓</span>
-                <span>
-                  <b>{f.group}</b>: {f.value}{" "}
-                  <span className="text-white/50">· {f.section}</span>
+              <li key={i} className="flex items-center gap-2 text-xs leading-5 text-white/90">
+                <span className="shrink-0 text-emerald-400">✓</span>
+                <span className="min-w-0 flex-1">
+                  <b>{f.group}</b>
+                  {f.options && f.options.length > 0 ? (
+                    <select
+                      value={f.value}
+                      onChange={(e) => void correctVoiceFill(i, e.target.value)}
+                      aria-label={`Change ${f.group}`}
+                      className="ml-1.5 max-w-[11rem] rounded-md border border-white/25 bg-neutral-800 px-1.5 py-0.5 text-xs font-semibold text-white outline-none focus:border-emerald-400 [touch-action:manipulation]"
+                    >
+                      {(f.options.includes(f.value) ? f.options : [f.value, ...f.options]).map(
+                        (opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  ) : (
+                    <>: {f.value}</>
+                  )}
+                  <span className="text-white/50"> · {f.section}</span>
                 </span>
               </li>
             ))}
