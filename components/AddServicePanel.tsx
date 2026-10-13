@@ -16,12 +16,17 @@ type AgreementTemplate = {
   title?: string;
   name?: string;
   service_type?: string;
+  state?: string;
   body?: string;
 };
 
 function templateLabel(t?: AgreementTemplate) {
   if (!t) return "Agreement";
-  return t.title || t.name || t.service_type || "Agreement";
+  const base = t.title || t.name || t.service_type || "Agreement";
+  const st = String(t.state || "").toUpperCase();
+  // Tag the state so a per-state set (e.g. a Mold agreement per state) is
+  // distinguishable at a glance; GENERAL/any-state templates aren't tagged.
+  return st && st !== "GENERAL" ? `${base} · ${st}` : base;
 }
 
 export default function AddServicePanel({
@@ -60,10 +65,14 @@ export default function AddServicePanel({
     if (!open) return;
     (async () => {
       try {
+        // Show ALL your active agreements (no state filter) so a per-state set
+        // (e.g. a Mold agreement for every state) is never hidden — each option
+        // is labeled with its state so you pick the right one. Auto-match below
+        // still defaults to this inspection's state + service.
         const [p, t] = await Promise.all([
           fetch("/api/pricing", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
           fetch(
-            `/api/agreement-templates?state=${encodeURIComponent(propertyState || "")}&activeOnly=true`,
+            `/api/agreement-templates?activeOnly=true`,
             { cache: "no-store" },
           ).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         ]);
@@ -87,16 +96,23 @@ export default function AddServicePanel({
     setName(svc.name || "");
     const n = Number(String(svc.price).replace(/[^0-9.]/g, ""));
     setPrice(Number.isFinite(n) && n > 0 ? String(n) : "");
-    // Auto-match an agreement template: first by exact service_type = service id
-    // (radon/mold/sewer_scope/…), then by name overlap. You can always change it
-    // in the dropdown and preview it below.
+    // Auto-match: prefer the template whose service matches AND whose state is
+    // THIS inspection's state (so a per-state mold set picks this state's mold
+    // agreement), then service-only, then name overlap. Always editable below.
     const svcId = String(svc.id || "").toLowerCase();
     const firstWord = String(svc.name || "").toLowerCase().split(" ")[0] || "~none~";
+    const inspState = String(agreementState || propertyState || "").toUpperCase();
+    const svcMatch = (tpl: AgreementTemplate) =>
+      String(tpl.service_type || "").toLowerCase() === svcId ||
+      `${tpl.service_type || ""} ${templateLabel(tpl)}`.toLowerCase().includes(firstWord);
     const match =
-      templates.find((tpl) => String(tpl.service_type || "").toLowerCase() === svcId) ||
-      templates.find((tpl) =>
-        `${tpl.service_type || ""} ${templateLabel(tpl)}`.toLowerCase().includes(firstWord),
-      );
+      templates.find(
+        (tpl) => svcMatch(tpl) && String(tpl.state || "").toUpperCase() === inspState,
+      ) ||
+      templates.find(
+        (tpl) => svcMatch(tpl) && String(tpl.state || "").toUpperCase() === "GENERAL",
+      ) ||
+      templates.find(svcMatch);
     setTemplateId(match ? String(match.id) : "");
     setShowPreview(false);
   }
