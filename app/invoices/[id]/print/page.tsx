@@ -4,6 +4,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../../../utils/supabase/server";
 import InvoicePrintButton from "../../../../components/InvoicePrintButton";
+import StandaloneInvoicePrint from "../../../../components/StandaloneInvoicePrint";
+import { getAdminClient } from "../../../../lib/apiAuth";
 import { getCompanyBrandingById } from "../../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 
@@ -138,6 +140,37 @@ export default async function InvoicePrintPage({
   if (!user) redirect("/login");
 
   const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+
+  // Inspection-level invoices carry a numeric inspection id. A non-numeric
+  // (UUID) id is a STANDALONE invoice from the `invoices` table — e.g. the
+  // add-on service invoices. Resolve those first, scoped to this user's
+  // own invoices (their inspector_id, or any invoice on the company they own).
+  if (!/^\d+$/.test(String(id))) {
+    const admin = getAdminClient();
+    const { data: standalone } = await admin
+      .from("invoices")
+      .select("*")
+      .eq("id", id)
+      .eq(accessFilter.column, accessFilter.value)
+      .maybeSingle();
+
+    if (standalone) {
+      const invBranding = await getCompanyBrandingById(standalone.company_id);
+      return <StandaloneInvoicePrint invoice={standalone} branding={invBranding} />;
+    }
+
+    return (
+      <main className="min-h-screen bg-white p-10 text-slate-950">
+        <h1 className="text-3xl font-black text-red-700">Invoice not found</h1>
+        <p className="mt-4 text-slate-700">
+          This invoice could not be loaded or you do not have access to it.
+        </p>
+        <Link href="/invoices" className="mt-6 inline-block font-bold text-teal-700">
+          Back to Invoices
+        </Link>
+      </main>
+    );
+  }
 
   const { data: inspection, error } = await supabase
     .from("inspections")
