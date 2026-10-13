@@ -307,6 +307,7 @@ export default async function ReportsPage() {
     viewLogsResult,
     contactsResult,
     signedAgreementsResult,
+    addOnInvoicesResult,
   ] = await Promise.all([
     createSignedPropertyPhotoMap(storageSupabase, propertyPhotoPaths),
     inspectionIds.length > 0
@@ -323,7 +324,31 @@ export default async function ReportsPage() {
     inspectionIds.length > 0
       ? supabase.from("inspection_agreements").select("*").in("inspection_id", inspectionIds)
       : Promise.resolve(emptyResult),
+    // Add-on services billed on these inspections (standalone invoices).
+    // Service-role client (invoices table), scoped by inspection_id.
+    inspectionIds.length > 0
+      ? storageSupabase
+          .from("invoices")
+          .select("inspection_id, total, status, balance_due")
+          .in("inspection_id", inspectionIds)
+      : Promise.resolve(emptyResult),
   ]);
+
+  const addOnsByInspectionId = (addOnInvoicesResult.data || []).reduce(
+    (acc: Record<string, { count: number; unpaid: number }>, inv: any) => {
+      const id = String(inv?.inspection_id || "");
+      if (!id) return acc;
+      if (!acc[id]) acc[id] = { count: 0, unpaid: 0 };
+      acc[id].count += 1;
+      const status = String(inv?.status || "").toLowerCase();
+      const total = Number(inv?.total) || 0;
+      const paid =
+        status === "paid" || status === "waived" || (total > 0 && Number(inv?.balance_due) <= 0);
+      if (!paid) acc[id].unpaid += 1;
+      return acc;
+    },
+    {},
+  );
 
   const viewLogsRaw = viewLogsResult.data;
   if (viewLogsResult.error) {
@@ -412,6 +437,7 @@ export default async function ReportsPage() {
           (isPaymentComplete(inspection) && agreementStats.unsignedCount === 0)),
       agreementRequiredCount: agreementStats.requiredCount,
       agreementUnsignedCount: agreementStats.unsignedCount,
+      addOns: addOnsByInspectionId[String(inspection.id)] || null,
       address: inspection.property_address || "Untitled Inspection",
       cityStateZip: [
         inspection.city || "",

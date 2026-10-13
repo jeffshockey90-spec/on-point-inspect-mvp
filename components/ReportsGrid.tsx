@@ -22,6 +22,8 @@ export type PreparedReport = {
   deliverable: boolean;
   agreementRequiredCount: number;
   agreementUnsignedCount: number;
+  // Add-on services billed on this inspection (standalone invoices).
+  addOns?: { count: number; unpaid: number } | null;
   // Social-media consent: true = OK to post, false = declined, null/absent = not answered.
   socialMediaConsent?: boolean | null;
   activity: {
@@ -267,6 +269,14 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                       good={report.agreementUnsignedCount === 0}
                       goodLabel="📝 Signed"
                       badLabel={`📝 Unsigned (${report.agreementUnsignedCount})`}
+                    />
+                  )}
+
+                  {report.addOns && report.addOns.count > 0 && (
+                    <StatusBadge
+                      good={report.addOns.unpaid === 0}
+                      goodLabel={`➕ ${report.addOns.count} add-on${report.addOns.count === 1 ? "" : "s"} · paid`}
+                      badLabel={`➕ ${report.addOns.count} add-on${report.addOns.count === 1 ? "" : "s"} · ${report.addOns.unpaid} unpaid`}
                     />
                   )}
 

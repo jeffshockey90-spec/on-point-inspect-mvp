@@ -35,6 +35,7 @@ import InspectionContactsManager from "../../../components/InspectionContactsMan
 import EnvironmentalTestPanel from "../../../components/EnvironmentalTestPanel";
 import AgreementSelector from "../../../components/AgreementSelector";
 import AddServicePanel from "../../../components/AddServicePanel";
+import AddOnStatusPanel from "../../../components/AddOnStatusPanel";
 import AgreementBodyEditor from "../../../components/AgreementBodyEditor";
 import AgreementStatusPanel from "../../../components/AgreementStatusPanel";
 import ReportDeliveryGuard from "../../../components/ReportDeliveryGuard";
@@ -1863,6 +1864,40 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   }
   const reportDownloadId = getInspectionShareToken(inspection) || String(inspection.id);
 
+  // Add-on services billed on this inspection (standalone invoices linked to it)
+  // + whether the client agreement is signed — for the Add-on Services status
+  // panel (so "is the mold add-on paid + signed?" is a glance).
+  const [addOnInvoicesRes, addOnAgreementContactsRes] = await Promise.all([
+    storageSupabase
+      .from("invoices")
+      .select("id, line_items, total, status, balance_due, created_at")
+      .eq("inspection_id", Number(inspection.id))
+      .order("created_at", { ascending: true }),
+    storageSupabase
+      .from("inspection_contacts")
+      .select("role, agreement_required, agreement_signed")
+      .eq("inspection_id", inspection.id),
+  ]);
+  const addOnInvoices = (addOnInvoicesRes.data || []).map((inv: any) => {
+    const total = Number(inv.total) || 0;
+    const status = String(inv.status || "draft").toLowerCase();
+    const paid =
+      status === "paid" || status === "waived" || (total > 0 && Number(inv.balance_due) <= 0);
+    const service =
+      (Array.isArray(inv.line_items) && inv.line_items[0]?.description) || "Service";
+    return { id: String(inv.id), service: String(service), total, status, paid };
+  });
+  const addOnRequiredSigners = (addOnAgreementContactsRes.data || []).filter((c: any) => {
+    const role = String(c?.role || "").toLowerCase();
+    return (role === "client" || role === "co-client") && c?.agreement_required;
+  });
+  const addOnAgreementSigned: boolean | null =
+    (inspection as any).agreement_waived === true
+      ? true
+      : addOnRequiredSigners.length === 0
+        ? null
+        : addOnRequiredSigners.every((c: any) => Boolean(c.agreement_signed));
+
   const executiveSummary = String(inspection.executive_summary || "").trim();
 
   // Service detection (used to conditionally load the mold/radon panels). Needs
@@ -3290,6 +3325,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               clientName={inspection.client_name}
               clientEmail={inspection.client_email}
               clientPhone={inspection.client_phone}
+            />
+
+            <AddOnStatusPanel
+              invoices={addOnInvoices}
+              agreementSigned={addOnAgreementSigned}
             />
 
             <AgreementSelector
