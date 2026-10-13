@@ -171,35 +171,35 @@ export default function AddServicePanel({
       }
     }
 
-    // 2) Attach the add-on agreement (append, preserve existing) + send it.
+    // 2) Attach the add-on agreement + re-prompt the client (without re-locking
+    //    the delivered report), then send it. The prepare endpoint handles the
+    //    attach + delivery-override + un-signing the client so the send finds a
+    //    recipient even though they already signed the original agreement.
     if (sendAgreement && templateId) {
       try {
-        const nextIds = Array.from(
-          new Set([...(currentTemplateIds || []).map(String), String(templateId)]),
-        );
-        const upd = await fetch("/api/update-agreement-state", {
+        const prep = await fetch("/api/inspections/add-service-agreement", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            inspectionId,
-            agreementState: agreementState || propertyState || "",
-            agreementTemplateIds: nextIds,
-          }),
+          body: JSON.stringify({ inspectionId, templateId }),
         });
-        if (!upd.ok) {
-          const ud = await upd.json().catch(() => ({}));
-          throw new Error(ud?.error || "could not attach agreement");
-        }
-        const sent = await fetch("/api/send-agreement-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ inspectionId, recipientType: "client" }),
-        });
-        if (!sent.ok) {
-          const sd = await sent.json().catch(() => ({}));
-          failed.push(`agreement attached but not sent (${sd?.error || "send failed"})`);
+        const pd = await prep.json().catch(() => ({}));
+        if (!prep.ok) throw new Error(pd?.error || "could not attach agreement");
+        if (!pd?.hasSigner) {
+          failed.push(
+            "agreement attached, but no client contact with an email to sign it — add a client email, then send from the Agreements section",
+          );
         } else {
-          done.push("agreement sent to sign");
+          const sent = await fetch("/api/send-agreement-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ inspectionId, recipientType: "client" }),
+          });
+          if (!sent.ok) {
+            const sd = await sent.json().catch(() => ({}));
+            failed.push(`agreement attached but not sent (${sd?.error || "send failed"})`);
+          } else {
+            done.push("agreement sent to sign");
+          }
         }
       } catch (e: any) {
         failed.push(e?.message || "agreement failed");
