@@ -55,7 +55,12 @@ export default function AddServicePanel({
             { cache: "no-store" },
           ).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         ]);
-        const svc: ServiceOption[] = Array.isArray(p?.services) ? p.services : [];
+        // /api/pricing returns { config: { services: [...] }, ... } — the
+        // services live under config.services (same shape New Inspection reads).
+        // Include radon/mold too: they're common add-ons to a home inspection.
+        const svc: ServiceOption[] = Array.isArray(p?.config?.services)
+          ? p.config.services.filter((s: any) => String(s?.id) !== "home")
+          : [];
         setServices(svc);
         setTemplates(Array.isArray(t?.templates) ? t.templates : []);
       } catch {
