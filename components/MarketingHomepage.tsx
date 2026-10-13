@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import HomeFunnelTracker from "./HomeFunnelTracker";
 
 const CORE_FEATURES = [
   {
@@ -529,6 +530,7 @@ export default function MarketingHomepage({
 }) {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[var(--fl-ground)] text-[var(--fl-text)]">
+      <HomeFunnelTracker />
       <header className="border-b border-[var(--fl-raised)]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8">
           <div className="flex items-center gap-3">

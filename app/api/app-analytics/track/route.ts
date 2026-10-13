@@ -76,6 +76,15 @@ export async function POST(req: Request) {
         timezone: body.timezone || null,
         app_version: body.appVersion || body.app_version || null,
         ip_hint: getClientIp(req),
+        // Pass-through for funnel detail (role, cta id, etc.). Bounded so a
+        // caller can't stuff arbitrary large payloads into the row.
+        ...(body.meta && typeof body.meta === "object"
+          ? Object.fromEntries(
+              Object.entries(body.meta)
+                .slice(0, 12)
+                .map(([k, v]) => [String(k).slice(0, 40), String(v ?? "").slice(0, 200)]),
+            )
+          : {}),
       },
     });
 

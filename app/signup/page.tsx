@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "../../utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { COUNTRIES, BUSINESS_LANGUAGES, defaultLanguageForCountry } from "../../lib/locale";
+import { trackFunnel } from "../../lib/funnel";
 
 const ALLOWED_ROLES = ["inspector", "client", "realtor"];
 
@@ -22,6 +23,11 @@ export default function SignupPage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // Funnel: someone reached the signup page (a "visit").
+  useEffect(() => {
+    trackFunnel("signup_page_view");
+  }, []);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -62,6 +68,9 @@ export default function SignupPage() {
       setLoading(false);
       return;
     }
+
+    // Funnel: they submitted the form (a real signup attempt).
+    trackFunnel("signup_started", { meta: { role } });
 
     let signUpData;
     try {
@@ -138,6 +147,9 @@ export default function SignupPage() {
         return;
       }
     }
+
+    // Funnel: account fully created (auth user + profile/company finalized).
+    trackFunnel("signup_completed", { meta: { role } });
 
     // Accounts auto-confirm, so signUp already returned a logged-in session —
     // drop the new user STRAIGHT INTO the app instead of making them sign in

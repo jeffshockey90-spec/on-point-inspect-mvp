@@ -18,6 +18,7 @@ import RepriceSubscribersPanel from "../../../components/RepriceSubscribersPanel
 import InspectorActivityPanel from "../../../components/InspectorActivityPanel";
 import Secure24LeadsPanel from "../../../components/Secure24LeadsPanel";
 import OwnerDashboardTabs from "../../../components/OwnerDashboardTabs";
+import SignupFunnelPanel from "../../../components/SignupFunnelPanel";
 import { getSubscriptionPricing } from "../../../lib/subscriptionPricing";
 
 export const dynamic = "force-dynamic";
@@ -1311,6 +1312,10 @@ export default async function OwnerDashboardPage() {
 
         <div data-owner-tab="system">
           <PushAlertsPanel />
+        </div>
+
+        <div data-owner-tab="overview">
+          <SignupFunnelPanel />
         </div>
 
         <section data-owner-tab="overview" className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
