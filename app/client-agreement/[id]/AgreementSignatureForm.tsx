@@ -120,40 +120,72 @@ export default function AgreementSignatureForm({
 
     setLoading(true);
 
-    try {
-      const res = await fetch("/api/sign-agreement", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inspectionId,
-          shareToken,
-          contactId,
-          clientName: clientName.trim(),
-          clientEmail: clientEmail.trim(),
-          signature: signature.trim(),
-          accepted,
-        }),
-      });
+    const payload = JSON.stringify({
+      inspectionId,
+      shareToken,
+      contactId,
+      clientName: clientName.trim(),
+      clientEmail: clientEmail.trim(),
+      signature: signature.trim(),
+      accepted,
+    });
 
-      const data = await res.json().catch(() => ({}));
+    // Signing from a phone on a weak/dropping connection was the #1 cause of
+    // "it said it failed but the inspector saw it signed": the request reached
+    // the server (which recorded the signature) but the response never made it
+    // back, so the client showed an error. The sign endpoint is IDEMPOTENT
+    // (an already-signed contact returns ok), so we give each attempt a hard
+    // timeout and retry on a dropped connection / transient 5xx — a retry then
+    // confirms the signature that already went through instead of failing.
+    const MAX_ATTEMPTS = 3;
+    let lastError = "";
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to sign agreement.");
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 25000);
+      try {
+        const res = await fetch("/api/sign-agreement", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+
+        const data = await res.json().catch(() => ({} as any));
+
+        if (res.ok) {
+          setSigned(true);
+          setErrorMessage("");
+          startTransition(() => {
+            router.refresh();
+          });
+          setLoading(false);
+          return;
+        }
+
+        lastError = data?.error || "Failed to sign agreement.";
+        // 4xx is a definite problem with this request (bad/expired link, etc.)
+        // — retrying won't help, so stop. 5xx may be transient → retry.
+        if (res.status < 500) break;
+      } catch {
+        clearTimeout(timer);
+        // Aborted (timeout) or network drop. The signature may already be
+        // recorded server-side; the next attempt confirms it.
+        lastError = "Your connection dropped while saving — retrying…";
+        setErrorMessage(lastError);
       }
 
-      setSigned(true);
-
-      startTransition(() => {
-        router.refresh();
-      });
-    } catch (error: any) {
-      setSigned(false);
-      setErrorMessage(error?.message || "Failed to sign agreement.");
-    } finally {
-      setLoading(false);
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, attempt * 900));
+      }
     }
+
+    setLoading(false);
+    setSigned(false);
+    setErrorMessage(
+      `${lastError || "We couldn't confirm your signature."} Please check your connection and tap Sign Agreement again. If you already tapped it, your signature may be saved — refresh this page to check.`,
+    );
   }
 
   return (

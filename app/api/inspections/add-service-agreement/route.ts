@@ -93,7 +93,10 @@ export async function POST(req: Request) {
       // eslint-disable-next-line no-await-in-loop
       const { error } = await admin
         .from("inspection_contacts")
-        .update({ agreement_required: true, agreement_signed: false })
+        // Clear signed_at too: leaving it set while agreement_signed=false makes
+        // the row look half-signed. The original signing time is preserved on
+        // the inspection_agreements record regardless.
+        .update({ agreement_required: true, agreement_signed: false, signed_at: null })
         .eq("id", c.id);
       if (!error) reset += 1;
     }

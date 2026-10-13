@@ -359,16 +359,35 @@ export async function POST(req: Request) {
     }
 
     if (contact?.id) {
-      await supabase
-        .from("inspection_contacts")
-        .update({
-          agreement_signed: true,
-          signed_at: new Date().toISOString(),
-          name: contact.name || clientName,
-          email: contact.email || signerEmail,
-        })
-        .eq("id", contact.id)
-        .eq("inspection_id", inspectionId);
+      // This per-contact flag is what the CLIENT's agreement page reads to show
+      // "signed". If this update silently fails, the agreement record exists
+      // (inspector sees signed) but the client still sees the sign form — the
+      // exact "signed on my end, not theirs" report. So check it and retry once,
+      // and log loudly if it still fails rather than swallowing the error.
+      const applyContactSigned = () =>
+        supabase
+          .from("inspection_contacts")
+          .update({
+            agreement_signed: true,
+            signed_at: new Date().toISOString(),
+            name: contact.name || clientName,
+            email: contact.email || signerEmail,
+          })
+          .eq("id", contact.id)
+          .eq("inspection_id", inspectionId);
+
+      let { error: contactErr } = await applyContactSigned();
+      if (contactErr) {
+        ({ error: contactErr } = await applyContactSigned());
+      }
+      if (contactErr) {
+        await logError({
+          source: "api/sign-agreement",
+          message: `Contact agreement_signed update failed after retry: ${contactErr.message}`,
+          severity: "error",
+          detail: { inspectionId, contactId: contact.id, agreementId: agreement?.id },
+        });
+      }
     } else {
       await supabase
         .from("inspections")
@@ -405,14 +424,20 @@ export async function POST(req: Request) {
     const property = getPropertyLabel(inspection);
 
     if (inspection?.inspector_id) {
-      await sendPushNotification({
-        title: "Agreement Signed",
-        body: `${clientName.trim()} signed the agreement for ${property}.`,
-        url: `/reports/${inspectionId}`,
-        eventType: "agreement_signed",
-        target: "user",
-        targetUserId: inspection.inspector_id,
-      });
+      // Cap the push so a slow push service can't delay the success response to
+      // the signer (a long response on mobile looked like a failure, and the
+      // client would show an error even though the signature was recorded).
+      await Promise.race([
+        sendPushNotification({
+          title: "Agreement Signed",
+          body: `${clientName.trim()} signed the agreement for ${property}.`,
+          url: `/reports/${inspectionId}`,
+          eventType: "agreement_signed",
+          target: "user",
+          targetUserId: inspection.inspector_id,
+        }).catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ]);
     }
 
     return NextResponse.json({
