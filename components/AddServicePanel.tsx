@@ -11,7 +11,17 @@ import { useEffect, useRef, useState } from "react";
 //    (preserving the signed one) and emails the client to sign it. Agreement
 //    completeness is per-contact, so this doesn't re-lock the delivered report.
 type ServiceOption = { id: string; name: string; price: number | string };
-type AgreementTemplate = { id: string; name?: string; service_type?: string };
+type AgreementTemplate = {
+  id: string;
+  title?: string;
+  name?: string;
+  service_type?: string;
+  body?: string;
+};
+
+function templateLabel(t: AgreementTemplate) {
+  return t.title || t.name || t.service_type || "Agreement";
+}
 
 export default function AddServicePanel({
   inspectionId,
@@ -37,6 +47,7 @@ export default function AddServicePanel({
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [templateId, setTemplateId] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const [bill, setBill] = useState(true);
   const [sendAgreement, setSendAgreement] = useState(true);
 
@@ -75,13 +86,18 @@ export default function AddServicePanel({
     setName(svc.name || "");
     const n = Number(String(svc.price).replace(/[^0-9.]/g, ""));
     setPrice(Number.isFinite(n) && n > 0 ? String(n) : "");
-    // Auto-match an agreement template to the service name, if one looks right.
-    const match = templates.find((tpl) =>
-      String(tpl.service_type || tpl.name || "")
-        .toLowerCase()
-        .includes(String(svc.name || "").toLowerCase().split(" ")[0] || "~none~"),
-    );
-    if (match) setTemplateId(String(match.id));
+    // Auto-match an agreement template: first by exact service_type = service id
+    // (radon/mold/sewer_scope/…), then by name overlap. You can always change it
+    // in the dropdown and preview it below.
+    const svcId = String(svc.id || "").toLowerCase();
+    const firstWord = String(svc.name || "").toLowerCase().split(" ")[0] || "~none~";
+    const match =
+      templates.find((tpl) => String(tpl.service_type || "").toLowerCase() === svcId) ||
+      templates.find((tpl) =>
+        `${tpl.service_type || ""} ${templateLabel(tpl)}`.toLowerCase().includes(firstWord),
+      );
+    setTemplateId(match ? String(match.id) : "");
+    setShowPreview(false);
   }
 
   async function addService() {
@@ -258,16 +274,41 @@ export default function AddServicePanel({
               </span>
               <select
                 value={templateId}
-                onChange={(e) => setTemplateId(e.target.value)}
+                onChange={(e) => {
+                  setTemplateId(e.target.value);
+                  setShowPreview(false);
+                }}
                 className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
               >
                 <option value="">— no agreement —</option>
                 {templates.map((t) => (
                   <option key={t.id} value={String(t.id)}>
-                    {t.name || t.service_type || "Agreement"}
+                    {templateLabel(t)}
                   </option>
                 ))}
               </select>
+
+              {templateId && (
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-[var(--fl-accent-text)]">
+                    ✓ {templateLabel(templates.find((t) => String(t.id) === templateId) || {})}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview((v) => !v)}
+                    className="text-xs font-semibold text-[var(--fl-info-text)] underline [touch-action:manipulation]"
+                  >
+                    {showPreview ? "Hide preview" : "👁 Preview agreement"}
+                  </button>
+                </div>
+              )}
+
+              {showPreview && templateId && (
+                <div className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-xs leading-5 text-[var(--fl-muted)]">
+                  {(templates.find((t) => String(t.id) === templateId)?.body || "").trim() ||
+                    "This agreement has no preview text saved."}
+                </div>
+              )}
             </label>
           )}
 
