@@ -274,9 +274,11 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
 
                   {report.addOns && report.addOns.count > 0 && (
                     <StatusBadge
-                      good={report.addOns.unpaid === 0}
-                      goodLabel={`➕ ${report.addOns.count} add-on${report.addOns.count === 1 ? "" : "s"} · paid`}
-                      badLabel={`➕ ${report.addOns.count} add-on${report.addOns.count === 1 ? "" : "s"} · ${report.addOns.unpaid} unpaid`}
+                      good={report.addOns.unpaid === 0 && report.agreementUnsignedCount === 0}
+                      goodLabel={`➕ ${report.addOns.count} add-on${report.addOns.count === 1 ? "" : "s"} · paid & signed`}
+                      badLabel={`➕ ${report.addOns.count} add-on${report.addOns.count === 1 ? "" : "s"} · ${
+                        report.addOns.unpaid === 0 ? "paid" : `${report.addOns.unpaid} unpaid`
+                      }${report.agreementUnsignedCount > 0 ? " · unsigned" : " · signed"}`}
                     />
                   )}
 

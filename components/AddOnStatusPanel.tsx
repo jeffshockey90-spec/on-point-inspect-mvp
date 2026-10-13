@@ -173,13 +173,20 @@ export default function AddOnStatusPanel({
               <span className="font-semibold text-[var(--fl-text)]">
                 {inv.service} <span className="text-[var(--fl-muted)]">· {money(inv.total)}</span>
               </span>
-              {inv.paid ? (
-                <Pill tone="good">Paid ✓{inv.paidAt ? ` · ${shortDate(inv.paidAt)}` : ""}</Pill>
-              ) : String(inv.status).toLowerCase() === "draft" ? (
-                <Pill tone="muted">Draft</Pill>
-              ) : (
-                <Pill tone="warn">Awaiting payment</Pill>
-              )}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {inv.paid ? (
+                  <Pill tone="good">Paid ✓{inv.paidAt ? ` · ${shortDate(inv.paidAt)}` : ""}</Pill>
+                ) : String(inv.status).toLowerCase() === "draft" ? (
+                  <Pill tone="muted">Unpaid · Draft</Pill>
+                ) : (
+                  <Pill tone="warn">Unpaid</Pill>
+                )}
+                {agreementSigned === true ? (
+                  <Pill tone="good">Signed ✓{signedAt ? ` · ${shortDate(signedAt)}` : ""}</Pill>
+                ) : agreementSigned === false ? (
+                  <Pill tone="warn">Unsigned</Pill>
+                ) : null}
+              </div>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {inv.paid ? (
@@ -212,7 +219,7 @@ export default function AddOnStatusPanel({
 
       <div className="mt-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="font-semibold text-[var(--fl-text)]">Client agreement</span>
+          <span className="font-semibold text-[var(--fl-text)]">Service agreement</span>
           {agreementSigned === true ? (
             <Pill tone="good">Signed ✓{signedAt ? ` · ${shortDate(signedAt)}` : ""}</Pill>
           ) : agreementSigned === false ? (
@@ -221,6 +228,9 @@ export default function AddOnStatusPanel({
             <Pill tone="muted">—</Pill>
           )}
         </div>
+        <p className="mt-1 text-[11px] text-[var(--fl-muted)]">
+          Add-on agreements are combined into one client signing — this covers every add-on above.
+        </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {agreementSigned === true ? (
             <ActionBtn
