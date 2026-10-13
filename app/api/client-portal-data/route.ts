@@ -214,23 +214,40 @@ export async function GET(req: Request) {
 
     const inspectionId = String((inspection as any).id);
 
-    const [checklistResult, moldResult, radonResult] = await Promise.all([
-      supabase
-        .from("section_checklist_selections")
-        .select("*")
-        .eq("inspection_id", inspectionId)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("mold_tests")
-        .select("*")
-        .eq("inspection_id", inspectionId)
-        .maybeSingle(),
-      supabase
-        .from("radon_tests")
-        .select("*")
-        .eq("inspection_id", inspectionId)
-        .maybeSingle(),
-    ]);
+    const [checklistResult, moldResult, radonResult, agrContactsResult, addOnResult] =
+      await Promise.all([
+        supabase
+          .from("section_checklist_selections")
+          .select("*")
+          .eq("inspection_id", inspectionId)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("mold_tests")
+          .select("*")
+          .eq("inspection_id", inspectionId)
+          .maybeSingle(),
+        supabase
+          .from("radon_tests")
+          .select("*")
+          .eq("inspection_id", inspectionId)
+          .maybeSingle(),
+        // Per-contact agreement truth — inspection.agreement_status goes stale
+        // after an add-on agreement is appended and the client is re-prompted to
+        // sign (it stays "signed" from the original), so the portal must look at
+        // the required client/co-client signers directly.
+        supabase
+          .from("inspection_contacts")
+          .select("role, agreement_required, agreement_signed")
+          .eq("inspection_id", inspectionId),
+        // Add-on services billed on this inspection are SEPARATE standalone
+        // invoices (invoices table), not part of the inspection's own balance,
+        // so the portal has to load them to show + let the client pay them.
+        supabase
+          .from("invoices")
+          .select("id, line_items, total, amount_paid, balance_due, status, public_token, paid_at, created_at")
+          .eq("inspection_id", Number(inspectionId))
+          .order("created_at", { ascending: true }),
+      ]);
 
     if (checklistResult.error) {
       console.error("Client portal checklist load error:", checklistResult.error);
@@ -243,6 +260,48 @@ export async function GET(req: Request) {
     if (radonResult.error) {
       console.error("Client portal radon link error:", radonResult.error);
     }
+
+    // Agreement completion from the actual required signers (see note above).
+    const requiredSigners = (agrContactsResult.data || []).filter((c: any) => {
+      const role = String(c?.role || "").toLowerCase();
+      return (role === "client" || role === "co-client") && c?.agreement_required;
+    });
+    const agreementUnsignedCount = requiredSigners.filter(
+      (c: any) => !c.agreement_signed,
+    ).length;
+    const agreementComplete =
+      (inspection as any).agreement_waived === true ||
+      (requiredSigners.length > 0
+        ? agreementUnsignedCount === 0
+        : String((inspection as any).agreement_status || "").toLowerCase() === "signed");
+
+    // Add-on service invoices (standalone), what the client still owes on them,
+    // and a pay token for any that are unpaid.
+    const addOnInvoices = (addOnResult.data || []).map((inv: any) => {
+      const total = Number(inv.total) || 0;
+      const amountPaid = Number(inv.amount_paid) || 0;
+      const status = String(inv.status || "draft").toLowerCase();
+      const balanceDue =
+        inv.balance_due !== null && inv.balance_due !== undefined
+          ? Number(inv.balance_due)
+          : Math.max(0, total - amountPaid);
+      const paid = status === "paid" || status === "waived" || (total > 0 && balanceDue <= 0);
+      const service =
+        (Array.isArray(inv.line_items) && inv.line_items[0]?.description) || "Service";
+      return {
+        id: String(inv.id),
+        service: String(service),
+        total,
+        amountPaid,
+        balanceDue,
+        status,
+        paid,
+        paidAt: inv.paid_at || null,
+        // Only hand out a pay link for invoices that still owe — never for a
+        // draft (not sent yet) or an already-paid one.
+        payToken: !paid && status !== "draft" ? inv.public_token || null : null,
+      };
+    });
 
     const branding = await getCompanyBrandingById((inspection as any).company_id);
 
@@ -363,6 +422,9 @@ export async function GET(req: Request) {
       moldTest: moldResult.data || null,
       radonTest: radonResult.data || null,
       sectionNotes,
+      agreementComplete,
+      agreementUnsignedCount,
+      addOnInvoices,
     });
   } catch (error: any) {
     console.error("Client portal data API error:", error);

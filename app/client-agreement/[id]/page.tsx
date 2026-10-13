@@ -227,6 +227,20 @@ export default async function ClientAgreementPage({
 
   const { data: signedAgreement } = await signedAgreementQuery.maybeSingle();
 
+  // A signer can still NEED to sign even though an OLDER signed record exists —
+  // e.g. an add-on service agreement was added after they signed the original,
+  // which un-signs their contact (agreement_signed=false) so they re-sign the
+  // combined agreement. Previously the page keyed only off "does a signed record
+  // exist", so it showed the old Signed copy and HID the sign form entirely,
+  // making it impossible to re-sign. When the contact still needs to sign, show
+  // the live (combined) agreement + the form instead of the stale signed copy.
+  const contactNeedsToSign = Boolean(
+    selectedContact &&
+      selectedContact.agreement_required !== false &&
+      !selectedContact.agreement_signed,
+  );
+  const treatAsSigned = Boolean(signedAgreement) && !contactNeedsToSign;
+
   const state = normalizeAgreementState(
     inspection.agreement_state || inspection.state
   );
@@ -242,7 +256,7 @@ export default async function ClientAgreementPage({
   // inspection custom body (the inspector edited the full text) is the source
   // of truth; otherwise render live from the selected template(s).
   const agreementBody =
-    signedAgreement?.agreement_body ||
+    (treatAsSigned ? signedAgreement?.agreement_body : null) ||
     (inspection.custom_agreement_body?.trim()
       ? inspection.custom_agreement_body
       : mergeMultipleAgreementBodies({
@@ -260,7 +274,7 @@ export default async function ClientAgreementPage({
         }));
 
   const title =
-    signedAgreement?.agreement_title ||
+    (treatAsSigned ? signedAgreement?.agreement_title : null) ||
     (templates.length > 1
       ? `${templates.length} Inspection Agreements`
       : templates[0]?.title || getAgreementTitle(state));
@@ -310,7 +324,7 @@ export default async function ClientAgreementPage({
             Agreement Selected: {state}
           </p>
 
-          {templates.length > 0 && !signedAgreement && (
+          {templates.length > 0 && !treatAsSigned && (
             <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 print:bg-white print:text-black">
               <p className="font-bold text-[var(--fl-accent-text)] print:text-black">
                 Included Agreements:
@@ -334,9 +348,9 @@ export default async function ClientAgreementPage({
               Back to Client Portal
             </Link>
 
-            {signedAgreement && <PrintButton label="Print / Save Signed Agreement" />}
+            {treatAsSigned && <PrintButton label="Print / Save Signed Agreement" />}
 
-            {signedAgreement && (
+            {treatAsSigned && (
               <span className="rounded-xl bg-green-500 px-4 py-2 font-bold text-slate-950">
                 Signed Copy
               </span>
@@ -377,7 +391,7 @@ export default async function ClientAgreementPage({
               ))}
             </div>
           </div>
-        ) : signedAgreement ? (
+        ) : treatAsSigned ? (
           <div className="rounded-2xl border border-green-700 bg-green-500/10 p-6 print:border-black print:bg-white print:text-black">
             <h2 className="text-2xl font-extrabold text-[var(--fl-good-text)] print:text-black">
               Agreement Signed

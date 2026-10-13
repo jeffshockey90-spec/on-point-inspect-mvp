@@ -413,6 +413,10 @@ export default function ClientPortalPage() {
   const [checklistRows, setChecklistRows] = useState<any[]>([]);
   const [sectionNotes, setSectionNotes] = useState<Record<string, string>>({});
   const [relatedDocuments, setRelatedDocuments] = useState<any[]>([]);
+  const [addOnInvoices, setAddOnInvoices] = useState<any[]>([]);
+  // Per-contact agreement truth from the API (inspection.agreement_status can be
+  // stale after an add-on agreement is added and the client re-prompted to sign).
+  const [agreementCompleteSrv, setAgreementCompleteSrv] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -490,6 +494,10 @@ export default function ClientPortalPage() {
       setChecklistRows(data.checklistRows || []);
       setSectionNotes(data.sectionNotes || {});
       setRelatedDocuments(data.relatedDocuments || []);
+      setAddOnInvoices(Array.isArray(data.addOnInvoices) ? data.addOnInvoices : []);
+      setAgreementCompleteSrv(
+        typeof data.agreementComplete === "boolean" ? data.agreementComplete : null,
+      );
     } catch (error) {
       console.error("Client portal load error:", error);
       setInspection(null);
@@ -640,7 +648,10 @@ export default function ClientPortalPage() {
   const paymentRequirementComplete =
     paymentComplete || paymentStatusLower === "waived";
 
-  const agreementSigned = isAgreementSigned(inspection);
+  // Prefer the server's per-contact agreement truth (handles a re-prompted
+  // add-on agreement where inspection.agreement_status is stale "signed").
+  const agreementSigned =
+    agreementCompleteSrv === null ? isAgreementSigned(inspection) : agreementCompleteSrv;
   const agreementWaived = isAgreementWaived(inspection);
   const reportPublished = isReportPublished(inspection);
   const reportUnlocked =
@@ -1045,6 +1056,64 @@ export default function ClientPortalPage() {
             )}
           </div>
         </section>
+
+        {addOnInvoices.length > 0 && (
+          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+            <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
+              Add-on Services
+            </h2>
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">
+              Additional services added to your inspection.
+            </p>
+
+            <div className="mt-5 space-y-3">
+              {addOnInvoices.map((inv: any) => (
+                <div
+                  key={inv.id}
+                  className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-bold text-[var(--fl-text)]">
+                      {inv.service}{" "}
+                      <span className="font-medium text-[var(--fl-muted)]">
+                        · {money(inv.total)}
+                      </span>
+                    </span>
+                    {inv.paid ? (
+                      <span className="rounded-full border border-green-500/40 bg-green-500/10 px-3 py-0.5 text-xs font-bold text-[var(--fl-good-text)]">
+                        Paid ✓
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-0.5 text-xs font-bold text-[var(--fl-warn-text)]">
+                        Balance due {money(inv.balanceDue)}
+                      </span>
+                    )}
+                  </div>
+
+                  {!inv.paid && inv.payToken && (
+                    <a
+                      href={`/api/invoices/${inv.id}/checkout?token=${encodeURIComponent(inv.payToken)}`}
+                      className="mt-3 inline-flex items-center justify-center rounded-xl bg-green-500 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-green-400 [touch-action:manipulation]"
+                    >
+                      Pay {money(inv.balanceDue)} Online
+                    </a>
+                  )}
+
+                  {!inv.paid && !inv.payToken && (
+                    <p className="mt-2 text-xs text-[var(--fl-muted)]">
+                      An invoice for this service will be sent to you.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-3 text-[11px] text-[var(--fl-muted)]">
+              Online card payments include a small processing fee. Other approved
+              payment methods may be available without it.
+            </p>
+          </section>
+        )}
 
         <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
           <h2 className="text-2xl font-bold text-[var(--fl-accent-text)]">
