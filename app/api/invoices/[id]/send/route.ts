@@ -258,9 +258,12 @@ export async function POST(req: Request, { params }: RouteProps) {
   let smsSent = false;
   const invoicePhone = String(invoice.client_phone || "").trim();
   if (isSmsConfigured() && invoicePhone) {
-    const smsBody = isReminder
-      ? `${branding.name}: Friendly reminder — ${baseLabel} balance ${money(invoice.total)}. Pay: ${payLink}`
-      : `${branding.name}: ${baseLabel} for ${money(invoice.total)} is ready. Pay: ${payLink}`;
+    // A receipt confirms payment — never text a "pay now" link for it.
+    const smsBody = isReceipt
+      ? `${branding.name}: Payment received — thank you. ${baseLabel} for ${money(paidAmount)}${paidWhen ? ` on ${paidWhen}` : ""} is paid in full.`
+      : isReminder
+        ? `${branding.name}: Friendly reminder — ${baseLabel} balance ${money(invoice.total)}. Pay: ${payLink}`
+        : `${branding.name}: ${baseLabel} for ${money(invoice.total)} is ready. Pay: ${payLink}`;
     const smsResult = await sendSms({ to: invoicePhone, body: smsBody }).catch(() => null);
     smsSent = Boolean(smsResult?.ok);
     try {
@@ -268,7 +271,7 @@ export async function POST(req: Request, { params }: RouteProps) {
         inspection_id_bigint: invoice.inspection_id ? Number(invoice.inspection_id) : null,
         recipient: invoicePhone,
         recipient_email: invoicePhone,
-        email_type: isReminder ? "invoice_reminder_sms" : "invoice_sms",
+        email_type: isReceipt ? "invoice_receipt_sms" : isReminder ? "invoice_reminder_sms" : "invoice_sms",
         subject,
         message: smsSent ? payLink : smsResult?.error || "Invoice SMS failed.",
         status: smsSent ? "sent" : "failed",
