@@ -116,14 +116,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const inspectorId = inspectionRow.inspector_id;
     const parsedImage = parseDataUrl(imageDataUrl);
 
     const { data: insertedFinding, error: findingError } = await supabase
       .from("findings")
       .insert({
         inspection_id: inspectionId,
-        inspector_id: inspectorId,
+        // NOTE: findings has NO inspector_id column — inserting it 400s the
+        // whole insert. Ownership is enforced via the inspection above + RLS
+        // (findings RLS joins to inspections.inspector_id).
         section,
         severity,
         title,

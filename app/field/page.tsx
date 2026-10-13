@@ -5609,7 +5609,15 @@ function FieldPageContent() {
                     return;
                   }
 
-                  router.push(`/reports/${selectedReport}`);
+                  // Hard navigation (not router.push) — a soft nav into the
+                  // heavy report builder from the field tool stalls on the iOS
+                  // WebView; this is the reliable cross-page pattern used across
+                  // the app (login, FastLinkButton).
+                  if (typeof window !== "undefined") {
+                    window.location.href = `/reports/${selectedReport}`;
+                  } else {
+                    router.push(`/reports/${selectedReport}`);
+                  }
                 }}
                 className="block w-full rounded-xl border border-teal-500 p-4 text-center font-bold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500 hover:text-black [touch-action:manipulation]"
               >

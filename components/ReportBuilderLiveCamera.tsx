@@ -297,7 +297,7 @@ export default function ReportBuilderLiveCamera({
           compassAutoEnable={flags.compass}
           autoStart
           onClose={closeCamera}
-          categories={["finding", "limitation", "reference"]}
+          categories={["finding", "limitation", "equipment", "reference"]}
           selectedReport={inspectionId}
           currentSection={sections[0] || ""}
           currentSeverity="Recommended Repair"
