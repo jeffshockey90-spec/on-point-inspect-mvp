@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 // "➕ Add a service" — when a client requests an add-on AFTER the inspection is
 // already created (and often already paid + signed), bill it and get its
@@ -59,6 +60,7 @@ export default function AddServicePanel({
 
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  const router = useRouter();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
@@ -135,6 +137,25 @@ export default function AddServicePanel({
 
     const done: string[] = [];
     const failed: string[] = [];
+    let sectionEnabled = false;
+
+    // 0) Light up the service's actual DELIVERABLE, not just billing/agreement:
+    //    for mold/radon this flips the inspection flag so the Mold/Radon report
+    //    section appears in the builder AND on the client portal + report.
+    try {
+      const secRes = await fetch("/api/inspections/enable-service-section", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, service: serviceName }),
+      });
+      const secData = await secRes.json().catch(() => ({}));
+      if (secRes.ok && Array.isArray(secData.enabled) && secData.enabled.length) {
+        done.push(`${secData.enabled.join(" + ")} report section added`);
+        sectionEnabled = true;
+      }
+    } catch {
+      /* non-fatal — billing/agreement below still run */
+    }
 
     // 1) Separate invoice for the add-on, then send it.
     if (bill) {
@@ -219,6 +240,10 @@ export default function AddServicePanel({
     } else {
       setMsg({ ok: false, text: failed.join("; ") || "Nothing to do — pick billing or an agreement." });
     }
+
+    // Re-render the server-rendered builder so a newly-enabled Mold/Radon report
+    // section appears right away instead of only after a manual reload.
+    if (sectionEnabled) router.refresh();
   }
 
   return (
