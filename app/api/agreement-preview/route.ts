@@ -28,7 +28,13 @@ export async function GET(req: Request) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
 
-  const inspectionId = new URL(req.url).searchParams.get("inspectionId");
+  const url = new URL(req.url);
+  const inspectionId = url.searchParams.get("inspectionId");
+  // Optional: preview ONE specific template (e.g. an add-on service agreement
+  // the inspector is about to attach but hasn't yet), filled with THIS
+  // inspection's client/address/date — so the preview shows what the client will
+  // actually see, not the raw {{TOKENS}}.
+  const templateId = url.searchParams.get("templateId");
   if (!inspectionId) return notFound();
 
   const admin = getAdminClient();
@@ -39,6 +45,37 @@ export async function GET(req: Request) {
   const inspection = await authorizeInspection(admin, user.id, inspectionId, "*");
 
   if (!inspection) return notFound();
+
+  if (templateId) {
+    const { data: tpl } = await admin
+      .from("agreement_templates")
+      .select("*")
+      .eq("id", templateId)
+      .maybeSingle();
+    if (!tpl) return notFound("Template not found.");
+
+    const state = normalizeAgreementState(
+      tpl.state || inspection.agreement_state || inspection.state,
+    );
+    const branding = await getCompanyBrandingById(inspection.company_id);
+    const ownerName = await getCompanyOwnerName(inspection.company_id);
+
+    const body = mergeMultipleAgreementBodies({
+      templates: [tpl],
+      state,
+      clientName: inspection.client_name,
+      clientOrganization: inspection.client_organization_name,
+      propertyAddress: inspection.address || inspection.property_address,
+      fee: inspection.invoice_amount || inspection.fee || inspection.price,
+      serviceFees: deriveServiceFees(inspection),
+      inspectorName: branding.name,
+      ownerName,
+      inspectionDate: inspection.inspection_date,
+      inspectionTime: inspection.inspection_time,
+    });
+
+    return NextResponse.json({ body, hasCustomBody: false, signed: false, templateId });
+  }
 
   const { data: signedAgreement } = await admin
     .from("inspection_agreements")

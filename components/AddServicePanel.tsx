@@ -55,6 +55,36 @@ export default function AddServicePanel({
   const [price, setPrice] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  // The preview renders the agreement FILLED IN with this inspection's client /
+  // address / date (what the client will actually see), not the raw {{TOKENS}}.
+  const [previewBody, setPreviewBody] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  useEffect(() => {
+    if (!showPreview || !templateId) return;
+    let active = true;
+    setPreviewLoading(true);
+    setPreviewBody("");
+    fetch(
+      `/api/agreement-preview?inspectionId=${encodeURIComponent(
+        inspectionId,
+      )}&templateId=${encodeURIComponent(templateId)}`,
+      { cache: "no-store" },
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active) setPreviewBody(String(d?.body || "").trim());
+      })
+      .catch(() => {
+        if (active) setPreviewBody("");
+      })
+      .finally(() => {
+        if (active) setPreviewLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [showPreview, templateId, inspectionId]);
   const [bill, setBill] = useState(true);
   const [sendAgreement, setSendAgreement] = useState(true);
 
@@ -346,9 +376,17 @@ export default function AddServicePanel({
               )}
 
               {showPreview && templateId && (
-                <div className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-xs leading-5 text-[var(--fl-muted)]">
-                  {(templates.find((t) => String(t.id) === templateId)?.body || "").trim() ||
-                    "This agreement has no preview text saved."}
+                <div className="mt-2">
+                  <p className="mb-1 text-[11px] font-semibold text-[var(--fl-muted)]">
+                    Filled in with this client's details — this is what the client sees.
+                  </p>
+                  <div className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-xs leading-5 text-[var(--fl-muted)]">
+                    {previewLoading
+                      ? "Loading preview…"
+                      : previewBody ||
+                        (templates.find((t) => String(t.id) === templateId)?.body || "").trim() ||
+                        "This agreement has no preview text saved."}
+                  </div>
                 </div>
               )}
             </label>
