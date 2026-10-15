@@ -1465,9 +1465,64 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  // Hands-free limitation: "add limitation for older electrical" → the spoken
+  // note becomes a cautious title + wording, saved on the current section, and
+  // the builder's limitations editor is told to reload.
+  async function addVoiceLimitation(note: string) {
+    if (!selectedReport) return;
+    const clean = note.trim();
+    if (!clean) {
+      setToast('Say what the limitation is — e.g. "add limitation for older electrical."');
+      return;
+    }
+    setVoiceBusy(true);
+    setToast("⚠️ Adding limitation…");
+    try {
+      const res = await fetch("/api/limitations/add-from-voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId: selectedReport,
+          section: currentSection,
+          note: clean,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setToast(data?.error || "Couldn't add the limitation.");
+        return;
+      }
+      setToast(`⚠️ Limitation added: ${data.title || "Limitation"}`);
+      logCam("mic:limitation-added", { section: currentSection, len: clean.length });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("opi:section-limitations-changed", {
+            detail: { inspectionId: selectedReport, section: currentSection },
+          }),
+        );
+      }
+    } catch {
+      setToast("Couldn't add the limitation — try again.");
+    } finally {
+      setVoiceBusy(false);
+    }
+  }
+
   function deliverVoiceTranscript(text: string) {
     const transcript = text.trim();
     if (!transcript) return;
+
+    // Voice command: "add limitation for older electrical" (also "note/create/
+    // log a limitation …"). Caught before note/checklist routing so it works in
+    // whichever mic mode is active. The rest of the phrase is the rough note.
+    const limMatch = transcript.match(
+      /^\s*(?:add|note|create|new|log)\s+(?:a\s+|an\s+)?limitation\b[\s,:.\-]*(?:for|about|regarding|on|to|that)?\s*(.*)$/i,
+    );
+    if (limMatch) {
+      void addVoiceLimitation(limMatch[1] || "");
+      return;
+    }
+
     if (voiceTargetRef.current === "note") {
       setNoteText((prev) => (prev ? `${prev.trim()} ${transcript}` : transcript).trim());
       setToast("📝 Added to note");
