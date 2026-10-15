@@ -486,16 +486,45 @@ function FieldPageContent() {
   const [compassAutoEnable, setCompassAutoEnable] = useState(false);
   useEffect(() => {
     let active = true;
+    // Hydrate from the last-known values INSTANTLY (localStorage) so a capture
+    // taken right after opening doesn't fall back to a FOREGROUND draft while the
+    // settings fetch is still in flight — that race is why "the draft sometimes
+    // didn't go to the background". The network fetch below then reconciles; a
+    // FAILED fetch keeps the cached value instead of silently disabling async.
+    try {
+      const a = window.localStorage.getItem("flow:asyncDraftEnabled");
+      if (a != null) setAsyncDraftEnabled(a === "1");
+      const c = window.localStorage.getItem("flow:compassAutoEnable");
+      if (c != null) setCompassAutoEnable(c === "1");
+    } catch {
+      /* ignore */
+    }
     fetch("/api/settings/async-draft", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (active && d) setAsyncDraftEnabled(Boolean(d.enabled));
+        if (active && d) {
+          const on = Boolean(d.enabled);
+          setAsyncDraftEnabled(on);
+          try {
+            window.localStorage.setItem("flow:asyncDraftEnabled", on ? "1" : "0");
+          } catch {
+            /* ignore */
+          }
+        }
       })
       .catch(() => {});
     fetch("/api/settings/compass-auto", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (active && d) setCompassAutoEnable(Boolean(d.enabled));
+        if (active && d) {
+          const on = Boolean(d.enabled);
+          setCompassAutoEnable(on);
+          try {
+            window.localStorage.setItem("flow:compassAutoEnable", on ? "1" : "0");
+          } catch {
+            /* ignore */
+          }
+        }
       })
       .catch(() => {});
     return () => {

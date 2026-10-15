@@ -82,14 +82,39 @@ export default function ReportBuilderLiveCamera({
 
   async function loadFlags() {
     if (flagsLoaded) return;
+    // Hydrate from cache INSTANTLY so a quick capture after opening doesn't
+    // foreground-draft while the fetch is in flight (the "draft didn't go to the
+    // background" race). Reconcile below; a FAILED fetch keeps the cached value.
+    try {
+      const a = window.localStorage.getItem("flow:asyncDraftEnabled");
+      const c = window.localStorage.getItem("flow:compassAutoEnable");
+      if (a != null || c != null) {
+        setFlags((prev) => ({
+          async: a != null ? a === "1" : prev.async,
+          compass: c != null ? c === "1" : prev.compass,
+        }));
+      }
+    } catch {
+      /* ignore */
+    }
     try {
       const [a, c] = await Promise.all([
         fetch("/api/settings/async-draft", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch("/api/settings/compass-auto", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       ]);
-      setFlags({ async: Boolean(a?.enabled), compass: Boolean(c?.enabled) });
+      // Only overwrite from a SUCCESSFUL response; a null (failed) fetch keeps cache.
+      setFlags((prev) => ({
+        async: a ? Boolean(a.enabled) : prev.async,
+        compass: c ? Boolean(c.enabled) : prev.compass,
+      }));
+      try {
+        if (a) window.localStorage.setItem("flow:asyncDraftEnabled", a.enabled ? "1" : "0");
+        if (c) window.localStorage.setItem("flow:compassAutoEnable", c.enabled ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
     } catch {
-      /* fail-safe: both off */
+      /* keep cached values */
     } finally {
       setFlagsLoaded(true);
     }
