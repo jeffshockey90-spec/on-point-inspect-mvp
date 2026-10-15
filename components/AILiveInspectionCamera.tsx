@@ -331,6 +331,18 @@ export default function AILiveInspectionCamera({
   const [voiceFilled, setVoiceFilled] = useState<
     Array<{ section: string; group: string; value: string; options?: string[] }> | null
   >(null);
+  // CONTINUOUS checklist listening: the mic stays on across pauses and ticks
+  // boxes as you speak, room by room, instead of one submit-per-mic-stop. Mirrors
+  // the proven loop in VoiceOnlyInspectionMode (debounced process → restart the
+  // recognizer). Only the "checklist" target is continuous; note dictation keeps
+  // the single-shot behavior.
+  const CHECKLIST_SILENCE_MS = 1100; // pause after speaking before a box fills
+  const voiceActiveRef = useRef(false); // true while a continuous checklist session should keep going
+  const voiceSilenceTimerRef = useRef<number | null>(null);
+  const voiceProcessingRef = useRef(false); // one fill request at a time
+  const voiceRestartingRef = useRef(false); // one native restart scheduled at a time
+  const lastFilledTranscriptRef = useRef(""); // skip re-submitting unchanged speech
+  const voiceFillTotalRef = useRef(0); // cumulative boxes filled this session (for the toast)
 
   useEffect(() => {
     function openForCategory(
@@ -496,6 +508,13 @@ export default function AILiveInspectionCamera({
   // native sessions were a mic-crash source).
   useEffect(() => {
     return () => {
+      // Kill any continuous checklist loop so a pending restart/debounce can't
+      // fire against an unmounted camera.
+      voiceActiveRef.current = false;
+      if (voiceSilenceTimerRef.current) {
+        window.clearTimeout(voiceSilenceTimerRef.current);
+        voiceSilenceTimerRef.current = null;
+      }
       if (Capacitor.isNativePlatform()) {
         NativeSpeechRecognition.stop().catch(() => {});
         NativeSpeechRecognition.removeAllListeners().catch(() => {});
@@ -1605,6 +1624,168 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  // Merge newly-filled boxes into the running confirmation list (dedup by
+  // section|group|value) so continuous fills ACCUMULATE instead of replacing.
+  function mergeVoiceFilled(
+    prev:
+      | Array<{ section: string; group: string; value: string; options?: string[] }>
+      | null,
+    applied: any[],
+  ) {
+    const base = Array.isArray(prev) ? prev.slice() : [];
+    const seen = new Set(
+      base.map((f) => `${f.section}|${f.group}|${String(f.value).toLowerCase()}`),
+    );
+    for (const a of applied) {
+      const key = `${a?.section}|${a?.group}|${String(a?.value).toLowerCase()}`;
+      if (a?.section && a?.group && !seen.has(key)) {
+        base.push(a);
+        seen.add(key);
+      }
+    }
+    return base;
+  }
+
+  // Debounced fill: fire after a short pause in speech so a spoken item ticks its
+  // box WITHOUT the inspector stopping the mic. The backend de-dupes already-set
+  // boxes, so re-submitting the growing transcript only adds the new ones.
+  function scheduleIncrementalFill(transcript: string) {
+    if (voiceSilenceTimerRef.current) window.clearTimeout(voiceSilenceTimerRef.current);
+    voiceSilenceTimerRef.current = window.setTimeout(() => {
+      voiceSilenceTimerRef.current = null;
+      void processIncrementalChecklist(transcript);
+    }, CHECKLIST_SILENCE_MS) as unknown as number;
+  }
+
+  // Re-start the native recognizer after iOS ends it on a pause, so continuous
+  // checklist listening survives across rooms until the inspector taps stop.
+  function scheduleNativeRestart() {
+    if (voiceRestartingRef.current) return;
+    voiceRestartingRef.current = true;
+    window.setTimeout(async () => {
+      voiceRestartingRef.current = false;
+      if (!voiceActiveRef.current) return;
+      try {
+        await attachAndStartNativeVoice();
+      } catch {
+        // If we can't resume, end cleanly rather than wedging — a tap restarts it.
+        voiceActiveRef.current = false;
+        setVoiceListening(false);
+      }
+    }, 350);
+  }
+
+  // Fill section-info boxes from the current transcript, accumulating results.
+  // fromNativeStop=true means iOS just ended the recognizer, so after filling we
+  // relaunch it to keep the session going.
+  async function processIncrementalChecklist(
+    text: string,
+    opts?: { fromNativeStop?: boolean },
+  ) {
+    const clean = String(text || "").trim();
+    const relaunch = () => {
+      if (opts?.fromNativeStop && voiceActiveRef.current && Capacitor.isNativePlatform()) {
+        scheduleNativeRestart();
+      }
+    };
+
+    if (voiceProcessingRef.current) return;
+    if (!clean || !selectedReport || clean === lastFilledTranscriptRef.current) {
+      relaunch();
+      return;
+    }
+
+    voiceProcessingRef.current = true;
+    try {
+      const res = await fetch("/api/ai/voice-section-fill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId: selectedReport, transcript: clean }),
+      });
+      const data = await res.json().catch(() => ({}));
+      lastFilledTranscriptRef.current = clean;
+      if (res.ok) {
+        const applied = Array.isArray(data.applied) ? data.applied : [];
+        const written = Number.isFinite(Number(data.written))
+          ? Number(data.written)
+          : applied.length;
+        if (written > 0) {
+          const fresh = applied.slice(0, written);
+          setVoiceFilled((prev) => mergeVoiceFilled(prev, fresh));
+          voiceFillTotalRef.current += written;
+          const sections = Array.from(
+            new Set(fresh.map((a: any) => a?.section).filter(Boolean)),
+          );
+          if (typeof window !== "undefined" && sections.length) {
+            window.dispatchEvent(
+              new CustomEvent("opi:checklist-updated", {
+                detail: { inspectionId: selectedReport, sections },
+              }),
+            );
+          }
+          const total = voiceFillTotalRef.current;
+          setToast(`✓ Filled ${total} box${total === 1 ? "" : "es"} — keep going…`);
+        }
+        // Stay quiet on a pause that matched nothing new — don't nag mid-session.
+      }
+    } catch {
+      // Network hiccup mid-session: keep listening; the next pause retries.
+    } finally {
+      voiceProcessingRef.current = false;
+      relaunch();
+    }
+  }
+
+  // Attach the native listeners and start the recognizer. Used for both the
+  // initial start and each continuous restart (listeners are cleared first so
+  // they never stack across restarts).
+  async function attachAndStartNativeVoice() {
+    try {
+      await NativeSpeechRecognition.removeAllListeners();
+    } catch {
+      /* ignore */
+    }
+    await NativeSpeechRecognition.addListener("partialResults", (event: any) => {
+      const transcript = String(event?.accumulatedText || event?.matches?.[0] || "").trim();
+      if (!transcript) return;
+      voiceTranscriptRef.current = transcript;
+      if (voiceActiveRef.current && voiceTargetRef.current === "checklist") {
+        scheduleIncrementalFill(transcript);
+      }
+    });
+    await NativeSpeechRecognition.addListener("listeningState", (event: any) => {
+      const state = String(event?.state || event?.status || "");
+      if (state !== "stopped") return;
+      // Continuous checklist: don't end the session — flush what we heard and
+      // relaunch so the inspector can keep speaking room to room.
+      if (voiceActiveRef.current && voiceTargetRef.current === "checklist") {
+        if (voiceSilenceTimerRef.current) {
+          window.clearTimeout(voiceSilenceTimerRef.current);
+          voiceSilenceTimerRef.current = null;
+        }
+        void processIncrementalChecklist(voiceTranscriptRef.current, { fromNativeStop: true });
+        return;
+      }
+      finalizeVoiceSession({ submit: true, alreadyStopped: true });
+    });
+    await NativeSpeechRecognition.addListener("error", (event: any) => {
+      logCam("mic:native-error", {
+        code: String(event?.code || ""),
+        msg: String(event?.message || ""),
+      });
+      // A real error ends the session (don't crash-loop on a persistent fault);
+      // normal pauses come through listeningState, not error.
+      voiceActiveRef.current = false;
+      finalizeVoiceSession({ submit: voiceTargetRef.current !== "checklist" });
+    });
+    await NativeSpeechRecognition.start({
+      language: "en-US",
+      maxResults: 1,
+      partialResults: true,
+      popup: false,
+    });
+  }
+
   // End the NATIVE voice session exactly once, from whichever trigger fires
   // first: a manual tap, iOS auto-stopping the recognizer, or a native error.
   // Guarded so the auto-stop event and a later manual stop can't both run and
@@ -1628,6 +1809,41 @@ export default function AILiveInspectionCamera({
 
   async function stopVoiceFill() {
     logCam("mic:stop");
+    // End a CONTINUOUS checklist session: stop relaunching, flush the last words
+    // once (no restart since active is now false), then tear down cleanly.
+    if (voiceActiveRef.current && voiceTargetRef.current === "checklist") {
+      voiceActiveRef.current = false;
+      if (voiceSilenceTimerRef.current) {
+        window.clearTimeout(voiceSilenceTimerRef.current);
+        voiceSilenceTimerRef.current = null;
+      }
+      setVoiceListening(false);
+      const last = voiceTranscriptRef.current;
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await NativeSpeechRecognition.stop();
+        } catch {
+          /* ignore */
+        }
+        try {
+          await NativeSpeechRecognition.removeAllListeners();
+        } catch {
+          /* ignore */
+        }
+      } else {
+        try {
+          voiceRecognitionRef.current?.stop?.();
+        } catch {
+          /* ignore */
+        }
+      }
+      await processIncrementalChecklist(last);
+      if (voiceFillTotalRef.current === 0) {
+        setToast("Didn't catch any matching fields — try again.");
+      }
+      return;
+    }
+
     if (Capacitor.isNativePlatform()) {
       finalizeVoiceSession({ submit: true });
     } else {
@@ -1658,8 +1874,17 @@ export default function AILiveInspectionCamera({
     setVoiceTarget(target);
     voiceTranscriptRef.current = "";
     voiceFinalizedRef.current = false; // fresh session
+    // Continuous listening is for the checklist mic only; note dictation stays
+    // single-shot (type on stop). Reset the continuous-session bookkeeping.
+    voiceActiveRef.current = target === "checklist";
+    lastFilledTranscriptRef.current = "";
+    voiceFillTotalRef.current = 0;
+    if (voiceSilenceTimerRef.current) {
+      window.clearTimeout(voiceSilenceTimerRef.current);
+      voiceSilenceTimerRef.current = null;
+    }
     setVoiceFilled(null);
-    logCam("mic:start", { native: Capacitor.isNativePlatform() });
+    logCam("mic:start", { native: Capacitor.isNativePlatform(), continuous: target === "checklist" });
 
     try {
       if (Capacitor.isNativePlatform()) {
@@ -1684,53 +1909,17 @@ export default function AILiveInspectionCamera({
           setToast("Microphone permission was not granted.");
           return;
         }
-        // Clear any listener left over from a previous session before adding a
-        // new one, so partialResults listeners never stack up across sessions.
-        try {
-          await NativeSpeechRecognition.removeAllListeners();
-        } catch {
-          /* ignore */
-        }
-        await NativeSpeechRecognition.addListener("partialResults", (event: any) => {
-          // iOS SFSpeechRecognizer accumulates the whole utterance into matches[0];
-          // accumulatedText is the fuller text on continuous-PTT builds. Either way
-          // keep the latest complete transcript so multi-item phrases aren't clipped.
-          const transcript = String(
-            event?.accumulatedText || event?.matches?.[0] || "",
-          ).trim();
-          if (transcript) voiceTranscriptRef.current = transcript;
-        });
-        // iOS ends the recognizer on its own after a pause, a result, or a time
-        // limit — very common on longer, multi-checkbox phrases. Finalize on that
-        // event (don't re-stop: it's already stopped) so the UI never sits in a
-        // stale "listening" state that a later manual stop would crash on.
-        await NativeSpeechRecognition.addListener("listeningState", (event: any) => {
-          const state = String(event?.state || event?.status || "");
-          if (state === "stopped") {
-            finalizeVoiceSession({ submit: true, alreadyStopped: true });
-          }
-        });
-        // A mid-recognition native error (audio-session glitch, etc.) must not
-        // wedge the session — submit whatever we captured and tear down cleanly.
-        await NativeSpeechRecognition.addListener("error", (event: any) => {
-          logCam("mic:native-error", {
-            code: String(event?.code || ""),
-            msg: String(event?.message || ""),
-          });
-          finalizeVoiceSession({ submit: true });
-        });
-        await NativeSpeechRecognition.start({
-          language: "en-US",
-          maxResults: 1,
-          partialResults: true,
-          popup: false,
-        });
+        // Attach listeners + start. For the checklist target this runs a
+        // CONTINUOUS loop (boxes fill as you speak; iOS auto-stops on a pause and
+        // the loop relaunches); note dictation ends on stop. Listeners are cleared
+        // first inside, so they never stack across sessions/restarts.
+        await attachAndStartNativeVoice();
         setVoiceListening(true);
-        logCam("mic:listening", { native: true });
+        logCam("mic:listening", { native: true, continuous: voiceActiveRef.current });
         setToast(
           voiceTargetRef.current === "note"
             ? "🎤 Dictating your note — speak…"
-            : "🎤 Listening — say what you see…",
+            : "🎤 Listening — say what you see… (keep going, no need to stop)",
         );
       } else {
         // Browser Web Speech API fallback.
@@ -1758,9 +1947,30 @@ export default function AILiveInspectionCamera({
             const result = event.results[i];
             if (result.isFinal) voiceTranscriptRef.current += ` ${result[0]?.transcript || ""}`;
           }
+          // Continuous checklist: tick boxes as you speak, without stopping.
+          if (voiceActiveRef.current && voiceTargetRef.current === "checklist") {
+            scheduleIncrementalFill(voiceTranscriptRef.current.trim());
+          }
         };
-        recognition.onerror = () => setVoiceListening(false);
+        recognition.onerror = () => {
+          // Keep continuous checklist alive across transient errors; onend relaunches.
+          if (!(voiceActiveRef.current && voiceTargetRef.current === "checklist")) {
+            setVoiceListening(false);
+          }
+        };
         recognition.onend = () => {
+          // Continuous checklist stays on: relaunch unless the inspector stopped it.
+          if (voiceActiveRef.current && voiceTargetRef.current === "checklist") {
+            window.setTimeout(() => {
+              if (!voiceActiveRef.current) return;
+              try {
+                recognition.start();
+              } catch {
+                setVoiceListening(false);
+              }
+            }, 300);
+            return;
+          }
           setVoiceListening(false);
           const text = voiceTranscriptRef.current.trim();
           if (text) deliverVoiceTranscript(text);
