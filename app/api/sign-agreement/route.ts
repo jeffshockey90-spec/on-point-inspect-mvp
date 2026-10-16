@@ -358,6 +358,25 @@ export async function POST(req: Request) {
       }
     }
 
+    // Re-sign supersedes the old copy: if this contact already had a signed
+    // agreement (they signed the original, then an add-on was added and they
+    // re-signed the COMBINED set), mark the PRIOR signed record(s) superseded so
+    // the report shows ONE current signed agreement per client, not duplicates.
+    // The old record is kept (status "superseded") for the audit trail — the
+    // signed-agreement lists filter status="signed", so superseded ones drop off.
+    if (agreement?.id && contact?.id) {
+      const { error: supersedeError } = await supabase
+        .from("inspection_agreements")
+        .update({ status: "superseded" })
+        .eq("inspection_id", inspectionId)
+        .eq("contact_id", contact.id)
+        .eq("status", "signed")
+        .neq("id", agreement.id);
+      if (supersedeError) {
+        console.warn("Could not supersede prior signed agreement:", supersedeError.message);
+      }
+    }
+
     if (contact?.id) {
       // This per-contact flag is what the CLIENT's agreement page reads to show
       // "signed". If this update silently fails, the agreement record exists
