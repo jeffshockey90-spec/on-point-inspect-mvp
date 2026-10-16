@@ -6,6 +6,7 @@ import { createClient } from "../../utils/supabase/server";
 import InvoicePaymentButton from "../../components/InvoicePaymentButton";
 import InvoiceReminderButton from "../../components/InvoiceReminderButton";
 import InvoiceRemindButton from "../../components/InvoiceRemindButton";
+import InvoiceReviewButton from "../../components/InvoiceReviewButton";
 import { formatUsd } from "../../lib/currency";
 import { resolveInspectionAccessFilter } from "../../lib/inspectionAccess";
 
@@ -280,6 +281,9 @@ export default async function InvoicesPage() {
                       </span>
                       {status === "sent" && (
                         <InvoiceRemindButton invoiceId={String(inv.id)} />
+                      )}
+                      {status !== "draft" && (inv.client_email || inv.client_phone) && (
+                        <InvoiceReviewButton invoiceId={String(inv.id)} />
                       )}
                       <Link
                         href={`/invoices/${inv.id}/edit`}
