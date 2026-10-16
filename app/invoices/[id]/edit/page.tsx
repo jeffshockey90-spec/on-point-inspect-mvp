@@ -60,6 +60,45 @@ export default async function EditInvoicePage({
     currency = "USD";
   }
 
+  // Everything sent for THIS invoice (email + text): the invoice itself,
+  // reminders, receipts, and review requests. A standalone invoice isn't tied to
+  // a report, so these never show in a report's Sent list — this is their
+  // "Sent" view. All invoice sends log to email_logs with metadata.invoice_id.
+  const { data: sentLogsRaw } = await admin
+    .from("email_logs")
+    .select("email_type, recipient, status, sent_at, created_at")
+    .eq("metadata->>invoice_id", id)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  const sentLogs = sentLogsRaw || [];
+
+  const sendLabel = (t: string) => {
+    const map: Record<string, string> = {
+      invoice: "📧 Invoice (email)",
+      invoice_sms: "💬 Invoice (text)",
+      invoice_reminder: "📧 Payment reminder (email)",
+      invoice_reminder_sms: "💬 Payment reminder (text)",
+      invoice_receipt_sms: "💬 Receipt (text)",
+      receipt: "📧 Receipt (email)",
+      review_request: "📧 Review request (email)",
+      review_request_sms: "💬 Review request (text)",
+    };
+    return map[t] || t;
+  };
+  const fmtWhen = (value: any) => {
+    if (!value) return "";
+    const d = new Date(value);
+    return Number.isNaN(d.getTime())
+      ? ""
+      : d.toLocaleString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+  };
+
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-10 text-[var(--fl-text)] sm:px-8">
       <div className="mx-auto max-w-4xl">
@@ -73,6 +112,41 @@ export default async function EditInvoicePage({
           </Link>
         </div>
         <InvoiceBuilder initialInvoice={invoice} currency={currency} />
+
+        <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5">
+          <h2 className="text-lg font-bold text-[var(--fl-text)]">Sent history</h2>
+          <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
+            Everything sent for this invoice — email and text.
+          </p>
+          {sentLogs.length === 0 ? (
+            <p className="mt-4 text-sm text-[var(--fl-muted)]">Nothing sent yet.</p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {sentLogs.map((log: any, i: number) => (
+                <li
+                  key={i}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-[var(--fl-text)]">{sendLabel(log.email_type)}</p>
+                    <p className="mt-0.5 truncate text-xs text-[var(--fl-muted)]">
+                      to {log.recipient} · {fmtWhen(log.sent_at || log.created_at)}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                      String(log.status) === "sent"
+                        ? "border border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                        : "border border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]"
+                    }`}
+                  >
+                    {String(log.status) === "sent" ? "Sent ✓" : "Failed"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </main>
   );
