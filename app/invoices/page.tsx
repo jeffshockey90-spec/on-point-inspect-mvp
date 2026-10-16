@@ -7,6 +7,7 @@ import InvoicePaymentButton from "../../components/InvoicePaymentButton";
 import InvoiceReminderButton from "../../components/InvoiceReminderButton";
 import InvoiceRemindButton from "../../components/InvoiceRemindButton";
 import InvoiceReviewButton from "../../components/InvoiceReviewButton";
+import InspectionReviewButton from "../../components/InspectionReviewButton";
 import { formatUsd } from "../../lib/currency";
 import { resolveInspectionAccessFilter } from "../../lib/inspectionAccess";
 
@@ -393,6 +394,10 @@ export default async function InvoicesPage() {
                             >
                               View Report
                             </Link>
+
+                            {(inspection.client_email || inspection.email) && (
+                              <InspectionReviewButton inspectionId={inspection.id} />
+                            )}
                           </div>
                         </td>
                       </tr>
