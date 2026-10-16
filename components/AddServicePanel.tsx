@@ -176,7 +176,12 @@ export default function AddServicePanel({
       const secRes = await fetch("/api/inspections/enable-service-section", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inspectionId, service: serviceName }),
+        body: JSON.stringify({
+          inspectionId,
+          service: serviceName,
+          // So the add-on's agreement shows its OWN fee, not the inspection total.
+          price: Number.isFinite(priceNum) && priceNum > 0 ? priceNum : undefined,
+        }),
       });
       const secData = await secRes.json().catch(() => ({}));
       if (secRes.ok && Array.isArray(secData.enabled) && secData.enabled.length) {

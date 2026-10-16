@@ -6,6 +6,7 @@ import {
   notFound,
   unauthorized,
 } from "../../../../lib/apiAuth";
+import { canonicalServiceKey } from "../../../../lib/agreementTemplates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,7 @@ export async function POST(req: Request) {
     const inspectionId = body.inspectionId || body.inspection_id;
     const rawService = String(body.service || body.serviceName || "").trim();
     const service = rawService.toLowerCase();
+    const price = Number(String(body.price ?? "").replace(/[^0-9.]/g, ""));
 
     if (!inspectionId) {
       return NextResponse.json({ error: "Missing inspection." }, { status: 400 });
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
       admin,
       user.id,
       inspectionId,
-      "id, mold, radon, drone, services, inspection_type",
+      "id, mold, radon, drone, services, inspection_type, service_mode, service_fees, invoice_amount, price, fee",
     );
     if (!authorized) return notFound("Inspection not found.");
 
@@ -76,6 +78,27 @@ export async function POST(req: Request) {
         update.services = existing ? `${existing}, ${rawService}` : rawService;
         recorded = true;
       }
+    }
+
+    // 3) Record the add-on's PRICE in the per-service fee map, so its agreement
+    //    shows its OWN fee instead of falling back to the inspection total (the
+    //    home price). The add-on is billed on a SEPARATE invoice, so its price is
+    //    never in service_fees otherwise — that's the "wrong price on the mold
+    //    agreement" bug. Seed the base service's fee from the total first (if the
+    //    map is empty) so deriveServiceFees doesn't later subtract the add-on.
+    if (Number.isFinite(price) && price > 0 && rawService) {
+      const fees: Record<string, any> =
+        insp.service_fees && typeof insp.service_fees === "object"
+          ? { ...insp.service_fees }
+          : {};
+      if (Object.keys(fees).length === 0) {
+        const baseKey = canonicalServiceKey(insp.service_mode || insp.inspection_type || "home");
+        const total =
+          Number(insp.invoice_amount ?? insp.price ?? insp.fee ?? 0) || 0;
+        if (baseKey && total > 0) fees[baseKey] = total;
+      }
+      fees[canonicalServiceKey(rawService)] = price;
+      update.service_fees = fees;
     }
 
     if (Object.keys(update).length === 0) {
