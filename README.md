@@ -115,3 +115,4 @@ The AI photo review uses the public image URL so the image can be evaluated.
 ### Important Inspection Disclaimer
 
 AI-generated comments and photo evaluations are drafting tools only. The inspector must verify the defect, section placement, severity, and wording before the report is published.
+Claude Coder pipeline verified.
