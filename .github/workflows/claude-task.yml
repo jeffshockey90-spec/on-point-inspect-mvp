@@ -61,34 +61,53 @@ jobs:
             --max-turns 100
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(npm ci),Bash(npm run build),Bash(npm test),Bash(npm run test:*),Bash(npm run lint),Bash(npm run check:colors),Bash(git status),Bash(git diff *),Bash(git log *)"
 
-      - name: Independently verify the build (don't trust the agent's own report)
-        id: verify
-        if: steps.claude.outputs.branch_name != ''
+      - name: Capture Claude's changes, verify, and open the PR
+        if: success()
         env:
-          BRANCH: ${{ steps.claude.outputs.branch_name }}
+          GH_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
+          REVIEW_BOT_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+          TASK: ${{ github.event.client_payload.task }}
+          REPO: ${{ github.repository }}
         run: |
-          git fetch origin "$BRANCH"
-          git checkout "$BRANCH"
+          set -e
+          git config user.name "FLOW Coder"
+          git config user.email "coder@flowinspect.app"
+          echo "--- working tree after Claude ---"
+          git status --short | head -50
+          echo "---------------------------------"
+
+          BRANCH="claude/task-${TASK_ID}"
+          CURRENT=$(git rev-parse --abbrev-ref HEAD)
+
+          if [ -n "$(git status --porcelain)" ]; then
+            # Claude left changes uncommitted in the working tree — capture them.
+            git checkout -b "$BRANCH"
+            git add -A
+            git commit -m "FLOW Coder: ${TASK_ID}"
+          elif [ "$CURRENT" != "main" ] && [ -n "$(git rev-list origin/main..HEAD 2>/dev/null || true)" ]; then
+            # The action already committed on a branch — use that one.
+            BRANCH="$CURRENT"
+          else
+            echo "::warning::Claude produced no file changes — nothing to open a PR for."
+            exit 0
+          fi
+
+          # Verify independently before it's offered for review.
           npm ci
           npm run build
           npm test
 
-      - name: Open the pull request
-        if: success() && steps.claude.outputs.branch_name != ''
-        env:
-          GH_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
-          BRANCH: ${{ steps.claude.outputs.branch_name }}
-          TASK_ID: ${{ github.event.client_payload.task_id }}
-          TASK: ${{ github.event.client_payload.task }}
-        run: |
-          case "$BRANCH" in claude/*) ;; *) echo "refusing non-claude branch"; exit 1 ;; esac
+          git remote set-url origin "https://x-access-token:${REVIEW_BOT_TOKEN}@github.com/${REPO}.git"
+          git push -u origin "$BRANCH"
+
           if gh pr view "$BRANCH" >/dev/null 2>&1; then
             echo "PR already exists"
           else
             printf '%s\n\n%s\n' \
-              "App-triggered change. The build ran and passed in this workflow. Review the diff in FLOW and approve to merge — this is not auto-merged." \
-              "Task ($TASK_ID): $TASK" > /tmp/pr-body.txt
+              "App-triggered change. The build + tests ran and passed in this workflow. Review the diff in FLOW and approve to merge — this is not auto-merged." \
+              "Task (${TASK_ID}): ${TASK}" > /tmp/pr-body.txt
             gh pr create --base main --head "$BRANCH" \
-              --title "FLOW Coder: $TASK_ID" \
+              --title "FLOW Coder: ${TASK_ID}" \
               --body-file /tmp/pr-body.txt
           fi
