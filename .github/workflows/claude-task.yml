@@ -58,8 +58,8 @@ jobs:
           prompt: ${{ github.event.client_payload.task }}
           claude_args: |
             --model claude-sonnet-5
-            --max-turns 80
-            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(npm ci),Bash(npm run build),Bash(npm run lint),Bash(git status),Bash(git diff *),Bash(git log *)"
+            --max-turns 100
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(npm ci),Bash(npm run build),Bash(npm test),Bash(npm run test:*),Bash(npm run lint),Bash(npm run check:colors),Bash(git status),Bash(git diff *),Bash(git log *)"
 
       - name: Independently verify the build (don't trust the agent's own report)
         id: verify
@@ -71,6 +71,7 @@ jobs:
           git checkout "$BRANCH"
           npm ci
           npm run build
+          npm test
 
       - name: Open the pull request
         if: success() && steps.claude.outputs.branch_name != ''

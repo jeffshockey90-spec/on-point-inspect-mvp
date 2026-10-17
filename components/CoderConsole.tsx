@@ -128,6 +128,36 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     }
   }
 
+  // Read-only audit: the full code-aware agent reviews the app and writes its
+  // findings as a report (opened as a PR to read — no app code is changed).
+  async function evaluateApp() {
+    if (submitting) return;
+    setSubmitting(true);
+    setNote(null);
+    const scope = chat.length
+      ? `Focus on what Jeff raised in our chat:\n\n${chat.map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`).join("\n\n").slice(0, 5000)}`
+      : "Do a general health pass across the app — correctness, security, performance, and notable UX/code smells.";
+    const task = `READ-ONLY AUDIT — do NOT change any application code. Review the FLOW codebase and assess the app's real condition: correctness risks and bugs, security, performance, and notable UX/code smells. ${scope}\n\nWrite your findings as a clear, PRIORITIZED markdown report at reports/audit-${Date.now()}.md (create the reports/ folder if needed). The ONLY file you add is that report — change nothing else. It will be opened as a PR so Jeff can read it; he can close it without merging.`;
+    try {
+      const res = await fetch("/api/owner/coder/task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNote({ ok: false, text: d?.error || "Could not start the review." });
+        return;
+      }
+      setNote({ ok: true, text: "On it — Claude is reviewing the real code. A report will appear below for you to read." });
+      setTimeout(load, 3000);
+    } catch {
+      setNote({ ok: false, text: "Could not start the review." });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   // Hand the whole planning conversation to the full Claude Code agent to build.
   async function buildFromChat() {
     if (submitting || chat.length === 0) return;
@@ -278,17 +308,28 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
           </button>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-[var(--fl-muted)]">Claude builds on a branch and runs the build before you see the diff.</p>
-          <button
-            type="button"
-            onClick={buildFromChat}
-            disabled={submitting || chat.length === 0}
-            title={chat.length === 0 ? "Talk through what you want first" : ""}
-            className="rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-          >
-            {submitting ? "Starting…" : "⚡ Build this"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={evaluateApp}
+              disabled={submitting}
+              title="Claude reads the real code and writes you a report — changes nothing"
+              className="rounded-xl border border-cyan-400/50 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+            >
+              🔍 Evaluate the app
+            </button>
+            <button
+              type="button"
+              onClick={buildFromChat}
+              disabled={submitting || chat.length === 0}
+              title={chat.length === 0 ? "Talk through what you want first" : ""}
+              className="rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+            >
+              {submitting ? "Starting…" : "⚡ Build this"}
+            </button>
+          </div>
         </div>
         {note && (
           <p className={`mt-2 text-sm font-semibold ${note.ok ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>{note.text}</p>
