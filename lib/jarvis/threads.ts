@@ -99,6 +99,32 @@ async function notifyOwner(author: ThreadAuthor, title: string, text: string) {
   }
 }
 
+// LOOP GUARD for agent-to-agent delegation. Agents can tag each other, so a
+// chain (Jarvis → @johnny5 → @gpt → …) could in theory run away. Before any
+// auto-trigger fires, count how many of the most recent messages are from
+// teammates with no human (owner) in between; once that trailing agent streak
+// hits the cap, stop auto-triggering until Jeff posts again. Keeps delegation
+// bounded without needing to thread a depth counter through every call.
+const MAX_AUTO_HOPS = 8;
+async function tooManyAutoHops(admin: any, threadId: string): Promise<boolean> {
+  try {
+    const { data } = await admin
+      .from("jarvis_messages")
+      .select("author")
+      .eq("thread_id", threadId)
+      .order("created_at", { ascending: false })
+      .limit(MAX_AUTO_HOPS + 2);
+    let hops = 0;
+    for (const m of data || []) {
+      if (m.author === "owner" || m.author === "system") break;
+      hops += 1;
+    }
+    return hops >= MAX_AUTO_HOPS;
+  } catch {
+    return false; // fail-open: never block a legit reply on a count error
+  }
+}
+
 // ChatGPT replies in a thread (read-only teammate). Unconditional — used by the
 // "Ask GPT" button and by the @gpt auto-trigger below.
 export async function triggerGpt(admin: any, threadId: string) {
@@ -126,6 +152,7 @@ export async function triggerGpt(admin: any, threadId: string) {
 async function maybeTriggerGpt(admin: any, threadId: string, author: ThreadAuthor, body: string) {
   if (author === "gpt") return;
   if (!/@gpt\b/i.test(String(body || ""))) return;
+  if (await tooManyAutoHops(admin, threadId)) return;
   await triggerGpt(admin, threadId);
 }
 
@@ -157,6 +184,7 @@ export async function triggerJohnny5(admin: any, threadId: string) {
 async function maybeTriggerJohnny5(admin: any, threadId: string, author: ThreadAuthor, body: string) {
   if (author === "johnny5") return;
   if (!/@johnny5?\b/i.test(String(body || ""))) return;
+  if (await tooManyAutoHops(admin, threadId)) return;
   await triggerJohnny5(admin, threadId);
 }
 
@@ -177,7 +205,7 @@ export async function triggerClaude(admin: any, threadId: string) {
         return `${authorLabel(m.author)}: ${m.body}${files.length ? ` [attached: ${files.join(", ")}]` : ""}`;
       })
       .join("\n\n");
-    const system = `You are Claude, the developer on FLOW's private team — Jeff (owner), Jarvis (ops/health), GPT (strategist), Johnny 5 (competitive recon), and you (Claude, the builder). This is a work thread titled "${thread?.title || "(untitled)"}". Reply as a teammate: concise, warm, honest, in your dev lane. You discuss, analyze, and plan here; when something actually needs to be coded or shipped, say clearly what you'd do — the real change happens in a Claude Code session with the repo where Jeff confirms. Never claim you've edited code from this thread. Output only your reply, no name prefix.`;
+    const system = `You are Claude, the developer on FLOW's private team — Jeff (owner), Jarvis (ops/health), GPT (strategist), Johnny 5 (competitive recon), and you (Claude, the builder). This is a work thread titled "${thread?.title || "(untitled)"}". Reply as a teammate: concise, warm, honest, in your dev lane. You discuss, analyze, and plan here; when something actually needs to be coded or shipped, say clearly what you'd do — the real change happens in a Claude Code session with the repo where Jeff confirms. Never claim you've edited code from this thread. You can hand a task to the right teammate by tagging them — @jarvis for ops/health, @gpt for strategy/framing, @johnny5 for a competitor read — when it's genuinely their lane; a tag actually summons them, so make it one clear hand-off with a specific ask, not ping-pong. Output only your reply, no name prefix.`;
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
@@ -195,6 +223,49 @@ export async function triggerClaude(admin: any, threadId: string) {
   } catch (e: any) {
     console.error("triggerClaude failed:", e?.message || e);
   }
+}
+
+// Jarvis replies in a thread (the ops/chief-of-staff teammate). Mirrors
+// triggerGpt; used for agent-to-agent delegation (a teammate tagging @jarvis).
+// Owner-initiated Jarvis replies still go through the route's triggerJarvisReply.
+export async function triggerJarvis(admin: any, threadId: string) {
+  if (!threadId || !process.env.OPENAI_API_KEY) return;
+  try {
+    const { jarvisRespond } = await import("./agent");
+    const { data: thread } = await admin.from("jarvis_threads").select("title, status").eq("id", threadId).maybeSingle();
+    if (thread?.status === "closed") return;
+    const { data: msgs } = await admin.from("jarvis_messages").select("author, body, meta").eq("thread_id", threadId).order("created_at", { ascending: true });
+    const history = buildThreadHistory(msgs || [], "jarvis");
+    history.push({ role: "user", content: "Respond in this thread as Jarvis — ops/chief-of-staff. Read the whole thread and reply to the latest message (a teammate pulled you in). Check anything factual with your tools first, stay in your lane, and keep it tight." });
+    const today = new Date().toISOString().slice(0, 10);
+    const text = await jarvisRespond({
+      admin, today, timeZone: "America/New_York", history,
+      extraSystem: `You are posting inside a work thread titled "${thread?.title || "(untitled)"}". Teammates: Jeff (owner), Claude (dev), GPT (strategist), Johnny 5 (recon). Output ONLY your reply — no name prefix or bracket label like [Jarvis].`,
+    });
+    const clean = stripLabel(text);
+    if (clean) await addMessage(admin, { threadId, author: "jarvis", body: clean });
+  } catch (e: any) {
+    console.error("Jarvis trigger failed:", e?.message || e);
+  }
+}
+
+// AGENT-TO-AGENT DELEGATION. Runs only when a TEAMMATE (not the owner) posts a
+// message that tags another teammate — so agents can hand work off to each other
+// autonomously. The owner's own posts route through the API (which already fans
+// out @team / @claude / @jarvis), so this never fires for the owner and can't
+// double-trigger. @gpt and @johnny5 are already handled by maybeTriggerGpt /
+// maybeTriggerJohnny5; here we add @claude and @jarvis, and @team fans out to the
+// whole team (minus the author). All of it is bounded by the loop guard.
+async function maybeDelegateFromAgent(admin: any, threadId: string, author: ThreadAuthor, body: string) {
+  if (author === "owner" || author === "system") return;
+  const b = String(body || "");
+  const team = /@team\b/i.test(b);
+  if (!team && !/@claude\b/i.test(b) && !/@jarvis\b/i.test(b)) return;
+  if (await tooManyAutoHops(admin, threadId)) return;
+  if ((team || /@claude\b/i.test(b)) && author !== "claude") await triggerClaude(admin, threadId);
+  if ((team || /@jarvis\b/i.test(b)) && author !== "jarvis") await triggerJarvis(admin, threadId);
+  if (team && author !== "gpt") await triggerGpt(admin, threadId);
+  if (team && author !== "johnny5") await triggerJohnny5(admin, threadId);
 }
 
 export async function createThread(
@@ -219,6 +290,7 @@ export async function createThread(
     await notifyOwner(input.author, title, body);
     await maybeTriggerGpt(admin, id, input.author, body);
     await maybeTriggerJohnny5(admin, id, input.author, body);
+    await maybeDelegateFromAgent(admin, id, input.author, body);
   }
   return { id: id || null };
 }
@@ -242,6 +314,7 @@ export async function addMessage(
   await notifyOwner(input.author, "", body);
   await maybeTriggerGpt(admin, threadId, input.author, body);
   await maybeTriggerJohnny5(admin, threadId, input.author, body);
+  await maybeDelegateFromAgent(admin, threadId, input.author, body);
   return { ok: true };
 }
 
