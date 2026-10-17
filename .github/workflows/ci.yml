@@ -1,0 +1,32 @@
+name: CI
+
+# Builds every pull request to main. This is the check the branch ruleset
+# requires and the one FLOW's Coder console reads to show "Build passed" before
+# you can merge. Uses FAKE build-time env (the build makes no real calls); real
+# secrets live only at runtime.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-service
+      OPENAI_API_KEY: sk-placeholder
+      RESEND_API_KEY: re_placeholder
+      STRIPE_SECRET_KEY: sk_test_placeholder
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build

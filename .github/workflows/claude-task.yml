@@ -24,6 +24,16 @@ jobs:
   implement:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Placeholder build-time env so `npm run build` can construct the module-scope
+    # clients (Supabase/OpenAI/Resend/Stripe) during build. These are FAKE values
+    # — the build never makes real calls; real secrets live only at runtime.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-service
+      OPENAI_API_KEY: sk-placeholder
+      RESEND_API_KEY: re_placeholder
+      STRIPE_SECRET_KEY: sk_test_placeholder
     steps:
       - name: Validate payload
         env:
