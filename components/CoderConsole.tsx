@@ -61,9 +61,13 @@ function Patch({ patch }: { patch: string }) {
 }
 
 export default function CoderConsole({ connected }: { connected: boolean }) {
-  const [task, setTask] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  // Conversational planning: talk with Claude in plain language before building.
+  const [chat, setChat] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [prs, setPrs] = useState<Pr[]>([]);
   const [running, setRunning] = useState<Running[]>([]);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -94,27 +98,61 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     };
   }, [load]);
 
-  async function submit() {
-    const t = task.trim();
-    if (!t || submitting) return;
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat, chatBusy]);
+
+  async function sendChat() {
+    const text = chatInput.trim();
+    if (!text || chatBusy) return;
+    const next = [...chat, { role: "user" as const, content: text }];
+    setChat(next);
+    setChatInput("");
+    setChatBusy(true);
+    try {
+      const res = await fetch("/api/owner/coder/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: next }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setChat((c) => [...c, { role: "assistant", content: `⚠️ ${d?.error || "Couldn't reach the planning chat."}` }]);
+        return;
+      }
+      setChat((c) => [...c, { role: "assistant", content: String(d.reply || "") }]);
+    } catch {
+      setChat((c) => [...c, { role: "assistant", content: "⚠️ Couldn't reach the planning chat." }]);
+    } finally {
+      setChatBusy(false);
+    }
+  }
+
+  // Hand the whole planning conversation to the full Claude Code agent to build.
+  async function buildFromChat() {
+    if (submitting || chat.length === 0) return;
     setSubmitting(true);
     setNote(null);
+    const transcript = chat
+      .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`)
+      .join("\n\n")
+      .slice(0, 7600);
+    const task = `Jeff and I (Claude) planned this change together in FLOW's coder chat. Implement exactly what we agreed — read the codebase, make the change on a branch, and keep it tight. Here is our conversation:\n\n${transcript}`;
     try {
       const res = await fetch("/api/owner/coder/task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task: t }),
+        body: JSON.stringify({ task }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setNote({ ok: false, text: d?.error || "Could not start the task." });
+        setNote({ ok: false, text: d?.error || "Could not start the build." });
         return;
       }
-      setNote({ ok: true, text: "On it — Claude is building this. A reviewable change will appear below in a few minutes." });
-      setTask("");
+      setNote({ ok: true, text: "On it — Claude is building what we discussed. A reviewable change will appear below in a few minutes." });
       setTimeout(load, 3000);
     } catch {
-      setNote({ ok: false, text: "Could not start the task." });
+      setNote({ ok: false, text: "Could not start the build." });
     } finally {
       setSubmitting(false);
     }
@@ -179,22 +217,77 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
   return (
     <div className="space-y-5">
       <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl">
-        <textarea
-          value={task}
-          onChange={(e) => setTask(e.target.value)}
-          rows={3}
-          placeholder="What should I build or fix?  e.g. “On the reports page, add a filter for unpaid add-ons” or “Fix the typo on the client portal payment screen.”"
-          className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
-        />
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-xs text-[var(--fl-muted)]">Be specific. Claude builds it on a branch and runs the build before you see it.</p>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-bold text-[var(--fl-text)]">Talk it through</h2>
+          {chat.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setChat([])}
+              className="text-xs font-semibold text-[var(--fl-muted)] underline hover:text-[var(--fl-text)]"
+            >
+              New chat
+            </button>
+          )}
+        </div>
+        <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
+          Describe what you want in plain words. Claude will reason it through and ask if anything's unclear. When you're happy, tap <b>Build this</b>.
+        </p>
+
+        <div className="mt-3 max-h-80 space-y-3 overflow-y-auto rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
+          {chat.length === 0 ? (
+            <p className="px-1 py-6 text-center text-sm text-[var(--fl-muted)]">
+              e.g. “On the reports page I want a filter for jobs with unpaid add-ons.”  or  “Something feels off on the client portal payment screen — can we look at it?”
+            </p>
+          ) : (
+            chat.map((m, i) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm ${
+                    m.role === "user"
+                      ? "rounded-br-sm bg-teal-500/15 text-[var(--fl-text)]"
+                      : "rounded-bl-sm border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
+                  }`}
+                >
+                  {m.content}
+                </div>
+              </div>
+            ))
+          )}
+          {chatBusy && <p className="px-1 text-xs text-[var(--fl-muted)]">Claude is thinking…</p>}
+          <div ref={chatEndRef} />
+        </div>
+
+        <div className="mt-3 flex items-end gap-2">
+          <textarea
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
+            }}
+            rows={2}
+            placeholder="Tell Claude what you want…  (Enter to send, Shift+Enter for a new line)"
+            className="flex-1 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+          />
           <button
             type="button"
-            onClick={submit}
-            disabled={submitting || !task.trim()}
+            onClick={sendChat}
+            disabled={chatBusy || !chatInput.trim()}
+            className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] disabled:opacity-50 [touch-action:manipulation]"
+          >
+            Send
+          </button>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-xs text-[var(--fl-muted)]">Claude builds on a branch and runs the build before you see the diff.</p>
+          <button
+            type="button"
+            onClick={buildFromChat}
+            disabled={submitting || chat.length === 0}
+            title={chat.length === 0 ? "Talk through what you want first" : ""}
             className="rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
           >
-            {submitting ? "Starting…" : "⚡ Build it"}
+            {submitting ? "Starting…" : "⚡ Build this"}
           </button>
         </div>
         {note && (
