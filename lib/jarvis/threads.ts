@@ -5,14 +5,14 @@
 import { sendPushNotification } from "../push";
 import { OWNER_EMAILS } from "../ownerEmails";
 
-export type ThreadAuthor = "jarvis" | "owner" | "claude" | "gpt" | "johnny5" | "system";
+export type ThreadAuthor = "jarvis" | "owner" | "claude" | "gpt" | "johnny5" | "support" | "herald" | "system";
 export type ThreadStatus = "open" | "in_progress" | "shipped" | "closed";
 
 const STATUSES: ThreadStatus[] = ["open", "in_progress", "shipped", "closed"];
 const CLAUDE_PRESENCE_WINDOW_MS = 90 * 1000; // watcher heartbeats each ~30s poll
 
 function authorLabel(a: string) {
-  return a === "claude" ? "Claude" : a === "gpt" ? "GPT" : a === "jarvis" ? "Jarvis" : a === "johnny5" ? "Johnny 5" : a === "system" ? "System" : "Jeff";
+  return a === "claude" ? "Claude" : a === "gpt" ? "GPT" : a === "jarvis" ? "Jarvis" : a === "johnny5" ? "Johnny 5" : a === "support" ? "Sarah" : a === "herald" ? "Herald" : a === "system" ? "System" : "Jeff";
 }
 
 // The watcher calls this each poll so "Claude online" reflects it actually
@@ -55,7 +55,7 @@ export async function postSystem(admin: any, threadId: string, body: string) {
 // AI teammates sometimes echo the transcript's "[Name] " labeling into their own
 // reply — strip a leading self-label so posts read clean.
 export function stripLabel(text: string): string {
-  return String(text || "").replace(/^\s*\[?(GPT|ChatGPT|Jarvis|Claude|Johnny ?5|Jeff)\]?:?\s*/i, "").trim();
+  return String(text || "").replace(/^\s*\[?(GPT|ChatGPT|Jarvis|Claude|Johnny ?5|Sarah|Herald|Jeff)\]?:?\s*/i, "").trim();
 }
 
 // Build an OpenAI-style message history from thread messages, labeling other
@@ -80,7 +80,7 @@ export function buildThreadHistory(msgs: any[], selfAuthor: string): { role: str
 // owner's own messages). Best-effort — never blocks or throws.
 async function notifyOwner(author: ThreadAuthor, title: string, text: string) {
   if (author === "owner" || author === "system") return;
-  const who = author === "claude" ? "⚡ Claude" : author === "gpt" ? "💡 ChatGPT" : author === "johnny5" ? "🛰️ Johnny 5" : "🤖 Jarvis";
+  const who = author === "claude" ? "⚡ Claude" : author === "gpt" ? "💡 ChatGPT" : author === "johnny5" ? "🛰️ Johnny 5" : author === "support" ? "💬 Sarah" : author === "herald" ? "📣 Herald" : "🤖 Jarvis";
   const body = `${title ? `${title} — ` : ""}${String(text || "").replace(/\s+/g, " ").trim()}`.slice(0, 140);
   for (const email of OWNER_EMAILS) {
     try {
@@ -249,6 +249,64 @@ export async function triggerJarvis(admin: any, threadId: string) {
   }
 }
 
+// Sarah (support) replies in a thread — reads the support chat + drafts replies.
+export async function triggerSupport(admin: any, threadId: string) {
+  if (!threadId || !process.env.OPENAI_API_KEY) return;
+  try {
+    const { supportRespond } = await import("./agent");
+    const { data: thread } = await admin.from("jarvis_threads").select("title, status").eq("id", threadId).maybeSingle();
+    if (thread?.status === "closed") return;
+    const { data: msgs } = await admin.from("jarvis_messages").select("author, body, meta").eq("thread_id", threadId).order("created_at", { ascending: true });
+    const history = buildThreadHistory(msgs || [], "support");
+    history.push({ role: "user", content: "Respond in this thread as Sarah — the support teammate. Read the whole thread and reply to the latest message. If it's about an inspector's support question, use get_support_messages to read the chat and DRAFT a reply (Jeff approves before it's sent); if it's a real bug, escalate with request_fix and say so. Stay in your lane and keep it tight." });
+    const today = new Date().toISOString().slice(0, 10);
+    const text = await supportRespond({
+      admin, today, timeZone: "America/New_York", history,
+      extraSystem: `You are posting inside a work thread titled "${thread?.title || "(untitled)"}". Teammates: Jeff (owner), Jarvis (ops), Claude (dev), GPT (strategist), Johnny 5 (recon), Herald (marketing). Output ONLY your reply — no name prefix or bracket label like [Sarah].`,
+    });
+    const clean = stripLabel(text);
+    if (clean) await addMessage(admin, { threadId, author: "support", body: clean });
+  } catch (e: any) {
+    console.error("Sarah trigger failed:", e?.message || e);
+  }
+}
+
+async function maybeTriggerSupport(admin: any, threadId: string, author: ThreadAuthor, body: string) {
+  if (author === "support") return;
+  if (!/@(sarah|support)\b/i.test(String(body || ""))) return;
+  if (await tooManyAutoHops(admin, threadId)) return;
+  await triggerSupport(admin, threadId);
+}
+
+// Herald (marketing) replies in a thread — drafts promo posts for approval.
+export async function triggerHerald(admin: any, threadId: string) {
+  if (!threadId || !process.env.OPENAI_API_KEY) return;
+  try {
+    const { heraldRespond } = await import("./agent");
+    const { data: thread } = await admin.from("jarvis_threads").select("title, status").eq("id", threadId).maybeSingle();
+    if (thread?.status === "closed") return;
+    const { data: msgs } = await admin.from("jarvis_messages").select("author, body, meta").eq("thread_id", threadId).order("created_at", { ascending: true });
+    const history = buildThreadHistory(msgs || [], "herald");
+    history.push({ role: "user", content: "Respond in this thread as Herald — the marketing teammate. Read the whole thread and reply to the latest message. Draft honest, engaging Facebook post options grounded in true, real things (check get_recent_changes for what actually shipped). Nothing is published until Jeff approves. Keep it tight." });
+    const today = new Date().toISOString().slice(0, 10);
+    const text = await heraldRespond({
+      admin, today, timeZone: "America/New_York", history,
+      extraSystem: `You are posting inside a work thread titled "${thread?.title || "(untitled)"}". Teammates: Jeff (owner), Jarvis (ops), Claude (dev), GPT (strategist), Johnny 5 (recon), Sarah (support). Output ONLY your reply — no name prefix or bracket label like [Herald].`,
+    });
+    const clean = stripLabel(text);
+    if (clean) await addMessage(admin, { threadId, author: "herald", body: clean });
+  } catch (e: any) {
+    console.error("Herald trigger failed:", e?.message || e);
+  }
+}
+
+async function maybeTriggerHerald(admin: any, threadId: string, author: ThreadAuthor, body: string) {
+  if (author === "herald") return;
+  if (!/@herald\b/i.test(String(body || ""))) return;
+  if (await tooManyAutoHops(admin, threadId)) return;
+  await triggerHerald(admin, threadId);
+}
+
 // AGENT-TO-AGENT DELEGATION. Runs only when a TEAMMATE (not the owner) posts a
 // message that tags another teammate — so agents can hand work off to each other
 // autonomously. The owner's own posts route through the API (which already fans
@@ -260,10 +318,16 @@ async function maybeDelegateFromAgent(admin: any, threadId: string, author: Thre
   if (author === "owner" || author === "system") return;
   const b = String(body || "");
   const team = /@team\b/i.test(b);
-  if (!team && !/@claude\b/i.test(b) && !/@jarvis\b/i.test(b)) return;
+  // @gpt/@johnny5/@sarah/@herald direct tags are handled by their own maybeTrigger
+  // in addMessage (for any author). Here we add the two WITHOUT a maybeTrigger —
+  // @claude and @jarvis — plus @team, which fans out to the whole team.
+  const wantsClaudeOrJarvis = /@claude\b/i.test(b) || /@jarvis\b/i.test(b);
+  if (!team && !wantsClaudeOrJarvis) return;
   if (await tooManyAutoHops(admin, threadId)) return;
   if ((team || /@claude\b/i.test(b)) && author !== "claude") await triggerClaude(admin, threadId);
   if ((team || /@jarvis\b/i.test(b)) && author !== "jarvis") await triggerJarvis(admin, threadId);
+  if (team && author !== "support") await triggerSupport(admin, threadId);
+  if (team && author !== "herald") await triggerHerald(admin, threadId);
   if (team && author !== "gpt") await triggerGpt(admin, threadId);
   if (team && author !== "johnny5") await triggerJohnny5(admin, threadId);
 }
@@ -290,6 +354,8 @@ export async function createThread(
     await notifyOwner(input.author, title, body);
     await maybeTriggerGpt(admin, id, input.author, body);
     await maybeTriggerJohnny5(admin, id, input.author, body);
+    await maybeTriggerSupport(admin, id, input.author, body);
+    await maybeTriggerHerald(admin, id, input.author, body);
     await maybeDelegateFromAgent(admin, id, input.author, body);
   }
   return { id: id || null };
@@ -314,6 +380,8 @@ export async function addMessage(
   await notifyOwner(input.author, "", body);
   await maybeTriggerGpt(admin, threadId, input.author, body);
   await maybeTriggerJohnny5(admin, threadId, input.author, body);
+  await maybeTriggerSupport(admin, threadId, input.author, body);
+  await maybeTriggerHerald(admin, threadId, input.author, body);
   await maybeDelegateFromAgent(admin, threadId, input.author, body);
   return { ok: true };
 }

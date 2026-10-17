@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../../../utils/supabase/server";
 import { getAdminClient } from "../../../../../lib/apiAuth";
 import { OWNER_EMAILS } from "../../../../../lib/ownerEmails";
-import { createThread, addMessage, setStatus, listThreads, triggerGpt, triggerClaude, triggerJohnny5, stripLabel, buildThreadHistory, getPresence, postSystem } from "../../../../../lib/jarvis/threads";
+import { createThread, addMessage, setStatus, listThreads, triggerGpt, triggerClaude, triggerJohnny5, triggerSupport, triggerHerald, stripLabel, buildThreadHistory, getPresence, postSystem } from "../../../../../lib/jarvis/threads";
 import { jarvisRespond } from "../../../../../lib/jarvis/agent";
 import { DEFAULT_TIME_ZONE } from "../../../../../lib/app-time";
 
@@ -76,18 +76,24 @@ export async function POST(req: Request) {
     const hasClaude = /@claude\b/i.test(text);
     const hasJarvis = /@jarvis\b/i.test(text);
     const hasJohnny = /@johnny5?\b/i.test(text);
-    const directed = hasGpt || hasClaude || hasJarvis || hasJohnny;
+    const hasSarah = /@(sarah|support)\b/i.test(text);
+    const hasHerald = /@herald\b/i.test(text);
+    const directed = hasGpt || hasClaude || hasJarvis || hasJohnny || hasSarah || hasHerald;
     const wantJarvis = team || hasJarvis || !directed;
     const wantGpt = (team || !directed) && !hasGpt; // @gpt already covered in addMessage
     const wantClaude = team || hasClaude; // cloud Claude (Anthropic API), always-on
-    // Johnny 5 is a specialist (competitor recon): joins on @team; a direct
-    // @johnny5 is already handled inside addMessage. He stays out of untagged
-    // chatter so every message isn't answered by three agents.
+    // Specialists (recon/support/marketing) join on @team; a direct tag is already
+    // handled inside addMessage. They stay out of untagged chatter so every
+    // message isn't answered by the whole team.
     const wantJohnny = team && !hasJohnny;
+    const wantSupport = team && !hasSarah;
+    const wantHerald = team && !hasHerald;
     const jobs: Promise<any>[] = [];
     if (wantJarvis) jobs.push(triggerJarvisReply(admin, threadId));
     if (wantGpt) jobs.push(triggerGpt(admin, threadId));
     if (wantJohnny) jobs.push(triggerJohnny5(admin, threadId));
+    if (wantSupport) jobs.push(triggerSupport(admin, threadId));
+    if (wantHerald) jobs.push(triggerHerald(admin, threadId));
     if (wantClaude) {
       jobs.push(triggerClaude(admin, threadId)); // cloud path (no-op without ANTHROPIC_API_KEY)
       // Honest fallback: if Claude is unreachable (watcher offline AND no cloud
@@ -123,6 +129,98 @@ export async function POST(req: Request) {
     if (!threadId) return NextResponse.json({ error: "Missing thread id." }, { status: 400 });
     await triggerJohnny5(admin, threadId);
     return NextResponse.json({ ok: true });
+  }
+
+  // "Ask Sarah" button — bring the support teammate into the thread.
+  if (action === "support_reply") {
+    const threadId = String(body.thread_id || "").trim();
+    if (!threadId) return NextResponse.json({ error: "Missing thread id." }, { status: 400 });
+    await triggerSupport(admin, threadId);
+    return NextResponse.json({ ok: true });
+  }
+
+  // "Ask Herald" button — bring the marketing teammate into the thread.
+  if (action === "herald_reply") {
+    const threadId = String(body.thread_id || "").trim();
+    if (!threadId) return NextResponse.json({ error: "Missing thread id." }, { status: 400 });
+    await triggerHerald(admin, threadId);
+    return NextResponse.json({ ok: true });
+  }
+
+  // APPROVE & SEND a support draft — owner-gated. Delivers Sarah's drafted reply
+  // to the inspector via their support chat (same shape as the owner reply flow).
+  if (action === "support_send") {
+    const supportThreadId = String(body.support_thread_id || "").trim();
+    const message = String(body.message || "").trim();
+    if (!supportThreadId || !message) {
+      return NextResponse.json({ error: "Missing support thread or message." }, { status: 400 });
+    }
+    const { data: thread } = await admin
+      .from("inspector_support_threads")
+      .select("*")
+      .eq("id", supportThreadId)
+      .maybeSingle();
+    if (!thread) return NextResponse.json({ error: "Support thread not found." }, { status: 404 });
+    const { error: msgErr } = await admin.from("inspector_support_messages").insert({
+      thread_id: supportThreadId,
+      sender_id: owner.id,
+      sender_email: owner.email || null,
+      sender_role: "owner",
+      message,
+      read_by_owner: true,
+      read_by_inspector: false,
+    });
+    if (msgErr) return NextResponse.json({ error: msgErr.message }, { status: 500 });
+    await admin
+      .from("inspector_support_threads")
+      .update({
+        status: "open",
+        last_message: message.replace(/\s+/g, " ").trim().slice(0, 140),
+        last_message_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        unread_inspector_count: Number(thread.unread_inspector_count || 0) + 1,
+      })
+      .eq("id", supportThreadId);
+    return NextResponse.json({ ok: true, message: "Reply sent to the inspector." });
+  }
+
+  // APPROVE & PUBLISH a Herald post — owner-gated. Posts to the Facebook Page via
+  // the Meta Graph API. Gated on the Page credentials; no-ops with a clear
+  // message until they're set, so nothing can publish without them.
+  if (action === "herald_publish") {
+    const text = String(body.text || body.message || "").trim();
+    const link = String(body.link || "").trim();
+    if (!text) return NextResponse.json({ error: "Nothing to publish." }, { status: 400 });
+    const pageId = process.env.META_PAGE_ID || process.env.FACEBOOK_PAGE_ID || "";
+    const pageToken =
+      process.env.META_PAGE_ACCESS_TOKEN || process.env.FACEBOOK_PAGE_ACCESS_TOKEN || "";
+    if (!pageId || !pageToken) {
+      return NextResponse.json(
+        {
+          error:
+            "Facebook isn't connected yet. Add META_PAGE_ID and META_PAGE_ACCESS_TOKEN (your Page's id + a Page access token) so Herald can publish approved posts.",
+        },
+        { status: 400 },
+      );
+    }
+    try {
+      const params = new URLSearchParams({ message: text, access_token: pageToken });
+      if (link) params.set("link", link);
+      const res = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(pageId)}/feed`, {
+        method: "POST",
+        body: params,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return NextResponse.json(
+          { error: data?.error?.message || "Facebook publish failed." },
+          { status: 500 },
+        );
+      }
+      return NextResponse.json({ ok: true, post_id: data?.id || null, message: "Posted to your Facebook Page." });
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message || "Facebook publish failed." }, { status: 500 });
+    }
   }
 
   if (action === "status") {

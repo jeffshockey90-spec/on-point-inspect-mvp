@@ -194,6 +194,72 @@ export async function johnny5Respond(opts: {
   return runAgentTurn(ctx, system, opts.history, JOHNNY5_TOOLS);
 }
 
+// Sarah — customer-support teammate. Reads the inspector support chat and DRAFTS
+// replies for Jeff to approve; escalates real bugs to Claude via request_fix.
+export function supportSystemPrompt(today: string): string {
+  return `You are Sarah — the customer-support teammate inside FLOW, a home-inspection SaaS, working privately with Jeff (owner), Jarvis (ops/health), Claude (developer), GPT (strategist), Johnny 5 (competitive recon), and Herald (marketing). No inspector or outside party can see this workspace.
+
+Your lane: FLOW's inspectors are your customers. You read the inspector support chat (get_support_messages), understand what each inspector is asking, and DRAFT a clear, friendly, accurate reply for Jeff to approve — nothing is sent to an inspector until Jeff approves it.
+
+How you work:
+- Make drafts warm, concise, and genuinely helpful: solve the problem, give the exact steps, sound like a real person on Jeff's team. When you draft a reply to a specific inspector, say which thread it's for.
+- If a message is actually a BUG or something broken in the app (not a how-to), ESCALATE it: call request_fix with a clear title + exactly what the inspector reported — that opens a work thread for Claude — and tell Jeff you've flagged it.
+- Ground anything factual in your tools and your FLOW knowledge; never invent a feature or a fix. If you're unsure, say what you'd confirm rather than guessing.
+- Stay in your lane: you handle customer/support; Claude builds, Jarvis watches ops, GPT frames strategy, Johnny 5 scouts competitors, Herald promotes, Jeff decides. You can hand off by tagging @claude (to fix a bug) or @jarvis (an ops question) — one clean hand-off, not ping-pong.
+
+Voice: warm, calm, competent — the support person everyone wishes they had. Talk to the team directly.
+
+Today is ${today}.
+
+What you know about FLOW:
+${FLOW_SYSTEM_OVERVIEW}`;
+}
+
+export async function supportRespond(opts: {
+  admin: any;
+  today: string;
+  timeZone: string;
+  history: { role: string; content: any }[];
+  extraSystem?: string;
+}): Promise<string> {
+  const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
+  const system = supportSystemPrompt(opts.today) + (opts.extraSystem ? `\n\n${opts.extraSystem}` : "");
+  return runAgentTurn(ctx, system, opts.history, SUPPORT_TOOLS);
+}
+
+// Herald — marketing/promotion teammate. DRAFTS social posts (mainly Facebook)
+// for Jeff to approve; publishing is an owner-approved action, never autonomous.
+export function heraldSystemPrompt(today: string): string {
+  return `You are Herald — the marketing/promotion teammate inside FLOW, working privately with Jeff (owner of On Point Home Inspections), Jarvis (ops), Claude (dev), GPT (strategist), Johnny 5 (recon), and Sarah (support). No outside party sees this workspace.
+
+Your lane: promote On Point Home Inspections and FLOW honestly. You DRAFT social posts (primarily Facebook) that Jeff approves before anything is published — you never publish on your own. Turn real, true things — a feature that actually shipped (get_recent_changes), a seasonal home-maintenance angle, a genuine win — into a short, engaging, honest post.
+
+How you work:
+- Write posts that sound human and local, not corporate or spammy: one clear idea, a light call to action, a few tasteful hashtags only when they help. Offer 1–2 options when useful.
+- Keep every claim TRUE and grounded — check get_recent_changes for what actually shipped; you can web_fetch public references for seasonal/holiday context. NEVER fabricate reviews, testimonials, numbers, or features.
+- Nothing is published until Jeff approves. If a post needs a photo or a link, say so.
+- Stay in your lane: Herald promotes; GPT frames broader strategy, Johnny 5 scouts competitors, Claude builds, Jarvis watches ops, Sarah handles support, Jeff approves. Hand off by tagging @gpt (positioning) or @johnny5 (what competitors say) — one clean ask.
+
+Voice: upbeat, genuine, concise — a great small-business marketer who respects the audience.
+
+Today is ${today}.
+
+What you know about FLOW:
+${FLOW_SYSTEM_OVERVIEW}`;
+}
+
+export async function heraldRespond(opts: {
+  admin: any;
+  today: string;
+  timeZone: string;
+  history: { role: string; content: any }[];
+  extraSystem?: string;
+}): Promise<string> {
+  const ctx: JarvisContext = { admin: opts.admin, today: opts.today, timeZone: opts.timeZone };
+  const system = heraldSystemPrompt(opts.today) + (opts.extraSystem ? `\n\n${opts.extraSystem}` : "");
+  return runAgentTurn(ctx, system, opts.history, HERALD_TOOLS);
+}
+
 function sinceIso(hours: number) {
   return new Date(Date.now() - hours * 3600 * 1000).toISOString();
 }
@@ -331,6 +397,27 @@ const WEB_FETCH_TOOL = {
 // web_fetch so it can look at competitors' public pages.
 export const JOHNNY5_TOOLS: any[] = [...GPT_TOOLS, WEB_FETCH_TOOL];
 
+// Lets Sarah read the inspector support chat so she can draft replies / spot bugs.
+const GET_SUPPORT_TOOL = {
+  type: "function",
+  function: {
+    name: "get_support_messages",
+    description: "Read the inspector support chat: open threads with their recent messages (newest activity first), flagging which are awaiting a reply. Pass thread_id for one thread's fuller recent history. Read-only — you draft replies; Jeff approves before anything is sent to an inspector.",
+    parameters: {
+      type: "object",
+      properties: { thread_id: { type: "string", description: "Optional: a specific support thread id to read in full." } },
+    },
+  },
+};
+
+// Sarah (support): full read visibility + request_fix (to escalate real bugs to
+// Claude) + the support-chat reader. She DRAFTS replies; sending is owner-approved.
+export const SUPPORT_TOOLS: any[] = [...JARVIS_TOOLS, GET_SUPPORT_TOOL];
+
+// Herald (marketing): read-only FLOW visibility + web_fetch for seasonal/holiday
+// context. He DRAFTS posts; publishing is an owner-approved action, not a tool.
+export const HERALD_TOOLS: any[] = [...GPT_TOOLS, WEB_FETCH_TOOL];
+
 export async function runJarvisTool(name: string, args: any, ctx: JarvisContext): Promise<any> {
   try {
     switch (name) {
@@ -344,10 +431,59 @@ export async function runJarvisTool(name: string, args: any, ctx: JarvisContext)
       case "get_report_viewers": return await getReportViewers(ctx, args || {});
       case "request_fix": return await requestFix(ctx, args || {});
       case "web_fetch": return await webFetch(args || {});
+      case "get_support_messages": return await getSupportMessages(ctx, args || {});
       default: return { error: `Unknown tool: ${name}` };
     }
   } catch (e: any) {
     return { error: e?.message || "Tool failed." };
+  }
+}
+
+// Read the inspector support chat for Sarah. Without a thread_id: the most
+// recently active open threads + their last few messages, each flagged
+// awaiting_reply when the inspector spoke last or there are unread owner items.
+// With a thread_id: that thread's fuller recent history.
+async function getSupportMessages(ctx: JarvisContext, args: any): Promise<any> {
+  const admin = ctx.admin;
+  const threadId = String(args?.thread_id || "").trim();
+  try {
+    if (threadId) {
+      const { data: msgs } = await admin
+        .from("inspector_support_messages")
+        .select("sender_role, sender_email, message, created_at")
+        .eq("thread_id", threadId)
+        .order("created_at", { ascending: true })
+        .limit(40);
+      return { thread_id: threadId, messages: msgs || [] };
+    }
+    const { data: threads } = await admin
+      .from("inspector_support_threads")
+      .select("id, inspector_email, status, last_message, last_message_at, unread_owner_count")
+      .order("last_message_at", { ascending: false })
+      .limit(12);
+    const out: any[] = [];
+    for (const t of threads || []) {
+      // eslint-disable-next-line no-await-in-loop
+      const { data: msgs } = await admin
+        .from("inspector_support_messages")
+        .select("sender_role, message, created_at")
+        .eq("thread_id", t.id)
+        .order("created_at", { ascending: false })
+        .limit(6);
+      const recent = (msgs || []).slice().reverse();
+      const lastRole = recent.length ? recent[recent.length - 1].sender_role : "";
+      out.push({
+        thread_id: t.id,
+        inspector_email: t.inspector_email,
+        status: t.status,
+        unread_owner_count: t.unread_owner_count,
+        awaiting_reply: lastRole === "inspector" || Number(t.unread_owner_count || 0) > 0,
+        recent_messages: recent,
+      });
+    }
+    return { threads: out };
+  } catch (e: any) {
+    return { error: e?.message || "Could not read support messages." };
   }
 }
 

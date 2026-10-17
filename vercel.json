@@ -45,6 +45,14 @@
     {
       "path": "/api/cron/johnny5-recon",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/support-watch",
+      "schedule": "0 14,18,22 * * *"
+    },
+    {
+      "path": "/api/cron/herald-weekly",
+      "schedule": "0 15 * * 1"
     }
   ]
 }

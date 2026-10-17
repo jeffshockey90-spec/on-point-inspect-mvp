@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Message = { id: string; author: "jarvis" | "owner" | "claude" | "gpt" | "johnny5" | "system"; body: string; meta: any; created_at: string };
+type Message = { id: string; author: "jarvis" | "owner" | "claude" | "gpt" | "johnny5" | "support" | "herald" | "system"; body: string; meta: any; created_at: string };
 type Thread = {
   id: string;
   title: string;
@@ -27,6 +27,8 @@ const AUTHOR: Record<string, { name: string; icon: string; ring: string; chip: s
   claude: { name: "Claude", icon: "⚡", ring: "from-violet-400 via-purple-500 to-fuchsia-600", chip: "text-[var(--fl-purple-text)]" },
   gpt: { name: "ChatGPT", icon: "💡", ring: "from-emerald-300 via-green-500 to-teal-600", chip: "text-[var(--fl-good-text)]" },
   johnny5: { name: "Johnny 5", icon: "🛰️", ring: "from-amber-300 via-orange-500 to-red-600", chip: "text-[var(--fl-warn-text)]" },
+  support: { name: "Sarah", icon: "💬", ring: "from-sky-300 via-blue-500 to-indigo-600", chip: "text-[var(--fl-info-text)]" },
+  herald: { name: "Herald", icon: "📣", ring: "from-pink-300 via-rose-500 to-red-600", chip: "text-[var(--fl-crit-text)]" },
 };
 
 function fmt(v: string) {
@@ -53,6 +55,8 @@ function Presence({ p }: { p: any }) {
       <span className={chip}><Dot on={!!p.gpt?.online} /> 💡 GPT <span className="text-[var(--fl-faint)]">Online</span></span>
       <span className={chip}><Dot on={!!p.claude?.online} /> ⚡ Claude <span className="text-[var(--fl-faint)]">{claudeLabel}</span></span>
       <span className={chip}><Dot on={p.johnny5 ? !!p.johnny5?.online : true} /> 🛰️ Johnny 5 <span className="text-[var(--fl-faint)]">Online</span></span>
+      <span className={chip}><Dot on={true} /> 💬 Sarah <span className="text-[var(--fl-faint)]">Online</span></span>
+      <span className={chip}><Dot on={true} /> 📣 Herald <span className="text-[var(--fl-faint)]">Online</span></span>
     </div>
   );
 }
@@ -266,6 +270,34 @@ export default function JarvisThreads() {
                               {m.meta?.commit && (
                                 <p className="mt-1 text-xs text-[var(--fl-faint)]">commit <code className="rounded bg-[var(--fl-surface-2)] px-1">{String(m.meta.commit).slice(0, 12)}</code>{m.meta.url ? <> · <a href={m.meta.url} className="text-[var(--fl-accent-text)] underline decoration-dotted">view</a></> : null}</p>
                               )}
+                              {m.author === "herald" && (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={async () => {
+                                    if (!confirm("Publish this post to your Facebook Page?")) return;
+                                    const d = await post({ action: "herald_publish", text: m.body });
+                                    alert(d?.error || d?.message || "Done.");
+                                  }}
+                                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-rose-400/60 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-[var(--fl-crit-text)] hover:bg-rose-500/20 disabled:opacity-60"
+                                >
+                                  📣 Approve &amp; publish to Facebook
+                                </button>
+                              )}
+                              {m.author === "support" && m.meta?.support_thread_id && (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={async () => {
+                                    if (!confirm("Send this reply to the inspector?")) return;
+                                    const d = await post({ action: "support_send", support_thread_id: m.meta.support_thread_id, message: m.meta?.draft || m.body });
+                                    alert(d?.error || d?.message || "Sent.");
+                                  }}
+                                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-blue-400/60 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-[var(--fl-info-text)] hover:bg-blue-500/20 disabled:opacity-60"
+                                >
+                                  💬 Approve &amp; send to inspector
+                                </button>
+                              )}
                             </div>
                           </div>
                         );
@@ -331,6 +363,12 @@ export default function JarvisThreads() {
                           </button>
                           <button type="button" onClick={() => post({ action: "johnny5_reply", thread_id: t.id })} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl border border-orange-400/50 bg-orange-500/10 px-3 py-2 text-sm font-semibold text-[var(--fl-warn-text)] hover:bg-orange-500/20 disabled:opacity-60">
                             🛰️ Ask Johnny 5
+                          </button>
+                          <button type="button" onClick={() => post({ action: "support_reply", thread_id: t.id })} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl border border-blue-400/50 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-[var(--fl-info-text)] hover:bg-blue-500/20 disabled:opacity-60">
+                            💬 Ask Sarah
+                          </button>
+                          <button type="button" onClick={() => post({ action: "herald_reply", thread_id: t.id })} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl border border-rose-400/50 bg-rose-500/10 px-3 py-2 text-sm font-semibold text-[var(--fl-crit-text)] hover:bg-rose-500/20 disabled:opacity-60">
+                            📣 Ask Herald
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
