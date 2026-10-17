@@ -160,9 +160,11 @@ export default function SendReviewRequestButton({
             type="button"
             aria-label="Close menu"
             onClick={() => setOpen(false)}
-            className="fixed inset-0 z-10 cursor-default"
+            className="fixed inset-0 z-10 cursor-default bg-black/40 sm:bg-transparent"
           />
-          <div className="absolute left-0 z-20 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 shadow-2xl">
+          {/* Mobile: a centered sheet so it can't run off-screen no matter where
+              the button wraps to. sm+: an anchored dropdown under the button. */}
+          <div className="fixed inset-x-4 top-1/2 z-20 mx-auto max-h-[80vh] w-auto max-w-sm -translate-y-1/2 overflow-y-auto rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 shadow-2xl sm:absolute sm:inset-x-auto sm:left-0 sm:top-full sm:mt-2 sm:w-80 sm:max-w-[calc(100vw-2rem)] sm:translate-y-0">
             <p className="text-sm font-semibold text-[var(--fl-text)]">
               Who should get the review request?
             </p>

@@ -173,7 +173,7 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
       const res = await fetch("/api/owner/coder/task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task }),
+        body: JSON.stringify({ task, mode: "audit" }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {

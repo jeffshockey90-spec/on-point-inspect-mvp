@@ -21,12 +21,14 @@ export async function POST(req: Request) {
   const task = String(body?.task || "").trim();
   if (!task) return NextResponse.json({ error: "Describe what to build or fix." }, { status: 400 });
   if (task.length > 8000) return NextResponse.json({ error: "Task is too long (8000 character max)." }, { status: 400 });
+  // "audit" = read-only code review that always yields a report; anything else builds.
+  const mode = body?.mode === "audit" ? "audit" : "build";
 
   const taskId = randomUUID();
   try {
     const res = await gh(`/repos/${coderRepo()}/dispatches`, {
       method: "POST",
-      body: JSON.stringify({ event_type: "claude-task", client_payload: { task_id: taskId, task } }),
+      body: JSON.stringify({ event_type: "claude-task", client_payload: { task_id: taskId, task, mode } }),
     });
     if (!res.ok) {
       const t = await res.text().catch(() => "");
