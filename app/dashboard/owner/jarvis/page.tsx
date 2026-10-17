@@ -104,9 +104,14 @@ export default async function JarvisPage() {
                 </p>
               </div>
             </div>
-            <Link href="/dashboard/owner" className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10">
-              ← Owner
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/dashboard/owner/coder" className="rounded-xl border border-teal-400/50 bg-teal-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20">
+                ⚡ Claude Coder
+              </Link>
+              <Link href="/dashboard/owner" className="rounded-xl border border-[var(--fl-line)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10">
+                ← Owner
+              </Link>
+            </div>
           </div>
         </section>
 

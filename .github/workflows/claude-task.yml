@@ -1,0 +1,83 @@
+name: Claude coding task
+
+# FLOW's in-app coding agent. The owner submits a task inside FLOW; FLOW fires a
+# repository_dispatch (event_type "claude-task") with the task text; the REAL
+# Claude Code runs here in GitHub's cloud on a fresh claude/ branch, runs the
+# build, and opens a Pull Request for the owner to review + merge from inside
+# FLOW. It never pushes to main and never merges itself.
+on:
+  repository_dispatch:
+    types: [claude-task]
+
+permissions:
+  contents: write        # push the claude/* branch
+  pull-requests: write   # open the PR
+  issues: write          # action plumbing
+  actions: read          # let Claude read CI results
+  id-token: write        # action GitHub App auth
+
+concurrency:
+  group: claude-task-${{ github.event.client_payload.task_id }}
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Validate payload
+        env:
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+          TASK: ${{ github.event.client_payload.task }}
+        run: |
+          [[ "$TASK_ID" =~ ^[A-Za-z0-9-]{8,64}$ ]] || { echo "bad task_id"; exit 1; }
+          [[ -n "$TASK" && ${#TASK} -le 8000 ]] || { echo "bad task"; exit 1; }
+
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Claude implements the task
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          base_branch: main
+          branch_prefix: claude/
+          prompt: ${{ github.event.client_payload.task }}
+          claude_args: |
+            --model claude-sonnet-5
+            --max-turns 80
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(npm ci),Bash(npm run build),Bash(npm run lint),Bash(git status),Bash(git diff *),Bash(git log *)"
+
+      - name: Independently verify the build (don't trust the agent's own report)
+        id: verify
+        if: steps.claude.outputs.branch_name != ''
+        env:
+          BRANCH: ${{ steps.claude.outputs.branch_name }}
+        run: |
+          git fetch origin "$BRANCH"
+          git checkout "$BRANCH"
+          npm ci
+          npm run build
+
+      - name: Open the pull request
+        if: success() && steps.claude.outputs.branch_name != ''
+        env:
+          GH_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
+          BRANCH: ${{ steps.claude.outputs.branch_name }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+          TASK: ${{ github.event.client_payload.task }}
+        run: |
+          case "$BRANCH" in claude/*) ;; *) echo "refusing non-claude branch"; exit 1 ;; esac
+          if gh pr view "$BRANCH" >/dev/null 2>&1; then
+            echo "PR already exists"
+          else
+            printf '%s\n\n%s\n' \
+              "App-triggered change. The build ran and passed in this workflow. Review the diff in FLOW and approve to merge — this is not auto-merged." \
+              "Task ($TASK_ID): $TASK" > /tmp/pr-body.txt
+            gh pr create --base main --head "$BRANCH" \
+              --title "FLOW Coder: $TASK_ID" \
+              --body-file /tmp/pr-body.txt
+          fi
