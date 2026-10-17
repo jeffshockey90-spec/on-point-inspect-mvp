@@ -17,7 +17,17 @@ type Pr = {
   body: string;
   checks: Checks;
 };
-type Running = { id: number; status: string; created_at: string; url: string; title: string };
+type Run = {
+  id: number;
+  status: string;
+  conclusion: string | null;
+  created_at: string;
+  url: string;
+  title: string;
+  step: string;
+  active: boolean;
+  failed: boolean;
+};
 type DiffFile = { filename: string; status: string; additions: number; deletions: number; patch: string };
 
 function when(v: string) {
@@ -69,7 +79,8 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
   const [chatBusy, setChatBusy] = useState(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [prs, setPrs] = useState<Pr[]>([]);
-  const [running, setRunning] = useState<Running[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [stoppingId, setStoppingId] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [diff, setDiff] = useState<Record<number, DiffFile[]>>({});
   const [diffLoading, setDiffLoading] = useState<number | null>(null);
@@ -83,7 +94,7 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
         setPrs(Array.isArray(d.prs) ? d.prs : []);
-        setRunning(Array.isArray(d.running) ? d.running : []);
+        setRuns(Array.isArray(d.runs) ? d.runs : []);
       }
     } catch {
       /* keep last */
@@ -92,11 +103,30 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
 
   useEffect(() => {
     load();
-    timer.current = window.setInterval(load, 12000) as unknown as number;
+    timer.current = window.setInterval(load, 8000) as unknown as number;
     return () => {
       if (timer.current) window.clearInterval(timer.current);
     };
   }, [load]);
+
+  async function stopRun(id: number) {
+    if (!confirm("Stop this task? It won't open a change.")) return;
+    setStoppingId(id);
+    try {
+      const res = await fetch("/api/owner/coder/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run_id: id }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) alert(d?.error || "Could not stop it.");
+      setTimeout(load, 1500);
+    } catch {
+      alert("Could not stop it.");
+    } finally {
+      setStoppingId(null);
+    }
+  }
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -336,14 +366,46 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
         )}
       </section>
 
-      {running.length > 0 && (
+      {runs.some((r) => r.active) && (
         <section className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4">
-          <p className="text-sm font-bold text-[var(--fl-info-text)]">⏳ Working now</p>
-          <ul className="mt-2 space-y-1 text-sm text-[var(--fl-muted)]">
-            {running.map((r) => (
-              <li key={r.id}>Claude is building… <span className="text-[var(--fl-faint)]">started {when(r.created_at)}</span></li>
+          <p className="text-sm font-bold text-[var(--fl-info-text)]">Working now</p>
+          <ul className="mt-2 space-y-2">
+            {runs.filter((r) => r.active).map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-[var(--fl-text)]">
+                    <span className="inline-flex h-2 w-2 shrink-0 animate-pulse rounded-full bg-cyan-400" />
+                    {r.step || "⏳ Working"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
+                    {r.status === "queued" ? "queued" : "running"} · started {when(r.created_at)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => stopRun(r.id)}
+                  disabled={stoppingId === r.id}
+                  className="shrink-0 rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-[var(--fl-crit-text)] transition hover:bg-red-500/20 disabled:opacity-50 [touch-action:manipulation]"
+                >
+                  {stoppingId === r.id ? "Stopping…" : "■ Stop"}
+                </button>
+              </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {runs.some((r) => r.failed) && !runs.some((r) => r.active) && (
+        <section className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
+          <p className="text-sm font-bold text-[var(--fl-crit-text)]">A recent run didn't finish</p>
+          <ul className="mt-2 space-y-1 text-sm text-[var(--fl-muted)]">
+            {runs.filter((r) => r.failed).slice(0, 3).map((r) => (
+              <li key={r.id}>
+                ❌ {r.conclusion === "cancelled" ? "Stopped" : "Failed"} at {r.step} <span className="text-[var(--fl-faint)]">· {when(r.created_at)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-[var(--fl-muted)]">Nothing was changed. Try again, or tell me and I'll check the logs.</p>
         </section>
       )}
 

@@ -10,19 +10,60 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const owner = await requireOwnerUser();
   if (!owner) return NextResponse.json({ error: "Owner only." }, { status: 403 });
-  if (!coderConfigured()) return NextResponse.json({ configured: false, prs: [], running: [] });
+  if (!coderConfigured()) return NextResponse.json({ configured: false, prs: [], runs: [] });
 
   const repo = coderRepo();
+
+  // Turn a raw GitHub step name into something Jeff can read at a glance.
+  const friendlyStep = (name: string): string => {
+    const n = String(name || "").toLowerCase();
+    if (n.includes("claude implements")) return "✍️ Claude is writing the change";
+    if (n.includes("verify")) return "🧪 Running the build + tests";
+    if (n.includes("pull request")) return "📬 Opening your change to review";
+    if (n.includes("validate")) return "🔎 Reading the task";
+    if (n.includes("checkout")) return "📥 Getting the code";
+    if (n.includes("set up") || n.includes("set up job")) return "⚙️ Starting up";
+    if (n.includes("complete") || n.includes("post ")) return "✅ Finishing up";
+    return name ? `⏳ ${name}` : "⏳ Working";
+  };
+
   try {
-    // In-flight workflow runs (a task dispatched but no PR yet).
-    let running: any[] = [];
+    // Recent workflow runs with the step each one is currently on, so Jeff sees
+    // what the agent is actually doing (and can stop one that's in-flight).
+    let runs: any[] = [];
     try {
-      const runsRes = await gh(`/repos/${repo}/actions/workflows/claude-task.yml/runs?per_page=8`);
+      const runsRes = await gh(`/repos/${repo}/actions/workflows/claude-task.yml/runs?per_page=6`);
       if (runsRes.ok) {
         const d = await runsRes.json();
-        running = (d.workflow_runs || [])
-          .filter((r: any) => r.status !== "completed")
-          .map((r: any) => ({ id: r.id, status: r.status, created_at: r.created_at, url: r.html_url, title: r.display_title }));
+        const list = (d.workflow_runs || []).slice(0, 6);
+        for (const r of list) {
+          let step = "";
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            const jr = await gh(`/repos/${repo}/actions/runs/${r.id}/jobs`);
+            if (jr.ok) {
+              const jd = await jr.json();
+              const steps = jd.jobs?.[0]?.steps || [];
+              const inProgress = steps.find((s: any) => s.status === "in_progress");
+              const lastDone = [...steps].reverse().find((s: any) => s.status === "completed");
+              step = (inProgress || lastDone)?.name || "";
+            }
+          } catch {
+            /* leave step blank */
+          }
+          const active = r.status === "in_progress" || r.status === "queued";
+          runs.push({
+            id: r.id,
+            status: r.status,
+            conclusion: r.conclusion,
+            created_at: r.created_at,
+            url: r.html_url,
+            title: r.display_title,
+            step: friendlyStep(step),
+            active,
+            failed: r.status === "completed" && r.conclusion !== "success",
+          });
+        }
       }
     } catch {
       /* non-fatal */
@@ -73,7 +114,7 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ configured: true, repo, running, prs });
+    return NextResponse.json({ configured: true, repo, runs, prs });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Could not load status." }, { status: 500 });
   }
