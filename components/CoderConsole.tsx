@@ -164,10 +164,11 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     if (submitting) return;
     setSubmitting(true);
     setNote(null);
-    const scope = chat.length
-      ? `Focus on what Jeff raised in our chat:\n\n${chat.map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`).join("\n\n").slice(0, 5000)}`
+    const asked = chat.filter((m) => m.role === "user").map((m) => m.content).join("\n\n").slice(0, 3000);
+    const scope = asked
+      ? `Focus on what Jeff asked:\n\n${asked}`
       : "Do a general health pass across the app — correctness, security, performance, and notable UX/code smells.";
-    const task = `READ-ONLY AUDIT — do NOT change any application code. Review the FLOW codebase and assess the app's real condition: correctness risks and bugs, security, performance, and notable UX/code smells. ${scope}\n\nWrite your findings as a clear, PRIORITIZED markdown report at reports/audit-${Date.now()}.md (create the reports/ folder if needed). The ONLY file you add is that report — change nothing else. It will be opened as a PR so Jeff can read it; he can close it without merging.`;
+    const task = `Your deliverable is a written code-review REPORT FILE. CREATE A NEW FILE at reports/audit-${Date.now()}.md (make the reports/ folder if it doesn't exist) and write into it a clear, PRIORITIZED assessment of FLOW's real condition: correctness risks and bugs, security, performance, and notable UX/code smells, each with the file/area it's in. ${scope}\n\nIMPORTANT: creating and committing that one report file IS the task — you MUST create it, and that does NOT count as "changing the app". Do not modify any application code or config; the report markdown is the ONLY file you add. It will be opened as a PR for Jeff to read.`;
     try {
       const res = await fetch("/api/owner/coder/task", {
         method: "POST",
