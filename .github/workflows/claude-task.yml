@@ -73,7 +73,6 @@ jobs:
           REVIEW_BOT_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
           TASK_ID: ${{ github.event.client_payload.task_id }}
           TASK: ${{ github.event.client_payload.task }}
-          MODE: ${{ github.event.client_payload.mode }}
           EXEC_FILE: ${{ steps.claude.outputs.execution_file }}
           REPO: ${{ github.repository }}
         run: |
@@ -85,48 +84,49 @@ jobs:
           echo "---------------------------------"
 
           BRANCH="claude/task-${TASK_ID}"
-          CURRENT=$(git rev-parse --abbrev-ref HEAD)
 
           if [ -n "$(git status --porcelain)" ]; then
-            # Claude left changes uncommitted in the working tree — capture them.
+            # Claude left changes in the working tree — capture them.
             git checkout -b "$BRANCH"
             git add -A
             git commit -m "FLOW Coder: ${TASK_ID}"
-          elif [ "$MODE" = "audit" ]; then
-            # An audit must always produce a readable report. If the agent returned
-            # its findings as text instead of writing the file, salvage that text so
-            # Jeff still gets a report to read.
-            SRC="${EXEC_FILE:-$RUNNER_TEMP/claude-execution-output.json}"
-            REPORT="reports/audit-${TASK_ID}.md"
-            mkdir -p reports
-            {
-              echo "# FLOW code review — ${TASK_ID}"
-              echo
-              if [ -f "$SRC" ]; then
-                jq -r '
-                  if type=="array" then
-                    ([ .[] | select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text ] | join("\n\n"))
-                  elif has("result") then .result
-                  else tostring end
-                ' "$SRC" 2>/dev/null || cat "$SRC"
-              else
-                echo "_The review ran but produced no captured output._"
-              fi
-            } > "$REPORT"
-            git checkout -b "$BRANCH"
-            git add -A
-            git commit -m "FLOW Coder audit: ${TASK_ID}"
-          elif [ "$CURRENT" != "main" ] && [ -n "$(git rev-list origin/main..HEAD 2>/dev/null || true)" ]; then
-            # The action already committed on a branch — use that one.
-            BRANCH="$CURRENT"
           else
-            echo "::warning::Claude produced no file changes — nothing to open a PR for."
-            exit 0
+            # The agent changed no files. If it produced output text, salvage it
+            # into a report so Jeff always sees a result; otherwise nothing to open.
+            SRC="${EXEC_FILE:-$RUNNER_TEMP/claude-execution-output.json}"
+            TEXT=""
+            if [ -f "$SRC" ]; then
+              TEXT=$(jq -r '
+                if type=="array" then
+                  ([ .[] | select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text ] | join("\n\n"))
+                elif has("result") then .result
+                else "" end
+              ' "$SRC" 2>/dev/null || true)
+            fi
+            if [ -n "$TEXT" ]; then
+              mkdir -p reports
+              { echo "# Claude's reply — ${TASK_ID}"; echo; echo "$TEXT"; } > "reports/audit-${TASK_ID}.md"
+              git checkout -b "$BRANCH"
+              git add -A
+              git commit -m "FLOW Coder: ${TASK_ID}"
+            else
+              echo "::warning::Claude produced no changes or output — nothing to open."
+              exit 0
+            fi
           fi
 
-          # Verify independently before it's offered for review. An audit only adds
-          # a markdown report (no app code), so skip the heavy build/test there.
-          if [ "$MODE" != "audit" ]; then
+          # Did Claude only write a plain-English report (a "look into it" task), or
+          # did it change real app code (a "build/fix" task)? Infer from the files.
+          CHANGED=$(git diff --name-only origin/main..HEAD || true)
+          if [ -n "$CHANGED" ] && ! echo "$CHANGED" | grep -qvE '^reports/.*\.md$'; then
+            IS_REVIEW=1
+          else
+            IS_REVIEW=0
+          fi
+
+          # Independently verify a real change before offering it for review. A
+          # review only adds a markdown report (no app code), so skip build/test.
+          if [ "$IS_REVIEW" = "0" ]; then
             npm ci
             npm run build
             npm test
@@ -135,12 +135,12 @@ jobs:
           git remote set-url origin "https://x-access-token:${REVIEW_BOT_TOKEN}@github.com/${REPO}.git"
           git push -u origin "$BRANCH"
 
-          if [ "$MODE" = "audit" ]; then
+          if [ "$IS_REVIEW" = "1" ]; then
             PR_TITLE="App review: ${TASK_ID}"
-            PR_INTRO="Here's your plain-English review of the app. Nothing was changed — this is just a report for you to read. When you're done reading, you can close it."
+            PR_INTRO="Here's your plain-English review. Nothing in your app was changed — this is just a report for you to read. You can close it when you're done."
           else
-            PR_TITLE="FLOW Coder: ${TASK_ID}"
-            PR_INTRO="This is a change ready for your review. I already ran the automatic checks and they passed. Look it over below and approve it when you're happy — nothing goes live until you say so."
+            PR_TITLE="Change to review: ${TASK_ID}"
+            PR_INTRO="This is a change Claude made for you. The automatic checks ran and passed. Look it over below and approve it when you're happy — nothing goes live until you say so."
           fi
 
           if gh pr view "$BRANCH" >/dev/null 2>&1; then
@@ -148,7 +148,7 @@ jobs:
           else
             printf '%s\n\n%s\n' \
               "$PR_INTRO" \
-              "Task (${TASK_ID}): ${TASK}" > /tmp/pr-body.txt
+              "What you asked (${TASK_ID}): ${TASK}" > /tmp/pr-body.txt
             gh pr create --base main --head "$BRANCH" \
               --title "$PR_TITLE" \
               --body-file /tmp/pr-body.txt

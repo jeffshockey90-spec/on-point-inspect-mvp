@@ -158,66 +158,45 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     }
   }
 
-  // Read-only audit: the full code-aware agent reviews the app and writes its
-  // findings as a report (opened as a PR to read — no app code is changed).
-  async function evaluateApp() {
-    if (submitting) return;
-    setSubmitting(true);
-    setNote(null);
-    const asked = chat.filter((m) => m.role === "user").map((m) => m.content).join("\n\n").slice(0, 3000);
-    const scope = asked
-      ? `Focus on what Jeff asked about:\n\n${asked}`
-      : "Do a general health check across the whole app — anything broken or risky, anything that could leak or lose data, anything slow, and anything confusing for users.";
-    const task = `Your deliverable is a written REPORT FILE for Jeff. CREATE A NEW FILE at reports/audit-${Date.now()}.md (make the reports/ folder if it doesn't exist) and write the report into it. ${scope}
-
-CRITICAL — HOW TO WORK: Do this entire review YOURSELF, directly, in this single session. Do NOT spawn background agents, subagents, parallel tasks, or "fan out" the work, and do NOT wait for any task notifications — nothing runs in the background here and nothing will ever report back, so you would just hang and produce no report. Investigate the code directly (read and search files), then WRITE the final report file yourself. Writing that report file is the LAST thing you do before finishing — never end the session with only a plan or notes.
-
-WHO YOU'RE WRITING FOR — READ THIS CAREFULLY. Jeff owns FLOW but is a home inspector, not a software engineer. Write the ENTIRE report in plain, everyday English that a smart person with zero coding knowledge can understand. This is the most important rule of the task.
-- NO developer jargon. Do not use words like IDOR, RLS, service-role, endpoint, query, schema, race condition, cache, refactor, null, async, etc. If you truly can't avoid a technical word, immediately explain it in parentheses in plain words.
-- Explain every problem by what it MEANS in the real world — for Jeff, his inspectors, his clients, his money, or his reputation — not by how the code works.
-
-Structure the report exactly like this:
-1. Start with a 2–3 sentence plain-English summary: overall, how healthy is the app, and how many things are worth his attention.
-2. Then a list of findings, ORDERED most important first. For EACH finding use this format:
-   ### <a short plain-English title of what's wrong>
+  // The plain-English format the agent must follow whenever it writes a review.
+  const REVIEW_FORMAT = `Write it in plain, everyday English for Jeff — a home inspector, not a software engineer. This matters most.
+- NO developer jargon (no words like IDOR, RLS, service-role, endpoint, query, schema, null, async, cache, refactor). If a technical word is truly unavoidable, explain it in parentheses in plain words.
+- Explain everything by what it MEANS in the real world — for Jeff, his inspectors, his clients, his money, or his reputation — not by how the code works.
+Structure it exactly like this:
+1. A 2–3 sentence plain summary: overall how healthy things are and how many things are worth his attention.
+2. Findings, most important first. For EACH:
+   ### <short plain-English title>
    - **What's happening:** one or two plain sentences.
-   - **Why it matters to you:** the real-world consequence (e.g. "a stranger could see a client's report", "you could lose money on a job", "the page feels slow and clients may give up").
-   - **How urgent:** one of — Fix now / Fix soon / Worth doing eventually — with a few words why.
-   - **Where it is:** the screen or feature in human terms, with the file path in parentheses for the builder to find later.
-   - **What I'd do:** one plain sentence on the fix.
-3. Keep the tone honest but calm and reassuring — don't be alarming. Be careful and factual; don't overstate how bad something is.
+   - **Why it matters to you:** the real-world consequence.
+   - **How urgent:** Fix now / Fix soon / Worth doing eventually — with a few words why.
+   - **Where it is:** the screen or feature in human terms (file path in parentheses for the builder).
+   - **What I'd do:** one plain sentence.
+Keep the tone honest but calm — don't be alarming or overstate things.`;
 
-IMPORTANT: creating and committing that one report file IS the task — you MUST create it, and that does NOT count as "changing the app". Do not modify any application code or config; the report markdown is the ONLY file you add. It will be opened for Jeff to read.`;
-    try {
-      const res = await fetch("/api/owner/coder/task", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task, mode: "audit" }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setNote({ ok: false, text: d?.error || "Could not start the review." });
-        return;
-      }
-      setNote({ ok: true, text: "On it — Claude is reviewing the real code. A report will appear below for you to read." });
-      setTimeout(load, 3000);
-    } catch {
-      setNote({ ok: false, text: "Could not start the review." });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  // Hand the whole planning conversation to the full Claude Code agent to build.
-  async function buildFromChat() {
+  // ONE action. Jeff just tells Claude what he wants; the full agent decides
+  // whether to look into it (and bring back a plain-English report) or make the
+  // change (for him to approve), then reports back as a PR below. No separate
+  // "evaluate vs build" choice to think about — nothing ships without approval.
+  async function submit() {
     if (submitting || chat.length === 0) return;
     setSubmitting(true);
     setNote(null);
     const transcript = chat
       .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`)
       .join("\n\n")
-      .slice(0, 7600);
-    const task = `Jeff and I (Claude) planned this change together in FLOW's coder chat. Implement exactly what we agreed — read the codebase, make the change on a branch, and keep it tight. Here is our conversation:\n\n${transcript}`;
+      .slice(0, 7000);
+    const task = `Jeff talks to you in plain language in FLOW's coder. Do what he's asking below, then report back. Nothing you do ships without his approval.
+
+FIRST, DECIDE WHAT HE NEEDS:
+- If he's asking a QUESTION, or to LOOK AT / REVIEW / CHECK / EXPLAIN / INVESTIGATE something (not change it): do NOT modify any app code or config. Investigate the real code, then CREATE A NEW FILE at reports/audit-${Date.now()}.md with your findings, and add ONLY that file. ${REVIEW_FORMAT}
+- If he's asking you to BUILD / ADD / FIX / CHANGE / REMOVE something: make the change on this branch, follow the project's CLAUDE.md rules, run the build + tests, and keep it focused on exactly what he asked.
+If it's genuinely ambiguous, or it would be risky to guess, prefer the review path — write up what you found and what you'd recommend — rather than making a change he didn't clearly ask for.
+
+HOW TO WORK: do this yourself in this one session. Do NOT spawn background agents, subagents, or parallel tasks, and do NOT wait for task notifications — nothing runs in the background here, so you'd just hang. Finish by either committing your code change or writing the report file.
+
+Here is Jeff's request / your conversation so far:
+
+${transcript}`;
     try {
       const res = await fetch("/api/owner/coder/task", {
         method: "POST",
@@ -226,13 +205,13 @@ IMPORTANT: creating and committing that one report file IS the task — you MUST
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setNote({ ok: false, text: d?.error || "Could not start the build." });
+        setNote({ ok: false, text: d?.error || "Could not start it." });
         return;
       }
-      setNote({ ok: true, text: "On it — Claude is building what we discussed. A reviewable change will appear below in a few minutes." });
+      setNote({ ok: true, text: "On it — Claude is working on this now. It'll bring back either a change to approve or a report to read, below, in a few minutes." });
       setTimeout(load, 3000);
     } catch {
-      setNote({ ok: false, text: "Could not start the build." });
+      setNote({ ok: false, text: "Could not start it." });
     } finally {
       setSubmitting(false);
     }
@@ -310,7 +289,7 @@ IMPORTANT: creating and committing that one report file IS the task — you MUST
           )}
         </div>
         <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
-          Describe what you want in plain words. Claude will reason it through and ask if anything's unclear. When you're happy, tap <b>Build this</b>.
+          Just tell Claude what you want — ask it to look into something, or to build or fix something. Chat as long as you like, then tap <b>Do it</b> and Claude goes and does it, then reports back below.
         </p>
 
         <div className="mt-3 max-h-80 space-y-3 overflow-y-auto rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
@@ -359,27 +338,16 @@ IMPORTANT: creating and committing that one report file IS the task — you MUST
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-[var(--fl-muted)]">Claude builds on a branch and runs the build before you see the diff.</p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={evaluateApp}
-              disabled={submitting}
-              title="Claude reads the real code and writes you a report — changes nothing"
-              className="rounded-xl border border-cyan-400/50 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-            >
-              🔍 Evaluate the app
-            </button>
-            <button
-              type="button"
-              onClick={buildFromChat}
-              disabled={submitting || chat.length === 0}
-              title={chat.length === 0 ? "Talk through what you want first" : ""}
-              className="rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-            >
-              {submitting ? "Starting…" : "⚡ Build this"}
-            </button>
-          </div>
+          <p className="text-xs text-[var(--fl-muted)]">Claude works in a safe copy and checks everything before you see it. Nothing goes live until you approve.</p>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={submitting || chat.length === 0}
+            title={chat.length === 0 ? "Tell Claude what you want first" : ""}
+            className="rounded-xl bg-teal-500 px-6 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+          >
+            {submitting ? "Starting…" : "⚡ Do it"}
+          </button>
         </div>
         {note && (
           <p className={`mt-2 text-sm font-semibold ${note.ok ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>{note.text}</p>
@@ -430,10 +398,10 @@ IMPORTANT: creating and committing that one report file IS the task — you MUST
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-bold text-[var(--fl-text)]">Changes to review</h2>
+        <h2 className="text-lg font-bold text-[var(--fl-text)]">Results</h2>
         {prs.length === 0 ? (
           <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm text-[var(--fl-muted)]">
-            No changes yet. Describe something above and Claude will bring you a reviewable diff.
+            Nothing yet. Tell Claude what to do above and it'll bring back a change to approve or a report to read, right here.
           </p>
         ) : (
           prs.map((p) => (
