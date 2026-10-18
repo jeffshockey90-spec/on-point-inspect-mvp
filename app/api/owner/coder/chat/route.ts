@@ -1,28 +1,35 @@
 import { NextResponse } from "next/server";
-import { requireOwnerUser } from "../../../../../lib/coder/github";
+import { randomUUID } from "crypto";
+import { requireOwnerUser, coderRepo, coderConfigured, gh } from "../../../../../lib/coder/github";
 import { getAIModel } from "../../../../../lib/openai";
+import { buildReviewTask } from "../../../../../lib/coder/taskPrompt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// The conversational planning partner for the Coder. You talk to it in plain
-// language; it reasons, asks a clarifying question when needed, and explains
-// what it would change — then you tap "Build this" and the full Claude Code
-// agent (which reads the whole repo) implements it and opens a PR. This chat
-// SHAPES the plan; it doesn't write code. Prefers Claude (ANTHROPIC_API_KEY),
-// falls back to FLOW's OpenAI so it always works.
-const SYSTEM = `You are Claude, the coding partner built into FLOW — a home-inspection SaaS owned by Jeff. Jeff talks to you here in plain, everyday language about things he wants built or fixed in his app.
+// The Coder chat. Jeff talks to it exactly like he talks to Claude in a session:
+// it answers, reasons, and — when he asks it to look into / check something about
+// the real app — it goes and does that itself (launches the full code-aware agent
+// in read-only mode, which reads the real code and reports back below), then tells
+// him it's on it. It NEVER changes code; that's deliberately reserved for the
+// "Build this" button. Prefers Claude (ANTHROPIC_API_KEY), falls back to FLOW's
+// OpenAI so it always works.
+//
+// Protocol: if the model decides Jeff wants it to actually examine the real app
+// (not just chat), it starts its reply with the token [[LOOK]] on its own first
+// line. This route then launches a read-only review from the whole conversation
+// and strips the token before showing Jeff the reply.
+const LOOK_TOKEN = "[[LOOK]]";
 
-Your job in THIS chat is to PLAN with him, not to write code:
-- Understand what he actually wants. Reason about it. If something genuinely matters and is unclear, ask ONE short clarifying question — otherwise just proceed.
-- Explain in plain terms what you'd change and roughly where, so he knows what he's approving. Keep it tight and friendly — talk like a sharp, warm engineer, not a manual.
-- When the plan feels clear, say so plainly (e.g., "Got it — ready to build this whenever you are") so he knows he can tap "Build this".
+const SYSTEM = `You are Claude, Jeff's coding teammate built into FLOW — a home-inspection SaaS he owns. Talk to him exactly like you would in a normal Claude session: plain, warm, direct. He is a home inspector, not a software engineer, so never use developer jargon; explain anything technical in everyday words.
 
-Important: you are the planning conversation. When Jeff taps "Build this", a FULL Claude Code agent that can read the entire FLOW codebase implements exactly what you two agreed and opens a pull request for his approval — nothing ships without him. So never claim you've already written or shipped code here; you're shaping the plan. Don't invent specifics about the code you can't know; describe the intent and let the builder handle exact files.
+You can DO things, not just talk:
+- If Jeff asks you to LOOK INTO / CHECK / REVIEW / INVESTIGATE / EXPLAIN something about the real app — or asks a question that can only be answered honestly by reading the actual code (e.g. "is the payment screen okay?", "why is X slow?", "did my client's agreement save?") — then GO DO IT. Start your reply with "${LOOK_TOKEN}" on its own first line, then a short, natural sentence telling him you're on it (e.g. "On it — I'll dig into the payment screen and come back with what I find."). The system will then actually read the real code and post a plain-English report below for him in a few minutes. Don't tell him to press anything; just say you're doing it.
+- If it's a general question, a quick clarification, or you two are still figuring out WHAT he wants, just talk it through normally (no token). Ask ONE short question only if you genuinely need it; otherwise help him think.
 
-If Jeff asks you to evaluate, audit, or assess the real app/codebase (not just plan from his words): tell him to tap the "🔍 Evaluate the app" button — that runs the full code-aware agent in READ-ONLY mode over the actual code and brings back a written report he can read right here, changing nothing. If he describes a specific area first, that scopes the review. You can still help him think through what to look at.
+IMPORTANT — you do NOT change code here. Changing code is deliberate and separate: when Jeff actually wants the code changed, he uses the "Build this" button, which hands this whole conversation to the builder. So if he's describing a change he wants built, help him get it clear and confident, and let him know it's ready to build whenever he is — mention that once, naturally, not repeatedly. Never nag him to press buttons, and never claim you've already changed or shipped code.
 
-Debugging: if Jeff describes a bug or pastes an error/log, help him reason about the likely cause, and ask for the error text or steps to reproduce if that would help. When he taps "Build this", the full agent reproduces/root-causes it, makes the smallest correct fix, and runs the build AND the test suite before he ever sees the diff — so what he reviews is already verified.`;
+Never mention pull requests, branches, GitHub, or internal tooling. Keep it to the real-world result: what you'll look into, or what will change, and that nothing goes live until he approves it.`;
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -88,12 +95,40 @@ export async function POST(req: Request) {
   }
 
   // Prefer Claude; fall back to FLOW's OpenAI so the chat always works.
-  const reply = (await viaAnthropic(messages)) || (await viaOpenAI(messages));
-  if (!reply) {
+  const raw2 = (await viaAnthropic(messages)) || (await viaOpenAI(messages));
+  if (!raw2) {
     return NextResponse.json(
-      { error: "The planning chat isn't available right now (no AI key reachable)." },
+      { error: "The chat isn't available right now (no AI key reachable)." },
       { status: 503 },
     );
   }
-  return NextResponse.json({ reply });
+
+  // Did the chat decide to actually go look at the real app? If so, strip the
+  // token and launch a read-only review from the whole conversation — the full
+  // code-aware agent reads the code and reports back below. The chat itself
+  // never changes code (that's the "Build this" button).
+  const wantsLook = raw2.trimStart().startsWith(LOOK_TOKEN);
+  const reply = wantsLook ? raw2.trimStart().slice(LOOK_TOKEN.length).trim() : raw2;
+
+  let acted = false;
+  if (wantsLook && coderConfigured()) {
+    try {
+      const transcript = messages
+        .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`)
+        .join("\n\n")
+        .slice(0, 7000);
+      const res = await gh(`/repos/${coderRepo()}/dispatches`, {
+        method: "POST",
+        body: JSON.stringify({
+          event_type: "claude-task",
+          client_payload: { task_id: randomUUID(), task: buildReviewTask(transcript) },
+        }),
+      });
+      acted = res.ok;
+    } catch {
+      acted = false;
+    }
+  }
+
+  return NextResponse.json({ reply, acted });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { buildChangeTask } from "../lib/coder/taskPrompt";
 
 // In-app coding agent console. Submit a task → Claude Code (real engine, in the
 // cloud) builds it on a branch and opens a PR → review the diff + build status
@@ -147,36 +148,26 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setChat((c) => [...c, { role: "assistant", content: `⚠️ ${d?.error || "Couldn't reach the planning chat."}` }]);
+        setChat((c) => [...c, { role: "assistant", content: `⚠️ ${d?.error || "Couldn't reach the chat."}` }]);
         return;
       }
       setChat((c) => [...c, { role: "assistant", content: String(d.reply || "") }]);
+      // The chat decided to go look at the real app — a report is now on its way
+      // into Results below. Nudge the status so Jeff sees it working.
+      if (d.acted) {
+        setNote({ ok: true, text: "On it — Claude is looking into that now. The report will appear below in a few minutes." });
+        setTimeout(load, 3000);
+      }
     } catch {
-      setChat((c) => [...c, { role: "assistant", content: "⚠️ Couldn't reach the planning chat." }]);
+      setChat((c) => [...c, { role: "assistant", content: "⚠️ Couldn't reach the chat." }]);
     } finally {
       setChatBusy(false);
     }
   }
 
-  // The plain-English format the agent must follow whenever it writes a review.
-  const REVIEW_FORMAT = `Write it in plain, everyday English for Jeff — a home inspector, not a software engineer. This matters most.
-- NO developer jargon (no words like IDOR, RLS, service-role, endpoint, query, schema, null, async, cache, refactor). If a technical word is truly unavoidable, explain it in parentheses in plain words.
-- Explain everything by what it MEANS in the real world — for Jeff, his inspectors, his clients, his money, or his reputation — not by how the code works.
-Structure it exactly like this:
-1. A 2–3 sentence plain summary: overall how healthy things are and how many things are worth his attention.
-2. Findings, most important first. For EACH:
-   ### <short plain-English title>
-   - **What's happening:** one or two plain sentences.
-   - **Why it matters to you:** the real-world consequence.
-   - **How urgent:** Fix now / Fix soon / Worth doing eventually — with a few words why.
-   - **Where it is:** the screen or feature in human terms (file path in parentheses for the builder).
-   - **What I'd do:** one plain sentence.
-Keep the tone honest but calm — don't be alarming or overstate things.`;
-
-  // ONE action. Jeff just tells Claude what he wants; the full agent decides
-  // whether to look into it (and bring back a plain-English report) or make the
-  // change (for him to approve), then reports back as a PR below. No separate
-  // "evaluate vs build" choice to think about — nothing ships without approval.
+  // "Build this" — the deliberate "actually change the code" action. Hands the
+  // whole conversation to the builder, which makes the change on a branch for
+  // Jeff to approve. (Looking into things happens in the chat itself, no button.)
   async function submit() {
     if (submitting || chat.length === 0) return;
     setSubmitting(true);
@@ -185,30 +176,18 @@ Keep the tone honest but calm — don't be alarming or overstate things.`;
       .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`)
       .join("\n\n")
       .slice(0, 7000);
-    const task = `Jeff talks to you in plain language in FLOW's coder. Do what he's asking below, then report back. Nothing you do ships without his approval.
-
-FIRST, DECIDE WHAT HE NEEDS:
-- If he's asking a QUESTION, or to LOOK AT / REVIEW / CHECK / EXPLAIN / INVESTIGATE something (not change it): do NOT modify any app code or config. Investigate the real code, then CREATE A NEW FILE at reports/audit-${Date.now()}.md with your findings, and add ONLY that file. ${REVIEW_FORMAT}
-- If he's asking you to BUILD / ADD / FIX / CHANGE / REMOVE something: make the change on this branch, follow the project's CLAUDE.md rules, run the build + tests, and keep it focused on exactly what he asked.
-If it's genuinely ambiguous, or it would be risky to guess, prefer the review path — write up what you found and what you'd recommend — rather than making a change he didn't clearly ask for.
-
-HOW TO WORK: do this yourself in this one session. Do NOT spawn background agents, subagents, or parallel tasks, and do NOT wait for task notifications — nothing runs in the background here, so you'd just hang. Finish by either committing your code change or writing the report file.
-
-Here is Jeff's request / your conversation so far:
-
-${transcript}`;
     try {
       const res = await fetch("/api/owner/coder/task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task }),
+        body: JSON.stringify({ task: buildChangeTask(transcript) }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
         setNote({ ok: false, text: d?.error || "Could not start it." });
         return;
       }
-      setNote({ ok: true, text: "On it — Claude is working on this now. It'll bring back either a change to approve or a report to read, below, in a few minutes." });
+      setNote({ ok: true, text: "On it — Claude is making that change now. It'll show up below for you to approve in a few minutes. Nothing goes live until you do." });
       setTimeout(load, 3000);
     } catch {
       setNote({ ok: false, text: "Could not start it." });
@@ -289,7 +268,7 @@ ${transcript}`;
           )}
         </div>
         <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
-          Just tell Claude what you want — ask it to look into something, or to build or fix something. Chat as long as you like, then tap <b>Do it</b> and Claude goes and does it, then reports back below.
+          Talk to Claude like you would in a chat. Ask it to look into or check something and it'll go read the real app and report back below — no button needed. When you actually want it to <b>change the code</b>, tap <b>Build this</b>.
         </p>
 
         <div className="mt-3 max-h-80 space-y-3 overflow-y-auto rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
@@ -338,15 +317,15 @@ ${transcript}`;
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-[var(--fl-muted)]">Claude works in a safe copy and checks everything before you see it. Nothing goes live until you approve.</p>
+          <p className="text-xs text-[var(--fl-muted)]">Only tap Build this when you want the code actually changed. Claude works in a safe copy and checks everything first — nothing goes live until you approve.</p>
           <button
             type="button"
             onClick={submit}
             disabled={submitting || chat.length === 0}
-            title={chat.length === 0 ? "Tell Claude what you want first" : ""}
+            title={chat.length === 0 ? "Tell Claude what you want changed first" : "Have Claude actually change the code"}
             className="rounded-xl bg-teal-500 px-6 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
           >
-            {submitting ? "Starting…" : "⚡ Do it"}
+            {submitting ? "Starting…" : "⚡ Build this"}
           </button>
         </div>
         {note && (
