@@ -136,11 +136,11 @@ jobs:
           git push -u origin "$BRANCH"
 
           if [ "$MODE" = "audit" ]; then
-            PR_TITLE="FLOW code review: ${TASK_ID}"
-            PR_INTRO="Read-only code review (no app code changed — close without merging once read). Report added under reports/."
+            PR_TITLE="App review: ${TASK_ID}"
+            PR_INTRO="Here's your plain-English review of the app. Nothing was changed — this is just a report for you to read. When you're done reading, you can close it."
           else
             PR_TITLE="FLOW Coder: ${TASK_ID}"
-            PR_INTRO="App-triggered change. The build + tests ran and passed in this workflow. Review the diff in FLOW and approve to merge — this is not auto-merged."
+            PR_INTRO="This is a change ready for your review. I already ran the automatic checks and they passed. Look it over below and approve it when you're happy — nothing goes live until you say so."
           fi
 
           if gh pr view "$BRANCH" >/dev/null 2>&1; then

@@ -166,9 +166,26 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     setNote(null);
     const asked = chat.filter((m) => m.role === "user").map((m) => m.content).join("\n\n").slice(0, 3000);
     const scope = asked
-      ? `Focus on what Jeff asked:\n\n${asked}`
-      : "Do a general health pass across the app — correctness, security, performance, and notable UX/code smells.";
-    const task = `Your deliverable is a written code-review REPORT FILE. CREATE A NEW FILE at reports/audit-${Date.now()}.md (make the reports/ folder if it doesn't exist) and write into it a clear, PRIORITIZED assessment of FLOW's real condition: correctness risks and bugs, security, performance, and notable UX/code smells, each with the file/area it's in. ${scope}\n\nIMPORTANT: creating and committing that one report file IS the task — you MUST create it, and that does NOT count as "changing the app". Do not modify any application code or config; the report markdown is the ONLY file you add. It will be opened as a PR for Jeff to read.`;
+      ? `Focus on what Jeff asked about:\n\n${asked}`
+      : "Do a general health check across the whole app — anything broken or risky, anything that could leak or lose data, anything slow, and anything confusing for users.";
+    const task = `Your deliverable is a written REPORT FILE for Jeff. CREATE A NEW FILE at reports/audit-${Date.now()}.md (make the reports/ folder if it doesn't exist) and write the report into it. ${scope}
+
+WHO YOU'RE WRITING FOR — READ THIS CAREFULLY. Jeff owns FLOW but is a home inspector, not a software engineer. Write the ENTIRE report in plain, everyday English that a smart person with zero coding knowledge can understand. This is the most important rule of the task.
+- NO developer jargon. Do not use words like IDOR, RLS, service-role, endpoint, query, schema, race condition, cache, refactor, null, async, etc. If you truly can't avoid a technical word, immediately explain it in parentheses in plain words.
+- Explain every problem by what it MEANS in the real world — for Jeff, his inspectors, his clients, his money, or his reputation — not by how the code works.
+
+Structure the report exactly like this:
+1. Start with a 2–3 sentence plain-English summary: overall, how healthy is the app, and how many things are worth his attention.
+2. Then a list of findings, ORDERED most important first. For EACH finding use this format:
+   ### <a short plain-English title of what's wrong>
+   - **What's happening:** one or two plain sentences.
+   - **Why it matters to you:** the real-world consequence (e.g. "a stranger could see a client's report", "you could lose money on a job", "the page feels slow and clients may give up").
+   - **How urgent:** one of — Fix now / Fix soon / Worth doing eventually — with a few words why.
+   - **Where it is:** the screen or feature in human terms, with the file path in parentheses for the builder to find later.
+   - **What I'd do:** one plain sentence on the fix.
+3. Keep the tone honest but calm and reassuring — don't be alarming. Be careful and factual; don't overstate how bad something is.
+
+IMPORTANT: creating and committing that one report file IS the task — you MUST create it, and that does NOT count as "changing the app". Do not modify any application code or config; the report markdown is the ONLY file you add. It will be opened for Jeff to read.`;
     try {
       const res = await fetch("/api/owner/coder/task", {
         method: "POST",
