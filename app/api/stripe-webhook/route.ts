@@ -124,7 +124,9 @@ async function logEmailEvent(
 ) {
   try {
     await supabase.from("email_logs").insert({
-      inspection_id: Number(inspectionId),
+      // email_logs.inspection_id is a UUID column — writing a number there 400s
+      // the whole insert and the receipt silently never records. The numeric id
+      // belongs only in inspection_id_bigint.
       inspection_id_bigint: Number(inspectionId),
       recipient,
       recipient_email: recipient,

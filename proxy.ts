@@ -71,6 +71,11 @@ const PUBLIC_PREFIXES = [
   // -webhook, independent of these pages.
   "/payment-success",
   "/payment-cancelled",
+  // Standalone-invoice checkout sends the (anonymous) payer back here. Same deal
+  // as /payment-success above: no sensitive data on the page, so it must be
+  // reachable without a login or the client who just paid hits the login wall.
+  // Scoped to this exact page — the rest of /invoices stays behind the login.
+  "/invoices/payment-success",
   "/forgot-password",
   "/reset-password",
   "/book",
