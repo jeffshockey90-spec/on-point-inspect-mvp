@@ -170,6 +170,8 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
       : "Do a general health check across the whole app — anything broken or risky, anything that could leak or lose data, anything slow, and anything confusing for users.";
     const task = `Your deliverable is a written REPORT FILE for Jeff. CREATE A NEW FILE at reports/audit-${Date.now()}.md (make the reports/ folder if it doesn't exist) and write the report into it. ${scope}
 
+CRITICAL — HOW TO WORK: Do this entire review YOURSELF, directly, in this single session. Do NOT spawn background agents, subagents, parallel tasks, or "fan out" the work, and do NOT wait for any task notifications — nothing runs in the background here and nothing will ever report back, so you would just hang and produce no report. Investigate the code directly (read and search files), then WRITE the final report file yourself. Writing that report file is the LAST thing you do before finishing — never end the session with only a plan or notes.
+
 WHO YOU'RE WRITING FOR — READ THIS CAREFULLY. Jeff owns FLOW but is a home inspector, not a software engineer. Write the ENTIRE report in plain, everyday English that a smart person with zero coding knowledge can understand. This is the most important rule of the task.
 - NO developer jargon. Do not use words like IDOR, RLS, service-role, endpoint, query, schema, race condition, cache, refactor, null, async, etc. If you truly can't avoid a technical word, immediately explain it in parentheses in plain words.
 - Explain every problem by what it MEANS in the real world — for Jeff, his inspectors, his clients, his money, or his reputation — not by how the code works.
