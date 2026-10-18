@@ -38,6 +38,8 @@ type ChatMsg = {
   role: "user" | "assistant";
   content: string;
   images?: string[];
+  docs?: { name: string }[]; // attached doc names (chips)
+  docText?: string; // extracted doc text, sent to the model, not displayed
   prNumber?: number; // if set, this message renders a code-change card
 };
 type Pending = { taskId: string; kind: "review" | "change"; at: number };
@@ -280,20 +282,50 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     const text = chatInput.trim();
     if ((!text && attachments.length === 0) || chatBusy) return;
     const imgs = attachments.filter((a) => isImage(a.type)).map((a) => a.url);
-    const docs = attachments.filter((a) => !isImage(a.type));
-    let content = text;
-    for (const d of docs) content += `${content ? "\n\n" : ""}[Attached file: ${d.name}](${d.url})`;
-    const userMsg: ChatMsg = { id: uid(), role: "user", content: content || "(see attached)", images: imgs.length ? imgs : undefined };
-    const next = [...chat, userMsg];
-    setChat(next);
+    const docFiles = attachments.filter((a) => !isImage(a.type));
     setChatInput("");
     setAttachments([]);
     setChatBusy(true);
+    // Read any attached PDFs/text so Claude can actually read them, not just see
+    // a filename. (Images go to the vision model as-is.)
+    let docText = "";
+    const docNames: { name: string }[] = [];
+    for (const d of docFiles) {
+      docNames.push({ name: d.name });
+      try {
+        const r = await fetch("/api/owner/coder/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: d.url, name: d.name }),
+        });
+        const dd = await r.json().catch(() => ({}));
+        if (dd?.text) docText += `\n\n--- Contents of ${d.name} ---\n${dd.text}`;
+        else if (dd?.note) docText += `\n\n--- ${d.name}: ${dd.note} ---`;
+      } catch {
+        /* ignore */
+      }
+    }
+    const userMsg: ChatMsg = {
+      id: uid(),
+      role: "user",
+      content: text || "(see attached)",
+      images: imgs.length ? imgs : undefined,
+      docs: docNames.length ? docNames : undefined,
+      docText: docText || undefined,
+    };
+    const next = [...chat, userMsg];
+    setChat(next);
     try {
       const res = await fetch("/api/owner/coder/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.map((m) => ({ role: m.role, content: m.content, images: m.images })) }),
+        body: JSON.stringify({
+          messages: next.map((m) => ({
+            role: m.role,
+            content: m.content + (m.docText ? `\n\n[Attached documents]${m.docText}` : ""),
+            images: m.images,
+          })),
+        }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -560,6 +592,15 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={u} alt="attachment" className="h-28 w-28 rounded-lg object-cover" />
                       </a>
+                    ))}
+                  </div>
+                )}
+                {m.docs && m.docs.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {m.docs.map((d, i) => (
+                      <span key={i} className="rounded border border-[var(--fl-line)] bg-[var(--fl-ground)] px-2 py-0.5 text-xs text-[var(--fl-muted)]">
+                        📄 {d.name}
+                      </span>
                     ))}
                   </div>
                 )}

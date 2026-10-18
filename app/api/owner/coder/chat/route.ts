@@ -113,7 +113,8 @@ export async function POST(req: Request) {
     .slice(-20)
     .map((m: any) => ({
       role: m.role,
-      content: String(m.content).slice(0, 8000),
+      // Generous cap so an attached PDF/text document's contents fit.
+      content: String(m.content).slice(0, 24000),
       images: Array.isArray(m.images)
         ? m.images.filter((u: any) => typeof u === "string" && /^https?:\/\//.test(u)).slice(0, 6)
         : undefined,
