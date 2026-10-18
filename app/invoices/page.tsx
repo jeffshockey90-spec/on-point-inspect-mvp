@@ -1,5 +1,5 @@
 
-import { formatAppValue } from "../../lib/app-time";
+import { currentLocalDate, formatAppValue, formatDateOnly } from "../../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
@@ -86,15 +86,7 @@ function getInvoiceStatus(inspection: any) {
 
 function formatDate(value: any) {
   if (!value) return "N/A";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return formatAppValue(date, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatDateOnly(value);
 }
 
 function isOverdue(inspection: any) {
@@ -104,10 +96,10 @@ function isOverdue(inspection: any) {
   if (!dueDate) return false;
   if (status === "Paid" || status === "Waived") return false;
 
-  const date = new Date(dueDate);
-  if (Number.isNaN(date.getTime())) return false;
+  const dueDateKey = String(dueDate).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDateKey)) return false;
 
-  return date.getTime() < Date.now();
+  return dueDateKey < currentLocalDate();
 }
 
 export default async function InvoicesPage() {

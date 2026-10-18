@@ -54,6 +54,7 @@ export default function PaymentInvoicePanel({
   const [paymentNotes, setPaymentNotes] = useState(inspection.payment_notes || inspection.invoice_notes || "");
   const [saving, setSaving] = useState(false);
   const [saveLabel, setSaveLabel] = useState("Save Payment Status");
+  const [saveMsg, setSaveMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
 
@@ -136,8 +137,9 @@ export default function PaymentInvoicePanel({
 
   async function savePaymentStatus() {
     if (busy) return;
+    setSaveMsg(null);
     if (!inspectionId) {
-      alert("Missing inspection ID.");
+      setSaveMsg({ type: "error", text: "Missing inspection ID." });
       return;
     }
     setSaving(true);
@@ -164,7 +166,7 @@ export default function PaymentInvoicePanel({
       window.setTimeout(() => setSaveLabel("Save Payment Status"), 1100);
     } catch (error: any) {
       setSaveLabel("Failed");
-      alert(error?.message || "Failed to save payment status.");
+      setSaveMsg({ type: "error", text: error?.message || "Failed to save payment status." });
       window.setTimeout(() => setSaveLabel("Save Payment Status"), 1100);
     } finally {
       setSaving(false);
@@ -248,6 +250,16 @@ export default function PaymentInvoicePanel({
               <label><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Notes</p><input value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} placeholder="Example: paid by check, waived, etc." disabled={busy} className={fieldClass} /></label>
             </div>
           </div>
+        )}
+
+        {saveMsg && (
+          <p
+            className={`mt-4 text-sm font-semibold ${
+              saveMsg.type === "success" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"
+            }`}
+          >
+            {saveMsg.text}
+          </p>
         )}
 
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap">
