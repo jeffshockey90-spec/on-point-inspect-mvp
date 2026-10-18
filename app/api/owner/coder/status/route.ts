@@ -71,9 +71,22 @@ export async function GET() {
 
     const prsRes = await gh(`/repos/${repo}/pulls?state=all&per_page=20&sort=created&direction=desc`);
     const prsRaw = prsRes.ok ? await prsRes.json() : [];
+    // Results only shows real code changes to approve. Reviews are delivered into
+    // the chat (and their report PRs auto-closed), so keep them out of this list.
+    const isReviewPr = (p: any) => {
+      const t = String(p.title || "");
+      return t.startsWith("App review:") || t.startsWith("FLOW code review:");
+    };
     const claudePrs = (prsRaw || [])
-      .filter((p: any) => String(p.head?.ref || "").startsWith("claude/"))
+      .filter((p: any) => String(p.head?.ref || "").startsWith("claude/") && !isReviewPr(p))
       .slice(0, 10);
+
+    // Review PRs, kept out of Results but surfaced here so the chat can pull a
+    // finished review's findings into the conversation and then close it.
+    const reviews = (prsRaw || [])
+      .filter((p: any) => String(p.head?.ref || "").startsWith("claude/") && isReviewPr(p))
+      .slice(0, 15)
+      .map((p: any) => ({ number: p.number, branch: p.head.ref, state: p.state }));
 
     const prs: any[] = [];
     for (const p of claudePrs) {
@@ -114,7 +127,7 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ configured: true, repo, runs, prs });
+    return NextResponse.json({ configured: true, repo, runs, prs, reviews });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Could not load status." }, { status: 500 });
   }

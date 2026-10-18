@@ -111,24 +111,27 @@ export async function POST(req: Request) {
   const reply = wantsLook ? raw2.trimStart().slice(LOOK_TOKEN.length).trim() : raw2;
 
   let acted = false;
+  let taskId: string | null = null;
   if (wantsLook && coderConfigured()) {
     try {
       const transcript = messages
         .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`)
         .join("\n\n")
         .slice(0, 7000);
+      const id = randomUUID();
       const res = await gh(`/repos/${coderRepo()}/dispatches`, {
         method: "POST",
         body: JSON.stringify({
           event_type: "claude-task",
-          client_payload: { task_id: randomUUID(), task: buildReviewTask(transcript) },
+          client_payload: { task_id: id, task: buildReviewTask(transcript) },
         }),
       });
       acted = res.ok;
+      taskId = acted ? id : null;
     } catch {
       acted = false;
     }
   }
 
-  return NextResponse.json({ reply, acted });
+  return NextResponse.json({ reply, acted, taskId });
 }

@@ -71,6 +71,49 @@ function Patch({ patch }: { patch: string }) {
   );
 }
 
+// Inline **bold** and `code` inside a chat line.
+function fmtInline(text: string, keyBase: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return parts.map((p, i) => {
+    if (/^\*\*[^*]+\*\*$/.test(p)) return <strong key={`${keyBase}-${i}`}>{p.slice(2, -2)}</strong>;
+    if (/^`[^`]+`$/.test(p))
+      return (
+        <code key={`${keyBase}-${i}`} className="rounded bg-[var(--fl-ground)] px-1 py-0.5 text-[0.85em]">
+          {p.slice(1, -1)}
+        </code>
+      );
+    return <span key={`${keyBase}-${i}`}>{p}</span>;
+  });
+}
+
+// Lightweight Markdown for assistant bubbles so a detailed review reads cleanly
+// (headings, bullets, bold, dividers) without pulling in a renderer library.
+function MdLite({ text }: { text: string }) {
+  const lines = text.replace(/\r/g, "").split("\n");
+  return (
+    <div className="space-y-1.5 break-words">
+      {lines.map((ln, i) => {
+        if (/^#{1,6}\s/.test(ln))
+          return (
+            <p key={i} className="mt-1 font-bold text-[var(--fl-text)]">
+              {fmtInline(ln.replace(/^#{1,6}\s/, ""), `h${i}`)}
+            </p>
+          );
+        if (/^\s*[-*]\s/.test(ln))
+          return (
+            <p key={i} className="flex gap-1.5 pl-1">
+              <span className="text-[var(--fl-muted)]">•</span>
+              <span>{fmtInline(ln.replace(/^\s*[-*]\s/, ""), `li${i}`)}</span>
+            </p>
+          );
+        if (/^---+$/.test(ln.trim())) return <hr key={i} className="my-2 border-[var(--fl-line)]" />;
+        if (ln.trim() === "") return <div key={i} className="h-1.5" />;
+        return <p key={i}>{fmtInline(ln, `p${i}`)}</p>;
+      })}
+    </div>
+  );
+}
+
 export default function CoderConsole({ connected }: { connected: boolean }) {
   const [submitting, setSubmitting] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
@@ -86,7 +129,27 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
   const [diff, setDiff] = useState<Record<number, DiffFile[]>>({});
   const [diffLoading, setDiffLoading] = useState<number | null>(null);
   const [busyPr, setBusyPr] = useState<number | null>(null);
+  // Reviews Claude is running for the chat, and the ones we've already delivered
+  // into the conversation (guard against double-delivery across status polls).
+  const [reviews, setReviews] = useState<{ number: number; branch: string; state: string }[]>([]);
+  const [pendingReviews, setPendingReviews] = useState<{ taskId: string; at: number }[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(window.localStorage.getItem("coder_pending_reviews") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const deliveringRef = useRef<Set<string>>(new Set());
   const timer = useRef<number | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("coder_pending_reviews", JSON.stringify(pendingReviews));
+    } catch {
+      /* ignore */
+    }
+  }, [pendingReviews]);
 
   const load = useCallback(async () => {
     if (!connected) return;
@@ -96,6 +159,7 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
       if (res.ok) {
         setPrs(Array.isArray(d.prs) ? d.prs : []);
         setRuns(Array.isArray(d.runs) ? d.runs : []);
+        setReviews(Array.isArray(d.reviews) ? d.reviews : []);
       }
     } catch {
       /* keep last */
@@ -133,6 +197,47 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat, chatBusy]);
 
+  // When a review Claude launched from the chat finishes, pull its findings
+  // straight into the conversation (not a dead report), then close the report PR
+  // so Results stays clean. A review that never produces one is given up on after
+  // 15 minutes so it doesn't hang forever.
+  useEffect(() => {
+    if (pendingReviews.length === 0) return;
+    (async () => {
+      for (const pend of pendingReviews) {
+        if (deliveringRef.current.has(pend.taskId)) continue;
+        const match = reviews.find((r) => r.branch === `claude/task-${pend.taskId}`);
+        if (match) {
+          deliveringRef.current.add(pend.taskId);
+          setPendingReviews((cur) => cur.filter((x) => x.taskId !== pend.taskId));
+          try {
+            const res = await fetch(`/api/owner/coder/report?number=${match.number}`, { cache: "no-store" });
+            const d = await res.json().catch(() => ({}));
+            if (d?.report) {
+              setChat((c) => [...c, { role: "assistant", content: String(d.report) }]);
+              setNote({ ok: true, text: "Here's what Claude found — it's in the chat above. Reply to keep working on it, or tap Build this to have it make a fix." });
+              // The content now lives in the chat; retire the report PR.
+              fetch("/api/owner/coder/close-review", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ number: match.number }),
+              }).catch(() => {});
+            }
+          } catch {
+            /* leave it; the PR still exists if needed */
+          }
+        } else if (Date.now() - pend.at > 15 * 60 * 1000) {
+          setPendingReviews((cur) => cur.filter((x) => x.taskId !== pend.taskId));
+          setChat((c) => [
+            ...c,
+            { role: "assistant", content: "I wasn't able to finish looking into that one — mind asking me again?" },
+          ]);
+        }
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviews, pendingReviews]);
+
   async function sendChat() {
     const text = chatInput.trim();
     if (!text || chatBusy) return;
@@ -152,10 +257,11 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
         return;
       }
       setChat((c) => [...c, { role: "assistant", content: String(d.reply || "") }]);
-      // The chat decided to go look at the real app — a report is now on its way
-      // into Results below. Nudge the status so Jeff sees it working.
-      if (d.acted) {
-        setNote({ ok: true, text: "On it — Claude is looking into that now. The report will appear below in a few minutes." });
+      // The chat went to look at the real app. Track the review so we can drop
+      // its findings right back into this conversation when it finishes.
+      if (d.acted && d.taskId) {
+        setPendingReviews((cur) => [...cur, { taskId: String(d.taskId), at: Date.now() }]);
+        setNote({ ok: true, text: "On it — Claude is reading the real app now. I'll drop what it finds right here in the chat in a few minutes." });
         setTimeout(load, 3000);
       }
     } catch {
@@ -280,18 +386,24 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
             chat.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm ${
+                  className={`max-w-[85%] break-words rounded-2xl px-3 py-2 text-sm ${
                     m.role === "user"
-                      ? "rounded-br-sm bg-teal-500/15 text-[var(--fl-text)]"
+                      ? "whitespace-pre-wrap rounded-br-sm bg-teal-500/15 text-[var(--fl-text)]"
                       : "rounded-bl-sm border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
                   }`}
                 >
-                  {m.content}
+                  {m.role === "user" ? m.content : <MdLite text={m.content} />}
                 </div>
               </div>
             ))
           )}
           {chatBusy && <p className="px-1 text-xs text-[var(--fl-muted)]">Claude is thinking…</p>}
+          {pendingReviews.length > 0 && (
+            <p className="flex items-center gap-2 px-1 text-xs text-[var(--fl-info-text)]">
+              <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+              Claude is reading the app — the findings will land here in a few minutes…
+            </p>
+          )}
           <div ref={chatEndRef} />
         </div>
 
@@ -377,10 +489,10 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-bold text-[var(--fl-text)]">Results</h2>
+        <h2 className="text-lg font-bold text-[var(--fl-text)]">Changes to approve</h2>
         {prs.length === 0 ? (
           <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm text-[var(--fl-muted)]">
-            Nothing yet. Tell Claude what to do above and it'll bring back a change to approve or a report to read, right here.
+            Nothing to approve yet. When you tap <b>Build this</b>, the code change shows up here for you to review. (Things you ask Claude to look into come back in the chat above, not here.)
           </p>
         ) : (
           prs.map((p) => (
