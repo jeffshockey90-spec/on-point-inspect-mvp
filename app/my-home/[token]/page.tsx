@@ -22,6 +22,7 @@ import {
   getUiTranslations,
   makeTranslator,
 } from "../../../lib/translate";
+import { getSessionUser, authorizeInspection } from "../../../lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -132,6 +133,9 @@ export default async function HomeownerPortal({
     .select("*")
     .eq("public_share_token", lookup)
     .maybeSingle();
+  // Did this request present the real, unguessable share token? A raw numeric id
+  // never does — track it so the raw-id fallback can't grant public access.
+  const resolvedByToken = Boolean(inspection);
   if (!inspection && /^\d+$/.test(lookup)) {
     ({ data: inspection } = await admin
       .from("inspections")
@@ -140,7 +144,20 @@ export default async function HomeownerPortal({
       .maybeSingle());
   }
 
-  if (!inspection) {
+  // Gate the raw-id fallback: a guessed numeric id (no token match) is viewable
+  // ONLY by the signed-in owning inspector/owner (their own direct link).
+  // Everyone else gets the same "not found" as a bad token — this blocks anyone
+  // from enumerating /my-home/1, /my-home/2, … to read a stranger's home.
+  let rawIdAuthorized = resolvedByToken;
+  if (inspection && !resolvedByToken) {
+    const viewer = await getSessionUser();
+    if (viewer) {
+      const owned = await authorizeInspection(admin, viewer.id, inspection.id);
+      rawIdAuthorized = Boolean(owned);
+    }
+  }
+
+  if (!inspection || !rawIdAuthorized) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] px-6 text-center text-[var(--fl-text)]">
         <div>
