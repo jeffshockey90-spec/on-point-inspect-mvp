@@ -77,31 +77,37 @@ export default function SignedAgreementEditor({
   const [draftBody, setDraftBody] = useState(initialBody || "");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmingSave, setConfirmingSave] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const hasChanges = useMemo(() => draftBody !== body, [draftBody, body]);
 
   function startEditing() {
     setDraftBody(body);
     setEditing(true);
+    setMessage(null);
   }
 
   function cancelEditing() {
     setDraftBody(body);
     setEditing(false);
+    setConfirmingSave(false);
+    setMessage(null);
   }
 
-  async function saveChanges() {
+  function requestSave() {
+    setMessage(null);
+
     if (!draftBody.trim()) {
-      alert("Agreement body cannot be blank.");
+      setMessage({ type: "error", text: "Agreement body cannot be blank." });
       return;
     }
 
-    const confirmed = window.confirm(
-      "Save changes to this signed agreement snapshot?\n\nOnly edit this for corrections/filled blanks. The client signature record will remain attached."
-    );
+    setConfirmingSave(true);
+  }
 
-    if (!confirmed) return;
-
+  async function confirmSave() {
+    setConfirmingSave(false);
     setSaving(true);
 
     try {
@@ -120,7 +126,7 @@ export default function SignedAgreementEditor({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        alert(data.error || "Failed to save signed agreement.");
+        setMessage({ type: "error", text: data.error || "Failed to save signed agreement." });
         return;
       }
 
@@ -129,9 +135,9 @@ export default function SignedAgreementEditor({
       setBody(updatedBody);
       setDraftBody(updatedBody);
       setEditing(false);
-      alert("Signed agreement updated.");
+      setMessage({ type: "success", text: "Signed agreement updated." });
     } catch (error: any) {
-      alert(error?.message || "Failed to save signed agreement.");
+      setMessage({ type: "error", text: error?.message || "Failed to save signed agreement." });
     } finally {
       setSaving(false);
     }
@@ -165,7 +171,7 @@ export default function SignedAgreementEditor({
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={saveChanges}
+                onClick={requestSave}
                 disabled={saving || !hasChanges}
                 className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-black text-white hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -183,6 +189,42 @@ export default function SignedAgreementEditor({
             </div>
           )}
         </div>
+
+        {confirmingSave && (
+          <div className="mt-4 rounded-xl border border-yellow-500 bg-yellow-50 p-4 text-slate-950">
+            <p className="text-sm font-bold">
+              Save changes to this signed agreement snapshot? Only edit this for
+              corrections/filled blanks. The client signature record will remain
+              attached.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={confirmSave}
+                className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-black text-white hover:bg-teal-500"
+              >
+                Yes, save changes
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingSave(false)}
+                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-950 hover:bg-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {message && (
+          <p
+            className={`mt-4 text-sm font-bold ${
+              message.type === "success" ? "text-emerald-700" : "text-red-700"
+            }`}
+          >
+            {message.text}
+          </p>
+        )}
       </div>
 
       <section className="rounded-2xl border border-slate-800 bg-white p-6 text-slate-950 print:border-black">

@@ -13,12 +13,15 @@ export default function SendAgreementButton({
   const [clientLabel, setClientLabel] = useState("Send Client Agreement");
   const [realtorLabel, setRealtorLabel] = useState("Send to Realtor to Forward");
   const [showRealtorOption, setShowRealtorOption] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   async function sendAgreement(target: SendTarget) {
     if (sending) return;
 
+    setMessage(null);
+
     if (!inspectionId) {
-      alert("Missing inspection ID.");
+      setMessage({ type: "error", text: "Missing inspection ID." });
       return;
     }
 
@@ -44,19 +47,23 @@ export default function SendAgreementButton({
 
       if (target === "client") {
         setClientLabel("Sent!");
-        alert(
-          `Sent ${
+        setMessage({
+          type: "success",
+          text: `Sent ${
             data.sent?.length || 0
-          } client agreement email(s). Realtors are not included on this send.`
-        );
+          } client agreement email(s). Realtors are not included on this send.`,
+        });
       } else {
         setRealtorLabel("Sent!");
-        alert(data.message || "Agreement forwarding email sent to the realtor.");
+        setMessage({
+          type: "success",
+          text: data.message || "Agreement forwarding email sent to the realtor.",
+        });
       }
     } catch (error: any) {
       if (target === "client") setClientLabel("Failed");
       else setRealtorLabel("Failed");
-      alert(error.message || "Failed to send agreement.");
+      setMessage({ type: "error", text: error.message || "Failed to send agreement." });
     } finally {
       window.setTimeout(() => {
         setSending(null);
@@ -109,6 +116,16 @@ export default function SendAgreementButton({
             {realtorLabel}
           </button>
         </div>
+      )}
+
+      {message && (
+        <p
+          className={`text-sm font-semibold ${
+            message.type === "success" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"
+          }`}
+        >
+          {message.text}
+        </p>
       )}
     </div>
   );
