@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildChangeTask } from "../lib/coder/taskPrompt";
+import { createClient } from "../utils/supabase/client";
 
-// In-app coding agent console. Submit a task → Claude Code (real engine, in the
-// cloud) builds it on a branch and opens a PR → review the diff + build status
-// here → Approve & merge. GitHub stays invisible.
+// In-app coding agent — one conversation. Talk to Claude, attach pics/docs for it
+// to see, ask it to look into things (it reads the real app and reports back in
+// the chat), and when you want code changed tap "Build this". The change, its
+// progress, and Approve/Deny all happen inline in the chat — no boxes below.
 type Checks = { state: string; total: number; passed: number; failed: number; pending: number };
 type Pr = {
   number: number;
@@ -30,21 +32,37 @@ type Run = {
   failed: boolean;
 };
 type DiffFile = { filename: string; status: string; additions: number; deletions: number; patch: string };
+type Attachment = { url: string; name: string; type: string };
+type ChatMsg = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  images?: string[];
+  prNumber?: number; // if set, this message renders a code-change card
+};
+type Pending = { taskId: string; kind: "review" | "change"; at: number };
 
-function when(v: string) {
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+function uid() {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+function isImage(type: string) {
+  return /^image\//.test(type || "");
 }
 
 function CheckBadge({ c }: { c: Checks }) {
   const map: Record<string, { label: string; cls: string }> = {
-    passed: { label: "✓ Build passed", cls: "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]" },
-    failed: { label: "✗ Build failed", cls: "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]" },
-    pending: { label: "… Building", cls: "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]" },
-    none: { label: "No checks", cls: "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]" },
+    passed: { label: "✓ Checks passed", cls: "border-emerald-500/50 bg-emerald-500/10 text-[var(--fl-good-text)]" },
+    failed: { label: "✗ A check failed", cls: "border-red-500/50 bg-red-500/10 text-[var(--fl-crit-text)]" },
+    pending: { label: "… Checking it", cls: "border-yellow-500/50 bg-yellow-500/10 text-[var(--fl-warn-text)]" },
+    none: { label: "Ready", cls: "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]" },
     unknown: { label: "Checking…", cls: "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-muted)]" },
   };
-  const m = map[c.state] || map.unknown;
+  const m = map[c?.state] || map.unknown;
   return <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${m.cls}`}>{m.label}</span>;
 }
 
@@ -56,13 +74,7 @@ function Patch({ patch }: { patch: string }) {
         const add = line.startsWith("+") && !line.startsWith("+++");
         const del = line.startsWith("-") && !line.startsWith("---");
         const hunk = line.startsWith("@@");
-        const cls = add
-          ? "text-emerald-400"
-          : del
-            ? "text-red-400"
-            : hunk
-              ? "text-cyan-400"
-              : "text-[var(--fl-muted)]";
+        const cls = add ? "text-emerald-400" : del ? "text-red-400" : hunk ? "text-cyan-400" : "text-[var(--fl-muted)]";
         return (
           <div key={i} className={`whitespace-pre-wrap break-all font-mono ${cls}`}>{line || " "}</div>
         );
@@ -86,8 +98,7 @@ function fmtInline(text: string, keyBase: string) {
   });
 }
 
-// Lightweight Markdown for assistant bubbles so a detailed review reads cleanly
-// (headings, bullets, bold, dividers) without pulling in a renderer library.
+// Lightweight Markdown for assistant bubbles so a detailed review reads cleanly.
 function MdLite({ text }: { text: string }) {
   const lines = text.replace(/\r/g, "").split("\n");
   return (
@@ -115,27 +126,23 @@ function MdLite({ text }: { text: string }) {
 }
 
 export default function CoderConsole({ connected }: { connected: boolean }) {
-  const [submitting, setSubmitting] = useState(false);
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
-  // Conversational planning: talk with Claude in plain language before building.
-  const [chat, setChat] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chat, setChat] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+
   const [prs, setPrs] = useState<Pr[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
-  const [stoppingId, setStoppingId] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState<number | null>(null);
-  const [diff, setDiff] = useState<Record<number, DiffFile[]>>({});
-  const [diffLoading, setDiffLoading] = useState<number | null>(null);
-  const [busyPr, setBusyPr] = useState<number | null>(null);
-  // Reviews Claude is running for the chat, and the ones we've already delivered
-  // into the conversation (guard against double-delivery across status polls).
   const [reviews, setReviews] = useState<{ number: number; branch: string; state: string }[]>([]);
-  const [pendingReviews, setPendingReviews] = useState<{ taskId: string; at: number }[]>(() => {
+  const [pending, setPending] = useState<Pending[]>(() => {
     if (typeof window === "undefined") return [];
     try {
-      return JSON.parse(window.localStorage.getItem("coder_pending_reviews") || "[]");
+      return JSON.parse(window.localStorage.getItem("coder_pending_v2") || "[]");
     } catch {
       return [];
     }
@@ -143,13 +150,20 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
   const deliveringRef = useRef<Set<string>>(new Set());
   const timer = useRef<number | null>(null);
 
+  const [expandedPr, setExpandedPr] = useState<number | null>(null);
+  const [diff, setDiff] = useState<Record<number, DiffFile[]>>({});
+  const [diffLoading, setDiffLoading] = useState<number | null>(null);
+  const [busyPr, setBusyPr] = useState<number | null>(null);
+
+  const prByNum = useCallback((n: number) => prs.find((p) => p.number === n), [prs]);
+
   useEffect(() => {
     try {
-      window.localStorage.setItem("coder_pending_reviews", JSON.stringify(pendingReviews));
+      window.localStorage.setItem("coder_pending_v2", JSON.stringify(pending));
     } catch {
       /* ignore */
     }
-  }, [pendingReviews]);
+  }, [pending]);
 
   const load = useCallback(async () => {
     if (!connected) return;
@@ -174,107 +188,134 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     };
   }, [load]);
 
-  async function stopRun(id: number) {
-    if (!confirm("Stop this task? It won't open a change.")) return;
-    setStoppingId(id);
-    try {
-      const res = await fetch("/api/owner/coder/cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ run_id: id }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) alert(d?.error || "Could not stop it.");
-      setTimeout(load, 1500);
-    } catch {
-      alert("Could not stop it.");
-    } finally {
-      setStoppingId(null);
-    }
-  }
-
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat, chatBusy]);
 
-  // When a review Claude launched from the chat finishes, pull its findings
-  // straight into the conversation (not a dead report), then close the report PR
-  // so Results stays clean. A review that never produces one is given up on after
-  // 15 minutes so it doesn't hang forever.
+  // When a review or change Claude launched finishes, bring it into the chat:
+  // reviews deliver their findings as a message; changes drop in a change card.
   useEffect(() => {
-    if (pendingReviews.length === 0) return;
+    if (pending.length === 0) return;
     (async () => {
-      for (const pend of pendingReviews) {
-        if (deliveringRef.current.has(pend.taskId)) continue;
-        const match = reviews.find((r) => r.branch === `claude/task-${pend.taskId}`);
-        if (match) {
-          deliveringRef.current.add(pend.taskId);
-          setPendingReviews((cur) => cur.filter((x) => x.taskId !== pend.taskId));
-          try {
-            const res = await fetch(`/api/owner/coder/report?number=${match.number}`, { cache: "no-store" });
-            const d = await res.json().catch(() => ({}));
-            if (d?.report) {
-              setChat((c) => [...c, { role: "assistant", content: String(d.report) }]);
-              setNote({ ok: true, text: "Here's what Claude found — it's in the chat above. Reply to keep working on it, or tap Build this to have it make a fix." });
-              // The content now lives in the chat; retire the report PR.
-              fetch("/api/owner/coder/close-review", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ number: match.number }),
-              }).catch(() => {});
+      for (const p of pending) {
+        if (deliveringRef.current.has(p.taskId)) continue;
+        if (p.kind === "review") {
+          const match = reviews.find((r) => r.branch === `claude/task-${p.taskId}`);
+          if (match) {
+            deliveringRef.current.add(p.taskId);
+            setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
+            try {
+              const res = await fetch(`/api/owner/coder/report?number=${match.number}`, { cache: "no-store" });
+              const d = await res.json().catch(() => ({}));
+              if (d?.report) {
+                setChat((c) => [...c, { id: uid(), role: "assistant", content: String(d.report) }]);
+                setNote({ ok: true, text: "Here's what Claude found — in the chat above. Reply to dig in, or tap Build this to have it fix something." });
+                fetch("/api/owner/coder/close-review", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ number: match.number }),
+                }).catch(() => {});
+              }
+            } catch {
+              /* leave it */
             }
-          } catch {
-            /* leave it; the PR still exists if needed */
+          } else if (Date.now() - p.at > 15 * 60 * 1000) {
+            setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
+            setChat((c) => [...c, { id: uid(), role: "assistant", content: "I wasn't able to finish looking into that one — mind asking me again?" }]);
           }
-        } else if (Date.now() - pend.at > 15 * 60 * 1000) {
-          setPendingReviews((cur) => cur.filter((x) => x.taskId !== pend.taskId));
-          setChat((c) => [
-            ...c,
-            { role: "assistant", content: "I wasn't able to finish looking into that one — mind asking me again?" },
-          ]);
+        } else {
+          const match = prs.find((pr) => pr.branch === `claude/task-${p.taskId}`);
+          if (match) {
+            deliveringRef.current.add(p.taskId);
+            setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
+            setChat((c) => [
+              ...c,
+              { id: uid(), role: "assistant", content: "I'm done — here's the change I made. Take a look and approve it when you're happy:", prNumber: match.number },
+            ]);
+            setNote(null);
+          } else if (Date.now() - p.at > 15 * 60 * 1000) {
+            setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
+            setChat((c) => [...c, { id: uid(), role: "assistant", content: "That change didn't go through — nothing was changed. Want me to try again?" }]);
+          }
         }
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviews, pendingReviews]);
+  }, [reviews, prs, pending]);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setNote(null);
+    try {
+      const supabase = createClient();
+      for (const file of Array.from(files).slice(0, 6)) {
+        // 1) one-time signed upload URL, 2) upload straight to storage.
+        const res = await fetch("/api/owner/coder/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: file.name, type: file.type }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d?.token) {
+          setNote({ ok: false, text: d?.error || "Couldn't upload that file." });
+          continue;
+        }
+        const { error } = await supabase.storage.from("company-assets").uploadToSignedUrl(d.path, d.token, file);
+        if (error) {
+          setNote({ ok: false, text: "Couldn't upload that file." });
+          continue;
+        }
+        setAttachments((a) => [...a, { url: d.url, name: d.name, type: file.type }]);
+      }
+    } catch {
+      setNote({ ok: false, text: "Couldn't upload that file." });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   async function sendChat() {
     const text = chatInput.trim();
-    if (!text || chatBusy) return;
-    const next = [...chat, { role: "user" as const, content: text }];
+    if ((!text && attachments.length === 0) || chatBusy) return;
+    const imgs = attachments.filter((a) => isImage(a.type)).map((a) => a.url);
+    const docs = attachments.filter((a) => !isImage(a.type));
+    let content = text;
+    for (const d of docs) content += `${content ? "\n\n" : ""}[Attached file: ${d.name}](${d.url})`;
+    const userMsg: ChatMsg = { id: uid(), role: "user", content: content || "(see attached)", images: imgs.length ? imgs : undefined };
+    const next = [...chat, userMsg];
     setChat(next);
     setChatInput("");
+    setAttachments([]);
     setChatBusy(true);
     try {
       const res = await fetch("/api/owner/coder/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ messages: next.map((m) => ({ role: m.role, content: m.content, images: m.images })) }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setChat((c) => [...c, { role: "assistant", content: `⚠️ ${d?.error || "Couldn't reach the chat."}` }]);
+        setChat((c) => [...c, { id: uid(), role: "assistant", content: `⚠️ ${d?.error || "Couldn't reach the chat."}` }]);
         return;
       }
-      setChat((c) => [...c, { role: "assistant", content: String(d.reply || "") }]);
-      // The chat went to look at the real app. Track the review so we can drop
-      // its findings right back into this conversation when it finishes.
+      setChat((c) => [...c, { id: uid(), role: "assistant", content: String(d.reply || "") }]);
       if (d.acted && d.taskId) {
-        setPendingReviews((cur) => [...cur, { taskId: String(d.taskId), at: Date.now() }]);
-        setNote({ ok: true, text: "On it — Claude is reading the real app now. I'll drop what it finds right here in the chat in a few minutes." });
+        setPending((cur) => [...cur, { taskId: String(d.taskId), kind: "review", at: Date.now() }]);
+        setNote({ ok: true, text: "On it — Claude is reading the real app now. The findings will land right here in the chat in a few minutes." });
         setTimeout(load, 3000);
       }
     } catch {
-      setChat((c) => [...c, { role: "assistant", content: "⚠️ Couldn't reach the chat." }]);
+      setChat((c) => [...c, { id: uid(), role: "assistant", content: "⚠️ Couldn't reach the chat." }]);
     } finally {
       setChatBusy(false);
     }
   }
 
-  // "Build this" — the deliberate "actually change the code" action. Hands the
-  // whole conversation to the builder, which makes the change on a branch for
-  // Jeff to approve. (Looking into things happens in the chat itself, no button.)
-  async function submit() {
+  // "Build this" — deliberately change code. Hands the conversation to the
+  // builder; progress + the change land back in this chat.
+  async function build() {
     if (submitting || chat.length === 0) return;
     setSubmitting(true);
     setNote(null);
@@ -293,7 +334,8 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
         setNote({ ok: false, text: d?.error || "Could not start it." });
         return;
       }
-      setNote({ ok: true, text: "On it — Claude is making that change now. It'll show up below for you to approve in a few minutes. Nothing goes live until you do." });
+      if (d.taskId) setPending((cur) => [...cur, { taskId: String(d.taskId), kind: "change", at: Date.now() }]);
+      setChat((c) => [...c, { id: uid(), role: "assistant", content: "On it — I'm making that change now. I'll drop it right here when it's ready for you to look at. Nothing goes live until you approve it." }]);
       setTimeout(load, 3000);
     } catch {
       setNote({ ok: false, text: "Could not start it." });
@@ -303,11 +345,11 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
   }
 
   async function toggleDiff(n: number) {
-    if (expanded === n) {
-      setExpanded(null);
+    if (expandedPr === n) {
+      setExpandedPr(null);
       return;
     }
-    setExpanded(n);
+    setExpandedPr(n);
     if (!diff[n]) {
       setDiffLoading(n);
       try {
@@ -322,8 +364,8 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     }
   }
 
-  async function merge(n: number) {
-    if (!confirm("Approve and merge this change? It will deploy to your live app.")) return;
+  async function approve(n: number) {
+    if (!confirm("Approve this change? It will go live on your app.")) return;
     setBusyPr(n);
     try {
       const res = await fetch("/api/owner/coder/merge", {
@@ -332,13 +374,126 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
         body: JSON.stringify({ number: n }),
       });
       const d = await res.json().catch(() => ({}));
-      alert(d?.error || d?.message || "Done.");
+      if (res.ok) {
+        setChat((c) => [...c, { id: uid(), role: "assistant", content: "✅ Approved — I'm merging it and it'll be live on your app shortly." }]);
+      } else {
+        setChat((c) => [...c, { id: uid(), role: "assistant", content: `⚠️ ${d?.error || "Couldn't merge that."}` }]);
+      }
       await load();
     } catch {
-      alert("Merge failed.");
+      setChat((c) => [...c, { id: uid(), role: "assistant", content: "⚠️ Couldn't merge that." }]);
     } finally {
       setBusyPr(null);
     }
+  }
+
+  async function deny(n: number) {
+    if (!confirm("Discard this change? It won't be applied.")) return;
+    setBusyPr(n);
+    try {
+      await fetch("/api/owner/coder/close-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ number: n }),
+      });
+      setChat((c) => [...c, { id: uid(), role: "assistant", content: "Okay — I've thrown that change away. Nothing was changed." }]);
+      await load();
+    } catch {
+      /* ignore */
+    } finally {
+      setBusyPr(null);
+    }
+  }
+
+  async function stopBuilding() {
+    const active = runs.find((r) => r.active);
+    if (!active) return;
+    try {
+      await fetch("/api/owner/coder/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run_id: active.id }),
+      });
+      setPending((cur) => cur.filter((x) => x.kind !== "change"));
+      setChat((c) => [...c, { id: uid(), role: "assistant", content: "Stopped — I didn't change anything." }]);
+      setTimeout(load, 1500);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function ChangeCard({ n }: { n: number }) {
+    const live = prByNum(n);
+    const merged = live?.merged;
+    const closed = live?.state === "closed";
+    const checks = live?.checks;
+    return (
+      <div className="mt-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="min-w-0 break-words text-sm font-bold text-[var(--fl-text)]">{live?.title || "Your change"}</p>
+          {merged ? (
+            <span className="rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-[var(--fl-good-text)]">Approved ✓ · going live</span>
+          ) : closed ? (
+            <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2.5 py-0.5 text-xs font-bold text-[var(--fl-muted)]">Discarded</span>
+          ) : checks ? (
+            <CheckBadge c={checks} />
+          ) : (
+            <span className="text-xs text-[var(--fl-muted)]">Preparing…</span>
+          )}
+        </div>
+
+        {!merged && !closed && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => toggleDiff(n)}
+              className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] [touch-action:manipulation]"
+            >
+              {expandedPr === n ? "Hide changes" : "👁 See what changed"}
+            </button>
+            <button
+              type="button"
+              onClick={() => approve(n)}
+              disabled={busyPr === n || checks?.state === "failed" || checks?.state === "pending" || checks?.state === "unknown"}
+              title={checks?.state === "passed" || checks?.state === "none" ? "Approve & go live" : "Waiting for the checks to pass"}
+              className="rounded-lg border border-emerald-400/60 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-[var(--fl-good-text)] transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+            >
+              {busyPr === n ? "Working…" : "✓ Approve"}
+            </button>
+            <button
+              type="button"
+              onClick={() => deny(n)}
+              disabled={busyPr === n}
+              className="rounded-lg border border-red-500/50 px-3 py-1.5 text-xs font-bold text-[var(--fl-crit-text)] transition hover:bg-red-500/10 disabled:opacity-50 [touch-action:manipulation]"
+            >
+              Deny
+            </button>
+          </div>
+        )}
+
+        {expandedPr === n && (
+          <div className="mt-3 space-y-2 border-t border-[var(--fl-line)] pt-3">
+            {diffLoading === n ? (
+              <p className="text-sm text-[var(--fl-muted)]">Loading the changes…</p>
+            ) : (diff[n] || []).length === 0 ? (
+              <p className="text-sm text-[var(--fl-muted)]">No file changes to show.</p>
+            ) : (
+              (diff[n] || []).map((f) => (
+                <div key={f.filename} className="rounded-lg border border-[var(--fl-line)]">
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                    <span className="break-all font-mono text-xs font-semibold text-[var(--fl-text)]">{f.filename}</span>
+                    <span className="shrink-0 text-xs">
+                      <span className="text-emerald-400">+{f.additions}</span> <span className="text-red-400">-{f.deletions}</span>
+                    </span>
+                  </div>
+                  <Patch patch={f.patch} />
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (!connected) {
@@ -346,73 +501,145 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
       <section className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-6">
         <h2 className="text-lg font-bold text-[var(--fl-warn-text)]">Connect the coding agent (one time)</h2>
         <p className="mt-2 text-sm text-[var(--fl-text)]">
-          The agent runs the real Claude Code in the cloud and opens changes for your review. To turn it on, add these once — then everything happens here:
+          The agent runs the real Claude Code in the cloud and brings changes back to you for approval. To turn it on, add these once — then everything happens here:
         </p>
         <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-[var(--fl-muted)]">
-          <li>In GitHub → repo <b>Settings → Secrets → Actions</b>, add <code className="rounded bg-[var(--fl-surface-2)] px-1">ANTHROPIC_API_KEY</code> and <code className="rounded bg-[var(--fl-surface-2)] px-1">REVIEW_BOT_TOKEN</code> (a fine-grained token that can open PRs).</li>
-          <li>Create a fine-grained GitHub token for this repo (Contents + Pull requests: read/write, Actions: read) and add it to FLOW's env as <code className="rounded bg-[var(--fl-surface-2)] px-1">GITHUB_CODER_TOKEN</code> (+ <code className="rounded bg-[var(--fl-surface-2)] px-1">GITHUB_CODER_REPO</code> if not the default).</li>
-          <li>On the <b>main</b> branch, add a ruleset: require the build check to pass, block force-pushes. (That, plus this page, is what guarantees nothing ships without you.)</li>
+          <li>In GitHub → repo <b>Settings → Secrets → Actions</b>, add <code className="rounded bg-[var(--fl-surface-2)] px-1">CLAUDE_CODE_OAUTH_TOKEN</code> and <code className="rounded bg-[var(--fl-surface-2)] px-1">REVIEW_BOT_TOKEN</code>.</li>
+          <li>Create a fine-grained GitHub token for this repo (Contents + Pull requests: read/write, Actions: read) and add it to FLOW's env as <code className="rounded bg-[var(--fl-surface-2)] px-1">GITHUB_CODER_TOKEN</code>.</li>
+          <li>On the <b>main</b> branch, add a ruleset: require the build check to pass, block force-pushes.</li>
         </ol>
-        <p className="mt-3 text-xs text-[var(--fl-faint)]">You create the tokens — they never pass through here. Ask Claude in a session to walk you through any step.</p>
+        <p className="mt-3 text-xs text-[var(--fl-faint)]">You create the tokens — they never pass through here.</p>
       </section>
     );
   }
 
+  const building = pending.some((p) => p.kind === "change");
+  const looking = pending.some((p) => p.kind === "review");
+
   return (
-    <div className="space-y-5">
-      <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-[var(--fl-text)]">Talk it through</h2>
-          {chat.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setChat([])}
-              className="text-xs font-semibold text-[var(--fl-muted)] underline hover:text-[var(--fl-text)]"
-            >
-              New chat
-            </button>
-          )}
+    <section className="flex h-[calc(100vh-180px)] min-h-[520px] flex-col rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] shadow-xl">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--fl-line)] px-4 py-3">
+        <div>
+          <h2 className="text-base font-bold text-[var(--fl-text)]">Claude Coder</h2>
+          <p className="text-xs text-[var(--fl-muted)]">Talk to it like you would me. Attach pics or docs, ask it to look into things, or tap Build this to change code.</p>
         </div>
-        <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
-          Talk to Claude like you would in a chat. Ask it to look into or check something and it'll go read the real app and report back below — no button needed. When you actually want it to <b>change the code</b>, tap <b>Build this</b>.
-        </p>
+        {chat.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setChat([])}
+            className="shrink-0 text-xs font-semibold text-[var(--fl-muted)] underline hover:text-[var(--fl-text)]"
+          >
+            New chat
+          </button>
+        )}
+      </div>
 
-        <div className="mt-3 max-h-80 space-y-3 overflow-y-auto rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
-          {chat.length === 0 ? (
-            <p className="px-1 py-6 text-center text-sm text-[var(--fl-muted)]">
-              e.g. “On the reports page I want a filter for jobs with unpaid add-ons.”  or  “Something feels off on the client portal payment screen — can we look at it?”
-            </p>
-          ) : (
-            chat.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[85%] break-words rounded-2xl px-3 py-2 text-sm ${
-                    m.role === "user"
-                      ? "whitespace-pre-wrap rounded-br-sm bg-teal-500/15 text-[var(--fl-text)]"
-                      : "rounded-bl-sm border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
-                  }`}
-                >
-                  {m.role === "user" ? m.content : <MdLite text={m.content} />}
-                </div>
+      {/* Conversation */}
+      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {chat.length === 0 ? (
+          <div className="px-2 py-10 text-center text-sm text-[var(--fl-muted)]">
+            <p>Start a conversation. For example:</p>
+            <p className="mt-2 italic">“Here's a screenshot of a glitch on the report page — what's going on?”</p>
+            <p className="mt-1 italic">“Check that all the buttons in the client portal work.”</p>
+            <p className="mt-1 italic">“Add a filter on the reports page for jobs with unpaid add-ons.”</p>
+          </div>
+        ) : (
+          chat.map((m) => (
+            <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[88%] break-words rounded-2xl px-3 py-2 text-sm ${
+                  m.role === "user"
+                    ? "whitespace-pre-wrap rounded-br-sm bg-teal-500/15 text-[var(--fl-text)]"
+                    : "rounded-bl-sm border border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
+                }`}
+              >
+                {m.images && m.images.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {m.images.map((u) => (
+                      <a key={u} href={u} target="_blank" rel="noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={u} alt="attachment" className="h-28 w-28 rounded-lg object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {m.role === "user" ? m.content : <MdLite text={m.content} />}
+                {typeof m.prNumber === "number" && <ChangeCard n={m.prNumber} />}
               </div>
-            ))
-          )}
-          {chatBusy && <p className="px-1 text-xs text-[var(--fl-muted)]">Claude is thinking…</p>}
-          {pendingReviews.length > 0 && (
-            <p className="flex items-center gap-2 px-1 text-xs text-[var(--fl-info-text)]">
-              <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
-              Claude is reading the app — the findings will land here in a few minutes…
-            </p>
-          )}
-          <div ref={chatEndRef} />
-        </div>
+            </div>
+          ))
+        )}
+        {chatBusy && <p className="px-1 text-xs text-[var(--fl-muted)]">Claude is thinking…</p>}
+        {looking && (
+          <p className="flex items-center gap-2 px-1 text-xs text-[var(--fl-info-text)]">
+            <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+            Claude is reading the app — findings will land here in a few minutes…
+          </p>
+        )}
+        {building && (
+          <p className="flex flex-wrap items-center gap-2 px-1 text-xs text-[var(--fl-info-text)]">
+            <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+            Claude is building your change — it'll appear here when ready…
+            {runs.some((r) => r.active) && (
+              <button type="button" onClick={stopBuilding} className="rounded border border-red-500/50 px-2 py-0.5 font-bold text-[var(--fl-crit-text)] hover:bg-red-500/10 [touch-action:manipulation]">
+                ■ Stop
+              </button>
+            )}
+          </p>
+        )}
+        <div ref={chatEndRef} />
+      </div>
 
-        <div className="mt-3 flex items-end gap-2">
+      {note && (
+        <p className={`px-4 text-xs font-semibold ${note.ok ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>{note.text}</p>
+      )}
+
+      {/* Attachments preview */}
+      {attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2 px-4 pt-2">
+          {attachments.map((a, i) => (
+            <span key={a.url} className="flex items-center gap-1.5 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] py-1 pl-1 pr-2 text-xs">
+              {isImage(a.type) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={a.url} alt={a.name} className="h-8 w-8 rounded object-cover" />
+              ) : (
+                <span className="px-1">📄</span>
+              )}
+              <span className="max-w-[140px] truncate text-[var(--fl-muted)]">{a.name}</span>
+              <button type="button" onClick={() => setAttachments((cur) => cur.filter((_, j) => j !== i))} className="font-bold text-[var(--fl-muted)] hover:text-[var(--fl-text)]">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Composer */}
+      <div className="border-t border-[var(--fl-line)] p-3">
+        <div className="flex items-end gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf,.doc,.docx,.txt"
+            multiple
+            className="hidden"
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            title="Attach a pic or doc"
+            className="shrink-0 rounded-xl border border-[var(--fl-line)] px-3 py-3 text-base text-[var(--fl-text)] hover:bg-[var(--fl-raised)] disabled:opacity-50 [touch-action:manipulation]"
+          >
+            {uploading ? "…" : "📎"}
+          </button>
           <textarea
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendChat();
+              }
             }}
             rows={2}
             placeholder="Tell Claude what you want…  (Enter to send, Shift+Enter for a new line)"
@@ -421,148 +648,25 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
           <button
             type="button"
             onClick={sendChat}
-            disabled={chatBusy || !chatInput.trim()}
-            className="rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] disabled:opacity-50 [touch-action:manipulation]"
+            disabled={chatBusy || (!chatInput.trim() && attachments.length === 0)}
+            className="shrink-0 rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] disabled:opacity-50 [touch-action:manipulation]"
           >
             Send
           </button>
         </div>
-
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-[var(--fl-muted)]">Only tap Build this when you want the code actually changed. Claude works in a safe copy and checks everything first — nothing goes live until you approve.</p>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="text-xs text-[var(--fl-muted)]">Looking into things happens right in the chat. Tap Build this only to change code.</p>
           <button
             type="button"
-            onClick={submit}
+            onClick={build}
             disabled={submitting || chat.length === 0}
             title={chat.length === 0 ? "Tell Claude what you want changed first" : "Have Claude actually change the code"}
-            className="rounded-xl bg-teal-500 px-6 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+            className="shrink-0 rounded-xl bg-teal-500 px-5 py-2 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
           >
             {submitting ? "Starting…" : "⚡ Build this"}
           </button>
         </div>
-        {note && (
-          <p className={`mt-2 text-sm font-semibold ${note.ok ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>{note.text}</p>
-        )}
-      </section>
-
-      {runs.some((r) => r.active) && (
-        <section className="rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-4">
-          <p className="text-sm font-bold text-[var(--fl-info-text)]">Working now</p>
-          <ul className="mt-2 space-y-2">
-            {runs.filter((r) => r.active).map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-[var(--fl-text)]">
-                    <span className="inline-flex h-2 w-2 shrink-0 animate-pulse rounded-full bg-cyan-400" />
-                    {r.step || "⏳ Working"}
-                  </p>
-                  <p className="mt-0.5 text-xs text-[var(--fl-muted)]">
-                    {r.status === "queued" ? "queued" : "running"} · started {when(r.created_at)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => stopRun(r.id)}
-                  disabled={stoppingId === r.id}
-                  className="shrink-0 rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-[var(--fl-crit-text)] transition hover:bg-red-500/20 disabled:opacity-50 [touch-action:manipulation]"
-                >
-                  {stoppingId === r.id ? "Stopping…" : "■ Stop"}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {runs.some((r) => r.failed) && !runs.some((r) => r.active) && (
-        <section className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4">
-          <p className="text-sm font-bold text-[var(--fl-crit-text)]">A recent run didn't finish</p>
-          <ul className="mt-2 space-y-1 text-sm text-[var(--fl-muted)]">
-            {runs.filter((r) => r.failed).slice(0, 3).map((r) => (
-              <li key={r.id}>
-                ❌ {r.conclusion === "cancelled" ? "Stopped" : "Failed"} at {r.step} <span className="text-[var(--fl-faint)]">· {when(r.created_at)}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs text-[var(--fl-muted)]">Nothing was changed. Try again, or tell me and I'll check the logs.</p>
-        </section>
-      )}
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold text-[var(--fl-text)]">Changes to approve</h2>
-        {prs.length === 0 ? (
-          <p className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm text-[var(--fl-muted)]">
-            Nothing to approve yet. When you tap <b>Build this</b>, the code change shows up here for you to review. (Things you ask Claude to look into come back in the chat above, not here.)
-          </p>
-        ) : (
-          prs.map((p) => (
-            <div key={p.number} className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-bold text-[var(--fl-text)]">{p.title}</p>
-                  <p className="mt-0.5 text-xs text-[var(--fl-muted)]">{when(p.createdAt)} · {p.branch}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {p.merged ? (
-                    <span className="rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-[var(--fl-good-text)]">Merged ✓ · deploying</span>
-                  ) : p.state === "closed" ? (
-                    <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-ground)] px-2.5 py-0.5 text-xs font-bold text-[var(--fl-muted)]">Closed</span>
-                  ) : (
-                    <CheckBadge c={p.checks} />
-                  )}
-                </div>
-              </div>
-
-              {p.body && (
-                <p className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-[var(--fl-ground)] p-2 text-xs text-[var(--fl-muted)]">{p.body.slice(0, 600)}</p>
-              )}
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleDiff(p.number)}
-                  className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] [touch-action:manipulation]"
-                >
-                  {expanded === p.number ? "Hide changes" : "👁 Review changes"}
-                </button>
-                {!p.merged && p.state === "open" && (
-                  <button
-                    type="button"
-                    onClick={() => merge(p.number)}
-                    disabled={busyPr === p.number || p.checks.state === "failed" || p.checks.state === "pending"}
-                    title={p.checks.state === "passed" ? "" : "Waiting for the build to pass"}
-                    className="rounded-lg border border-emerald-400/60 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-[var(--fl-good-text)] transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
-                  >
-                    {busyPr === p.number ? "Merging…" : "✓ Approve & merge"}
-                  </button>
-                )}
-              </div>
-
-              {expanded === p.number && (
-                <div className="mt-3 space-y-2 border-t border-[var(--fl-line)] pt-3">
-                  {diffLoading === p.number ? (
-                    <p className="text-sm text-[var(--fl-muted)]">Loading the diff…</p>
-                  ) : (diff[p.number] || []).length === 0 ? (
-                    <p className="text-sm text-[var(--fl-muted)]">No file changes to show.</p>
-                  ) : (
-                    (diff[p.number] || []).map((f) => (
-                      <div key={f.filename} className="rounded-lg border border-[var(--fl-line)]">
-                        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                          <span className="break-all font-mono text-xs font-semibold text-[var(--fl-text)]">{f.filename}</span>
-                          <span className="shrink-0 text-xs">
-                            <span className="text-emerald-400">+{f.additions}</span> <span className="text-red-400">-{f.deletions}</span> <span className="text-[var(--fl-faint)]">· {f.status}</span>
-                          </span>
-                        </div>
-                        <Patch patch={f.patch} />
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }

@@ -4,10 +4,10 @@ import { requireOwnerUser, coderRepo, coderConfigured, gh } from "../../../../..
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Once a review's findings have been pulled into the coder chat, the report PR
-// isn't needed — close it (and delete its branch) so Results stays clean and
-// only ever shows real code changes to approve. Best-effort: a failure here
-// never matters to Jeff, the content is already in the chat.
+// Closes a coder PR (and deletes its branch). Two uses: auto-closing a review's
+// report PR once its findings are in the chat, and declining ("Deny") a code
+// change Jeff doesn't want. Safe: only ever closes an OPEN PR on a claude/*
+// branch, never anything on main.
 export async function POST(req: Request) {
   const owner = await requireOwnerUser();
   if (!owner) return NextResponse.json({ error: "Owner only." }, { status: 403 });
@@ -21,20 +21,19 @@ export async function POST(req: Request) {
 
   const repo = coderRepo();
   try {
-    // Only ever close a review branch — never a real code-change PR.
     const pr = await (await gh(`/repos/${repo}/pulls/${n}`)).json();
     const branch = String(pr?.head?.ref || "");
-    const title = String(pr?.title || "");
-    const isReview = title.startsWith("App review:") || title.startsWith("FLOW code review:");
-    if (!isReview || pr?.state !== "open") return NextResponse.json({ ok: false });
+    // Guard: only an open, agent-created branch. Never a merged PR or anything
+    // not on a claude/* branch.
+    if (pr?.state !== "open" || !branch.startsWith("claude/")) {
+      return NextResponse.json({ ok: false });
+    }
 
     await gh(`/repos/${repo}/pulls/${n}`, {
       method: "PATCH",
       body: JSON.stringify({ state: "closed" }),
     });
-    if (branch.startsWith("claude/")) {
-      await gh(`/repos/${repo}/git/refs/heads/${branch}`, { method: "DELETE" }).catch(() => {});
-    }
+    await gh(`/repos/${repo}/git/refs/heads/${branch}`, { method: "DELETE" }).catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message });

@@ -31,7 +31,7 @@ IMPORTANT — you do NOT change code here. Changing code is deliberate and separ
 
 Never mention pull requests, branches, GitHub, or internal tooling. Keep it to the real-world result: what you'll look into, or what will change, and that nothing goes live until he approves it.`;
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; images?: string[] };
 
 async function viaAnthropic(messages: Msg[]): Promise<string | null> {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -44,7 +44,17 @@ async function viaAnthropic(messages: Msg[]): Promise<string | null> {
         model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
         max_tokens: 1200,
         system: SYSTEM,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        messages: messages.map((m) => {
+          const imgs = m.role === "user" ? m.images || [] : [];
+          if (imgs.length === 0) return { role: m.role, content: m.content };
+          return {
+            role: m.role,
+            content: [
+              ...(m.content ? [{ type: "text", text: m.content }] : []),
+              ...imgs.map((url) => ({ type: "image", source: { type: "url", url } })),
+            ],
+          };
+        }),
       }),
     });
     if (!res.ok) return null;
@@ -67,7 +77,20 @@ async function viaOpenAI(messages: Msg[]): Promise<string | null> {
         model: getAIModel(),
         temperature: 0.4,
         max_completion_tokens: 1200,
-        messages: [{ role: "system", content: SYSTEM }, ...messages],
+        messages: [
+          { role: "system", content: SYSTEM },
+          ...messages.map((m) => {
+            const imgs = m.role === "user" ? m.images || [] : [];
+            if (imgs.length === 0) return { role: m.role, content: m.content };
+            return {
+              role: m.role,
+              content: [
+                ...(m.content ? [{ type: "text", text: m.content }] : []),
+                ...imgs.map((url) => ({ type: "image_url", image_url: { url } })),
+              ],
+            };
+          }),
+        ],
       }),
     });
     if (!res.ok) return null;
@@ -88,7 +111,13 @@ export async function POST(req: Request) {
   const messages: Msg[] = raw
     .filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m?.content === "string")
     .slice(-20)
-    .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 8000) }));
+    .map((m: any) => ({
+      role: m.role,
+      content: String(m.content).slice(0, 8000),
+      images: Array.isArray(m.images)
+        ? m.images.filter((u: any) => typeof u === "string" && /^https?:\/\//.test(u)).slice(0, 6)
+        : undefined,
+    }));
 
   if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
     return NextResponse.json({ error: "Say something first." }, { status: 400 });
