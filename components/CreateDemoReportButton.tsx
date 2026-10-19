@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 
 export default function CreateDemoReportButton({
   inspectionId,
@@ -50,7 +51,7 @@ export default function CreateDemoReportButton({
   async function createDemoReport() {
     if (busy) return;
 
-    const confirmed = window.confirm(
+    const confirmed = await flowConfirm(
       "Create a public demo copy of this report? Client, realtor, agreement, and payment details will be removed from the demo copy."
     );
 

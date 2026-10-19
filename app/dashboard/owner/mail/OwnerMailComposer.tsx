@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { flowConfirm } from "../../../../components/ConfirmProvider";
 
 type Inspector = { name: string; email: string; active30: boolean; lastActivity: string | null };
 
@@ -137,7 +138,7 @@ export default function OwnerMailComposer({ inspectors }: { inspectors: Inspecto
       setMsg({ tone: "err", text: "No recipients selected." });
       return;
     }
-    if (targets.length > 1 && !window.confirm(`Send this email to ${targets.length} inspectors?`)) return;
+    if (targets.length > 1 && !(await flowConfirm(`Send this email to ${targets.length} inspectors?`))) return;
 
     setSending(true);
     setMsg(null);

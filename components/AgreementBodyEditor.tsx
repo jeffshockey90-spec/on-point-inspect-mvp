@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 
 // Lets the inspector/owner edit the FULL agreement text for one inspection
 // before it is signed. Saving stores a custom override that the client sees
@@ -66,9 +67,9 @@ export default function AgreementBodyEditor({
   async function resetToAuto() {
     if (saving) return;
     if (
-      !window.confirm(
+      !(await flowConfirm(
         "Reset to the auto-generated agreement? Your custom text will be discarded and the agreement will rebuild from the selected template(s), date, and time.",
-      )
+      ))
     ) {
       return;
     }

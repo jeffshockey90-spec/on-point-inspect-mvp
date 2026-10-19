@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { flowAlert } from "../../components/ConfirmProvider";
+import { flowAlert, flowConfirm } from "../../components/ConfirmProvider";
 
 const STATES = [
   { code: "AL", name: "Alabama" },
@@ -199,7 +199,7 @@ export default function AgreementLibraryManager() {
     if (
       mode === "draft" &&
       body.trim() &&
-      !window.confirm("Replace the current agreement body with an AI-drafted one?")
+      !(await flowConfirm("Replace the current agreement body with an AI-drafted one?"))
     ) {
       return;
     }
@@ -377,7 +377,7 @@ export default function AgreementLibraryManager() {
       return;
     }
 
-    const confirmed = window.confirm(
+    const confirmed = await flowConfirm(
       `Delete "${templateToDelete.title || "this agreement"}"?\n\nThis cannot be undone.`
     );
 
@@ -423,7 +423,7 @@ export default function AgreementLibraryManager() {
 
     const newTitle = `${template.title || "Agreement"} (Copy)`;
 
-    const confirmed = window.confirm(`Duplicate "${template.title}" as "${newTitle}"?`);
+    const confirmed = await flowConfirm(`Duplicate "${template.title}" as "${newTitle}"?`);
     if (!confirmed) return;
 
     setDuplicatingId(template.id);

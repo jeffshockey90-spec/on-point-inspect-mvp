@@ -1,7 +1,7 @@
 "use client";
 
 import FullCalendar from "@fullcalendar/react";
-import { flowAlert } from "./ConfirmProvider";
+import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -359,7 +359,7 @@ export default function ScheduleCalendar({
   // confirmation. Prompted (not automatic) so a status-only tweak or a quick
   // correction doesn't fire a surprise email.
   async function offerRescheduleNotification(inspectionId: string) {
-    const notify = window.confirm(
+    const notify = await flowConfirm(
       "Appointment updated. Send an updated confirmation with the new date and time to the client and realtor?"
     );
     if (!notify) return;
@@ -421,7 +421,7 @@ export default function ScheduleCalendar({
   async function deleteInspection() {
     if (!selected) return;
 
-    const confirmed = window.confirm(
+    const confirmed = await flowConfirm(
       "Delete this inspection? This cannot be undone."
     );
 

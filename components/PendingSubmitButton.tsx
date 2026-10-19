@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { flowConfirm } from "./ConfirmProvider";
 
 type Props = {
   children: React.ReactNode;
@@ -36,9 +37,12 @@ export default function PendingSubmitButton({
       aria-busy={pending}
       data-fast-click="true"
       onClick={(event) => {
-        if (confirmMessage && !window.confirm(confirmMessage)) {
-          event.preventDefault();
-        }
+        if (!confirmMessage) return;
+        event.preventDefault();
+        const form = event.currentTarget.form;
+        flowConfirm(confirmMessage).then((ok) => {
+          if (ok) form?.requestSubmit();
+        });
       }}
       className={`${className} ${
         pending ? "cursor-wait opacity-80" : ""
