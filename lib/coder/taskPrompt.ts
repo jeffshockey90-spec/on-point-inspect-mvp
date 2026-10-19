@@ -11,6 +11,14 @@
 // How the agent must work inside the one-shot Action (shared by both).
 const HOW_TO_WORK = `HOW TO WORK: do this yourself in this one session. Do NOT spawn background agents, subagents, or parallel tasks, and do NOT wait for task notifications — nothing runs in the background here, so you'd just hang. Finish the job directly.`;
 
+// Jeff may have attached a PDF/text document; its extracted text is included in
+// the transcript below so the agent can actually use it, but it can carry a
+// client's name, address, or payment details. Everything the agent produces
+// here (a report file, a PR title/description, a commit message, code, code
+// comments) persists on GitHub indefinitely, so that text must never ride
+// along verbatim into any of it — shared by both task kinds on purpose.
+const DOC_PRIVACY = `A message below may include a block starting with "--- Contents of <filename> ---" — that is text pulled from a document Jeff attached, and it can contain a client's private details (name, address, payment info, etc). Use it to understand what he's asking, but NEVER quote or copy that document's text verbatim into anything you write or commit — not a report file, not a PR title or description, not a commit message, not code, not a code comment. Always describe what it says in your own general words instead (e.g. "the attached file lists a client's name and mailing address") and never repeat the literal name, address, numbers, or other identifying details from it.`;
+
 // The plain-English format the agent must follow whenever it writes a review.
 export const REVIEW_FORMAT = `Write it in plain, everyday English for Jeff — a home inspector, not a software engineer. This matters most.
 - NO developer jargon (no words like IDOR, RLS, service-role, endpoint, query, schema, null, async, cache, refactor). If a technical word is truly unavoidable, explain it in parentheses in plain words.
@@ -32,6 +40,8 @@ export function buildReviewTask(transcript: string): string {
 
 ${REVIEW_FORMAT}
 
+${DOC_PRIVACY}
+
 ${HOW_TO_WORK} Writing that report file is the last thing you do.
 
 Here is his request / your conversation so far:
@@ -42,6 +52,8 @@ ${transcript}`;
 // Jeff tapped "Build this" — he wants the code actually changed.
 export function buildChangeTask(transcript: string): string {
   return `Jeff wants you to actually change FLOW's code to do the following. Make the change on this branch, follow the project's CLAUDE.md rules, run the build + tests, and keep it focused on exactly what he asked — don't touch unrelated things. Nothing ships until Jeff approves it.
+
+${DOC_PRIVACY}
 
 ${HOW_TO_WORK}
 
