@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { PDFDocument, PDFName, PDFRawStream } from "pdf-lib";
 import sharp from "sharp";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "../../../../utils/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -764,6 +765,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "You must be signed in to import a report." }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 
