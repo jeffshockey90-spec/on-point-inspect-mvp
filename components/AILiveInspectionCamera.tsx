@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
-import { flowConfirm } from "./ConfirmProvider";
+import { flowConfirm, flowPrompt } from "./ConfirmProvider";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
@@ -2517,7 +2517,7 @@ export default function AILiveInspectionCamera({
       setToast("Diagnostic log copied — paste it to support.");
     } catch {
       // Clipboard blocked → show it so they can select + copy manually.
-      window.prompt("Copy this diagnostic log:", text);
+      await flowPrompt({ message: "Copy this diagnostic log:", defaultValue: text, selectOnOpen: true });
     }
   }
 

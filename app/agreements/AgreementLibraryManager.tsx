@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { flowAlert, flowConfirm } from "../../components/ConfirmProvider";
+import { flowAlert, flowConfirm, flowPrompt } from "../../components/ConfirmProvider";
 
 const STATES = [
   { code: "AL", name: "Alabama" },
@@ -821,10 +821,10 @@ export default function AgreementLibraryManager() {
             <span className="mb-2 block text-sm font-bold text-[var(--fl-muted)]">Service Type</span>
             <select
               value={serviceType}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const value = e.target.value;
                 if (value === NEW_SERVICE_TYPE) {
-                  const name = window.prompt("Name the new service type (e.g. Pre Drywall):");
+                  const name = await flowPrompt("Name the new service type (e.g. Pre Drywall):");
                   const slug = slugifyServiceType(name || "");
                   if (slug) setServiceType(slug);
                   // Blank/cancelled → keep the previous value, never the sentinel.

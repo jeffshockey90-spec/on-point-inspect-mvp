@@ -13,16 +13,28 @@ type Opts = {
   cancelText?: string;
   tone?: Tone;
 };
-type Req = Opts & { kind: "confirm" | "alert"; resolve: (v: boolean) => void };
+type PromptOpts = Opts & {
+  defaultValue?: string;
+  placeholder?: string;
+  selectOnOpen?: boolean;
+};
+type Req =
+  | (Opts & { kind: "confirm" | "alert"; resolve: (v: boolean) => void })
+  | (PromptOpts & { kind: "prompt"; resolve: (v: string | null) => void });
 
 type Ctx = {
   confirm: (opts: string | Opts) => Promise<boolean>;
   alert: (opts: string | Opts) => Promise<void>;
+  prompt: (opts: string | PromptOpts) => Promise<string | null>;
 };
 
 const ConfirmCtx = createContext<Ctx | null>(null);
 
 function normalize(opts: string | Opts): Opts {
+  return typeof opts === "string" ? { message: opts } : opts;
+}
+
+function normalizePrompt(opts: string | PromptOpts): PromptOpts {
   return typeof opts === "string" ? { message: opts } : opts;
 }
 
@@ -42,9 +54,19 @@ export function flowAlert(opts: string | Opts): Promise<void> {
   return Promise.resolve();
 }
 
+export function flowPrompt(opts: string | PromptOpts): Promise<string | null> {
+  if (liveHandler) return liveHandler.prompt(opts);
+  const p = normalizePrompt(opts);
+  return Promise.resolve(
+    typeof window !== "undefined" ? window.prompt(p.message, p.defaultValue) : null,
+  );
+}
+
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [req, setReq] = useState<Req | null>(null);
+  const [inputValue, setInputValue] = useState("");
   const okRef = useRef<HTMLButtonElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const confirm = useCallback(
     (opts: string | Opts) =>
@@ -56,28 +78,39 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       new Promise<void>((resolve) => setReq({ ...normalize(opts), kind: "alert", resolve: () => resolve() })),
     [],
   );
+  const promptFn = useCallback((opts: string | PromptOpts) => {
+    const p = normalizePrompt(opts);
+    setInputValue(p.defaultValue || "");
+    return new Promise<string | null>((resolve) => setReq({ ...p, kind: "prompt", resolve }));
+  }, []);
 
   const close = useCallback((value: boolean) => {
     setReq((cur) => {
-      cur?.resolve(value);
+      if (cur?.kind === "prompt") cur.resolve(value ? inputValue : null);
+      else cur?.resolve(value);
       return null;
     });
-  }, []);
+  }, [inputValue]);
 
-  // Register this provider as the live handler for imperative flowConfirm/flowAlert.
+  // Register this provider as the live handler for imperative flowConfirm/flowAlert/flowPrompt.
   useEffect(() => {
-    liveHandler = { confirm, alert: alertFn };
+    liveHandler = { confirm, alert: alertFn, prompt: promptFn };
     return () => {
       if (liveHandler && liveHandler.confirm === confirm) liveHandler = null;
     };
-  }, [confirm, alertFn]);
+  }, [confirm, alertFn, promptFn]);
 
   useEffect(() => {
     if (!req) return;
-    okRef.current?.focus();
+    if (req.kind === "prompt") {
+      inputRef.current?.focus();
+      if (req.selectOnOpen) inputRef.current?.select();
+    } else {
+      okRef.current?.focus();
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && req.kind === "confirm") close(false);
-      if (e.key === "Enter") close(true);
+      if (e.key === "Escape" && req.kind !== "alert") close(false);
+      if (e.key === "Enter" && req.kind !== "prompt") close(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -91,12 +124,12 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         : "bg-teal-500 text-slate-950 hover:bg-teal-400";
 
   return (
-    <ConfirmCtx.Provider value={{ confirm, alert: alertFn }}>
+    <ConfirmCtx.Provider value={{ confirm, alert: alertFn, prompt: promptFn }}>
       {children}
       {req && (
         <div
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 px-4"
-          onClick={() => req.kind === "confirm" && close(false)}
+          onClick={() => req.kind !== "alert" && close(false)}
           role="presentation"
         >
           <div
@@ -109,8 +142,25 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             <p className={`${req.title ? "mt-1.5" : ""} whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]`}>
               {req.message}
             </p>
+            {req.kind === "prompt" && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  close(true);
+                }}
+              >
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  placeholder={req.placeholder}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  className="mt-3 h-11 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                />
+              </form>
+            )}
             <div className="mt-5 flex justify-end gap-2">
-              {req.kind === "confirm" && (
+              {req.kind !== "alert" && (
                 <button
                   type="button"
                   onClick={() => close(false)}
@@ -120,7 +170,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 </button>
               )}
               <button
-                ref={okRef}
+                ref={req.kind === "prompt" ? undefined : okRef}
                 type="button"
                 onClick={() => close(true)}
                 className={`rounded-xl px-4 py-2 text-sm font-bold transition [touch-action:manipulation] ${toneCls}`}
@@ -143,5 +193,9 @@ export function useConfirm(): Ctx {
   return {
     confirm: async (opts) => window.confirm(normalize(opts).message),
     alert: async (opts) => window.alert(normalize(opts).message),
+    prompt: async (opts) => {
+      const p = normalizePrompt(opts);
+      return window.prompt(p.message, p.defaultValue);
+    },
   };
 }

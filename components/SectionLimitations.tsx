@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
-import { flowConfirm } from "./ConfirmProvider";
+import { flowConfirm, flowPrompt } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 
 const PHOTO_BUCKET = "inspection-photos";
@@ -833,10 +833,11 @@ function SectionLimitations({
     let cleanTitle = generatedTitle.trim();
     if (!cleanTitle) {
       cleanTitle = String(
-        window.prompt(
-          "Name for this saved limitation:",
-          section ? `${section} Limitation` : "Saved Limitation",
-        ) || "",
+        (await flowPrompt({
+          message: "Name for this saved limitation:",
+          defaultValue: section ? `${section} Limitation` : "Saved Limitation",
+          selectOnOpen: true,
+        })) || "",
       ).trim();
     }
 
