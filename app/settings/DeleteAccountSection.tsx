@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "../../utils/supabase/client";
+import { flowConfirm } from "../../components/ConfirmProvider";
 
 export default function DeleteAccountSection() {
   const [confirmText, setConfirmText] = useState("");
@@ -14,9 +15,13 @@ export default function DeleteAccountSection() {
       return;
     }
 
-    const confirmed = window.confirm(
-      "This will permanently delete your account and may remove your inspections, reports, contacts, templates, agreements, invoices, and related data. This cannot be undone."
-    );
+    const confirmed = await flowConfirm({
+      title: "Delete Account",
+      message:
+        "This will permanently delete your account and may remove your inspections, reports, contacts, templates, agreements, invoices, and related data. This cannot be undone.",
+      confirmText: "Delete Account",
+      tone: "danger",
+    });
 
     if (!confirmed) return;
 

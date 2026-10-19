@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 
 export default function InvoicePaymentButton({
   inspectionId,
@@ -15,9 +16,12 @@ export default function InvoicePaymentButton({
       setLoading(true);
       setError("");
 
-      const confirmed = window.confirm(
-        "Online card payments through the portal include a small processing fee. Other approved payment methods may be available without this online fee. Continue to Stripe checkout?"
-      );
+      const confirmed = await flowConfirm({
+        title: "Pay Online",
+        message:
+          "Online card payments through the portal include a small processing fee. Other approved payment methods may be available without this online fee. Continue to Stripe checkout?",
+        confirmText: "Continue",
+      });
 
       if (!confirmed) {
         return;
