@@ -17,6 +17,7 @@ import AISectionReview from "../../../components/AISectionReview";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import RelatedFindingsEditor from "../../../components/RelatedFindingsEditor";
 import { supabase } from "../../../lib/supabaseClient";
+import { flowConfirm } from "../../../components/ConfirmProvider";
 import { refreshKeepScroll } from "../../../lib/refreshKeepScroll";
 import { markLocalEdit } from "../../../lib/localEditSignal";
 import { createVideoThumbnailForUpload } from "../../../lib/videoThumbnail";
@@ -308,7 +309,13 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         ? `Delete "${sectionName}"? Its ${findingCount} finding${findingCount === 1 ? "" : "s"} will be hidden from the report until you restore this section.`
         : `Delete "${sectionName}"?`;
 
-    if (!window.confirm(warning)) return;
+    const confirmed = await flowConfirm({
+      title: "Delete Section",
+      message: warning,
+      confirmText: "Delete Section",
+      tone: "danger",
+    });
+    if (!confirmed) return;
 
     setDeletingSection(sectionName);
     setSectionMessage("");
@@ -3550,9 +3557,11 @@ function FindingCardBase({
       return;
     }
 
-    const confirmed = window.confirm(
-      "Move this photo to this finding? It will no longer appear under the previous finding.",
-    );
+    const confirmed = await flowConfirm({
+      title: "Move Photo",
+      message: "Move this photo to this finding? It will no longer appear under the previous finding.",
+      confirmText: "Move Photo",
+    });
 
     if (!confirmed) return;
 
@@ -3650,9 +3659,12 @@ function FindingCardBase({
       return;
     }
 
-    const confirmed = window.confirm(
-      "Delete this photo from the report? This removes the photo record from this finding. The original storage file is left alone for safety.",
-    );
+    const confirmed = await flowConfirm({
+      title: "Delete Photo",
+      message: "Delete this photo from the report? This removes the photo record from this finding. The original storage file is left alone for safety.",
+      confirmText: "Delete Photo",
+      tone: "danger",
+    });
 
     if (!confirmed) return;
 

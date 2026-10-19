@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 
  type InspectionOption = {
   id: string;
@@ -77,11 +78,13 @@ export default function SendRealtorReportDropdown({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Send ${
+    const confirmed = await flowConfirm({
+      title: "Send Report",
+      message: `Send ${
         selectedInspection?.label || "this report"
-      } to ${realtorEmail}?`
-    );
+      } to ${realtorEmail}?`,
+      confirmText: "Send Report",
+    });
 
     if (!confirmed) return;
 

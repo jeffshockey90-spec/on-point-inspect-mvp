@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
-import { flowAlert } from "./ConfirmProvider";
+import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 import { isNativeApp, takeNativePhotoSavedToGallery } from "../lib/nativePhoto";
 import ExpandableReportImage from "./ExpandableReportImage";
@@ -247,7 +247,12 @@ function SectionReferencePhotos({
   async function deletePhoto(photo: ReferencePhoto) {
     if (deletingId) return;
 
-    const confirmed = window.confirm("Delete this section reference photo?");
+    const confirmed = await flowConfirm({
+      title: "Delete Photo",
+      message: "Delete this section reference photo?",
+      confirmText: "Delete Photo",
+      tone: "danger",
+    });
 
     if (!confirmed) return;
 
@@ -284,9 +289,11 @@ function SectionReferencePhotos({
   async function convertToDefect(photo: ReferencePhoto) {
     if (convertingId || deletingId) return;
 
-    const confirmed = window.confirm(
-      "Turn this reference photo into a defect? It moves to this section's findings, where you can set the severity and write it up.",
-    );
+    const confirmed = await flowConfirm({
+      title: "Turn Into Defect",
+      message: "Turn this reference photo into a defect? It moves to this section's findings, where you can set the severity and write it up.",
+      confirmText: "Turn Into Defect",
+    });
     if (!confirmed) return;
 
     setConvertingId(photo.id);

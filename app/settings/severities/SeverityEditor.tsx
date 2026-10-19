@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flowConfirm } from "../../../components/ConfirmProvider";
 import { DEFAULT_SEVERITY_LEVELS, type SeverityLevel } from "../../../lib/severity/severityConfig";
 
 type Row = SeverityLevel & { _key: string };
@@ -159,7 +160,7 @@ export default function SeverityEditor() {
         </button>
         <button
           type="button"
-          onClick={() => { if (window.confirm("Revert all severity levels to the FLOW defaults?")) save(true); }}
+          onClick={async () => { if (await flowConfirm("Revert all severity levels to the FLOW defaults?")) save(true); }}
           disabled={saving}
           className="rounded-xl border border-[var(--fl-line)] px-5 py-2.5 text-sm font-bold text-[var(--fl-muted)] hover:border-slate-400 disabled:opacity-60"
         >

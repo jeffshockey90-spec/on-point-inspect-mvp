@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { saveFileToDeviceGallery } from "../lib/nativeGallery";
+import { flowConfirm, flowPrompt } from "./ConfirmProvider";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
@@ -2479,19 +2480,20 @@ export default function AILiveInspectionCamera({
     setStage("note_entry");
   }
 
-  function handleClose() {
+  async function handleClose() {
     const pendingDecision =
       stage === "drafting" ||
       stage === "confirm" ||
       stage === "collecting";
 
-    if (
-      pendingDecision &&
-      !window.confirm(
-        "AI drafted something waiting for your decision. Discard it and close the camera?",
-      )
-    ) {
-      return;
+    if (pendingDecision) {
+      const confirmed = await flowConfirm({
+        title: "Discard Draft?",
+        message: "AI drafted something waiting for your decision. Discard it and close the camera?",
+        confirmText: "Discard",
+        tone: "danger",
+      });
+      if (!confirmed) return;
     }
 
     resetCaptureState();
@@ -2515,7 +2517,7 @@ export default function AILiveInspectionCamera({
       setToast("Diagnostic log copied — paste it to support.");
     } catch {
       // Clipboard blocked → show it so they can select + copy manually.
-      window.prompt("Copy this diagnostic log:", text);
+      await flowPrompt({ title: "Diagnostic Log", message: "Copy this diagnostic log:", defaultValue: text });
     }
   }
 

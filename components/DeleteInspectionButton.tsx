@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { flowAlert } from "./ConfirmProvider";
+import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 
@@ -17,9 +17,12 @@ export default function DeleteInspectionButton({
   async function handleDelete() {
     if (deleting) return;
 
-    const confirmed = window.confirm(
-      "Delete this entire inspection report? This will remove the report and its findings. This cannot be undone."
-    );
+    const confirmed = await flowConfirm({
+      title: "Delete Report",
+      message: "Delete this entire inspection report? This will remove the report and its findings. This cannot be undone.",
+      confirmText: "Delete Report",
+      tone: "danger",
+    });
 
     if (!confirmed) return;
 

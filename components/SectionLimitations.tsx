@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
+import { flowConfirm, flowPrompt } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 
 const PHOTO_BUCKET = "inspection-photos";
@@ -700,7 +701,12 @@ function SectionLimitations({
   async function deleteLimitationPhoto(photo: LimitationPhoto) {
     if (!photo.id) return;
 
-    const confirmed = window.confirm("Delete this limitation photo?");
+    const confirmed = await flowConfirm({
+      title: "Delete Photo",
+      message: "Delete this limitation photo?",
+      confirmText: "Delete Photo",
+      tone: "danger",
+    });
 
     if (!confirmed) return;
 
@@ -827,10 +833,11 @@ function SectionLimitations({
     let cleanTitle = generatedTitle.trim();
     if (!cleanTitle) {
       cleanTitle = String(
-        window.prompt(
-          "Name for this saved limitation:",
-          section ? `${section} Limitation` : "Saved Limitation",
-        ) || "",
+        (await flowPrompt({
+          title: "Save Limitation",
+          message: "Name for this saved limitation:",
+          defaultValue: section ? `${section} Limitation` : "Saved Limitation",
+        })) || "",
       ).trim();
     }
 
@@ -872,7 +879,13 @@ function SectionLimitations({
 
   async function deleteTemplate(templateId: string) {
     if (saving) return;
-    if (!window.confirm("Delete this saved limitation?")) return;
+    const confirmed = await flowConfirm({
+      title: "Delete Limitation",
+      message: "Delete this saved limitation?",
+      confirmText: "Delete",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     setSaving(true);
     try {
       const res = await fetch("/api/save-limitation-template", {

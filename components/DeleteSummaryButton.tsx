@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { flowAlert } from "./ConfirmProvider";
+import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { useState, useTransition } from "react";
 
@@ -25,9 +25,12 @@ export default function DeleteSummaryButton({
       return;
     }
 
-    const confirmed = window.confirm(
-      "Delete the Executive Summary for this report?"
-    );
+    const confirmed = await flowConfirm({
+      title: "Delete Summary",
+      message: "Delete the Executive Summary for this report?",
+      confirmText: "Delete Summary",
+      tone: "danger",
+    });
 
     if (!confirmed) return;
 

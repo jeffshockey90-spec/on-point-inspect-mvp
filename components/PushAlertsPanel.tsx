@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BellRing } from "lucide-react";
+import { flowConfirm } from "./ConfirmProvider";
 
 type Alert = {
   eventType: string;
@@ -89,7 +90,7 @@ export default function PushAlertsPanel() {
 
   async function testAll() {
     if (testingAll) return;
-    if (!window.confirm(`This sends ${TOTAL} test notifications to your devices. Continue?`)) return;
+    if (!(await flowConfirm(`This sends ${TOTAL} test notifications to your devices. Continue?`))) return;
     setTestingAll(true);
     setNote("");
     let ok = 0;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 
 export default function SendSignedAgreementButton({
   inspectionId,
@@ -17,12 +18,12 @@ export default function SendSignedAgreementButton({
 
   async function send() {
     if (busyRef.current || busy) return;
-    if (
-      !window.confirm(
-        `Email a copy of the signed agreement to ${clientEmail || "the client"}?`
-      )
-    )
-      return;
+    const confirmed = await flowConfirm({
+      title: "Send Agreement Copy",
+      message: `Email a copy of the signed agreement to ${clientEmail || "the client"}?`,
+      confirmText: "Send Copy",
+    });
+    if (!confirmed) return;
     busyRef.current = true;
     setBusy(true);
     setMsg(null);

@@ -9,6 +9,7 @@ import {
   type DashboardLayout,
   type WidgetSize,
 } from "../lib/dashboard/dashboardLayout";
+import { flowConfirm } from "./ConfirmProvider";
 
 type Props = {
   widgets: { id: string; node: ReactNode }[];
@@ -67,8 +68,8 @@ export default function DashboardGrid({ widgets, initialLayout }: Props) {
   function setVisible(id: string, v: boolean) {
     apply(layout.map((w) => (w.id === id ? { ...w, visible: v } : w)));
   }
-  function reset() {
-    if (!window.confirm("Reset your dashboard layout to the default?")) return;
+  async function reset() {
+    if (!(await flowConfirm("Reset your dashboard layout to the default?"))) return;
     setLayout(DEFAULT_LAYOUT);
     void fetch("/api/settings/dashboard-layout", {
       method: "POST",

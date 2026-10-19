@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { flowAlert } from "./ConfirmProvider";
+import { flowAlert, flowConfirm } from "./ConfirmProvider";
 
 const ROLE_OPTIONS = ["client", "co-client", "realtor", "transaction coordinator", "other"];
 
@@ -225,7 +225,13 @@ export default function InspectionContactsManager({
   }
 
   async function deleteContact(id: string) {
-    if (!window.confirm("Delete this contact?")) return;
+    const confirmed = await flowConfirm({
+      title: "Delete Contact",
+      message: "Delete this contact?",
+      confirmText: "Delete Contact",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     const res = await fetch(`/api/inspection-contacts?id=${id}`, { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) {
