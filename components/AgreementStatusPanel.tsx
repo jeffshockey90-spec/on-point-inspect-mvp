@@ -2,7 +2,7 @@
 
 
 import { formatAppValue } from "../lib/app-time";
-import { flowAlert } from "./ConfirmProvider";
+import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -217,11 +217,13 @@ export default function AgreementStatusPanel({
       return;
     }
 
-    if (
-      !window.confirm(
-        "Waive the agreement requirement for this inspection? This will be recorded in the audit trail.",
-      )
-    ) {
+    const confirmedWaive = await flowConfirm({
+      title: "Waive Agreement",
+      message: "Waive the agreement requirement for this inspection? This will be recorded in the audit trail.",
+      confirmText: "Waive Requirement",
+      tone: "warn",
+    });
+    if (!confirmedWaive) {
       return;
     }
 
@@ -263,11 +265,13 @@ export default function AgreementStatusPanel({
   }
 
   async function removeWaiver() {
-    if (
-      !window.confirm(
-        "Remove this waiver? Required unsigned contacts will become pending again.",
-      )
-    ) {
+    const confirmedRemove = await flowConfirm({
+      title: "Remove Waiver",
+      message: "Remove this waiver? Required unsigned contacts will become pending again.",
+      confirmText: "Remove Waiver",
+      tone: "warn",
+    });
+    if (!confirmedRemove) {
       return;
     }
 
