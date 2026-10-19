@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { RefreshCcw } from "lucide-react";
+import { flowConfirm } from "./ConfirmProvider";
 
 type Row = {
   label: string;
@@ -55,12 +56,14 @@ export default function RepriceSubscribersPanel() {
 
   async function apply() {
     if (applying) return;
-    if (!window.confirm(
-      `Re-price ${wouldChange.length} active subscriber(s) to their current plan price?\n\n` +
-      (proration === "immediate"
-        ? "Proration ON: Stripe will credit/charge the difference now."
-        : "Proration OFF: the new price starts at each subscriber's next renewal.")
-    )) return;
+    if (!(await flowConfirm({
+      message:
+        `Re-price ${wouldChange.length} active subscriber(s) to their current plan price?\n\n` +
+        (proration === "immediate"
+          ? "Proration ON: Stripe will credit/charge the difference now."
+          : "Proration OFF: the new price starts at each subscriber's next renewal."),
+      tone: "warn",
+    }))) return;
     setApplying(true);
     try {
       const d = await run(false);

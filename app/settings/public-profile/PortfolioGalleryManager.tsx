@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { flowConfirm } from "../../../components/ConfirmProvider";
 
 type PortfolioImage = {
   id: string;
@@ -155,7 +156,7 @@ export default function PortfolioGalleryManager({
 
   async function deleteImage(id: string) {
     if (!id || saving) return;
-    const confirmed = window.confirm("Remove this image from your public portfolio gallery?");
+    const confirmed = await flowConfirm("Remove this image from your public portfolio gallery?");
     if (!confirmed) return;
 
     setSaving(true);
