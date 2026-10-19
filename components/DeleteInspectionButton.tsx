@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowAlert } from "./ConfirmProvider";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 
@@ -47,7 +48,7 @@ export default function DeleteInspectionButton({
       router.refresh();
     } catch (error: any) {
       setLabel("Failed");
-      alert(error.message || "Failed to delete report.");
+      await flowAlert(error.message || "Failed to delete report.");
 
       window.setTimeout(() => {
         setDeleting(false);

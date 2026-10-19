@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
@@ -617,7 +618,7 @@ function EditableFinding({
   async function deleteFinding() {
     if (deleting) return;
 
-    const confirmed = confirm("Delete this finding?");
+    const confirmed = await flowConfirm("Delete this finding?");
     if (!confirmed) return;
 
     setDeleting(true);

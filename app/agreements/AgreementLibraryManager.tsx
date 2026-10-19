@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { flowAlert } from "../../components/ConfirmProvider";
 
 const STATES = [
   { code: "AL", name: "Alabama" },
@@ -320,11 +321,11 @@ export default function AgreementLibraryManager() {
 
   async function saveTemplate() {
     if (serviceType === NEW_SERVICE_TYPE) {
-      alert("Pick a service type, or name a new one.");
+      await flowAlert("Pick a service type, or name a new one.");
       return;
     }
     if (!title.trim() || !body.trim()) {
-      alert("Title and agreement body are required.");
+      await flowAlert("Title and agreement body are required.");
       return;
     }
 
@@ -356,15 +357,15 @@ export default function AgreementLibraryManager() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to save agreement.");
+        await flowAlert(data.error || "Failed to save agreement.");
         return;
       }
 
-      alert("Agreement saved.");
+      await flowAlert("Agreement saved.");
       resetForm();
       await loadTemplates();
     } catch (error: any) {
-      alert(error?.message || "Failed to save agreement.");
+      await flowAlert(error?.message || "Failed to save agreement.");
     } finally {
       setSaving(false);
     }
@@ -372,7 +373,7 @@ export default function AgreementLibraryManager() {
 
   async function deleteTemplate(templateToDelete = selected) {
     if (!templateToDelete?.id) {
-      alert("Select an agreement first.");
+      await flowAlert("Select an agreement first.");
       return;
     }
 
@@ -399,11 +400,11 @@ export default function AgreementLibraryManager() {
       }
 
       if (!res.ok) {
-        alert(data.error || "Failed to delete agreement.");
+        await flowAlert(data.error || "Failed to delete agreement.");
         return;
       }
 
-      alert("Agreement deleted.");
+      await flowAlert("Agreement deleted.");
 
       if (selected?.id === templateToDelete.id) {
         resetForm();
@@ -411,7 +412,7 @@ export default function AgreementLibraryManager() {
 
       await loadTemplates();
     } catch (error: any) {
-      alert(error?.message || "Failed to delete agreement.");
+      await flowAlert(error?.message || "Failed to delete agreement.");
     } finally {
       setDeleting(false);
     }
@@ -452,23 +453,23 @@ export default function AgreementLibraryManager() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to duplicate agreement.");
+        await flowAlert(data.error || "Failed to duplicate agreement.");
         return;
       }
 
-      alert("Agreement duplicated.");
+      await flowAlert("Agreement duplicated.");
       await loadTemplates();
       if (data.template) editTemplate(data.template);
     } catch (error: any) {
-      alert(error?.message || "Failed to duplicate agreement.");
+      await flowAlert(error?.message || "Failed to duplicate agreement.");
     } finally {
       setDuplicatingId(null);
     }
   }
 
-  function exportTemplate(template = selected) {
+  async function exportTemplate(template = selected) {
     if (!template?.id) {
-      alert("Select an agreement first.");
+      await flowAlert("Select an agreement first.");
       return;
     }
 
@@ -509,7 +510,7 @@ export default function AgreementLibraryManager() {
       const imported = normalizeImportedTemplate(parsed);
 
       if (!imported.title || !imported.body) {
-        alert("Imported file must include a title and body.");
+        await flowAlert("Imported file must include a title and body.");
         return;
       }
 
@@ -523,9 +524,9 @@ export default function AgreementLibraryManager() {
       setIsActive(imported.is_active);
       setIsDefault(false);
 
-      alert("Agreement imported into the form. Review it, then click Save Agreement.");
+      await flowAlert("Agreement imported into the form. Review it, then click Save Agreement.");
     } catch (error: any) {
-      alert(error?.message || "Could not import agreement JSON file.");
+      await flowAlert(error?.message || "Could not import agreement JSON file.");
     } finally {
       if (importInputRef.current) {
         importInputRef.current.value = "";
@@ -542,7 +543,7 @@ export default function AgreementLibraryManager() {
         setCopied("");
       }, 1500);
     } catch {
-      alert("Could not copy. You can manually highlight and copy the placeholder.");
+      await flowAlert("Could not copy. You can manually highlight and copy the placeholder.");
     }
   }
 

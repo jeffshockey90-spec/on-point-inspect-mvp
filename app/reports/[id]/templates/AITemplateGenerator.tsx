@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowAlert } from "../../../../components/ConfirmProvider";
 
 export default function AITemplateGenerator() {
   const [note, setNote] = useState("");
@@ -8,7 +9,7 @@ export default function AITemplateGenerator() {
 
   async function generateTemplate() {
     if (!note.trim()) {
-      alert("Type a quick note first.");
+      await flowAlert("Type a quick note first.");
       return;
     }
 
@@ -26,7 +27,7 @@ export default function AITemplateGenerator() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to generate template.");
+        await flowAlert(data.error || "Failed to generate template.");
         return;
       }
 
@@ -44,7 +45,7 @@ export default function AITemplateGenerator() {
       if (implication) implication.value = data.implication || "";
       if (recommendation) recommendation.value = data.recommendation || "";
     } catch {
-      alert("Something went wrong generating the template.");
+      await flowAlert("Something went wrong generating the template.");
     } finally {
       setLoading(false);
     }

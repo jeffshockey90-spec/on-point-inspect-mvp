@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowAlert } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 
 export default function EditableInspectionDetails({
@@ -66,7 +67,7 @@ export default function EditableInspectionDetails({
     setSaving(false);
 
     if (error) {
-      alert("Error saving inspection details.");
+      await flowAlert("Error saving inspection details.");
       console.error(error);
       return;
     }

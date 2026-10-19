@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { flowAlert } from "./ConfirmProvider";
 import { US_STATES } from "../lib/usStates";
 
 type AgreementTemplate = Record<string, any>;
@@ -82,7 +83,7 @@ export default function AgreementSelector({
 
   async function saveAgreementSelection(nextState = agreementState, nextTemplateIds = selectedTemplateIds) {
     if (nextTemplateIds.length === 0) {
-      alert("Please select at least one agreement.");
+      await flowAlert("Please select at least one agreement.");
       return;
     }
 
@@ -110,7 +111,7 @@ export default function AgreementSelector({
       window.setTimeout(() => setSavedLabel("Save Agreement Selection"), 1200);
     } catch (error: any) {
       setSavedLabel("Failed");
-      alert(error.message || "Failed to save agreement selection.");
+      await flowAlert(error.message || "Failed to save agreement selection.");
       window.setTimeout(() => setSavedLabel("Save Agreement Selection"), 1200);
     } finally {
       setSaving(false);

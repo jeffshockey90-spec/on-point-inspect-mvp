@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowConfirm, flowAlert } from "./ConfirmProvider";
 
 // Re-send a standalone invoice (the one you build to bill a third party for the
 // client's report) as a friendly payment reminder, to the same recipient(s) the
@@ -10,7 +11,7 @@ export default function InvoiceRemindButton({ invoiceId }: { invoiceId: string }
 
   async function sendReminder() {
     if (loading) return;
-    if (!confirm("Send a payment reminder for this invoice?")) return;
+    if (!await flowConfirm("Send a payment reminder for this invoice?")) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/invoices/${invoiceId}/send`, {
@@ -20,13 +21,13 @@ export default function InvoiceRemindButton({ invoiceId }: { invoiceId: string }
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data?.error || "Could not send the reminder.");
+        await flowAlert(data?.error || "Could not send the reminder.");
         return;
       }
       const count = Number(data?.sent) || 0;
-      alert(count > 1 ? `Reminder sent to ${count} recipients.` : "Reminder sent.");
+      await flowAlert(count > 1 ? `Reminder sent to ${count} recipients.` : "Reminder sent.");
     } catch {
-      alert("Could not send the reminder.");
+      await flowAlert("Could not send the reminder.");
     } finally {
       setLoading(false);
     }

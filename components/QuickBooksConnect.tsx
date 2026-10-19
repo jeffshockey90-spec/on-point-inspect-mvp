@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 import { useSearchParams } from "next/navigation";
 import { Receipt, Check, RefreshCw } from "lucide-react";
 
@@ -55,7 +56,7 @@ export default function QuickBooksConnect() {
   }
 
   async function disconnect() {
-    if (!confirm("Disconnect QuickBooks? Invoices already created stay in QuickBooks.")) return;
+    if (!await flowConfirm("Disconnect QuickBooks? Invoices already created stay in QuickBooks.")) return;
     setBusy(true);
     try {
       await fetch("/api/quickbooks", { method: "DELETE" });

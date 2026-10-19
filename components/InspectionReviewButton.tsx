@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowConfirm, flowAlert } from "./ConfirmProvider";
 
 // Send a Google review request to an inspection's client from the invoices page
 // (same action as the report builder's review button). Uses the inspection
@@ -14,7 +15,7 @@ export default function InspectionReviewButton({
 
   async function send() {
     if (loading) return;
-    if (!confirm("Send a Google review request to the client?")) return;
+    if (!await flowConfirm("Send a Google review request to the client?")) return;
     setLoading(true);
     try {
       const res = await fetch("/api/send-review-request", {
@@ -24,12 +25,12 @@ export default function InspectionReviewButton({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data?.error || "Could not send the review request.");
+        await flowAlert(data?.error || "Could not send the review request.");
         return;
       }
-      alert(data?.message || "Review request sent.");
+      await flowAlert(data?.message || "Review request sent.");
     } catch {
-      alert("Could not send the review request.");
+      await flowAlert("Could not send the review request.");
     } finally {
       setLoading(false);
     }

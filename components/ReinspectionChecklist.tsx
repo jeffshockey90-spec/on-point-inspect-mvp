@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 import { Camera, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 
@@ -63,7 +64,7 @@ export default function ReinspectionChecklist({ inspectionId }: { inspectionId: 
   // own rows and refuses an original outright.
   async function discard() {
     if (
-      !confirm(
+      !await flowConfirm(
         "Discard this re-inspection? It deletes this re-inspection and its photos only. The original report is not affected.",
       )
     ) {

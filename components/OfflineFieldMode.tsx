@@ -2,6 +2,7 @@
 
 
 import { formatAppValue } from "../lib/app-time";
+import { flowConfirm, flowAlert } from "./ConfirmProvider";
 import { useEffect, useMemo, useState } from "react";
 import {
   addOfflineQueueItem,
@@ -133,7 +134,7 @@ export default function OfflineFieldMode({
       !recommendation.trim() &&
       photos.length === 0
     ) {
-      alert("Add a title, note, or photo before saving.");
+      await flowAlert("Add a title, note, or photo before saving.");
       return;
     }
 
@@ -186,7 +187,7 @@ export default function OfflineFieldMode({
         await syncNow();
       }
     } catch (error: any) {
-      alert(error?.message || "Failed to save offline finding.");
+      await flowAlert(error?.message || "Failed to save offline finding.");
     } finally {
       setSaving(false);
     }
@@ -221,7 +222,7 @@ export default function OfflineFieldMode({
 
       refreshStatus();
     } catch (error: any) {
-      alert(error?.message || "Offline sync failed.");
+      await flowAlert(error?.message || "Offline sync failed.");
     } finally {
       setSyncing(false);
     }
@@ -243,8 +244,8 @@ export default function OfflineFieldMode({
     refreshStatus();
   }
 
-  function clearLocalDrafts() {
-    if (!confirm("Clear local offline finding list?")) return;
+  async function clearLocalDrafts() {
+    if (!await flowConfirm("Clear local offline finding list?")) return;
     saveDraftList([]);
   }
 

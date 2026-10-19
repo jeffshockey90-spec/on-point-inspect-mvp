@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { flowAlert } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 
 const SECTIONS = [
@@ -129,7 +130,7 @@ export default function CommentLibrary({
       .order("created_at", { ascending: false });
 
     if (error) {
-      alert(error.message);
+      await flowAlert(error.message);
       setLoading(false);
       return;
     }
@@ -185,7 +186,7 @@ export default function CommentLibrary({
     if (!editingId || savingId) return;
 
     if (!editForm.title.trim()) {
-      alert("Comment title is required.");
+      await flowAlert("Comment title is required.");
       return;
     }
 
@@ -211,7 +212,7 @@ export default function CommentLibrary({
       .single();
 
     if (error) {
-      alert(error.message || "Failed to update comment.");
+      await flowAlert(error.message || "Failed to update comment.");
       setSavingId(null);
       return;
     }
@@ -243,7 +244,7 @@ export default function CommentLibrary({
       .eq("id", comment.id);
 
     if (error) {
-      alert(error.message || "Failed to delete comment.");
+      await flowAlert(error.message || "Failed to delete comment.");
       setDeletingId(null);
       return;
     }
@@ -281,7 +282,7 @@ export default function CommentLibrary({
       .single();
 
     if (error) {
-      alert(error.message || "Failed to update favorite.");
+      await flowAlert(error.message || "Failed to update favorite.");
       await loadComments();
       setFavoriteBusyId(null);
       return;

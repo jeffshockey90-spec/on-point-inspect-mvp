@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { flowAlert } from "./ConfirmProvider";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
@@ -109,7 +110,7 @@ export default function InsertFavoriteFindingButton({
     if (busy) return;
 
     if (!inspectionId || !templateId) {
-      alert("Missing inspection or template ID.");
+      await flowAlert("Missing inspection or template ID.");
       return;
     }
 
@@ -131,7 +132,7 @@ export default function InsertFavoriteFindingButton({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        alert(data.error || "Failed to insert template.");
+        await flowAlert(data.error || "Failed to insert template.");
         return;
       }
 
@@ -158,7 +159,7 @@ export default function InsertFavoriteFindingButton({
         setInsertedId(null);
       }, 450);
     } catch (error: any) {
-      alert(error?.message || "Failed to insert template.");
+      await flowAlert(error?.message || "Failed to insert template.");
     } finally {
       setInsertingId(null);
     }

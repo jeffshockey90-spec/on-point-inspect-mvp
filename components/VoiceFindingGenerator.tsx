@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flowAlert } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 import {
   addOfflineQueueItem,
@@ -324,13 +325,13 @@ export default function VoiceFindingGenerator({
     return false;
   }
 
-  function startVoice(mode: VoiceMode = voiceMode) {
+  async function startVoice(mode: VoiceMode = voiceMode) {
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert("Voice recognition is not supported in this browser.");
+      await flowAlert("Voice recognition is not supported in this browser.");
       return;
     }
 
@@ -427,7 +428,7 @@ export default function VoiceFindingGenerator({
 
   async function generateFinding() {
     if (!transcript.trim()) {
-      alert("Record or type a field note first.");
+      await flowAlert("Record or type a field note first.");
       return;
     }
 
@@ -483,7 +484,7 @@ export default function VoiceFindingGenerator({
 
   async function saveFinding() {
     if (!title.trim() && !transcript.trim()) {
-      alert("Finding title or voice note is required.");
+      await flowAlert("Finding title or voice note is required.");
       return;
     }
 

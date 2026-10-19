@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 import { useSearchParams } from "next/navigation";
 import { Calendar, Check, RefreshCw } from "lucide-react";
 
@@ -46,7 +47,7 @@ export default function GoogleCalendarConnect() {
   }
 
   async function disconnect() {
-    if (!confirm("Disconnect Google Calendar? Existing events stay on your calendar.")) return;
+    if (!await flowConfirm("Disconnect Google Calendar? Existing events stay on your calendar.")) return;
     setBusy(true);
     try {
       await fetch("/api/google/calendar", { method: "DELETE" });

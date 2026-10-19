@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { flowAlert } from "./ConfirmProvider";
 import { useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
@@ -40,7 +41,7 @@ export default function InspectionDetailsEditor({
     if (busy) return;
 
     if (!inspection?.id) {
-      alert("Missing inspection ID.");
+      await flowAlert("Missing inspection ID.");
       return;
     }
 
@@ -66,7 +67,7 @@ export default function InspectionDetailsEditor({
         refreshKeepScroll(router);
       });
     } catch (error: any) {
-      alert(error?.message || "Failed to save inspection details.");
+      await flowAlert(error?.message || "Failed to save inspection details.");
     } finally {
       setSaving(false);
     }

@@ -26,6 +26,22 @@ function normalize(opts: string | Opts): Opts {
   return typeof opts === "string" ? { message: opts } : opts;
 }
 
+// Module singleton so call sites can use the styled dialogs imperatively (even
+// from plain helper functions, not just inside a component) without wiring a
+// hook each time. ConfirmProvider registers the live handler below.
+let liveHandler: Ctx | null = null;
+
+export function flowConfirm(opts: string | Opts): Promise<boolean> {
+  if (liveHandler) return liveHandler.confirm(opts);
+  return Promise.resolve(typeof window !== "undefined" ? window.confirm(normalize(opts).message) : false);
+}
+
+export function flowAlert(opts: string | Opts): Promise<void> {
+  if (liveHandler) return liveHandler.alert(opts);
+  if (typeof window !== "undefined") window.alert(normalize(opts).message);
+  return Promise.resolve();
+}
+
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [req, setReq] = useState<Req | null>(null);
   const okRef = useRef<HTMLButtonElement | null>(null);
@@ -47,6 +63,14 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       return null;
     });
   }, []);
+
+  // Register this provider as the live handler for imperative flowConfirm/flowAlert.
+  useEffect(() => {
+    liveHandler = { confirm, alert: alertFn };
+    return () => {
+      if (liveHandler && liveHandler.confirm === confirm) liveHandler = null;
+    };
+  }, [confirm, alertFn]);
 
   useEffect(() => {
     if (!req) return;

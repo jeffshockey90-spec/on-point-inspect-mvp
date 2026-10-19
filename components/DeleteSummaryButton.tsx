@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { flowAlert } from "./ConfirmProvider";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { useState, useTransition } from "react";
 
@@ -20,7 +21,7 @@ export default function DeleteSummaryButton({
     if (busy) return;
 
     if (!inspectionId) {
-      alert("Missing inspection ID.");
+      await flowAlert("Missing inspection ID.");
       return;
     }
 
@@ -47,7 +48,7 @@ export default function DeleteSummaryButton({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        alert(data.error || "Failed to delete summary.");
+        await flowAlert(data.error || "Failed to delete summary.");
         return;
       }
 
@@ -57,7 +58,7 @@ export default function DeleteSummaryButton({
         refreshKeepScroll(router);
       });
     } catch (error: any) {
-      alert(error?.message || "Failed to delete summary.");
+      await flowAlert(error?.message || "Failed to delete summary.");
     } finally {
       setDeleting(false);
     }

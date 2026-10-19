@@ -2,6 +2,7 @@
 
 
 import { formatAppValue, toLocalDateKey } from "../../../lib/app-time";
+import { flowAlert } from "../../../components/ConfirmProvider";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "../../../utils/supabase/client";
@@ -1006,7 +1007,7 @@ function NewInspectionPageContent() {
     if (saving) return;
 
     if (!clientName || !propertyAddress || !inspectionDate || !inspectionTime) {
-      alert("Client name, address, date, and time are required.");
+      await flowAlert("Client name, address, date, and time are required.");
       return;
     }
 
@@ -1016,7 +1017,7 @@ function NewInspectionPageContent() {
     );
 
     if (incompleteCoClient) {
-      alert("Each co-buyer needs at least a name and email.");
+      await flowAlert("Each co-buyer needs at least a name and email.");
       return;
     }
 
@@ -1029,7 +1030,7 @@ function NewInspectionPageContent() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        alert("You must be logged in to create an inspection.");
+        await flowAlert("You must be logged in to create an inspection.");
         router.push("/login");
         return;
       }
@@ -1043,7 +1044,7 @@ function NewInspectionPageContent() {
       const companyId = await getCompanyId();
 
       if (!companyId) {
-        alert("No company found for logged in user.");
+        await flowAlert("No company found for logged in user.");
         return;
       }
 
@@ -1145,7 +1146,7 @@ function NewInspectionPageContent() {
           return;
         }
 
-        alert(error.message);
+        await flowAlert(error.message);
         return;
       }
 
@@ -1210,7 +1211,7 @@ function NewInspectionPageContent() {
 
       if (propertyCacheError) {
         console.warn("Property cache was not saved:", propertyCacheError.message);
-        alert(`Property cache was not saved: ${propertyCacheError.message}`);
+        await flowAlert(`Property cache was not saved: ${propertyCacheError.message}`);
       } else {
         console.log("Property cache saved:", propertyCacheData);
       }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowAlert } from "../../../components/ConfirmProvider";
 
 export default function ShareReportModal({
   reportId,
@@ -25,7 +26,7 @@ export default function ShareReportModal({
         setCopied(false);
       }, 2500);
     } catch {
-      alert("Could not copy link. You can manually copy it from the box.");
+      await flowAlert("Could not copy link. You can manually copy it from the box.");
     }
   }
 

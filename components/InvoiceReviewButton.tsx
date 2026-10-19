@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowConfirm, flowAlert } from "./ConfirmProvider";
 
 // Send a Google review request to the person a standalone invoice was billed to
 // (email + best-effort text). Shown on invoices that have been sent/paid so you
@@ -10,7 +11,7 @@ export default function InvoiceReviewButton({ invoiceId }: { invoiceId: string }
 
   async function sendReview() {
     if (loading) return;
-    if (!confirm("Send a Google review request to this client?")) return;
+    if (!await flowConfirm("Send a Google review request to this client?")) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/invoices/${invoiceId}/review`, {
@@ -20,12 +21,12 @@ export default function InvoiceReviewButton({ invoiceId }: { invoiceId: string }
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data?.error || "Could not send the review request.");
+        await flowAlert(data?.error || "Could not send the review request.");
         return;
       }
-      alert(data?.message || "Review request sent.");
+      await flowAlert(data?.message || "Review request sent.");
     } catch {
-      alert("Could not send the review request.");
+      await flowAlert("Could not send the review request.");
     } finally {
       setLoading(false);
     }

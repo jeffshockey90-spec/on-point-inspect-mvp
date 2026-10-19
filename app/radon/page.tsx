@@ -2,6 +2,7 @@
 
 
 import { formatAppValue } from "../../lib/app-time";
+import { flowAlert } from "../../components/ConfirmProvider";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
@@ -140,7 +141,7 @@ export default function RadonPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to load radon tests.");
+        await flowAlert(data.error || "Failed to load radon tests.");
         return;
       }
 
@@ -168,7 +169,7 @@ export default function RadonPage() {
 
       setForms(initialForms);
     } catch (error: any) {
-      alert(error?.message || "Failed to load radon tests.");
+      await flowAlert(error?.message || "Failed to load radon tests.");
     } finally {
       setLoading(false);
     }
@@ -211,15 +212,15 @@ export default function RadonPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to save radon test.");
+        await flowAlert(data.error || "Failed to save radon test.");
         return;
       }
 
       await loadRadonTests();
 
-      alert("Radon test saved.");
+      await flowAlert("Radon test saved.");
     } catch (error: any) {
-      alert(error?.message || "Failed to save radon test.");
+      await flowAlert(error?.message || "Failed to save radon test.");
     } finally {
       setSavingId(null);
     }

@@ -2,6 +2,7 @@
 
 
 import { formatAppValue } from "../../lib/app-time";
+import { flowAlert } from "../../components/ConfirmProvider";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { supabase } from "../../lib/supabaseClient";
@@ -151,7 +152,7 @@ export default function MoldPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to load mold tests.");
+        await flowAlert(data.error || "Failed to load mold tests.");
         return;
       }
 
@@ -178,7 +179,7 @@ export default function MoldPage() {
 
       setForms(initialForms);
     } catch (error: any) {
-      alert(error?.message || "Failed to load mold tests.");
+      await flowAlert(error?.message || "Failed to load mold tests.");
     } finally {
       setLoading(false);
     }
@@ -217,15 +218,15 @@ export default function MoldPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed to save mold test.");
+        await flowAlert(data.error || "Failed to save mold test.");
         return;
       }
 
       await loadMoldTests();
 
-      alert("Mold test saved.");
+      await flowAlert("Mold test saved.");
     } catch (error: any) {
-      alert(error?.message || "Failed to save mold test.");
+      await flowAlert(error?.message || "Failed to save mold test.");
     } finally {
       setSavingId(null);
     }
@@ -245,7 +246,7 @@ export default function MoldPage() {
     });
 
     await navigator.clipboard.writeText(summary);
-    alert("Client summary copied.");
+    await flowAlert("Client summary copied.");
   }
 
   const stats = useMemo(() => {

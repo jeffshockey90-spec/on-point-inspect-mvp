@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flowConfirm, flowAlert } from "./ConfirmProvider";
 
 type Message = { id: string; author: "jarvis" | "owner" | "claude" | "gpt" | "johnny5" | "support" | "herald" | "system"; body: string; meta: any; created_at: string };
 type Thread = {
@@ -275,9 +276,9 @@ export default function JarvisThreads() {
                                   type="button"
                                   disabled={busy}
                                   onClick={async () => {
-                                    if (!confirm("Publish this post to your Facebook Page?")) return;
+                                    if (!await flowConfirm("Publish this post to your Facebook Page?")) return;
                                     const d = await post({ action: "herald_publish", text: m.body });
-                                    alert(d?.error || d?.message || "Done.");
+                                    await flowAlert(d?.error || d?.message || "Done.");
                                   }}
                                   className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-rose-400/60 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-[var(--fl-crit-text)] hover:bg-rose-500/20 disabled:opacity-60"
                                 >
@@ -289,9 +290,9 @@ export default function JarvisThreads() {
                                   type="button"
                                   disabled={busy}
                                   onClick={async () => {
-                                    if (!confirm("Send this reply to the inspector?")) return;
+                                    if (!await flowConfirm("Send this reply to the inspector?")) return;
                                     const d = await post({ action: "support_send", support_thread_id: m.meta.support_thread_id, message: m.meta?.draft || m.body });
-                                    alert(d?.error || d?.message || "Sent.");
+                                    await flowAlert(d?.error || d?.message || "Sent.");
                                   }}
                                   className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-blue-400/60 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-[var(--fl-info-text)] hover:bg-blue-500/20 disabled:opacity-60"
                                 >

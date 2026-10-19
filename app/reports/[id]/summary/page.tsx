@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { flowAlert } from "../../../../components/ConfirmProvider";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
@@ -222,7 +223,7 @@ export default function ReportSummaryPage() {
 
   async function generateSummary() {
     if (!reportId) {
-      alert("Missing report ID.");
+      await flowAlert("Missing report ID.");
       return;
     }
 
@@ -252,7 +253,7 @@ export default function ReportSummaryPage() {
 
   async function saveSummaryToReport() {
     if (!summary.trim()) {
-      alert("No summary to save.");
+      await flowAlert("No summary to save.");
       return;
     }
 
@@ -274,13 +275,13 @@ export default function ReportSummaryPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.error || "Could not save summary.");
+        await flowAlert(data.error || "Could not save summary.");
         return;
       }
 
       setMessage("Report Summary saved to the report.");
     } catch (error: any) {
-      alert(error?.message || "Could not save summary.");
+      await flowAlert(error?.message || "Could not save summary.");
     } finally {
       setSaving(false);
     }

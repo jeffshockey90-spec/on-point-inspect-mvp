@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { flowAlert } from "../../../components/ConfirmProvider";
 
 type PublicProfileActionsProps = {
   profileUrl?: string;
@@ -123,9 +124,9 @@ export default function PublicProfileActions({
 
     try {
       await navigator.clipboard.writeText(url);
-      alert("Public profile link copied.");
+      await flowAlert("Public profile link copied.");
     } catch {
-      alert("Unable to copy link.");
+      await flowAlert("Unable to copy link.");
     }
   }
 
@@ -143,13 +144,13 @@ export default function PublicProfileActions({
       }
 
       await navigator.clipboard.writeText(url);
-      alert("Public profile link copied.");
+      await flowAlert("Public profile link copied.");
     } catch {
       try {
         await navigator.clipboard.writeText(url);
-        alert("Public profile link copied.");
+        await flowAlert("Public profile link copied.");
       } catch {
-        alert("Unable to share profile.");
+        await flowAlert("Unable to share profile.");
       }
     }
   }

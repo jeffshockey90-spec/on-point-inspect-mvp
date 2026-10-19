@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { flowAlert } from "./ConfirmProvider";
 
 const ROLE_OPTIONS = ["client", "co-client", "realtor", "transaction coordinator", "other"];
 
@@ -146,7 +147,7 @@ export default function InspectionContactsManager({
   async function addContact(override?: { name: string; email: string; phone?: string; role: string; agreement_required: boolean; portal_access: boolean; silent?: boolean }) {
     const payload = override || { name, email, phone, role, agreement_required: agreementRequired, portal_access: portalAccess };
     if (!payload.name.trim() || !payload.email.trim()) {
-      alert("Name and email are required.");
+      await flowAlert("Name and email are required.");
       return;
     }
 
@@ -159,7 +160,7 @@ export default function InspectionContactsManager({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (!override?.silent) alert(data.error || "Failed to add contact.");
+        if (!override?.silent) await flowAlert(data.error || "Failed to add contact.");
         return;
       }
       if (!override) {
@@ -174,7 +175,7 @@ export default function InspectionContactsManager({
       }
     } catch (error: any) {
       if (!override?.silent) {
-        alert(error?.message || "Failed to add contact. Check your connection and try again.");
+        await flowAlert(error?.message || "Failed to add contact. Check your connection and try again.");
       }
     } finally {
       setSaving(false);
@@ -189,7 +190,7 @@ export default function InspectionContactsManager({
     });
     const data = await res.json();
     if (!res.ok) {
-      alert(data.error || "Failed to update contact.");
+      await flowAlert(data.error || "Failed to update contact.");
       return false;
     }
     await loadContacts();
@@ -206,7 +207,7 @@ export default function InspectionContactsManager({
 
   async function saveEdit(id: string) {
     if (!editName.trim() || !editEmail.trim()) {
-      alert("Name and email are required.");
+      await flowAlert("Name and email are required.");
       return;
     }
     setSavingEdit(true);
@@ -228,7 +229,7 @@ export default function InspectionContactsManager({
     const res = await fetch(`/api/inspection-contacts?id=${id}`, { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) {
-      alert(data.error || "Failed to delete contact.");
+      await flowAlert(data.error || "Failed to delete contact.");
       return;
     }
     await loadContacts();

@@ -2,6 +2,7 @@
 
 
 import { formatAppValue } from "../lib/app-time";
+import { flowAlert } from "./ConfirmProvider";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -199,10 +200,10 @@ export default function AgreementStatusPanel({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to send reminder.");
 
-      alert(`Sent ${data.sent?.length || 0} reminder email(s).`);
+      await flowAlert(`Sent ${data.sent?.length || 0} reminder email(s).`);
       await loadContacts();
     } catch (error: any) {
-      alert(error.message || "Failed to send reminder.");
+      await flowAlert(error.message || "Failed to send reminder.");
     } finally {
       setSendingReminder(null);
     }

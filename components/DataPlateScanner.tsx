@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowAlert } from "./ConfirmProvider";
 import { useRouter } from "next/navigation";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { supabase } from "../lib/supabaseClient";
@@ -115,7 +116,7 @@ Do not guess if information is not visible.
         recommendation: data.recommendation || "",
       });
     } catch (error: any) {
-      alert(error.message || "Something went wrong");
+      await flowAlert(error.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -151,7 +152,7 @@ Do not guess if information is not visible.
 
       refreshKeepScroll(router);
     } catch (error: any) {
-      alert(error.message || "Failed to save data plate finding");
+      await flowAlert(error.message || "Failed to save data plate finding");
     } finally {
       setSaving(false);
     }

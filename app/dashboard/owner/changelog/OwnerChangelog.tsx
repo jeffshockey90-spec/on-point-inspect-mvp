@@ -1,6 +1,7 @@
 "use client";
 
 import { formatAppValue } from "../../../../lib/app-time";
+import { flowAlert } from "../../../../components/ConfirmProvider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -116,7 +117,7 @@ export default function OwnerChangelog() {
       setEditingId(null);
       await load();
     } catch (err: any) {
-      alert(err?.message || "Could not update entry.");
+      await flowAlert(err?.message || "Could not update entry.");
     } finally {
       setSavingEdit(false);
     }
@@ -130,7 +131,7 @@ export default function OwnerChangelog() {
       if (!res.ok) throw new Error(data?.error || "Could not delete entry.");
       await load();
     } catch (err: any) {
-      alert(err?.message || "Could not delete entry.");
+      await flowAlert(err?.message || "Could not delete entry.");
     }
   }
 

@@ -2,6 +2,7 @@
 
 
 import { formatAppValue } from "../lib/app-time";
+import { flowAlert } from "./ConfirmProvider";
 import { useEffect, useState } from "react";
 import {
   clearOfflineQueue,
@@ -67,7 +68,7 @@ export default function OfflineSyncStatus() {
 
   async function syncNow() {
     if (!isOnline()) {
-      alert("You are offline. Sync will run when connection returns.");
+      await flowAlert("You are offline. Sync will run when connection returns.");
       return;
     }
 

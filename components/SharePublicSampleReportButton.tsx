@@ -1,4 +1,5 @@
 "use client";
+import { flowAlert } from "./ConfirmProvider";
 
 type SharePublicSampleReportButtonProps = {
   url?: string;
@@ -30,13 +31,13 @@ export default function SharePublicSampleReportButton({
       }
 
       await navigator.clipboard.writeText(shareUrl);
-      alert("Sample report link copied.");
+      await flowAlert("Sample report link copied.");
     } catch {
       try {
         await navigator.clipboard.writeText(shareUrl);
-        alert("Sample report link copied.");
+        await flowAlert("Sample report link copied.");
       } catch {
-        alert("Unable to share this report right now.");
+        await flowAlert("Unable to share this report right now.");
       }
     }
   }

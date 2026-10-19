@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { flowAlert } from "../../../../components/ConfirmProvider";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
@@ -151,12 +152,12 @@ export default function BulkAICapturePage() {
     } catch {}
   }, []);
 
-  function saveAIMemory() {
+  async function saveAIMemory() {
     try {
       window.localStorage.setItem("onpoint_bulk_ai_memory", aiMemory);
-      alert("Bulk AI guidance memory saved on this device.");
+      await flowAlert("Bulk AI guidance memory saved on this device.");
     } catch {
-      alert("Could not save AI guidance memory on this device.");
+      await flowAlert("Could not save AI guidance memory on this device.");
     }
   }
 
@@ -181,13 +182,13 @@ export default function BulkAICapturePage() {
     );
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files || []).filter(
       (file) => file.type.startsWith("image/") || file.type.startsWith("video/")
     );
 
     if (selected.length === 0) {
-      alert("Please select photo or video files.");
+      await flowAlert("Please select photo or video files.");
       return;
     }
 
@@ -392,7 +393,7 @@ export default function BulkAICapturePage() {
     setBusy(false);
   }
 
-  function previewAutoMergeSimilarFindings() {
+  async function previewAutoMergeSimilarFindings() {
     const reviewItems = items.filter(
       (item) =>
         item.status === "review" &&
@@ -402,7 +403,7 @@ export default function BulkAICapturePage() {
     );
 
     if (reviewItems.length < 2) {
-      alert("You need at least two reviewed photo findings before merging.");
+      await flowAlert("You need at least two reviewed photo findings before merging.");
       return;
     }
 
@@ -450,7 +451,7 @@ export default function BulkAICapturePage() {
     }
 
     if (proposals.length === 0) {
-      alert("No strong merge matches found. You can still manually move photos after saving.");
+      await flowAlert("No strong merge matches found. You can still manually move photos after saving.");
       return;
     }
 
@@ -458,7 +459,7 @@ export default function BulkAICapturePage() {
     setShowMergePreview(true);
   }
 
-  function confirmMergeProposal() {
+  async function confirmMergeProposal() {
     if (proposedMerges.length === 0) return;
 
     setItems((current) =>
@@ -476,7 +477,7 @@ export default function BulkAICapturePage() {
     );
 
     setShowMergePreview(false);
-    alert("Merge plan applied. Review the merged cards, then save all reviewed findings.");
+    await flowAlert("Merge plan applied. Review the merged cards, then save all reviewed findings.");
   }
 
   function clearMergePlan() {

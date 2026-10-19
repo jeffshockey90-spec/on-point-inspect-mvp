@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flowAlert } from "../../components/ConfirmProvider";
 import Link from "next/link";
 import { Card } from "../../components/Card";
 import { useAddressAutocomplete } from "../../hooks/useAddressAutocomplete";
@@ -277,9 +278,9 @@ export default function QuotePage() {
   async function copyQuote() {
     try {
       await navigator.clipboard.writeText(message);
-      alert("Quote message copied");
+      await flowAlert("Quote message copied");
     } catch (error) {
-      alert("Couldn't copy automatically. Select and copy the quote message manually.");
+      await flowAlert("Couldn't copy automatically. Select and copy the quote message manually.");
     }
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { flowAlert } from "./ConfirmProvider";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { useState, useTransition } from "react";
 
@@ -21,7 +22,7 @@ export default function GenerateSummaryButton({
     if (busy) return;
 
     if (!inspectionId) {
-      alert("Missing inspection ID.");
+      await flowAlert("Missing inspection ID.");
       return;
     }
 
@@ -45,7 +46,7 @@ export default function GenerateSummaryButton({
       if (!res.ok) {
         const message = data.error || "Failed to generate executive summary.";
         setErrorMessage(message);
-        alert(message);
+        await flowAlert(message);
         return;
       }
 
@@ -57,7 +58,7 @@ export default function GenerateSummaryButton({
     } catch (error: any) {
       const message = error?.message || "Failed to generate executive summary.";
       setErrorMessage(message);
-      alert(message);
+      await flowAlert(message);
     } finally {
       setGenerating(false);
     }

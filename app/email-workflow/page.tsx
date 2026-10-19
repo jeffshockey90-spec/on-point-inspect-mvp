@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flowAlert } from "../../components/ConfirmProvider";
 import { supabase } from "../../lib/supabase";
 
 type Inspection = {
@@ -92,7 +93,7 @@ export default function EmailWorkflowPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Failed");
+        await flowAlert(data.error || "Failed");
         return;
       }
 
@@ -100,7 +101,7 @@ export default function EmailWorkflowPage() {
       setMessage(data.message);
     } catch (error) {
       console.error(error);
-      alert("Error generating email");
+      await flowAlert("Error generating email");
     } finally {
       setLoading(false);
     }
@@ -111,7 +112,7 @@ export default function EmailWorkflowPage() {
 
     await navigator.clipboard.writeText(full);
 
-    alert("Copied");
+    await flowAlert("Copied");
   }
 
   return (

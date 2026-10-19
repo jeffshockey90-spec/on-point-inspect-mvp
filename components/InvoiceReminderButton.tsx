@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowConfirm, flowAlert } from "./ConfirmProvider";
 
 export default function InvoiceReminderButton({
   inspectionId,
@@ -10,7 +11,7 @@ export default function InvoiceReminderButton({
   const [loading, setLoading] = useState(false);
 
   async function sendReminder() {
-    if (!confirm("Send a payment reminder to all clients on this inspection?")) return;
+    if (!await flowConfirm("Send a payment reminder to all clients on this inspection?")) return;
 
     try {
       setLoading(true);
@@ -26,18 +27,18 @@ export default function InvoiceReminderButton({
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Could not send reminder email.");
+        await flowAlert(data.error || "Could not send reminder email.");
         return;
       }
 
       const count = Number(data?.sent) || 0;
-      alert(
+      await flowAlert(
         count > 1
           ? `Payment reminder sent to ${count} clients.`
           : "Payment reminder sent.",
       );
     } catch {
-      alert("Could not send reminder email.");
+      await flowAlert("Could not send reminder email.");
     } finally {
       setLoading(false);
     }

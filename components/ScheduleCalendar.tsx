@@ -1,6 +1,7 @@
 "use client";
 
 import FullCalendar from "@fullcalendar/react";
+import { flowAlert } from "./ConfirmProvider";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -630,7 +631,7 @@ export default function ScheduleCalendar({
               await offerRescheduleNotification(String(info.event.id));
             } catch (error) {
               info.revert();
-              alert("Could not move this appointment. Please try again.");
+              await flowAlert("Could not move this appointment. Please try again.");
             }
           }}
           eventClick={(info) => {

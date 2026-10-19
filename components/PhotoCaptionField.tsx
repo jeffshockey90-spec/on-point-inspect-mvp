@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowAlert } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 
 // Inline caption editor for a single finding photo. Saves to photos.caption via
@@ -35,7 +36,7 @@ export default function PhotoCaptionField({
       setSaved(true);
       window.setTimeout(() => setSaved(false), 1500);
     } catch {
-      alert("Could not save the caption.");
+      await flowAlert("Could not save the caption.");
     } finally {
       setSaving(false);
     }

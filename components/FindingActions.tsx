@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowConfirm, flowAlert } from "./ConfirmProvider";
 import { useRouter } from "next/navigation";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { supabase } from "../lib/supabaseClient";
@@ -56,14 +57,14 @@ export default function FindingActions({ finding }: { finding: any }) {
       setEditing(false);
       refreshKeepScroll(router);
     } catch (error: any) {
-      alert(error.message || "Failed to save changes");
+      await flowAlert(error.message || "Failed to save changes");
     } finally {
       setSaving(false);
     }
   }
 
   async function deleteFinding() {
-    const confirmed = confirm(
+    const confirmed = await flowConfirm(
       "Are you sure you want to delete this finding?"
     );
 
@@ -81,7 +82,7 @@ export default function FindingActions({ finding }: { finding: any }) {
 
       refreshKeepScroll(router);
     } catch (error: any) {
-      alert(error.message || "Failed to delete finding");
+      await flowAlert(error.message || "Failed to delete finding");
     }
   }
 
@@ -123,7 +124,7 @@ export default function FindingActions({ finding }: { finding: any }) {
 
       refreshKeepScroll(router);
     } catch (error: any) {
-      alert(error.message || "Failed to upload photos");
+      await flowAlert(error.message || "Failed to upload photos");
     } finally {
       setUploadingPhotos(false);
     }

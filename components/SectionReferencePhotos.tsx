@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
+import { flowAlert } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 import { isNativeApp, takeNativePhotoSavedToGallery } from "../lib/nativePhoto";
 import ExpandableReportImage from "./ExpandableReportImage";
@@ -157,7 +158,7 @@ function SectionReferencePhotos({
     if (!file || !inspectionId || !section) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Reference photos must be images.");
+      await flowAlert("Reference photos must be images.");
       return;
     }
 
@@ -186,7 +187,7 @@ function SectionReferencePhotos({
       setUploadLabel(savedToGallery ? "Saved to Gallery + Uploaded!" : "Uploaded!");
     } catch (error: any) {
       setUploadLabel("Failed");
-      alert(error?.message || "Failed to upload reference photo.");
+      await flowAlert(error?.message || "Failed to upload reference photo.");
     } finally {
       window.setTimeout(() => {
         setUploading(false);
@@ -213,7 +214,7 @@ function SectionReferencePhotos({
       await uploadPhoto(file, true);
     } catch (error: any) {
       setUploadLabel("Failed");
-      alert(error?.message || "Camera failed.");
+      await flowAlert(error?.message || "Camera failed.");
     } finally {
       window.setTimeout(() => {
         setUploading(false);
@@ -238,7 +239,7 @@ function SectionReferencePhotos({
       .eq("inspection_id", inspectionId);
 
     if (error) {
-      alert(error.message || "Failed to update caption.");
+      await flowAlert(error.message || "Failed to update caption.");
       await loadPhotos();
     }
   }
@@ -271,7 +272,7 @@ function SectionReferencePhotos({
 
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id));
     } catch (error: any) {
-      alert(error?.message || "Failed to delete reference photo.");
+      await flowAlert(error?.message || "Failed to delete reference photo.");
     } finally {
       setDeletingId(null);
     }
@@ -316,7 +317,7 @@ function SectionReferencePhotos({
         /* event dispatch is best-effort */
       }
     } catch (error: any) {
-      alert(error?.message || "Could not convert to a defect.");
+      await flowAlert(error?.message || "Could not convert to a defect.");
     } finally {
       setConvertingId(null);
     }
@@ -343,7 +344,7 @@ function SectionReferencePhotos({
 
       setPhotos((prev) => prev.filter((item) => item.id !== photo.id));
     } catch (error: any) {
-      alert(error?.message || "Failed to move reference photo.");
+      await flowAlert(error?.message || "Failed to move reference photo.");
     } finally {
       setMovingId(null);
     }
@@ -374,7 +375,7 @@ function SectionReferencePhotos({
         ),
       );
     } catch (error: any) {
-      alert(error?.message || "Could not reorder reference photos.");
+      await flowAlert(error?.message || "Could not reorder reference photos.");
       await loadPhotos();
     } finally {
       setReorderBusy(false);
@@ -426,7 +427,7 @@ function SectionReferencePhotos({
         );
       }
     } catch (error: any) {
-      alert(error?.message || "Failed to move the photo to the finding.");
+      await flowAlert(error?.message || "Failed to move the photo to the finding.");
     } finally {
       setMovingId(null);
     }
