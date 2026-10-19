@@ -12,12 +12,15 @@ type Opts = {
   confirmText?: string;
   cancelText?: string;
   tone?: Tone;
+  defaultValue?: string;
+  placeholder?: string;
 };
-type Req = Opts & { kind: "confirm" | "alert"; resolve: (v: boolean) => void };
+type Req = Opts & { kind: "confirm" | "alert" | "prompt"; resolve: (v: any) => void };
 
 type Ctx = {
   confirm: (opts: string | Opts) => Promise<boolean>;
   alert: (opts: string | Opts) => Promise<void>;
+  prompt: (opts: string | Opts) => Promise<string | null>;
 };
 
 const ConfirmCtx = createContext<Ctx | null>(null);
@@ -42,9 +45,21 @@ export function flowAlert(opts: string | Opts): Promise<void> {
   return Promise.resolve();
 }
 
+// Styled replacement for the browser's plain prompt() box (a confirm with a
+// text field), used for the handful of spots that ask the user to type a
+// short value (a label, a name) rather than just confirm yes/no.
+export function flowPrompt(opts: string | Opts): Promise<string | null> {
+  if (liveHandler) return liveHandler.prompt(opts);
+  const o = normalize(opts);
+  if (typeof window !== "undefined") return Promise.resolve(window.prompt(o.message, o.defaultValue ?? ""));
+  return Promise.resolve(null);
+}
+
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [req, setReq] = useState<Req | null>(null);
+  const [promptValue, setPromptValue] = useState("");
   const okRef = useRef<HTMLButtonElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const confirm = useCallback(
     (opts: string | Opts) =>
@@ -56,32 +71,47 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       new Promise<void>((resolve) => setReq({ ...normalize(opts), kind: "alert", resolve: () => resolve() })),
     [],
   );
+  const promptFn = useCallback(
+    (opts: string | Opts) =>
+      new Promise<string | null>((resolve) => setReq({ ...normalize(opts), kind: "prompt", resolve })),
+    [],
+  );
 
-  const close = useCallback((value: boolean) => {
+  const closeWith = useCallback((value: any) => {
     setReq((cur) => {
       cur?.resolve(value);
       return null;
     });
   }, []);
 
-  // Register this provider as the live handler for imperative flowConfirm/flowAlert.
+  // Register this provider as the live handler for imperative flowConfirm/flowAlert/flowPrompt.
   useEffect(() => {
-    liveHandler = { confirm, alert: alertFn };
+    liveHandler = { confirm, alert: alertFn, prompt: promptFn };
     return () => {
       if (liveHandler && liveHandler.confirm === confirm) liveHandler = null;
     };
-  }, [confirm, alertFn]);
+  }, [confirm, alertFn, promptFn]);
 
   useEffect(() => {
     if (!req) return;
-    okRef.current?.focus();
+    if (req.kind === "prompt") {
+      setPromptValue(req.defaultValue ?? "");
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    } else {
+      okRef.current?.focus();
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && req.kind === "confirm") close(false);
-      if (e.key === "Enter") close(true);
+      if (req.kind === "prompt") {
+        if (e.key === "Escape") closeWith(null);
+        return;
+      }
+      if (e.key === "Escape" && req.kind === "confirm") closeWith(false);
+      if (e.key === "Enter") closeWith(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [req, close]);
+  }, [req, closeWith]);
 
   const toneCls =
     req?.tone === "danger"
@@ -91,12 +121,12 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         : "bg-teal-500 text-slate-950 hover:bg-teal-400";
 
   return (
-    <ConfirmCtx.Provider value={{ confirm, alert: alertFn }}>
+    <ConfirmCtx.Provider value={{ confirm, alert: alertFn, prompt: promptFn }}>
       {children}
       {req && (
         <div
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 px-4"
-          onClick={() => req.kind === "confirm" && close(false)}
+          onClick={() => req.kind !== "alert" && closeWith(req.kind === "prompt" ? null : false)}
           role="presentation"
         >
           <div
@@ -109,11 +139,24 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             <p className={`${req.title ? "mt-1.5" : ""} whitespace-pre-wrap text-sm leading-6 text-[var(--fl-text)]`}>
               {req.message}
             </p>
+            {req.kind === "prompt" && (
+              <input
+                ref={inputRef}
+                type="text"
+                value={promptValue}
+                placeholder={req.placeholder}
+                onChange={(e) => setPromptValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") closeWith(promptValue);
+                }}
+                className="mt-3 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+              />
+            )}
             <div className="mt-5 flex justify-end gap-2">
-              {req.kind === "confirm" && (
+              {req.kind !== "alert" && (
                 <button
                   type="button"
-                  onClick={() => close(false)}
+                  onClick={() => closeWith(req.kind === "prompt" ? null : false)}
                   className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] [touch-action:manipulation]"
                 >
                   {req.cancelText || "Cancel"}
@@ -122,10 +165,10 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               <button
                 ref={okRef}
                 type="button"
-                onClick={() => close(true)}
+                onClick={() => closeWith(req.kind === "prompt" ? promptValue : true)}
                 className={`rounded-xl px-4 py-2 text-sm font-bold transition [touch-action:manipulation] ${toneCls}`}
               >
-                {req.confirmText || (req.kind === "alert" ? "OK" : "Confirm")}
+                {req.confirmText || (req.kind === "alert" ? "OK" : req.kind === "prompt" ? "Save" : "Confirm")}
               </button>
             </div>
           </div>
@@ -143,5 +186,9 @@ export function useConfirm(): Ctx {
   return {
     confirm: async (opts) => window.confirm(normalize(opts).message),
     alert: async (opts) => window.alert(normalize(opts).message),
+    prompt: async (opts) => {
+      const o = normalize(opts);
+      return window.prompt(o.message, o.defaultValue ?? "");
+    },
   };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, memo, useEffect, useRef, useState } from "react";
-import { flowConfirm } from "./ConfirmProvider";
+import { flowConfirm, flowPrompt } from "./ConfirmProvider";
 import {
   Stage,
   Layer,
@@ -362,7 +362,7 @@ function PhotoMarkupEditor({
     event?.evt?.stopPropagation?.();
   }
 
-  function handleStagePointerDown(event: any) {
+  async function handleStagePointerDown(event: any) {
     if (saving) return;
 
     stopPageGesture(event);
@@ -380,7 +380,7 @@ function PhotoMarkupEditor({
     }
 
     if (tool === "text") {
-      const text = window.prompt("Enter label text:", "Defect");
+      const text = await flowPrompt({ title: "Add Label", message: "Enter label text:", defaultValue: "Defect" });
       if (!text) return;
 
       const id = makeId();
@@ -536,7 +536,7 @@ function PhotoMarkupEditor({
     commitItems(nextItems, { selectId: selectedId });
   }
 
-  function editSelectedText(itemId = selectedId) {
+  async function editSelectedText(itemId = selectedId) {
     if (!itemId || saving) return;
 
     const selected = items.find(
@@ -544,7 +544,11 @@ function PhotoMarkupEditor({
     );
     if (!selected) return;
 
-    const nextText = window.prompt("Edit label text:", selected.text || "Label");
+    const nextText = await flowPrompt({
+      title: "Edit Label",
+      message: "Edit label text:",
+      defaultValue: selected.text || "Label",
+    });
     if (nextText === null) return;
 
     const cleanText = nextText.trim();
