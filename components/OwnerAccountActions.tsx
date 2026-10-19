@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 
 type RoleOption = "client" | "inspector" | "owner" | "admin";
 
@@ -23,7 +24,7 @@ export default function OwnerAccountActions({ userId, email, currentRole = "user
       reset: "Send password reset email?",
       clear_push: "Disable saved push devices for this user?",
     };
-    if (!window.confirm(labels[action] || "Run this owner action?")) return;
+    if (!(await flowConfirm(labels[action] || "Run this owner action?"))) return;
 
     setBusyAction(action); setMessage("");
     try {

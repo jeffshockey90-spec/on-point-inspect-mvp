@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { flowConfirm } from "../../../components/ConfirmProvider";
 import { BASE_SECTION_ORDER } from "../../../lib/reportSections";
 
 // Mirror how New Inspection keys the booked service (its `serviceMode`) so a
@@ -105,7 +106,7 @@ export default function ReportTemplatesEditor() {
   }
 
   async function remove(t: Template) {
-    if (!window.confirm(`Delete the "${t.name}" template?`)) return;
+    if (!(await flowConfirm(`Delete the "${t.name}" template?`))) return;
     await fetch(`/api/report-templates?id=${encodeURIComponent(t.id)}`, { method: "DELETE" }).catch(() => {});
     await loadTemplates();
   }
