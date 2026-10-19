@@ -106,7 +106,15 @@ export default function ReportTemplatesEditor() {
   }
 
   async function remove(t: Template) {
-    if (!(await flowConfirm(`Delete the "${t.name}" template?`))) return;
+    if (
+      !(await flowConfirm({
+        title: "Delete Template",
+        message: `Delete the "${t.name}" template?`,
+        confirmText: "Delete Template",
+        tone: "danger",
+      }))
+    )
+      return;
     await fetch(`/api/report-templates?id=${encodeURIComponent(t.id)}`, { method: "DELETE" }).catch(() => {});
     await loadTemplates();
   }

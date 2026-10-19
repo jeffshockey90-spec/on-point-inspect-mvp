@@ -64,9 +64,12 @@ export default function FindingActions({ finding }: { finding: any }) {
   }
 
   async function deleteFinding() {
-    const confirmed = await flowConfirm(
-      "Are you sure you want to delete this finding?"
-    );
+    const confirmed = await flowConfirm({
+      title: "Delete Finding",
+      message: "Are you sure you want to delete this finding?",
+      confirmText: "Delete Finding",
+      tone: "danger",
+    });
 
     if (!confirmed) return;
 
