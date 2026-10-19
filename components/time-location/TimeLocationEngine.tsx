@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { detectDeviceTimeZone, inspectionLocalToUtc, writeStoredTimePreferences } from "../../lib/app-time";
+import { flowConfirm } from "../ConfirmProvider";
 
 type Inspection = { id: string; property_address?: string; property_latitude?: number | null; property_longitude?: number | null; scheduled_start_at?: string | null; inspection_date?: string | null; inspection_time?: string | null; scheduled_date?: string | null; scheduled_time?: string | null; status?: string | null };
 type ActiveTrip = { id: string; inspection_id?: string | null; total_miles?: number } | null;
@@ -125,7 +126,12 @@ export default function TimeLocationEngine() {
       } catch {}
     }
     window.dispatchEvent(new CustomEvent("onpoint:departure-confirmation", { detail: { inspectionId: session.inspection_id } }));
-    if (window.confirm("Leaving the inspection? Start mileage tracking now?")) await startMileage(session.inspection_id, coords);
+    const confirmed = await flowConfirm({
+      title: "Leaving the Inspection?",
+      message: "Start mileage tracking now?",
+      confirmText: "Start Mileage",
+    });
+    if (confirmed) await startMileage(session.inspection_id, coords);
     else departurePrompted.current = false;
   }, [activeTrip?.id, startMileage]);
 

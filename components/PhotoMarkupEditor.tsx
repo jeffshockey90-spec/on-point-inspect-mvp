@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, memo, useEffect, useRef, useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 import {
   Stage,
   Layer,
@@ -481,10 +482,15 @@ function PhotoMarkupEditor({
     showMessage("success", "Selected markup removed.");
   }
 
-  function clearAll() {
+  async function clearAll() {
     if (saving || items.length === 0) return;
 
-    const confirmed = window.confirm("Remove all markups from this photo?");
+    const confirmed = await flowConfirm({
+      title: "Remove All Markups",
+      message: "Remove all markups from this photo?",
+      confirmText: "Remove All",
+      tone: "danger",
+    });
     if (!confirmed) return;
 
     commitItems([], { selectId: null });

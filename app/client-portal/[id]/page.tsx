@@ -10,6 +10,7 @@ import SocialMediaConsentCard from "../../../components/SocialMediaConsentCard";
 import PortalAutoTranslate from "../../../components/PortalAutoTranslate";
 import { getOnlineProcessingFee } from "../../../lib/onlinePaymentFee";
 import { formatClockTime } from "../../../lib/app-time";
+import { flowConfirm } from "../../../components/ConfirmProvider";
 
 const SECTION_ORDER = [
   "Inspection Details",
@@ -556,9 +557,11 @@ export default function ClientPortalPage() {
       setMessage("");
       setMessageType("");
 
-      const confirmed = window.confirm(
-        "Online card payments through the portal include a small processing fee. Other approved payment methods may be available without this online fee. Continue to Stripe checkout?"
-      );
+      const confirmed = await flowConfirm({
+        title: "Continue to Checkout",
+        message: "Online card payments through the portal include a small processing fee. Other approved payment methods may be available without this online fee. Continue to Stripe checkout?",
+        confirmText: "Continue",
+      });
 
       if (!confirmed) {
         setPaying(false);

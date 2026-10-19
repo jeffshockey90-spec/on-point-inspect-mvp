@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { flowConfirm } from "./ConfirmProvider";
 
 function SubmitButton({ published }: { published: boolean }) {
   const { pending } = useFormStatus();
@@ -40,6 +41,9 @@ export default function PublishReportActionButton({
   // we warn before publishing so none gets silently left off. Best-effort: a
   // failed/zero count just falls back to the normal confirm.
   const [pendingDrafts, setPendingDrafts] = useState(0);
+  // Allows the programmatic resubmit (after the async confirm) to pass through
+  // onSubmit without re-prompting.
+  const confirmedRef = useRef(false);
 
   useEffect(() => {
     if (published || !inspectionId) return;
@@ -84,17 +88,31 @@ export default function PublishReportActionButton({
           return;
         }
 
-        const confirmed = window.confirm(
-          pendingDrafts > 0
-            ? `${pendingDrafts} AI draft${pendingDrafts === 1 ? "" : "s"} ${
-                pendingDrafts === 1 ? "is" : "are"
-              } still awaiting your approval and will NOT appear in the published report until approved (see the review queue at the top).\n\nPublish and email the report anyway?`
-            : "Publish this report and email it to all report recipients?",
-        );
-
-        if (!confirmed) {
-          event.preventDefault();
+        if (confirmedRef.current) {
+          confirmedRef.current = false;
+          return;
         }
+
+        event.preventDefault();
+        const form = event.currentTarget;
+
+        void (async () => {
+          const confirmed = await flowConfirm({
+            title: "Publish Report",
+            message:
+              pendingDrafts > 0
+                ? `${pendingDrafts} AI draft${pendingDrafts === 1 ? "" : "s"} ${
+                    pendingDrafts === 1 ? "is" : "are"
+                  } still awaiting your approval and will NOT appear in the published report until approved (see the review queue at the top).\n\nPublish and email the report anyway?`
+                : "Publish this report and email it to all report recipients?",
+            confirmText: "Publish Report",
+          });
+
+          if (confirmed) {
+            confirmedRef.current = true;
+            form.requestSubmit();
+          }
+        })();
       }}
     >
       <input type="hidden" name="inspection_id" value={inspectionId} />

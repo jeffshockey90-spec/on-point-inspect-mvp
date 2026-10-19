@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 
 type MessageType = "success" | "error" | "";
 
@@ -63,7 +64,11 @@ export default function SendRealtorReportButton({
       return;
     }
 
-    const confirmed = window.confirm(`Send this report to ${realtorEmail}?`);
+    const confirmed = await flowConfirm({
+      title: "Send Report",
+      message: `Send this report to ${realtorEmail}?`,
+      confirmText: "Send Report",
+    });
 
     if (!confirmed) return;
 

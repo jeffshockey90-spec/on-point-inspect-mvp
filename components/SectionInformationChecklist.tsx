@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { flowConfirm } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 import { CHECKLIST_LIBRARY, type ChecklistGroup } from "../lib/checklistLibrary";
 
@@ -584,7 +585,13 @@ function SectionInformationChecklist({
 
   async function deleteOption(groupTitle: string, option: RenderOption) {
     if (saving) return;
-    if (!window.confirm(`Delete "${option.label}" from this checklist group?`)) return;
+    const confirmed = await flowConfirm({
+      title: "Delete Option",
+      message: `Delete "${option.label}" from this checklist group?`,
+      confirmText: "Delete",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     setSaving(true);
 
     try {
