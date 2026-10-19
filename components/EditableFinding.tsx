@@ -618,7 +618,12 @@ function EditableFinding({
   async function deleteFinding() {
     if (deleting) return;
 
-    const confirmed = await flowConfirm("Delete this finding?");
+    const confirmed = await flowConfirm({
+      title: "Delete Finding",
+      message: "Delete this finding?",
+      confirmText: "Delete Finding",
+      tone: "danger",
+    });
     if (!confirmed) return;
 
     setDeleting(true);

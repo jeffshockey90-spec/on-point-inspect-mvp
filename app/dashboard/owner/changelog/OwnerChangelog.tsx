@@ -124,7 +124,15 @@ export default function OwnerChangelog() {
   }
 
   async function deleteEntry(id: number) {
-    if (!(await flowConfirm("Delete this changelog post? This can't be undone."))) return;
+    if (
+      !(await flowConfirm({
+        title: "Delete Post",
+        message: "Delete this changelog post? This can't be undone.",
+        confirmText: "Delete Post",
+        tone: "danger",
+      }))
+    )
+      return;
     try {
       const res = await fetch(`/api/owner/changelog/${id}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
