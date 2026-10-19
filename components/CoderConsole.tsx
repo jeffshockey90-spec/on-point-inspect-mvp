@@ -141,16 +141,14 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
   const [prs, setPrs] = useState<Pr[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [reviews, setReviews] = useState<{ number: number; branch: string; state: string }[]>([]);
-  const [pending, setPending] = useState<Pending[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      return JSON.parse(window.localStorage.getItem("coder_pending_v2") || "[]");
-    } catch {
-      return [];
-    }
-  });
+  const [pending, setPending] = useState<Pending[]>([]);
   const deliveringRef = useRef<Set<string>>(new Set());
   const timer = useRef<number | null>(null);
+  // The conversation + pending tasks live in the DB (per owner) so a refresh,
+  // a closed tab, or another device keeps the same chat. hydrated guards the
+  // save effect from wiping the DB with empty state before the load lands.
+  const [hydrated, setHydrated] = useState(false);
+  const saveTimer = useRef<number | null>(null);
 
   const [expandedPr, setExpandedPr] = useState<number | null>(null);
   const [diff, setDiff] = useState<Record<number, DiffFile[]>>({});
@@ -159,13 +157,43 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
 
   const prByNum = useCallback((n: number) => prs.find((p) => p.number === n), [prs]);
 
+  // Load the saved conversation once on mount.
   useEffect(() => {
-    try {
-      window.localStorage.setItem("coder_pending_v2", JSON.stringify(pending));
-    } catch {
-      /* ignore */
+    if (!connected) {
+      setHydrated(true);
+      return;
     }
-  }, [pending]);
+    (async () => {
+      try {
+        const res = await fetch("/api/owner/coder/conversation", { cache: "no-store" });
+        const d = await res.json().catch(() => ({}));
+        if (res.ok) {
+          if (Array.isArray(d.messages)) setChat(d.messages);
+          if (Array.isArray(d.pending)) setPending(d.pending);
+        }
+      } catch {
+        /* start fresh */
+      } finally {
+        setHydrated(true);
+      }
+    })();
+  }, [connected]);
+
+  // Persist the conversation (debounced) whenever it changes.
+  useEffect(() => {
+    if (!hydrated || !connected) return;
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      fetch("/api/owner/coder/conversation", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: chat, pending }),
+      }).catch(() => {});
+    }, 1000) as unknown as number;
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+  }, [chat, pending, hydrated, connected]);
 
   const load = useCallback(async () => {
     if (!connected) return;
@@ -252,7 +280,8 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     try {
       const supabase = createClient();
       for (const file of Array.from(files).slice(0, 6)) {
-        // 1) one-time signed upload URL, 2) upload straight to storage.
+        // 1) one-time signed upload URL, 2) upload straight to the private
+        // bucket, 3) a signed READ url (the file now exists, so it can be signed).
         const res = await fetch("/api/owner/coder/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -263,12 +292,22 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
           setNote({ ok: false, text: d?.error || "Couldn't upload that file." });
           continue;
         }
-        const { error } = await supabase.storage.from("company-assets").uploadToSignedUrl(d.path, d.token, file);
+        const { error } = await supabase.storage.from("coder-attachments").uploadToSignedUrl(d.path, d.token, file);
         if (error) {
           setNote({ ok: false, text: "Couldn't upload that file." });
           continue;
         }
-        setAttachments((a) => [...a, { url: d.url, name: d.name, type: file.type }]);
+        const signRes = await fetch("/api/owner/coder/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: d.path }),
+        });
+        const signed = await signRes.json().catch(() => ({}));
+        if (!signRes.ok || !signed?.url) {
+          setNote({ ok: false, text: "Couldn't prepare that file." });
+          continue;
+        }
+        setAttachments((a) => [...a, { url: signed.url, name: d.name, type: file.type }]);
       }
     } catch {
       setNote({ ok: false, text: "Couldn't upload that file." });
