@@ -72,7 +72,6 @@ jobs:
           GH_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
           REVIEW_BOT_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
           TASK_ID: ${{ github.event.client_payload.task_id }}
-          TASK: ${{ github.event.client_payload.task }}
           EXEC_FILE: ${{ steps.claude.outputs.execution_file }}
           REPO: ${{ github.repository }}
         run: |
@@ -146,9 +145,13 @@ jobs:
           if gh pr view "$BRANCH" >/dev/null 2>&1; then
             echo "PR already exists"
           else
+            # Do NOT write the task text into the PR body — it can contain text
+            # pulled from an attached client document (name/address/payment info),
+            # and a PR description lives in GitHub permanently. The agent already
+            # used what it needed; the body just needs a human intro + a ref.
             printf '%s\n\n%s\n' \
               "$PR_INTRO" \
-              "What you asked (${TASK_ID}): ${TASK}" > /tmp/pr-body.txt
+              "Ref: ${TASK_ID}" > /tmp/pr-body.txt
             gh pr create --base main --head "$BRANCH" \
               --title "$PR_TITLE" \
               --body-file /tmp/pr-body.txt

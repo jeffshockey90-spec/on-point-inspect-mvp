@@ -179,16 +179,29 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     })();
   }, [connected]);
 
-  // Persist the conversation (debounced) whenever it changes.
+  // Persist the conversation (debounced) whenever it changes. We STRIP the
+  // extracted document text before saving: a doc's contents can carry client
+  // info, and the saved chat has no 14-day expiry like the file does — so that
+  // text stays in memory for this session only, never in the database. If a
+  // save ever fails (e.g. the chat got too large), warn instead of silently
+  // dropping history.
   useEffect(() => {
     if (!hydrated || !connected) return;
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      fetch("/api/owner/coder/conversation", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: chat, pending }),
-      }).catch(() => {});
+    saveTimer.current = window.setTimeout(async () => {
+      try {
+        const res = await fetch("/api/owner/coder/conversation", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: chat.map(({ docText, ...m }) => m), pending }),
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          setNote({ ok: false, text: `Heads up — your chat stopped saving${d?.error ? ` (${d.error})` : ""}. Start a New chat to keep a reliable history.` });
+        }
+      } catch {
+        /* offline — the in-memory chat is still fine */
+      }
     }, 1000) as unknown as number;
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
