@@ -53,6 +53,8 @@ ${transcript}`;
 export function buildChangeTask(transcript: string): string {
   return `Jeff wants you to actually change FLOW's code to do the following. Make the change on this branch, follow the project's CLAUDE.md rules, run the build + tests, and keep it focused on exactly what he asked — don't touch unrelated things. Nothing ships until Jeff approves it.
 
+DON'T RUN OUT OF STEPS WITH NOTHING TO SHOW. You have a limited number of steps in this one run. If the request is large (many files or screens), do NOT attempt all of it at once and risk hitting the limit with nothing committed. Instead: make a focused, coherent FIRST batch that fully builds and passes tests, commit it, and in your final message plainly list what you finished and what still remains for a follow-up run. A working partial change that Jeff can approve is far better than an unfinished attempt that produces nothing. Always leave the branch building and the work committed.
+
 ${DOC_PRIVACY}
 
 ${HOW_TO_WORK}

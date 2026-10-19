@@ -278,15 +278,26 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
               { id: uid(), role: "assistant", content: "I'm done — here's the change I made. Take a look and approve it when you're happy:", prNumber: match.number },
             ]);
             setNote(null);
-          } else if (Date.now() - p.at > 15 * 60 * 1000) {
-            setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
-            setChat((c) => [...c, { id: uid(), role: "assistant", content: "That change didn't go through — nothing was changed. Want me to try again?" }]);
+          } else {
+            // No change appeared. If a run just failed and nothing's still
+            // running, it hit a snag (usually the task was too big) — say so
+            // fast instead of a 15-minute silence.
+            const anyActive = runs.some((r) => r.active);
+            const recentFail = runs.some((r) => r.failed && new Date(r.created_at).getTime() >= p.at - 60000);
+            if (!anyActive && recentFail && Date.now() - p.at > 90 * 1000) {
+              deliveringRef.current.add(p.taskId);
+              setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
+              setChat((c) => [...c, { id: uid(), role: "assistant", content: "That change didn't finish — it was likely too big to do all at once. Ask me for a smaller piece at a time (one screen or feature), and I'll bring each one back here to approve." }]);
+            } else if (Date.now() - p.at > 15 * 60 * 1000) {
+              setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
+              setChat((c) => [...c, { id: uid(), role: "assistant", content: "That change didn't go through — nothing was changed. It may have been too big; try asking for a smaller piece." }]);
+            }
           }
         }
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviews, prs, pending]);
+  }, [reviews, prs, runs, pending]);
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
