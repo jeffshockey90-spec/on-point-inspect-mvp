@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 
 type TeamMember = {
   id: number;
@@ -75,7 +76,13 @@ export default function TeamManagement() {
 
   async function removeMember(userId: string) {
     if (removingId) return;
-    if (!window.confirm("Remove this person from your team? They'll lose access to company data.")) return;
+    const confirmed = await flowConfirm({
+      title: "Remove Team Member",
+      message: "Remove this person from your team? They'll lose access to company data.",
+      confirmText: "Remove",
+      tone: "danger",
+    });
+    if (!confirmed) return;
 
     try {
       setRemovingId(userId);
