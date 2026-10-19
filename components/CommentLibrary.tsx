@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { flowAlert } from "./ConfirmProvider";
+import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 
 const SECTIONS = [
@@ -229,7 +229,7 @@ export default function CommentLibrary({
   async function deleteComment(comment: any) {
     if (deletingId) return;
 
-    const confirmed = window.confirm(
+    const confirmed = await flowConfirm(
       `Delete "${comment.title || "this comment"}" from your comment library? This cannot be undone.`
     );
 

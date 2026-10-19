@@ -1,7 +1,7 @@
 "use client";
 
 import { formatAppValue } from "../../../../lib/app-time";
-import { flowAlert } from "../../../../components/ConfirmProvider";
+import { flowAlert, flowConfirm } from "../../../../components/ConfirmProvider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -124,7 +124,7 @@ export default function OwnerChangelog() {
   }
 
   async function deleteEntry(id: number) {
-    if (!window.confirm("Delete this changelog post? This can't be undone.")) return;
+    if (!(await flowConfirm("Delete this changelog post? This can't be undone."))) return;
     try {
       const res = await fetch(`/api/owner/changelog/${id}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));

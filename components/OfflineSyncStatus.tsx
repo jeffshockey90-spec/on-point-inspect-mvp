@@ -2,7 +2,7 @@
 
 
 import { formatAppValue } from "../lib/app-time";
-import { flowAlert } from "./ConfirmProvider";
+import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import { useEffect, useState } from "react";
 import {
   clearOfflineQueue,
@@ -316,7 +316,7 @@ export default function OfflineSyncStatus() {
             <button
               type="button"
               onClick={async () => {
-                const confirmRetry = window.confirm(
+                const confirmRetry = await flowConfirm(
                   "Retry conflicted items? Newer server data will still be protected by the sync API when a true edit conflict exists.",
                 );
                 if (!confirmRetry) return;
@@ -346,7 +346,7 @@ export default function OfflineSyncStatus() {
             <button
               type="button"
               onClick={async () => {
-                const confirmClear = window.confirm(
+                const confirmClear = await flowConfirm(
                   "Clear pending offline queue? Only do this if you are sure nothing needs synced.",
                 );
 

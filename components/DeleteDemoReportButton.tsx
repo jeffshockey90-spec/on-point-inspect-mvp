@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { flowConfirm } from "./ConfirmProvider";
 
 export default function DeleteDemoReportButton({
   demoInspectionId,
@@ -20,7 +21,7 @@ export default function DeleteDemoReportButton({
   async function deleteDemoReport() {
     if (busy) return;
 
-    const confirmed = window.confirm(
+    const confirmed = await flowConfirm(
       "Delete this demo report? This only deletes the public demo copy. Your original report will not be changed."
     );
 
