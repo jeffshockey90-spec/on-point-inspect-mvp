@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildChangeTask } from "../lib/coder/taskPrompt";
 import { createClient } from "../utils/supabase/client";
+import { useConfirm } from "./ConfirmProvider";
 
 // In-app coding agent — one conversation. Talk to Claude, attach pics/docs for it
 // to see, ask it to look into things (it reads the real app and reports back in
@@ -128,6 +129,7 @@ function MdLite({ text }: { text: string }) {
 }
 
 export default function CoderConsole({ connected }: { connected: boolean }) {
+  const { confirm } = useConfirm();
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
@@ -449,7 +451,7 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
   }
 
   async function approve(n: number) {
-    if (!confirm("Approve this change? It will go live on your app.")) return;
+    if (!(await confirm({ title: "Approve this change?", message: "It will go live on your app.", confirmText: "Approve & go live" }))) return;
     setBusyPr(n);
     try {
       const res = await fetch("/api/owner/coder/merge", {
@@ -472,7 +474,7 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
   }
 
   async function deny(n: number) {
-    if (!confirm("Discard this change? It won't be applied.")) return;
+    if (!(await confirm({ title: "Discard this change?", message: "It won't be applied.", confirmText: "Discard", tone: "danger" }))) return;
     setBusyPr(n);
     try {
       await fetch("/api/owner/coder/close-review", {

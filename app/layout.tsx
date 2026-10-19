@@ -6,6 +6,7 @@ import TimeLocationEngine from "../components/time-location/TimeLocationEngine";
 import PageShell from "../components/PageShell";
 import { hasSessionCookie } from "../lib/sessionCookie";
 import DeferredGlobals from "../components/DeferredGlobals";
+import { ConfirmProvider } from "../components/ConfirmProvider";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
 
 // App-wide UI typeface — Manrope (clean, geometric, professional) for UI/body,
@@ -94,13 +95,15 @@ export default async function RootLayout({
 
         <ServiceWorkerRegister />
 
-        <Navbar signedIn={signedIn} />
+        <ConfirmProvider>
+          <Navbar signedIn={signedIn} />
 
-        <TimeLocationEngine />
+          <TimeLocationEngine />
 
-        <DeferredGlobals />
+          <DeferredGlobals />
 
-        <PageShell signedIn={signedIn}>{children}</PageShell>
+          <PageShell signedIn={signedIn}>{children}</PageShell>
+        </ConfirmProvider>
       </body>
     </html>
   );
