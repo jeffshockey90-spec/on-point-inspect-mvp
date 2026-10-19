@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // One reusable, FLOW-styled replacement for the browser's plain alert()/confirm()
 // boxes so confirmations and messages match the app everywhere. Async: call
@@ -123,9 +124,9 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   return (
     <ConfirmCtx.Provider value={{ confirm, alert: alertFn, prompt: promptFn }}>
       {children}
-      {req && (
+      {req && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 px-4"
+          className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-black/50 px-4"
           onClick={() => req.kind !== "alert" && closeWith(req.kind === "prompt" ? null : false)}
           role="presentation"
         >
@@ -172,7 +173,8 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </ConfirmCtx.Provider>
   );

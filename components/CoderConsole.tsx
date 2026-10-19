@@ -294,18 +294,35 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
             ]);
             setNote(null);
           } else {
-            // No change appeared. If a run just failed and nothing's still
-            // running, it hit a snag (usually the task was too big) — say so
-            // fast instead of a 15-minute silence.
-            const anyActive = runs.some((r) => r.active);
-            const recentFail = runs.some((r) => r.failed && new Date(r.created_at).getTime() >= p.at - 60000);
-            if (!anyActive && recentFail && Date.now() - p.at > 90 * 1000) {
+            // A build that made NO code edits gets salvaged as a report PR. Don't
+            // leave Jeff with a silent "didn't happen" — deliver what the agent
+            // said (usually "already done / nothing to change") and close it.
+            const salvage = reviews.find((r) => r.branch === `claude/task-${p.taskId}`);
+            if (salvage) {
               deliveringRef.current.add(p.taskId);
               setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
-              setChat((c) => [...c, { id: uid(), role: "assistant", content: "That change didn't finish — it was likely too big to do all at once. Ask me for a smaller piece at a time (one screen or feature), and I'll bring each one back here to approve." }]);
-            } else if (Date.now() - p.at > 15 * 60 * 1000) {
-              setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
-              setChat((c) => [...c, { id: uid(), role: "assistant", content: "That change didn't go through — nothing was changed. It may have been too big; try asking for a smaller piece." }]);
+              try {
+                const res = await fetch(`/api/owner/coder/report?number=${salvage.number}`, { cache: "no-store" });
+                const d = await res.json().catch(() => ({}));
+                const body = d?.report ? String(d.report) : "";
+                setChat((c) => [...c, { id: uid(), role: "assistant", content: `I finished — but I didn't end up changing any code for that one. Usually that means it's already done, or there was nothing to change.${body ? `\n\nHere's what I looked at:\n\n${body}` : ""}` }]);
+                fetch("/api/owner/coder/close-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ number: salvage.number }) }).catch(() => {});
+              } catch {
+                /* leave it */
+              }
+            } else {
+              // No PR at all. If a run just failed and nothing's running, it hit a
+              // snag — say so fast instead of a 15-minute silence.
+              const anyActive = runs.some((r) => r.active);
+              const recentFail = runs.some((r) => r.failed && new Date(r.created_at).getTime() >= p.at - 60000);
+              if (!anyActive && recentFail && Date.now() - p.at > 90 * 1000) {
+                deliveringRef.current.add(p.taskId);
+                setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
+                setChat((c) => [...c, { id: uid(), role: "assistant", content: "That change didn't finish — it was likely too big to do all at once. Ask me for a smaller piece at a time (one screen or feature), and I'll bring each one back here to approve." }]);
+              } else if (Date.now() - p.at > 15 * 60 * 1000) {
+                setPending((cur) => cur.filter((x) => x.taskId !== p.taskId));
+                setChat((c) => [...c, { id: uid(), role: "assistant", content: "That change didn't go through — nothing was changed. It may have been too big; try asking for a smaller piece." }]);
+              }
             }
           }
         }
@@ -431,6 +448,8 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     if (submitting || chat.length === 0) return;
     setSubmitting(true);
     setNote(null);
+    // Acknowledge the tap in the chat immediately so you always see it register.
+    setChat((c) => [...c, { id: uid(), role: "assistant", content: "On it — I'm making that change now. I'll drop it right here when it's ready for you to look at. Nothing goes live until you approve it." }]);
     const transcript = chat
       .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}${m.docText ? `\n${m.docText}` : ""}`)
       .join("\n\n")
@@ -443,14 +462,14 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setNote({ ok: false, text: d?.error || "Could not start it." });
+        // Show the failure IN the chat, not just a note Jeff might miss.
+        setChat((c) => [...c, { id: uid(), role: "assistant", content: `⚠️ I couldn't start that — ${d?.error || "something went wrong"}. Give it a minute and tap Build this again.` }]);
         return;
       }
       if (d.taskId) setPending((cur) => [...cur, { taskId: String(d.taskId), kind: "change", at: Date.now() }]);
-      setChat((c) => [...c, { id: uid(), role: "assistant", content: "On it — I'm making that change now. I'll drop it right here when it's ready for you to look at. Nothing goes live until you approve it." }]);
       setTimeout(load, 3000);
     } catch {
-      setNote({ ok: false, text: "Could not start it." });
+      setChat((c) => [...c, { id: uid(), role: "assistant", content: "⚠️ I couldn't reach the builder just now. Give it a minute and tap Build this again." }]);
     } finally {
       setSubmitting(false);
     }
