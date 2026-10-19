@@ -41,7 +41,7 @@ jobs:
           TASK: ${{ github.event.client_payload.task }}
         run: |
           [[ "$TASK_ID" =~ ^[A-Za-z0-9-]{8,64}$ ]] || { echo "bad task_id"; exit 1; }
-          [[ -n "$TASK" && ${#TASK} -le 8000 ]] || { echo "bad task"; exit 1; }
+          [[ -n "$TASK" && ${#TASK} -le 55000 ]] || { echo "bad task"; exit 1; }
 
       - uses: actions/checkout@v6
         with:

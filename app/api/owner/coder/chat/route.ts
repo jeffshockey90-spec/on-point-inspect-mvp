@@ -147,7 +147,7 @@ export async function POST(req: Request) {
       const transcript = messages
         .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`)
         .join("\n\n")
-        .slice(0, 7000);
+        .slice(0, 40000);
       const id = randomUUID();
       const res = await gh(`/repos/${coderRepo()}/dispatches`, {
         method: "POST",

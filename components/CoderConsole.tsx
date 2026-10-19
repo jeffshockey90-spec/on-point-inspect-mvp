@@ -352,9 +352,9 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     setSubmitting(true);
     setNote(null);
     const transcript = chat
-      .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`)
+      .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}${m.docText ? `\n${m.docText}` : ""}`)
       .join("\n\n")
-      .slice(0, 7000);
+      .slice(0, 40000);
     try {
       const res = await fetch("/api/owner/coder/task", {
         method: "POST",

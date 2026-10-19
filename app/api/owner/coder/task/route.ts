@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const task = String(body?.task || "").trim();
   if (!task) return NextResponse.json({ error: "Describe what to build or fix." }, { status: 400 });
-  if (task.length > 8000) return NextResponse.json({ error: "Task is too long (8000 character max)." }, { status: 400 });
+  if (task.length > 55000) return NextResponse.json({ error: "That's too much at once — try trimming the conversation." }, { status: 400 });
   // "audit" = read-only code review that always yields a report; anything else builds.
   const mode = body?.mode === "audit" ? "audit" : "build";
 
