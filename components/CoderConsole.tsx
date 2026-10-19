@@ -225,13 +225,28 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     }
   }, [connected]);
 
+  // Poll adaptively: often while something's in flight, rarely when idle. This
+  // keeps GitHub API usage low so the shared coder token doesn't hit GitHub's
+  // hourly rate limit (which blocks starting new tasks).
+  const busyRef = useRef(false);
   useEffect(() => {
-    load();
-    timer.current = window.setInterval(load, 8000) as unknown as number;
-    return () => {
-      if (timer.current) window.clearInterval(timer.current);
+    busyRef.current = pending.length > 0 || runs.some((r) => r.active);
+  }, [pending, runs]);
+
+  useEffect(() => {
+    if (!connected) return;
+    let stop = false;
+    const tick = async () => {
+      await load();
+      if (stop) return;
+      timer.current = window.setTimeout(tick, busyRef.current ? 10000 : 30000) as unknown as number;
     };
-  }, [load]);
+    tick();
+    return () => {
+      stop = true;
+      if (timer.current) window.clearTimeout(timer.current);
+    };
+  }, [load, connected]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -32,6 +32,13 @@ export async function POST(req: Request) {
     });
     if (!res.ok) {
       const t = await res.text().catch(() => "");
+      // GitHub rate limit — give Jeff a plain-English heads up, not the raw error.
+      if (res.status === 403 && /rate limit/i.test(t)) {
+        return NextResponse.json(
+          { error: "GitHub is temporarily rate-limiting us (too many requests in a short window). Give it a few minutes and try again — nothing's broken." },
+          { status: 429 },
+        );
+      }
       return NextResponse.json(
         { error: `Could not start the task (${res.status}). ${t.slice(0, 200)}` },
         { status: 502 },

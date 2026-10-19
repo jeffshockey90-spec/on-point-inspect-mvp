@@ -14,62 +14,35 @@ export async function GET() {
 
   const repo = coderRepo();
 
-  // Turn a raw GitHub step name into something Jeff can read at a glance.
-  const friendlyStep = (name: string): string => {
-    const n = String(name || "").toLowerCase();
-    if (n.includes("claude implements")) return "✍️ Claude is writing the change";
-    if (n.includes("verify")) return "🧪 Running the build + tests";
-    if (n.includes("pull request")) return "📬 Opening your change to review";
-    if (n.includes("validate")) return "🔎 Reading the task";
-    if (n.includes("checkout")) return "📥 Getting the code";
-    if (n.includes("set up") || n.includes("set up job")) return "⚙️ Starting up";
-    if (n.includes("complete") || n.includes("post ")) return "✅ Finishing up";
-    return name ? `⏳ ${name}` : "⏳ Working";
-  };
-
   try {
-    // Recent workflow runs with the step each one is currently on, so Jeff sees
-    // what the agent is actually doing (and can stop one that's in-flight).
+    // Recent workflow runs — ONE call, no per-run job lookups. (The UI only needs
+    // whether a run is active/failed and when it started, not the live step, so
+    // we skip the per-run /jobs calls that used to multiply API usage ~6x.)
     let runs: any[] = [];
     try {
-      const runsRes = await gh(`/repos/${repo}/actions/workflows/claude-task.yml/runs?per_page=6`);
+      const runsRes = await gh(`/repos/${repo}/actions/workflows/claude-task.yml/runs?per_page=5`);
       if (runsRes.ok) {
         const d = await runsRes.json();
-        const list = (d.workflow_runs || []).slice(0, 6);
-        for (const r of list) {
-          let step = "";
-          try {
-            // eslint-disable-next-line no-await-in-loop
-            const jr = await gh(`/repos/${repo}/actions/runs/${r.id}/jobs`);
-            if (jr.ok) {
-              const jd = await jr.json();
-              const steps = jd.jobs?.[0]?.steps || [];
-              const inProgress = steps.find((s: any) => s.status === "in_progress");
-              const lastDone = [...steps].reverse().find((s: any) => s.status === "completed");
-              step = (inProgress || lastDone)?.name || "";
-            }
-          } catch {
-            /* leave step blank */
-          }
+        runs = (d.workflow_runs || []).slice(0, 5).map((r: any) => {
           const active = r.status === "in_progress" || r.status === "queued";
-          runs.push({
+          return {
             id: r.id,
             status: r.status,
             conclusion: r.conclusion,
             created_at: r.created_at,
             url: r.html_url,
             title: r.display_title,
-            step: friendlyStep(step),
+            step: active ? "⚙️ Working" : "",
             active,
             failed: r.status === "completed" && r.conclusion !== "success",
-          });
-        }
+          };
+        });
       }
     } catch {
       /* non-fatal */
     }
 
-    const prsRes = await gh(`/repos/${repo}/pulls?state=all&per_page=20&sort=created&direction=desc`);
+    const prsRes = await gh(`/repos/${repo}/pulls?state=all&per_page=15&sort=created&direction=desc`);
     const prsRaw = prsRes.ok ? await prsRes.json() : [];
     // Results only shows real code changes to approve. Reviews are delivered into
     // the chat (and their report PRs auto-closed), so keep them out of this list.
@@ -90,11 +63,15 @@ export async function GET() {
 
     const prs: any[] = [];
     for (const p of claudePrs) {
-      let checks = { state: "unknown", total: 0, passed: 0, failed: 0, pending: 0 };
+      let checks = { state: "none", total: 0, passed: 0, failed: 0, pending: 0 };
+      // Only spend an API call on the build status of a change that's actually
+      // waiting for approval (open + not merged). Merged/closed cards show their
+      // own state and don't need checks — this keeps per-poll API usage tiny.
+      const needsChecks = p.state === "open" && !p.merged_at;
       try {
         // eslint-disable-next-line no-await-in-loop
-        const cr = await gh(`/repos/${repo}/commits/${p.head.sha}/check-runs`);
-        if (cr.ok) {
+        const cr = needsChecks ? await gh(`/repos/${repo}/commits/${p.head.sha}/check-runs`) : null;
+        if (cr && cr.ok) {
           const d = await cr.json();
           const list = d.check_runs || [];
           let passed = 0, failed = 0, pending = 0;
