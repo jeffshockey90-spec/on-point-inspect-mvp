@@ -23,7 +23,7 @@ concurrency:
 jobs:
   implement:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     # Placeholder build-time env so `npm run build` can construct the module-scope
     # clients (Supabase/OpenAI/Resend/Stripe) during build. These are FAKE values
     # — the build never makes real calls; real secrets live only at runtime.
@@ -63,7 +63,7 @@ jobs:
           prompt: ${{ github.event.client_payload.task }}
           claude_args: |
             --model claude-sonnet-5
-            --max-turns 150
+            --max-turns 300
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(mkdir *),Bash(ls *),Bash(cat *),Bash(find *),Bash(head *),Bash(tail *),Bash(wc *),Bash(npm ci),Bash(npm run build),Bash(npm test),Bash(npm run test:*),Bash(npm run lint),Bash(npm run check:colors),Bash(git status),Bash(git diff *),Bash(git log *)"
 
       - name: Capture Claude's changes, verify, and open the PR
