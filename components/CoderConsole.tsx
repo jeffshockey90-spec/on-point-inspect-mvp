@@ -141,16 +141,10 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
   const [prs, setPrs] = useState<Pr[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [reviews, setReviews] = useState<{ number: number; branch: string; state: string }[]>([]);
-  const [pending, setPending] = useState<Pending[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      return JSON.parse(window.localStorage.getItem("coder_pending_v2") || "[]");
-    } catch {
-      return [];
-    }
-  });
+  const [pending, setPending] = useState<Pending[]>([]);
   const deliveringRef = useRef<Set<string>>(new Set());
   const timer = useRef<number | null>(null);
+  const loadedConvoRef = useRef(false);
 
   const [expandedPr, setExpandedPr] = useState<number | null>(null);
   const [diff, setDiff] = useState<Record<number, DiffFile[]>>({});
@@ -159,13 +153,40 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
 
   const prByNum = useCallback((n: number) => prs.find((p) => p.number === n), [prs]);
 
+  // Load the conversation + whatever it's still waiting on from the DB (not a
+  // browser's local storage) so a refresh, a closed tab, or opening FLOW on a
+  // different device picks up right where it left off.
   useEffect(() => {
-    try {
-      window.localStorage.setItem("coder_pending_v2", JSON.stringify(pending));
-    } catch {
-      /* ignore */
-    }
-  }, [pending]);
+    if (!connected) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/owner/coder/conversation", { cache: "no-store" });
+        const d = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setChat(Array.isArray(d.messages) ? d.messages : []);
+          setPending(Array.isArray(d.pending) ? d.pending : []);
+        }
+      } catch {
+        /* start empty */
+      } finally {
+        loadedConvoRef.current = true;
+      }
+    })();
+  }, [connected]);
+
+  // Persist the conversation + pending tasks centrally, debounced so a burst
+  // of updates (a reply landing, a task finishing) collapses into one save.
+  useEffect(() => {
+    if (!connected || !loadedConvoRef.current) return;
+    const t = window.setTimeout(() => {
+      fetch("/api/owner/coder/conversation", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: chat, pending }),
+      }).catch(() => {});
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [chat, pending, connected]);
 
   const load = useCallback(async () => {
     if (!connected) return;
@@ -263,7 +284,7 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
           setNote({ ok: false, text: d?.error || "Couldn't upload that file." });
           continue;
         }
-        const { error } = await supabase.storage.from("company-assets").uploadToSignedUrl(d.path, d.token, file);
+        const { error } = await supabase.storage.from("coder-attachments").uploadToSignedUrl(d.path, d.token, file);
         if (error) {
           setNote({ ok: false, text: "Couldn't upload that file." });
           continue;
@@ -700,11 +721,17 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
           <button
             type="button"
             onClick={build}
-            disabled={submitting || chat.length === 0}
-            title={chat.length === 0 ? "Tell Claude what you want changed first" : "Have Claude actually change the code"}
+            disabled={submitting || chat.length === 0 || building}
+            title={
+              chat.length === 0
+                ? "Tell Claude what you want changed first"
+                : building
+                  ? "Already building a change for this conversation"
+                  : "Have Claude actually change the code"
+            }
             className="shrink-0 rounded-xl bg-teal-500 px-5 py-2 text-sm font-bold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
           >
-            {submitting ? "Starting…" : "⚡ Build this"}
+            {submitting ? "Starting…" : building ? "Building…" : "⚡ Build this"}
           </button>
         </div>
       </div>

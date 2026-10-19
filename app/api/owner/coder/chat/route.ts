@@ -140,28 +140,44 @@ export async function POST(req: Request) {
   const wantsLook = raw2.trimStart().startsWith(LOOK_TOKEN);
   const reply = wantsLook ? raw2.trimStart().slice(LOOK_TOKEN.length).trim() : raw2;
 
+  // If the hand-off to the real review agent fails, say so right away instead
+  // of leaving Jeff thinking "On it..." is still quietly happening when
+  // nothing actually is.
   let acted = false;
   let taskId: string | null = null;
-  if (wantsLook && coderConfigured()) {
-    try {
-      const transcript = messages
-        .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`)
-        .join("\n\n")
-        .slice(0, 7000);
-      const id = randomUUID();
-      const res = await gh(`/repos/${coderRepo()}/dispatches`, {
-        method: "POST",
-        body: JSON.stringify({
-          event_type: "claude-task",
-          client_payload: { task_id: id, task: buildReviewTask(transcript) },
-        }),
-      });
-      acted = res.ok;
-      taskId = acted ? id : null;
-    } catch {
-      acted = false;
+  let lookFailed: string | null = null;
+  if (wantsLook) {
+    if (!coderConfigured()) {
+      lookFailed = "the coding agent isn't connected yet";
+    } else {
+      try {
+        const transcript = messages
+          .map((m) => `${m.role === "user" ? "Jeff" : "Claude"}: ${m.content}`)
+          .join("\n\n")
+          .slice(0, 7000);
+        const id = randomUUID();
+        const res = await gh(`/repos/${coderRepo()}/dispatches`, {
+          method: "POST",
+          body: JSON.stringify({
+            event_type: "claude-task",
+            client_payload: { task_id: id, task: buildReviewTask(transcript) },
+          }),
+        });
+        if (res.ok) {
+          acted = true;
+          taskId = id;
+        } else {
+          lookFailed = `GitHub didn't accept the request (status ${res.status})`;
+        }
+      } catch {
+        lookFailed = "a connection hiccup";
+      }
     }
   }
 
-  return NextResponse.json({ reply, acted, taskId });
+  const finalReply = lookFailed
+    ? `${reply}\n\n⚠️ Actually, I hit a snag and couldn't start looking into that — ${lookFailed}. Mind asking me again in a minute?`
+    : reply;
+
+  return NextResponse.json({ reply: finalReply, acted, taskId });
 }
