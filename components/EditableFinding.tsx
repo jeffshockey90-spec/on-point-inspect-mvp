@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { flowConfirm } from "./ConfirmProvider";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
@@ -945,19 +946,25 @@ function InlineStatusMessage({
   message: string;
 }) {
   if (!message) return null;
+  if (typeof document === "undefined") return null;
 
   const isSuccess = type === "success";
 
-  return (
-    <div
-      className={`rounded-xl border p-3 text-sm font-bold ${
-        isSuccess
-          ? "border-emerald-500 bg-emerald-500/10 text-[var(--fl-good-text)]"
-          : "border-red-500 bg-red-500/10 text-[var(--fl-crit-text)]"
-      }`}
-    >
-      {message}
-    </div>
+  // Fixed floating toast, not inline — so showing/clearing a status doesn't push
+  // the finding content up and down (which made the screen jump around).
+  return createPortal(
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[2147482000] flex justify-center px-4">
+      <div
+        className={`pointer-events-auto max-w-md rounded-xl border p-3 text-sm font-bold shadow-xl ${
+          isSuccess
+            ? "border-emerald-500 bg-emerald-500/10 text-[var(--fl-good-text)]"
+            : "border-red-500 bg-red-500/10 text-[var(--fl-crit-text)]"
+        }`}
+      >
+        {message}
+      </div>
+    </div>,
+    document.body,
   );
 }
 
