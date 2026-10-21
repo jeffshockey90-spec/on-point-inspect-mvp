@@ -101,17 +101,21 @@ export function getAgreementStatsForInspection({
   const contacts = contactsByInspectionId[inspectionId] || [];
   const requiredContacts = contacts.filter((contact) => Boolean(contact?.agreement_required));
 
-  const unsignedRequiredContacts = requiredContacts.filter((contact) => {
-    if (contact?.agreement_signed) return false;
-
+  const isSigned = (contact: any) => {
+    if (contact?.agreement_signed) return true;
     const contactKey = getContactKey(contact);
-    if (contactKey && signedAgreementMap.has(contactKey)) return false;
-
+    if (contactKey && signedAgreementMap.has(contactKey)) return true;
     const email = String(contact?.email || "").trim().toLowerCase();
-    if (email && signedAgreementMap.has(email)) return false;
+    if (email && signedAgreementMap.has(email)) return true;
+    return false;
+  };
 
-    return true;
-  });
+  const unsignedRequiredContacts = requiredContacts.filter((contact) => !isSigned(contact));
+
+  // "One signature covers all clients": any one required signature counts for all.
+  if (inspection?.agreement_one_signer === true && requiredContacts.length > 0 && requiredContacts.some((c) => isSigned(c))) {
+    return { requiredCount: requiredContacts.length, unsignedCount: 0, signedCount: requiredContacts.length };
+  }
 
   return {
     requiredCount: requiredContacts.length,

@@ -76,13 +76,20 @@ export async function isAgreementComplete(
 
   // Only clients / co-clients can be required to sign — never realtors or other
   // roles, even if agreement_required got set on them.
-  const unsigned = (data || []).filter((contact: any) => {
+  const requiredSigners = (data || []).filter((contact: any) => {
     const role = String(contact.role || "").toLowerCase();
     const isSigner = role === "client" || role === "co-client";
-    return isSigner && contact.agreement_required && !contact.agreement_signed;
+    return isSigner && contact.agreement_required;
   });
 
-  return unsigned.length === 0;
+  // "One signature covers all clients": when the inspector opts in (e.g. a couple
+  // on the same property), any ONE required client signing satisfies it for all.
+  if (inspectionRow?.agreement_one_signer === true && requiredSigners.length > 0) {
+    return requiredSigners.some((contact: any) => Boolean(contact.agreement_signed));
+  }
+
+  // Default: every required client must sign.
+  return requiredSigners.every((contact: any) => Boolean(contact.agreement_signed));
 }
 
 export type ReportDeliveryState = {

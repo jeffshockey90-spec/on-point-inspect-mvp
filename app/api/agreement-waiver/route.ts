@@ -19,7 +19,7 @@ async function getOwnedInspection(
   return await supabase
     .from("inspections")
     .select(
-      "id, inspector_id, agreement_waived, agreement_waived_at, agreement_waived_by, agreement_waived_by_name, agreement_waiver_reason",
+      "id, inspector_id, agreement_waived, agreement_waived_at, agreement_waived_by, agreement_waived_by_name, agreement_waiver_reason, agreement_one_signer",
     )
     .eq("id", inspectionId)
     .eq(accessFilter.column, accessFilter.value)
@@ -74,6 +74,7 @@ export async function GET(req: Request) {
         inspection.agreement_waived_by_name || null,
       agreement_waiver_reason:
         inspection.agreement_waiver_reason || null,
+      agreement_one_signer: inspection.agreement_one_signer === true,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -100,11 +101,40 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!["waive", "remove"].includes(action)) {
+    if (!["waive", "remove", "one_signer"].includes(action)) {
       return NextResponse.json(
-        { error: "action must be waive or remove" },
+        { error: "action must be waive, remove, or one_signer" },
         { status: 400 },
       );
+    }
+
+    // "One signature covers all clients" toggle — a separate switch from the full
+    // waiver; needs no reason. Handled up front so it returns before the waiver
+    // path below.
+    if (action === "one_signer") {
+      const supabase = await createClient();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+      const { data: saved, error: saveErr } = await supabase
+        .from("inspections")
+        .update({ agreement_one_signer: body.enabled === true })
+        .eq("id", inspectionId)
+        .eq(accessFilter.column, accessFilter.value)
+        .select("id, agreement_one_signer")
+        .single();
+      if (saveErr || !saved) {
+        return NextResponse.json(
+          { error: saveErr?.message || "Could not save that." },
+          { status: 500 },
+        );
+      }
+      return NextResponse.json({ success: true, agreement_one_signer: saved.agreement_one_signer === true });
     }
 
     if (action === "waive" && !reason) {

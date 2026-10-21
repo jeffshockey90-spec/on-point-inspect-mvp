@@ -83,6 +83,8 @@ export default function AgreementStatusPanel({
   const [loading, setLoading] = useState(false);
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [waiverBusy, setWaiverBusy] = useState(false);
+  const [oneSigner, setOneSigner] = useState(false);
+  const [oneSignerBusy, setOneSignerBusy] = useState(false);
   const [showWaiverForm, setShowWaiverForm] = useState(false);
   const [waiverReason, setWaiverReason] = useState("");
   const [message, setMessage] = useState("");
@@ -128,6 +130,7 @@ export default function AgreementStatusPanel({
           agreement_waiver_reason:
             waiverData.agreement_waiver_reason || null,
         });
+        setOneSigner(Boolean(waiverData.agreement_one_signer));
       }
     } catch (error: any) {
       setMessage(error?.message || "Failed to load agreement status.");
@@ -140,6 +143,41 @@ export default function AgreementStatusPanel({
     () => contacts.filter((contact) => Boolean(contact.agreement_required)),
     [contacts],
   );
+
+  // How many clients (not realtors) are required to sign — the "one signature
+  // covers all" option only makes sense when there are two or more.
+  const requiredClientCount = useMemo(
+    () =>
+      requiredContacts.filter((c) => {
+        const role = String(c.role || "").toLowerCase();
+        return role === "client" || role === "co-client";
+      }).length,
+    [requiredContacts],
+  );
+
+  async function toggleOneSigner(enabled: boolean) {
+    setOneSigner(enabled); // optimistic
+    setOneSignerBusy(true);
+    try {
+      const res = await fetch("/api/agreement-waiver", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, action: "one_signer", enabled }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setOneSigner(!enabled); // revert
+        await flowAlert(data?.error || "Could not save that.");
+      } else {
+        setOneSigner(Boolean(data.agreement_one_signer));
+      }
+    } catch {
+      setOneSigner(!enabled);
+      await flowAlert("Could not save that.");
+    } finally {
+      setOneSignerBusy(false);
+    }
+  }
 
   const unsignedRequiredContacts = useMemo(
     () =>
@@ -377,6 +415,24 @@ export default function AgreementStatusPanel({
       </div>
 
       <div className="p-4 sm:p-5">
+        {requiredClientCount >= 2 && !waiver.agreement_waived && (
+          <label className="mb-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 [touch-action:manipulation]">
+            <input
+              type="checkbox"
+              checked={oneSigner}
+              disabled={oneSignerBusy}
+              onChange={(e) => toggleOneSigner(e.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-teal-500"
+            />
+            <span>
+              <span className="block text-sm font-bold text-[var(--fl-text)]">One signature covers all clients</span>
+              <span className="mt-0.5 block text-xs text-[var(--fl-muted)]">
+                This property has more than one client. With this on, once <b>any one</b> of them signs, the agreement counts for all of them — you won&apos;t need to chase the others.
+              </span>
+            </span>
+          </label>
+        )}
+
         {message && (
           <div className="mb-4 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm font-bold text-[var(--fl-text)]">
             {message}
