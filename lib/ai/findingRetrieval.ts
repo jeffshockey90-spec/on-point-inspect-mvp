@@ -53,7 +53,8 @@ export async function resolveInspectorId(opts: {
       .eq("id", opts.inspectionId)
       .maybeSingle();
     return (data as any)?.inspector_id ?? null;
-  } catch {
+  } catch (err) {
+    console.error("[findingRetrieval] resolveInspectorId failed:", err);
     return null;
   }
 }
@@ -74,18 +75,24 @@ async function queryPublished(
   section: string | null,
   limit: number,
 ): Promise<FindingExample[]> {
+  // findings has NO inspector_id column — the owning inspector lives on the
+  // parent inspection, so filter through the inner-joined inspections row.
   let q = db
     .from("findings")
     .select(
-      "title,section,severity,location,observation,implication,recommendation,created_at,inspections!inner(published)",
+      "title,section,severity,location,observation,implication,recommendation,created_at,inspections!inner(inspector_id,published)",
     )
-    .eq("inspector_id", inspectorId)
+    .eq("inspections.inspector_id", inspectorId)
     .eq("inspections.published", true)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (section) q = q.eq("section", section);
   const { data, error } = await q;
-  if (error || !data) return [];
+  if (error) {
+    console.error("[findingRetrieval] queryPublished failed:", error.message || error);
+    return [];
+  }
+  if (!data) return [];
   return (data as any[])
     .filter((r) => (r.observation || r.recommendation))
     .map((r) => ({
@@ -152,7 +159,8 @@ export async function getInspectorFindingExamples(opts: {
     }
 
     return pool.slice(0, want);
-  } catch {
+  } catch (err) {
+    console.error("[findingRetrieval] getInspectorFindingExamples failed:", err);
     return [];
   }
 }
