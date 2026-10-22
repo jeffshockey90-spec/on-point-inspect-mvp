@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { markLocalEdit } from "../lib/localEditSignal";
+import { useToastStackIndex } from "../lib/toastStack";
 import { useSeverityConfig } from "../lib/severity/useSeverityConfig";
 import { severityOptions } from "../lib/severity/severityConfig";
 
@@ -945,6 +946,11 @@ function InlineStatusMessage({
   type: "success" | "error" | "";
   message: string;
 }) {
+  // Stack this toast above any others already showing (one finding per toast,
+  // all fixed to the same spot) so running AI Inspector on two findings in
+  // quick succession doesn't pile their messages on top of each other.
+  const stackIndex = useToastStackIndex(!!message);
+
   if (!message) return null;
   if (typeof document === "undefined") return null;
 
@@ -953,7 +959,10 @@ function InlineStatusMessage({
   // Fixed floating toast, not inline — so showing/clearing a status doesn't push
   // the finding content up and down (which made the screen jump around).
   return createPortal(
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[2147482000] flex justify-center px-4">
+    <div
+      className="pointer-events-none fixed inset-x-0 z-[2147482000] flex justify-center px-4"
+      style={{ bottom: `calc(1rem + ${stackIndex * 3.5}rem)` }}
+    >
       <div
         className={`pointer-events-auto max-w-md rounded-xl border p-3 text-sm font-bold shadow-xl ${
           isSuccess
