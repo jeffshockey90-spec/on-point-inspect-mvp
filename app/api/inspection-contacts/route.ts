@@ -6,6 +6,7 @@ import {
   notFound,
   unauthorized,
 } from "../../../lib/apiAuth";
+import { pickLatestSentAtByContact } from "../../../lib/agreementContactStatus";
 
 const supabaseAdmin = getAdminClient();
 
@@ -61,8 +62,30 @@ export async function GET(req: Request) {
 
     if (error) throw error;
 
+    // Agreement sends don't write a column on inspection_contacts - they're
+    // only recorded in email_logs (metadata.contactId) - so look there to
+    // show each contact when their signing link was last sent.
+    const numericInspectionId = Number(inspectionId);
+    let sentAtByContact: Record<string, string> = {};
+
+    if (Number.isFinite(numericInspectionId)) {
+      const { data: sentLogs } = await supabaseAdmin
+        .from("email_logs")
+        .select("sent_at, metadata")
+        .eq("inspection_id_bigint", numericInspectionId)
+        .in("email_type", ["agreement_email", "agreement_reminder"])
+        .eq("status", "sent");
+
+      sentAtByContact = pickLatestSentAtByContact(sentLogs || []);
+    }
+
+    const contacts = (data || []).map((contact: any) => ({
+      ...contact,
+      agreement_last_sent_at: sentAtByContact[String(contact.id)] || null,
+    }));
+
     return NextResponse.json({
-      contacts: data || [],
+      contacts,
     });
   } catch (error: any) {
     return NextResponse.json(

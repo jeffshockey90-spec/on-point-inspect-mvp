@@ -595,6 +595,14 @@ export default function AgreementStatusPanel({
                         {contact.email}
                       </p>
 
+                      {!signed && !waiver.agreement_waived && (
+                        <p className="mt-2 text-xs font-bold text-[var(--fl-muted)]">
+                          {contact.agreement_last_sent_at
+                            ? `Sent: ${formatDate(contact.agreement_last_sent_at)}`
+                            : "Not sent yet"}
+                        </p>
+                      )}
+
                       {signedAgreement?.signed_at && (
                         <p className="mt-2 text-xs font-bold text-[var(--fl-good-text)]">
                           Signed: {formatDate(signedAgreement.signed_at)}
