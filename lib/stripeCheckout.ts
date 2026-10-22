@@ -102,12 +102,86 @@ async function getCompanyForInspection(supabase: any, inspection: any) {
   return null;
 }
 
-function getStripeConnectBlocker(company: any) {
-  if (!company) return "This inspection is not connected to a company profile.";
+// Shared across every flow that charges through a connected account (inspection
+// balances, standalone invoices) so they all block on the same onboarding state.
+export function getStripeConnectBlocker(company: any, noCompanyMessage?: string) {
+  if (!company) return noCompanyMessage || "This inspection is not connected to a company profile.";
   if (!company.stripe_account_id) return "This inspector has not connected a Stripe account yet.";
   if (company.stripe_onboarding_complete !== true) return "This inspector has not completed Stripe onboarding yet.";
   if (company.stripe_charges_enabled !== true) return "This inspector is not approved to accept Stripe charges yet.";
   return "";
+}
+
+// Builds the "Online Payment Processing Fee" line item added on top of a
+// payment's own line items, shared so the label/description can't drift
+// between flows. Returns null when no fee applies.
+export function getProcessingFeeLineItem(processingFee: number, company: any) {
+  if (!processingFee || processingFee <= 0) return null;
+  return {
+    quantity: 1,
+    price_data: {
+      currency: "usd",
+      unit_amount: Math.round(processingFee * 100),
+      product_data: {
+        name: "Online Payment Processing Fee",
+        description:
+          company?.online_payment_fee_type === "stripe_fee"
+            ? "Covers the card processing fee for this payment."
+            : "Optional online card payment fee set by the inspector.",
+      },
+    },
+  };
+}
+
+// Creates a Stripe Checkout session as a direct charge on the inspector's own
+// connected account. This is the ONE place that calls
+// `stripe.checkout.sessions.create` for a client-facing payment — every flow
+// (inspection balances, standalone invoices) must build its own line items and
+// metadata, then call this instead of creating a session itself, so the charge
+// type, fee line item, and account routing can never drift between flows.
+export async function createDirectChargeCheckoutSession({
+  company,
+  lineItems,
+  processingFee,
+  clientEmail,
+  clientReferenceId,
+  metadata,
+  successUrl,
+  cancelUrl,
+}: {
+  company: any;
+  lineItems: Stripe.Checkout.SessionCreateParams.LineItem[];
+  processingFee: number;
+  clientEmail?: string;
+  clientReferenceId: string;
+  metadata: Record<string, string>;
+  successUrl: string;
+  cancelUrl: string;
+}) {
+  const stripe = getStripe();
+  const connectedStripeAccountId = String(company.stripe_account_id);
+  const feeLineItem = getProcessingFeeLineItem(processingFee, company);
+
+  const session = await stripe.checkout.sessions.create(
+    {
+      mode: "payment",
+      payment_method_types: ["card"],
+      customer_email: clientEmail,
+      client_reference_id: clientReferenceId,
+      metadata,
+      payment_intent_data: {
+        metadata,
+      },
+      line_items: feeLineItem ? [...lineItems, feeLineItem] : lineItems,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    },
+    {
+      stripeAccount: connectedStripeAccountId,
+    }
+  );
+
+  return { session, connectedStripeAccountId };
 }
 
 async function logStripeEvent(supabase: any, payload: any) {
@@ -147,7 +221,6 @@ export async function createInspectionCheckoutSession({
   inspection: any;
   appUrl: string;
 }): Promise<InspectionCheckoutResult> {
-  const stripe = getStripe();
   const inspectionId = inspection.id;
 
   // Carry the share token onto the Stripe return URLs so an anonymous, just-paid
@@ -192,58 +265,32 @@ export async function createInspectionCheckoutSession({
     charge_type: "direct_charge",
   };
 
-  const session = await stripe.checkout.sessions.create(
-    {
-      mode: "payment",
-      payment_method_types: ["card"],
-      customer_email: clientEmail,
-      client_reference_id: String(inspectionId),
-      metadata,
-      payment_intent_data: {
-        metadata,
-      },
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: Math.round(balanceDue * 100),
-            product_data: {
-              name: "Inspection Balance Due",
-              description: `${companyName} - ${property}`,
-            },
+  const { session } = await createDirectChargeCheckoutSession({
+    company,
+    lineItems: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: Math.round(balanceDue * 100),
+          product_data: {
+            name: "Inspection Balance Due",
+            description: `${companyName} - ${property}`,
           },
         },
-        ...(portalProcessingFee > 0
-          ? [
-              {
-                quantity: 1,
-                price_data: {
-                  currency: "usd",
-                  unit_amount: Math.round(portalProcessingFee * 100),
-                  product_data: {
-                    name: "Online Payment Processing Fee",
-                    description:
-                      company?.online_payment_fee_type === "stripe_fee"
-                        ? "Covers the card processing fee for this payment."
-                        : "Optional online card payment fee set by the inspector.",
-                  },
-                },
-              },
-            ]
-          : []),
-      ],
-      success_url: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}&stripe_account=${connectedStripeAccountId}${
-        portalReturnToken ? `&portal_token=${encodeURIComponent(portalReturnToken)}` : ""
-      }`,
-      cancel_url: `${appUrl}/payment-cancelled?inspection_id=${inspectionId}${
-        portalReturnToken ? `&portal_token=${encodeURIComponent(portalReturnToken)}` : ""
-      }`,
-    },
-    {
-      stripeAccount: connectedStripeAccountId,
-    }
-  );
+      },
+    ],
+    processingFee: portalProcessingFee,
+    clientEmail,
+    clientReferenceId: String(inspectionId),
+    metadata,
+    successUrl: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}&stripe_account=${connectedStripeAccountId}${
+      portalReturnToken ? `&portal_token=${encodeURIComponent(portalReturnToken)}` : ""
+    }`,
+    cancelUrl: `${appUrl}/payment-cancelled?inspection_id=${inspectionId}${
+      portalReturnToken ? `&portal_token=${encodeURIComponent(portalReturnToken)}` : ""
+    }`,
+  });
 
   await supabase
     .from("inspections")
