@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { formatMoney } from "../lib/locale";
+import { getPaymentStatusDetail } from "../lib/paymentStatusDetail";
 
 type InspectionRecord = Record<string, any>;
 
@@ -62,6 +63,10 @@ export default function PaymentInvoicePanel({
   // button + summary use the inspection prop values, not the unsaved edits above.
   const savedAmountPaid = getNumber(inspection.amount_paid);
   const canSendReceipt = savedAmountPaid > 0;
+  const statusDetail = useMemo(
+    () => getPaymentStatusDetail(inspection),
+    [inspection.payment_status, inspection.invoice_status, inspection.payment_method, inspection.paid_at],
+  );
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receiptEmail, setReceiptEmail] = useState(
     String(inspection.client_email || inspection.email || inspection.contact_email || ""),
@@ -207,6 +212,9 @@ export default function PaymentInvoicePanel({
               <Badge tone="slate">Paid {money(amountPaidNumber)}</Badge>
               <Badge tone={isPaid ? "green" : "orange"}>Due {money(balanceDue)}</Badge>
             </div>
+            {statusDetail && (
+              <p className="mt-3 text-xs font-semibold text-[var(--fl-muted)]">{statusDetail}</p>
+            )}
           </div>
 
           <button type="button" onClick={() => setExpanded((current) => !current)} className="w-full rounded-2xl border border-[var(--fl-line)] px-5 py-3 text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] sm:w-auto">
