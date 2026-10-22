@@ -40,7 +40,7 @@ export async function GET(req: Request) {
         "id, inspection_id, contact_id, client_name, client_email, signed_at, status"
       )
       .eq("inspection_id", inspectionId)
-      .eq("status", "signed")
+      .in("status", ["signed", "superseded"])
       .order("signed_at", { ascending: false });
 
     if (error) throw error;

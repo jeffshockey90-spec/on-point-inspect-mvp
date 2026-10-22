@@ -2,6 +2,7 @@
 
 
 import { formatAppValue } from "../lib/app-time";
+import { findReplacedAgreementForContact } from "../lib/agreementReplacement";
 import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -39,6 +40,7 @@ type SignedAgreementSummary = {
   client_name?: string | null;
   client_email?: string | null;
   signed_at?: string | null;
+  status?: string | null;
 };
 
 type WaiverState = {
@@ -197,6 +199,7 @@ export default function AgreementStatusPanel({
     const map: Record<string, SignedAgreementSummary> = {};
 
     for (const agreement of signedAgreements) {
+      if (agreement.status !== "signed") continue;
       const contactId = String(agreement.contact_id || "");
       if (contactId && !map[contactId]) map[contactId] = agreement;
     }
@@ -208,6 +211,7 @@ export default function AgreementStatusPanel({
     const map: Record<string, SignedAgreementSummary> = {};
 
     for (const agreement of signedAgreements) {
+      if (agreement.status !== "signed") continue;
       const email = normalizeEmail(agreement.client_email);
       if (email && !map[email]) map[email] = agreement;
     }
@@ -221,6 +225,10 @@ export default function AgreementStatusPanel({
 
     const byEmail = agreementsByEmail[normalizeEmail(contact?.email)];
     return byEmail || null;
+  }
+
+  function getReplacedAgreementForContact(contact: any) {
+    return findReplacedAgreementForContact(signedAgreements, contact);
   }
 
   async function sendReminder(contactId?: string) {
@@ -555,6 +563,9 @@ export default function AgreementStatusPanel({
             {requiredContacts.map((contact) => {
               const signed = Boolean(contact.agreement_signed);
               const signedAgreement = getAgreementForContact(contact);
+              const replacedAgreement = signed
+                ? getReplacedAgreementForContact(contact)
+                : null;
 
               return (
                 <article
@@ -606,6 +617,13 @@ export default function AgreementStatusPanel({
                       {signedAgreement?.signed_at && (
                         <p className="mt-2 text-xs font-bold text-[var(--fl-good-text)]">
                           Signed: {formatDate(signedAgreement.signed_at)}
+                        </p>
+                      )}
+
+                      {replacedAgreement?.signed_at && (
+                        <p className="mt-2 text-xs font-bold text-[var(--fl-muted)]">
+                          Replaced an earlier signed agreement from{" "}
+                          {formatDate(replacedAgreement.signed_at)}.
                         </p>
                       )}
                     </div>
