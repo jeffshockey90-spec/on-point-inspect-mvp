@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
 import { getAdminClient } from "../../../../../lib/apiAuth";
 import { getOnlineProcessingFee } from "../../../../../lib/onlinePaymentFee";
+import {
+  createDirectChargeCheckoutSession,
+  getStripeConnectBlocker,
+} from "../../../../../lib/stripeCheckout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type RouteProps = { params: Promise<{ id: string }> };
-
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("Missing STRIPE_SECRET_KEY.");
-  return new Stripe(key, {});
-}
 
 function getAppUrl() {
   return (
@@ -27,18 +24,6 @@ function getValidEmail(value: any) {
   const email = String(value || "").trim().toLowerCase();
   if (!email || !email.includes("@") || !email.includes(".")) return undefined;
   return email;
-}
-
-// Reuses the EXACT Stripe Connect direct-charge model from
-// create-checkout-session: the session is created ON the connected account via
-// the `{ stripeAccount }` second argument, so funds land in the inspector's
-// account. Do not add transfer_data/on_behalf_of.
-function getStripeConnectBlocker(company: any) {
-  if (!company) return "No company profile is connected to this invoice.";
-  if (!company.stripe_account_id) return "This inspector has not connected a Stripe account yet.";
-  if (company.stripe_onboarding_complete !== true) return "This inspector has not completed Stripe onboarding yet.";
-  if (company.stripe_charges_enabled !== true) return "This inspector is not approved to accept Stripe charges yet.";
-  return "";
 }
 
 // GET /api/invoices/[id]/checkout?token=<public_token>
@@ -79,7 +64,7 @@ export async function GET(req: Request, { params }: RouteProps) {
       company = data;
     }
 
-    const blocker = getStripeConnectBlocker(company);
+    const blocker = getStripeConnectBlocker(company, "No company profile is connected to this invoice.");
     if (blocker) return NextResponse.json({ error: blocker }, { status: 403 });
 
     const connectedStripeAccountId = String(company.stripe_account_id);
@@ -117,23 +102,6 @@ export async function GET(req: Request, { params }: RouteProps) {
     const processingFee = getOnlineProcessingFee(balanceDue, company);
     const totalOnlinePayment = Math.round((balanceDue + processingFee) * 100) / 100;
 
-    if (processingFee > 0) {
-      stripeLineItems.push({
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: Math.round(processingFee * 100),
-          product_data: {
-            name: "Online Payment Processing Fee",
-            description:
-              company?.online_payment_fee_type === "stripe_fee"
-                ? "Covers the card processing fee for this payment."
-                : "Online card payment fee set by the inspector.",
-          },
-        },
-      });
-    }
-
     const metadata: Record<string, string> = {
       invoice_id: String(invoice.id),
       company_id: String(company.id),
@@ -147,21 +115,16 @@ export async function GET(req: Request, { params }: RouteProps) {
     };
     if (invoice.inspection_id) metadata.inspection_id = String(invoice.inspection_id);
 
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create(
-      {
-        mode: "payment",
-        payment_method_types: ["card"],
-        customer_email: getValidEmail(invoice.client_email),
-        client_reference_id: String(invoice.id),
-        metadata,
-        payment_intent_data: { metadata },
-        line_items: stripeLineItems,
-        success_url: `${appUrl}/invoices/payment-success?session_id={CHECKOUT_SESSION_ID}&invoice=${encodeURIComponent(token)}`,
-        cancel_url: `${appUrl}/invoices/payment-success?invoice=${encodeURIComponent(token)}&cancelled=1`,
-      },
-      { stripeAccount: connectedStripeAccountId }
-    );
+    const { session } = await createDirectChargeCheckoutSession({
+      company,
+      lineItems: stripeLineItems,
+      processingFee,
+      clientEmail: getValidEmail(invoice.client_email),
+      clientReferenceId: String(invoice.id),
+      metadata,
+      successUrl: `${appUrl}/invoices/payment-success?session_id={CHECKOUT_SESSION_ID}&invoice=${encodeURIComponent(token)}`,
+      cancelUrl: `${appUrl}/invoices/payment-success?invoice=${encodeURIComponent(token)}&cancelled=1`,
+    });
 
     // Record the session and mark the invoice sent (if it was still a draft).
     await admin
