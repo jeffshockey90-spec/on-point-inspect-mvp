@@ -4,6 +4,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
+import { isSmsConfigured, sendSms, normalizePhone } from "../../../lib/sms";
 
 export const runtime = "nodejs";
 
@@ -309,16 +310,21 @@ export async function POST(req: Request) {
 
     // Build the recipient list. Each recipient carries its own wording type so a
     // mixed selection (e.g. two agents + one buyer) gets the right email each.
-    type Target = { email: string; name: string; type: "client" | "realtor" };
+    type Target = { email: string; name: string; type: "client" | "realtor"; phone?: string };
     const seenEmails = new Set<string>();
     const targets: Target[] = [];
-    const addTarget = (email: any, name: any, type: "client" | "realtor") => {
+    const addTarget = (email: any, name: any, type: "client" | "realtor", phone?: any) => {
       const cleanEmail = String(email || "").trim();
       if (!cleanEmail) return;
       const key = cleanEmail.toLowerCase();
       if (seenEmails.has(key)) return;
       seenEmails.add(key);
-      targets.push({ email: cleanEmail, name: String(name || "").trim(), type });
+      targets.push({
+        email: cleanEmail,
+        name: String(name || "").trim(),
+        type,
+        phone: String(phone || "").trim() || undefined,
+      });
     };
 
     if (explicitList.length) {
@@ -326,31 +332,31 @@ export async function POST(req: Request) {
       // wording chosen per person from their contact role.
       explicitList.forEach((email) => {
         const c = contactByEmail.get(email.toLowerCase());
-        addTarget(email, c?.name, c && isAgentRole(c.role) ? "realtor" : "client");
+        addTarget(email, c?.name, c && isAgentRole(c.role) ? "realtor" : "client", c?.phone);
       });
     } else if (explicitEmail) {
       const c = contactByEmail.get(explicitEmail.toLowerCase());
-      addTarget(explicitEmail, c?.name, recipientType);
+      addTarget(explicitEmail, c?.name, recipientType, c?.phone);
     } else if (recipientType === "realtor") {
       (contacts || []).forEach((c: any) => {
-        if (isAgentRole(c.role)) addTarget(c.email, c.name, "realtor");
+        if (isAgentRole(c.role)) addTarget(c.email, c.name, "realtor", c.phone);
       });
       if (targets.length === 0) {
-        addTarget(inspection.realtor_email, inspection.realtor_name, "realtor");
-        addTarget(inspection.agent_email, inspection.agent_name, "realtor");
-        addTarget(inspection.buyer_agent_email, "", "realtor");
+        addTarget(inspection.realtor_email, inspection.realtor_name, "realtor", inspection.realtor_phone);
+        addTarget(inspection.agent_email, inspection.agent_name, "realtor", inspection.agent_phone);
+        addTarget(inspection.buyer_agent_email, "", "realtor", inspection.buyer_agent_phone);
       }
     } else {
       // Every buyer/client on the contract gets the request.
       (contacts || []).forEach((c: any) => {
         const role = String(c.role || "").toLowerCase();
         if (["client", "co-client", "buyer", "co-buyer"].includes(role)) {
-          addTarget(c.email, c.name, "client");
+          addTarget(c.email, c.name, "client", c.phone);
         }
       });
       if (targets.length === 0) {
-        addTarget(inspection.client_email, inspection.client_name || inspection.client, "client");
-        addTarget(inspection.email, inspection.client_name || inspection.client, "client");
+        addTarget(inspection.client_email, inspection.client_name || inspection.client, "client", inspection.client_phone);
+        addTarget(inspection.email, inspection.client_name || inspection.client, "client", inspection.client_phone);
       }
     }
 
@@ -520,7 +526,21 @@ export async function POST(req: Request) {
       }
     }
 
-    if (sentEmails.length === 0) {
+    // Best-effort TEXT to anyone with a phone on file — same review ask by SMS.
+    let smsSent = 0;
+    if (isSmsConfigured()) {
+      const seenPhones = new Set<string>();
+      for (const t of targets) {
+        const to = normalizePhone(t.phone);
+        if (!to || seenPhones.has(to)) continue;
+        seenPhones.add(to);
+        const smsBody = `${branding.name}: Thank you for choosing us! If you were happy with your service, a quick Google review would mean a lot: ${googleReviewUrl}`;
+        const r = await sendSms({ to, body: smsBody }).catch(() => null);
+        if (r?.ok) smsSent += 1;
+      }
+    }
+
+    if (sentEmails.length === 0 && smsSent === 0) {
       return NextResponse.json(
         { error: firstError || "Review request failed to send." },
         { status: 500 }
@@ -559,7 +579,7 @@ export async function POST(req: Request) {
       success: true,
       sent: sentEmails,
       failed: failedEmails,
-      message: `Review request sent to ${sentEmails.length} recipient${sentEmails.length === 1 ? "" : "s"} (${sentCsv})${failNote}.`,
+      message: `Review request sent to ${sentEmails.length} recipient${sentEmails.length === 1 ? "" : "s"} (${sentCsv})${smsSent > 0 ? ` and texted to ${smsSent}` : ""}${failNote}.`,
     });
   } catch (error: any) {
     console.error("Send review request error:", error);
