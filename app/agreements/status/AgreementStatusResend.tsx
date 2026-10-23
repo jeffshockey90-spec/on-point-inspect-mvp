@@ -23,7 +23,7 @@ export default function AgreementStatusResend({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Send failed.");
       setState("sent");
-      setMsg("Sent ✓");
+      setMsg(data.smsSent ? `Sent ✓ (+${data.smsSent} text)` : "Sent ✓");
     } catch (error: any) {
       setState("error");
       setMsg(error?.message || "Failed");
@@ -41,7 +41,7 @@ export default function AgreementStatusResend({
       {state === "sending"
         ? "Sending…"
         : state === "sent"
-          ? "Sent ✓"
+          ? msg || "Sent ✓"
           : state === "error"
             ? "Retry"
             : "Send / Resend"}
