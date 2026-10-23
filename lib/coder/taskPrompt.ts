@@ -9,7 +9,7 @@
 // Both end as something Jeff reviews; nothing ships without his approval.
 
 // How the agent must work inside the one-shot Action (shared by both).
-const HOW_TO_WORK = `HOW TO WORK: do this yourself in this one session. Do NOT spawn background agents, subagents, or parallel tasks, and do NOT wait for task notifications — nothing runs in the background here, so you'd just hang. Finish the job directly.`;
+const HOW_TO_WORK = `HOW TO WORK: do this yourself in this one session, directly. Do NOT use the Task tool, do NOT spawn subagents / background agents / parallel tasks, and do NOT wait for task notifications — those aren't available here, every attempt is denied and wastes a step, and nothing runs in the background. Just explore with Read/Grep/Glob and make the change with Edit/Write/MultiEdit yourself. Keep it efficient — don't re-read the same files repeatedly.`;
 
 // Jeff may have attached a PDF/text document; its extracted text is included in
 // the transcript below so the agent can actually use it, but it can carry a

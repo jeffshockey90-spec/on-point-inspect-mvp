@@ -64,7 +64,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5
             --max-turns 300
-            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(mkdir *),Bash(ls *),Bash(cat *),Bash(find *),Bash(head *),Bash(tail *),Bash(wc *),Bash(npm ci),Bash(npm run build),Bash(npm test),Bash(npm run test:*),Bash(npm run lint),Bash(npm run check:colors),Bash(git status),Bash(git diff *),Bash(git log *)"
+            --allowedTools "Read,Edit,Write,MultiEdit,Glob,Grep,Bash(mkdir *),Bash(ls *),Bash(cat *),Bash(find *),Bash(head *),Bash(tail *),Bash(wc *),Bash(grep *),Bash(rg *),Bash(sed *),Bash(awk *),Bash(cut *),Bash(sort *),Bash(uniq *),Bash(echo *),Bash(touch *),Bash(mv *),Bash(cp *),Bash(diff *),Bash(test *),Bash(true),Bash(node *),Bash(npx tsc *),Bash(npx vitest *),Bash(npm ci),Bash(npm run *),Bash(npm test),Bash(git status),Bash(git diff *),Bash(git log *),Bash(git show *)"
 
       - name: Capture Claude's changes, verify, and open the PR
         if: success()
