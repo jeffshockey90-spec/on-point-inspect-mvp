@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { describeSmsOutcome } from "../../../lib/smsOutcome";
 
 export default function AgreementStatusResend({
   inspectionId,
@@ -23,7 +24,12 @@ export default function AgreementStatusResend({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Send failed.");
       setState("sent");
-      setMsg(data.smsSent ? `Sent ✓ (+${data.smsSent} text)` : "Sent ✓");
+      const smsNote = describeSmsOutcome({
+        sent: data.smsSent || 0,
+        skippedNoPhone: data.smsSkippedNoPhone || 0,
+        failed: data.smsFailed || 0,
+      });
+      setMsg(smsNote ? `Sent ✓ (${smsNote})` : "Sent ✓");
     } catch (error: any) {
       setState("error");
       setMsg(error?.message || "Failed");

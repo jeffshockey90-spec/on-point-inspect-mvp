@@ -6,6 +6,7 @@ import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
+import { describeSmsOutcome } from "../../../lib/smsOutcome";
 
 export const runtime = "nodejs";
 
@@ -127,6 +128,8 @@ export async function POST(req: Request) {
     const sent: any[] = [];
     const failed: any[] = [];
     let smsSentCount = 0;
+    let smsSkippedNoPhoneCount = 0;
+    let smsFailedCount = 0;
 
     for (const contact of recipients) {
       const email = String(contact.email || "").trim().toLowerCase();
@@ -217,27 +220,32 @@ ${branding.name}`;
       // contact + Twilio configured). Never blocks the email. Keeps this
       // reminder path in parity with /api/send-agreement-email's SMS send.
       const contactPhone = String(contact.phone || "").trim();
-      if (isSmsConfigured() && contactPhone) {
-        const smsBody = `${branding.name}: Reminder to review & sign your inspection agreement for ${propertyAddress}. Sign: ${agreementUrl}`;
-        const smsResult = await sendSms({ to: contactPhone, body: smsBody }).catch(() => null);
-        if (smsResult?.ok) smsSentCount += 1;
+      if (isSmsConfigured()) {
+        if (!contactPhone) {
+          smsSkippedNoPhoneCount += 1;
+        } else {
+          const smsBody = `${branding.name}: Reminder to review & sign your inspection agreement for ${propertyAddress}. Sign: ${agreementUrl}`;
+          const smsResult = await sendSms({ to: contactPhone, body: smsBody }).catch(() => null);
+          if (smsResult?.ok) smsSentCount += 1;
+          else smsFailedCount += 1;
 
-        await supabase.from("email_logs").insert({
-          inspection_id_bigint: Number(inspectionId),
-          recipient: contactPhone,
-          recipient_email: contactPhone,
-          email_type: "agreement_reminder_sms",
-          subject: `Agreement Reminder SMS - ${propertyAddress}`,
-          message: agreementUrl,
-          status: smsResult?.ok ? "sent" : "failed",
-          sent_at: smsResult?.ok ? new Date().toISOString() : null,
-          metadata: {
-            type: "agreement_reminder_sms",
-            contactId: contact.id,
-            channel: "sms",
-            error: smsResult?.ok ? undefined : smsResult?.error || "Agreement reminder SMS failed.",
-          },
-        });
+          await supabase.from("email_logs").insert({
+            inspection_id_bigint: Number(inspectionId),
+            recipient: contactPhone,
+            recipient_email: contactPhone,
+            email_type: "agreement_reminder_sms",
+            subject: `Agreement Reminder SMS - ${propertyAddress}`,
+            message: agreementUrl,
+            status: smsResult?.ok ? "sent" : "failed",
+            sent_at: smsResult?.ok ? new Date().toISOString() : null,
+            metadata: {
+              type: "agreement_reminder_sms",
+              contactId: contact.id,
+              channel: "sms",
+              error: smsResult?.ok ? undefined : smsResult?.error || "Agreement reminder SMS failed.",
+            },
+          });
+        }
       }
     }
 
@@ -251,14 +259,22 @@ ${branding.name}`;
       );
     }
 
+    const smsOutcome = describeSmsOutcome({
+      sent: smsSentCount,
+      skippedNoPhone: smsSkippedNoPhoneCount,
+      failed: smsFailedCount,
+    });
+
     return NextResponse.json({
       success: true,
       message: `Agreement reminder sent to ${sent.length} client recipient${sent.length === 1 ? "" : "s"}${
-        smsSentCount > 0 ? ` (and texted to ${smsSentCount})` : ""
+        smsOutcome ? ` (${smsOutcome})` : ""
       }.`,
       sent,
       failed,
       smsSent: smsSentCount,
+      smsSkippedNoPhone: smsSkippedNoPhoneCount,
+      smsFailed: smsFailedCount,
     });
   } catch (error: any) {
     console.error("Send agreement reminder error:", error);
