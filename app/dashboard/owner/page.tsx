@@ -17,6 +17,7 @@ import PushAlertsPanel from "../../../components/PushAlertsPanel";
 import RepriceSubscribersPanel from "../../../components/RepriceSubscribersPanel";
 import InspectorActivityPanel from "../../../components/InspectorActivityPanel";
 import Secure24LeadsPanel from "../../../components/Secure24LeadsPanel";
+import ReferralHistoryPanel from "../../../components/ReferralHistoryPanel";
 import OwnerDashboardTabs from "../../../components/OwnerDashboardTabs";
 import SignupFunnelPanel from "../../../components/SignupFunnelPanel";
 import { getSubscriptionPricing } from "../../../lib/subscriptionPricing";
@@ -1335,6 +1336,7 @@ export default async function OwnerDashboardPage() {
         <div data-owner-tab="overview" className="space-y-8">
           <InspectorActivityPanel />
           <Secure24LeadsPanel />
+          <ReferralHistoryPanel />
         </div>
 
         <section data-owner-tab="devices" className="grid gap-5 md:grid-cols-3">
