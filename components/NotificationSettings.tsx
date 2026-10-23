@@ -45,6 +45,7 @@ type PrefState = {
   company: Record<Key, boolean>;
   overrides: Partial<Record<Key, boolean>>;
   effective: Record<Key, boolean>;
+  referralRequests?: boolean;
 };
 
 type InspectorReminders = {
@@ -141,6 +142,29 @@ export default function NotificationSettings() {
       });
     } catch (e: any) {
       setInsp(prev);
+      setError(e?.message || "Could not save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleReferralRequests(next: boolean) {
+    if (!state || saving) return;
+    setSaving(true);
+    setError("");
+    const prev = state;
+    setState({ ...state, referralRequests: next });
+    try {
+      const res = await fetch("/api/settings/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referralRequests: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not save.");
+      setState(data);
+    } catch (e: any) {
+      setState(prev);
       setError(e?.message || "Could not save.");
     } finally {
       setSaving(false);
@@ -314,6 +338,30 @@ export default function NotificationSettings() {
                 </div>
               </div>
             ))}
+
+          {/* Referral request alerts (per-inspector push) */}
+          {state && (
+            <div>
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[var(--fl-accent-text)]">
+                Referrals
+              </p>
+              <div className="flex items-start justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-[var(--fl-text)]">Referral request alerts</span>
+                  <span className="mt-0.5 block text-xs text-[var(--fl-muted)]">
+                    Push you a notification whenever a client requests a referral service (home security, insurance, and any added later).
+                  </span>
+                </span>
+                <SettingsToggle
+                  checked={state.referralRequests !== false}
+                  disabled={saving}
+                  onChange={toggleReferralRequests}
+                  ariaLabel="Referral request alerts"
+                  className="mt-0.5"
+                />
+              </div>
+            </div>
+          )}
 
           {state && !state.isOwner && hasOverrides && (
             <button

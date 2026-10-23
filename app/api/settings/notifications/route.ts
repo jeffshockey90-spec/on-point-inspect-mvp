@@ -63,7 +63,15 @@ async function readState(ctx: { userId: string; companyId: string | null }) {
   for (const key of NOTIFICATION_PREF_KEYS) {
     effective[key] = key in overrides ? overrides[key] : company[key];
   }
-  return { company, overrides, effective };
+
+  // Standalone per-inspector toggle (not part of the company-default key set):
+  // alert me when a client requests a referral service. Default ON.
+  const referralRequests =
+    raw && typeof raw === "object" && typeof (raw as any).referral_requests === "boolean"
+      ? Boolean((raw as any).referral_requests)
+      : true;
+
+  return { company, overrides, effective, referralRequests };
 }
 
 export async function GET() {
@@ -111,6 +119,10 @@ export async function POST(req: Request) {
         if (prefs[key] === null) delete current[key];
         else if (typeof prefs[key] === "boolean") current[key] = prefs[key];
       }
+    }
+    // Standalone referral-request alert toggle.
+    if (typeof body?.referralRequests === "boolean") {
+      current.referral_requests = body.referralRequests;
     }
     if (body?.reset === true) {
       for (const key of NOTIFICATION_PREF_KEYS) delete current[key];

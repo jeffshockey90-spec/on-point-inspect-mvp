@@ -6,6 +6,7 @@ import {
   INSURANCE_CONSENT_TEXT,
 } from "../../../../lib/insuranceReferral";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../../lib/companyBranding";
+import { notifyReferralRequested } from "../../../../lib/referralNotify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -115,6 +116,9 @@ export async function POST(request: Request) {
     })
     .select("id")
     .single();
+
+  // Alert the inspector that a client requested this referral (best-effort).
+  await notifyReferralRequested(db, { inspection, serviceLabel: "insurance" });
 
   // If there's no agent email, this is a link-only referral: nothing to send,
   // the client just proceeds to the agent's link. Mark it submitted.

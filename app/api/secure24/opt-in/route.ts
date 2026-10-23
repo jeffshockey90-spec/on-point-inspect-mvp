@@ -6,6 +6,7 @@ import {
   resolveInspectionByToken,
 } from "../../../../lib/secure24";
 import { SECURE24_CONSENT_TEXT } from "../../../../lib/secure24Brand";
+import { notifyReferralRequested } from "../../../../lib/referralNotify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -206,6 +207,9 @@ export async function POST(request: Request) {
       { status: 502 },
     );
   }
+
+  // Alert the inspector that a client requested this referral (best-effort).
+  await notifyReferralRequested(db, { inspection, serviceLabel: "home security (Secure 24)" });
 
   return NextResponse.json({ ok: true });
 }
