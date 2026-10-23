@@ -1,40 +1,117 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { requireOwnerUser, coderRepo, coderConfigured, gh } from "../../../../../lib/coder/github";
-import { getAIModel } from "../../../../../lib/openai";
+import { openai, getAIModel } from "../../../../../lib/openai";
+import { getAdminClient } from "../../../../../lib/apiAuth";
 import { buildReviewTask } from "../../../../../lib/coder/taskPrompt";
+import { buildAskFlowContext, ASK_FLOW_TOOLS, runAskFlowTool } from "../../../../../lib/ai/askFlow";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// The Coder chat. Jeff talks to it exactly like he talks to Claude in a session:
-// it answers, reasons, and — when he asks it to look into / check something about
-// the real app — it goes and does that itself (launches the full code-aware agent
-// in read-only mode, which reads the real code and reports back below), then tells
-// him it's on it. It NEVER changes code; that's deliberately reserved for the
-// "Build this" button. Prefers Claude (ANTHROPIC_API_KEY), falls back to FLOW's
-// OpenAI so it always works.
-//
-// Protocol: if the model decides Jeff wants it to actually examine the real app
-// (not just chat), it starts its reply with the token [[LOOK]] on its own first
-// line. This route then launches a read-only review from the whole conversation
-// and strips the token before showing Jeff the reply.
+// The Coder chat. Jeff talks to it like he talks to Claude in a session. It can:
+//   1. answer plain questions + plan code changes (chat),
+//   2. ANSWER REAL ACCOUNT/DATA QUESTIONS using read-only tools over his live
+//      FLOW data (inspections, findings, agreements, payments, schedule…) — the
+//      same safe, read-only tools Ask FLOW uses; nothing can change/send/charge/
+//      delete, and the data never leaves FLOW (never goes through GitHub),
+//   3. launch a read-only CODE review by starting its reply with [[LOOK]].
+// Code changes stay behind the "Build this" button. Owner-only.
 const LOOK_TOKEN = "[[LOOK]]";
+
+// Only the READ tools — never propose_action (which stages a write/send). The
+// Coder chat is strictly read-only for live data.
+const READ_TOOLS = ASK_FLOW_TOOLS.filter((t: any) => t?.function?.name !== "propose_action");
 
 const SYSTEM = `You are Claude, Jeff's coding teammate built into FLOW — a home-inspection SaaS he owns. Talk to him exactly like you would in a normal Claude session: plain, warm, direct. He is a home inspector, not a software engineer, so never use developer jargon; explain anything technical in everyday words.
 
 You can DO things, not just talk:
-- If Jeff asks you to LOOK INTO / CHECK / REVIEW / INVESTIGATE / EXPLAIN something about the real app — or asks a question that can only be answered honestly by reading the actual code (e.g. "is the payment screen okay?", "why is X slow?", "did my client's agreement save?") — then GO DO IT. Start your reply with "${LOOK_TOKEN}" on its own first line, then a short, natural sentence telling him you're on it (e.g. "On it — I'll dig into the payment screen and come back with what I find."). The system will then actually read the real code and post a plain-English report below for him in a few minutes. Don't tell him to press anything; just say you're doing it.
-- If it's a general question, a quick clarification, or you two are still figuring out WHAT he wants, just talk it through normally (no token). Ask ONE short question only if you genuinely need it; otherwise help him think.
+- ANSWER REAL ACCOUNT/DATA QUESTIONS: you have read-only tools to look up Jeff's actual FLOW data — inspections/jobs, findings/defects, agreements (sent, signed, waived), payments and who still owes, the schedule, defect trends, and report turnaround. When he asks about his real business ("did the Smith agreement get signed?", "who hasn't paid this month?", "how many safety concerns did I write this week?", "what's on my schedule tomorrow?"), USE the tools and answer directly from the data. Do NOT launch a code review for a data question. These tools are READ-ONLY — you can look things up but can never change, send, charge, or delete anything.
+- LOOK INTO THE APP'S CODE: if Jeff asks you to check/review/investigate something about how the app itself works, or a question that can only be answered by reading the actual code ("is the payment screen wired right?", "why is X slow?"), start your reply with "${LOOK_TOKEN}" on its own first line, then a short natural sentence ("On it — I'll dig into that and come back with what I find."). The system then reads the real code and posts a plain-English report below in a few minutes. Don't tell him to press anything.
+- Otherwise just talk it through. Ask ONE short question only if you genuinely need it.
 
-IMPORTANT — you do NOT change code here. Changing code is deliberate and separate: when Jeff actually wants the code changed, he uses the "Build this" button, which hands this whole conversation to the builder. So if he's describing a change he wants built, help him get it clear and confident, and let him know it's ready to build whenever he is — mention that once, naturally, not repeatedly. Never nag him to press buttons, and never claim you've already changed or shipped code.
+Pick the right one: a question about his DATA (jobs, clients, money, agreements, schedule) → use the read-only tools and answer now. A question about how the CODE/app works or a bug → [[LOOK]]. Figuring out WHAT to build → just chat.
 
-If Jeff asks for something very large that spans the whole app (e.g. "change every screen", "fix all the X across the app"), it can still be built, but the builder does one run at a time and a giant all-at-once job can run out of room and come back with nothing. So gently suggest doing it in focused pieces — one screen or feature at a time — and offer to start with the most important piece first. Frame it as "let's knock these out a piece at a time so each one lands reliably," not as a limitation.
+IMPORTANT — you do NOT change code or data here. Changing code is deliberate and separate: when Jeff actually wants code changed, he uses the "Build this" button. If he's describing a change he wants built, help him get it clear and let him know it's ready to build whenever he is — mention that once, naturally. Never claim you've already changed or shipped anything.
 
-Never mention pull requests, branches, GitHub, or internal tooling. Keep it to the real-world result: what you'll look into, or what will change, and that nothing goes live until he approves it.`;
+Never mention pull requests, branches, GitHub, SQL, tables, or internal tooling. Keep it to real-world results.`;
 
 type Msg = { role: "user" | "assistant"; content: string; images?: string[] };
 
+function toOpenAIMsg(m: Msg): any {
+  const imgs = m.role === "user" ? m.images || [] : [];
+  if (imgs.length === 0) return { role: m.role, content: m.content };
+  return {
+    role: m.role,
+    content: [
+      ...(m.content ? [{ type: "text", text: m.content }] : []),
+      ...imgs.map((url) => ({ type: "image_url", image_url: { url } })),
+    ],
+  };
+}
+
+// Primary path: OpenAI with the read-only data tools, so the chat can answer
+// account questions straight from live data. Returns the final text, or null to
+// fall back.
+async function runWithData(messages: Msg[], ownerId: string): Promise<string | null> {
+  if (!process.env.OPENAI_API_KEY) return null;
+  try {
+    const admin = getAdminClient();
+    let timeZone = "America/New_York";
+    try {
+      const { data } = await admin.from("profiles").select("time_zone").eq("id", ownerId).maybeSingle();
+      if (data?.time_zone) timeZone = data.time_zone;
+    } catch {
+      /* default */
+    }
+    const ctx = await buildAskFlowContext(admin, ownerId, timeZone);
+    const system = `${SYSTEM}\n\nToday is ${ctx.today} (timezone ${ctx.timeZone}). Convert relative dates ("this week", "last month") to explicit YYYY-MM-DD before calling a data tool.`;
+
+    const convo: any[] = [{ role: "system", content: system }, ...messages.map(toOpenAIMsg)];
+
+    for (let round = 0; round < 6; round += 1) {
+      const completion = await openai.chat.completions.create({
+        model: getAIModel(),
+        messages: convo,
+        tools: READ_TOOLS,
+        tool_choice: "auto",
+        temperature: 0.3,
+        max_completion_tokens: 1200,
+      });
+      const choice = completion.choices[0]?.message;
+      if (!choice) return null;
+      const toolCalls: any[] = (choice.tool_calls as any[]) || [];
+      if (toolCalls.length === 0) {
+        return typeof choice.content === "string" && choice.content.trim() ? choice.content.trim() : null;
+      }
+      convo.push({ role: "assistant", content: choice.content || "", tool_calls: toolCalls });
+      for (const call of toolCalls) {
+        let args: any = {};
+        try {
+          args = JSON.parse(call.function?.arguments || "{}");
+        } catch {
+          args = {};
+        }
+        let result: any;
+        try {
+          result = await runAskFlowTool(call.function?.name || "", args, ctx);
+        } catch (e: any) {
+          result = { error: e?.message || "Tool failed." };
+        }
+        convo.push({
+          role: "tool",
+          tool_call_id: call.id,
+          content: JSON.stringify(result).slice(0, 8000),
+        });
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Fallback (no tools) if OpenAI is unavailable — prefers Claude, then plain OpenAI.
 async function viaAnthropic(messages: Msg[]): Promise<string | null> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
@@ -68,42 +145,6 @@ async function viaAnthropic(messages: Msg[]): Promise<string | null> {
   }
 }
 
-async function viaOpenAI(messages: Msg[]): Promise<string | null> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return null;
-  try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: getAIModel(),
-        temperature: 0.4,
-        max_completion_tokens: 1200,
-        messages: [
-          { role: "system", content: SYSTEM },
-          ...messages.map((m) => {
-            const imgs = m.role === "user" ? m.images || [] : [];
-            if (imgs.length === 0) return { role: m.role, content: m.content };
-            return {
-              role: m.role,
-              content: [
-                ...(m.content ? [{ type: "text", text: m.content }] : []),
-                ...imgs.map((url) => ({ type: "image_url", image_url: { url } })),
-              ],
-            };
-          }),
-        ],
-      }),
-    });
-    if (!res.ok) return null;
-    const d = await res.json().catch(() => ({}));
-    const text = d?.choices?.[0]?.message?.content;
-    return typeof text === "string" && text.trim() ? text.trim() : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: Request) {
   const owner = await requireOwnerUser();
   if (!owner) return NextResponse.json({ error: "Owner only." }, { status: 403 });
@@ -126,8 +167,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Say something first." }, { status: 400 });
   }
 
-  // Prefer Claude; fall back to FLOW's OpenAI so the chat always works.
-  const raw2 = (await viaAnthropic(messages)) || (await viaOpenAI(messages));
+  // Primary: OpenAI with read-only data tools. Fallback: Claude (no tools).
+  const raw2 = (await runWithData(messages, owner.id)) || (await viaAnthropic(messages));
   if (!raw2) {
     return NextResponse.json(
       { error: "The chat isn't available right now (no AI key reachable)." },
@@ -135,15 +176,12 @@ export async function POST(req: Request) {
     );
   }
 
-  // Did the chat decide to actually go look at the real app? If so, strip the
-  // token and launch a read-only review from the whole conversation — the full
-  // code-aware agent reads the code and reports back below. The chat itself
-  // never changes code (that's the "Build this" button).
+  // Did the chat decide to go look at the real app's CODE? If so, strip the token
+  // and launch a read-only code review. (Data questions are answered above, in
+  // chat, without this.)
   const wantsLook = raw2.trimStart().startsWith(LOOK_TOKEN);
   const reply = wantsLook ? raw2.trimStart().slice(LOOK_TOKEN.length).trim() : raw2;
 
-  // If the hand-off to the real review agent fails, say so right away instead of
-  // leaving Jeff thinking "On it…" is still quietly happening when nothing is.
   let acted = false;
   let taskId: string | null = null;
   let lookFailed: string | null = null;

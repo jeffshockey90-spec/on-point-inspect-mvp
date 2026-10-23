@@ -670,8 +670,9 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
         {chat.length === 0 ? (
           <div className="px-2 py-10 text-center text-sm text-[var(--fl-muted)]">
             <p>Start a conversation. For example:</p>
-            <p className="mt-2 italic">“Here's a screenshot of a glitch on the report page — what's going on?”</p>
-            <p className="mt-1 italic">“Check that all the buttons in the client portal work.”</p>
+            <p className="mt-2 italic">“Did the agreement for 12 Oak St get signed yet?”</p>
+            <p className="mt-1 italic">“Who hasn't paid me this month?”</p>
+            <p className="mt-1 italic">“Here's a screenshot of a glitch on the report page — what's going on?”</p>
             <p className="mt-1 italic">“Add a filter on the reports page for jobs with unpaid add-ons.”</p>
           </div>
         ) : (
