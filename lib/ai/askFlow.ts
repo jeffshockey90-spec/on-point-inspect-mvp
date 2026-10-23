@@ -303,6 +303,41 @@ export const ASK_FLOW_TOOLS: any[] = [
   {
     type: "function",
     function: {
+      name: "search_referrals",
+      description:
+        "List referral requests that have gone out — home-security (Secure 24) and insurance-agent referrals — with the client, which inspector sent it, the status, and when. Use for questions like 'what referrals went out today and by who', 'how many insurance referrals this month'.",
+      parameters: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["all", "security", "insurance"], description: "Which kind of referral. Default all." },
+          from: { type: "string", description: "Start date YYYY-MM-DD (inclusive)." },
+          to: { type: "string", description: "End date YYYY-MM-DD (inclusive)." },
+          limit: { type: "number", description: "Max rows (default 50, max 100)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_messages",
+      description:
+        "List messages (emails/texts) FLOW has sent to clients or agents — e.g. report-ready, agreement, payment receipt, review request, reminders — with the recipient, type, delivery status, when, and which property. Use for 'did the receipt go out', 'what did I send the Smith job', 'review requests sent this week'.",
+      parameters: {
+        type: "object",
+        properties: {
+          type: { type: "string", description: "Free-text match on the message type (e.g. 'receipt', 'review', 'agreement', 'reminder')." },
+          status: { type: "string", description: "Exact delivery status filter (e.g. sent, failed)." },
+          from: { type: "string", description: "Start date YYYY-MM-DD (inclusive)." },
+          to: { type: "string", description: "End date YYYY-MM-DD (inclusive)." },
+          limit: { type: "number", description: "Max rows (default 50, max 100)." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "propose_action",
       description:
         "PREPARE an action for the user to CONFIRM. This does NOT execute anything — it stages the action and the user must tap a Confirm button. Use only when the user asks to DO something. Supported: send an agreement reminder, send a payment reminder, reschedule an inspection (internal only — does not email the client), or add an internal note. First resolve the EXACT inspection with the read tools so you pass a specific inspection_id. If it's ambiguous which inspection or recipient is meant, ASK the user instead of proposing. You cannot mark paid, publish, delete, refund, or edit findings — say so if asked.",
@@ -353,11 +388,101 @@ export async function runAskFlowTool(name: string, args: any, ctx: AskFlowContex
       return getDefectTrends(ctx, args || {});
     case "get_report_turnaround":
       return getReportTurnaround(ctx, args || {});
+    case "search_referrals":
+      return searchReferrals(ctx, args || {});
+    case "search_messages":
+      return searchMessages(ctx, args || {});
     case "propose_action":
       return proposeAction(ctx, args || {});
     default:
       return { error: `Unknown tool: ${name}` };
   }
+}
+
+// Map inspector ids → display names for "by who" answers.
+async function inspectorNames(ctx: AskFlowContext, ids: any[]): Promise<Record<string, string>> {
+  const uniq = [...new Set(ids.filter(Boolean).map(String))];
+  if (uniq.length === 0) return {};
+  try {
+    const { data } = await ctx.admin.from("profiles").select("id, full_name, email").in("id", uniq);
+    const map: Record<string, string> = {};
+    for (const p of data || []) map[String(p.id)] = p.full_name || p.email || "Inspector";
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+// Referral requests (Secure 24 home-security + insurance-agent), scoped to the
+// user's team inspectors. Read-only.
+async function searchReferrals(ctx: AskFlowContext, args: any) {
+  const scopeIds = ctx.teamIds && ctx.teamIds.length ? ctx.teamIds : [ctx.userId];
+  const type = String(args.type || "all").toLowerCase();
+  const limit = Math.min(Number(args.limit) || 50, 100);
+  const out: any[] = [];
+
+  const pull = async (table: string, label: string) => {
+    let q = ctx.admin
+      .from(table)
+      .select("inspection_id, inspector_id, client_name, status, consent_at, created_at")
+      .in("inspector_id", scopeIds)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (args.from) q = q.gte("created_at", String(args.from));
+    if (args.to) q = q.lte("created_at", `${String(args.to)}T23:59:59`);
+    const { data, error } = await q;
+    if (!error) for (const r of data || []) out.push({ _type: label, ...r });
+  };
+
+  if (type === "all" || type === "security") await pull("secure24_leads", "Home security (Secure 24)");
+  if (type === "all" || type === "insurance") await pull("insurance_referral_leads", "Insurance");
+
+  const names = await inspectorNames(ctx, out.map((r) => r.inspector_id));
+  const referrals = out
+    .sort((a, b) => new Date(b.consent_at || b.created_at || 0).getTime() - new Date(a.consent_at || a.created_at || 0).getTime())
+    .slice(0, limit)
+    .map((r) => ({
+      type: r._type,
+      client: r.client_name || null,
+      by: names[String(r.inspector_id)] || "Unknown",
+      status: r.status || null,
+      when: String(r.consent_at || r.created_at || "").slice(0, 16).replace("T", " "),
+    }));
+
+  return { count: referrals.length, referrals };
+}
+
+// Messages (emails/texts) FLOW sent to clients/agents, scoped to the user's
+// inspections (email_logs keys off inspection_id_bigint). Read-only.
+async function searchMessages(ctx: AskFlowContext, args: any) {
+  const insp = await fetchScopedInspections(ctx, { limit: 1000 });
+  const ids = insp.map((i: any) => Number(i.id)).filter(Boolean);
+  if (ids.length === 0) return { count: 0, messages: [] };
+  const addr = new Map(insp.map((i: any) => [String(i.id), addressOf(i)]));
+
+  let q = ctx.admin
+    .from("email_logs")
+    .select("email_type, recipient, recipient_email, status, sent_at, created_at, inspection_id_bigint")
+    .in("inspection_id_bigint", ids)
+    .order("created_at", { ascending: false })
+    .limit(Math.min(Number(args.limit) || 50, 100));
+  if (args.type) q = q.ilike("email_type", `%${String(args.type)}%`);
+  if (args.status) q = q.eq("status", String(args.status));
+  if (args.from) q = q.gte("created_at", String(args.from));
+  if (args.to) q = q.lte("created_at", `${String(args.to)}T23:59:59`);
+
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+
+  const messages = (data || []).map((m: any) => ({
+    type: m.email_type || null,
+    to: m.recipient || m.recipient_email || null,
+    status: m.status || null,
+    when: String(m.sent_at || m.created_at || "").slice(0, 16).replace("T", " "),
+    property: addr.get(String(m.inspection_id_bigint)) || null,
+  }));
+
+  return { count: messages.length, messages };
 }
 
 async function getBusinessSummary(ctx: AskFlowContext, args: any) {
