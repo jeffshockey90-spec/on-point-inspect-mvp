@@ -3,6 +3,7 @@
 
 import { formatAppValue } from "../lib/app-time";
 import { findReplacedAgreementForContact } from "../lib/agreementReplacement";
+import { describeSmsOutcome } from "../lib/smsOutcome";
 import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -246,10 +247,14 @@ export default function AgreementStatusPanel({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to send reminder.");
 
+      const smsNote = describeSmsOutcome({
+        sent: data.smsSent || 0,
+        skippedNoPhone: data.smsSkippedNoPhone || 0,
+        failed: data.smsFailed || 0,
+      });
+
       await flowAlert(
-        `Sent ${data.sent?.length || 0} reminder email(s)${
-          data.smsSent ? ` and ${data.smsSent} text(s)` : ""
-        }.`,
+        `Sent ${data.sent?.length || 0} reminder email(s)${smsNote ? ` (${smsNote})` : ""}.`,
       );
       await loadContacts();
     } catch (error: any) {
