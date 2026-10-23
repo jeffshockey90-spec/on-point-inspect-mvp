@@ -246,7 +246,11 @@ export default function AgreementStatusPanel({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to send reminder.");
 
-      await flowAlert(`Sent ${data.sent?.length || 0} reminder email(s).`);
+      await flowAlert(
+        `Sent ${data.sent?.length || 0} reminder email(s)${
+          data.smsSent ? ` and ${data.smsSent} text(s)` : ""
+        }.`,
+      );
       await loadContacts();
     } catch (error: any) {
       await flowAlert(error.message || "Failed to send reminder.");
