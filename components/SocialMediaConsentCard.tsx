@@ -96,22 +96,34 @@ export default function SocialMediaConsentCard({
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6">
-      <div className="flex items-start gap-3">
-        <Clapperboard className="mt-0.5 h-6 w-6 shrink-0 text-[var(--fl-accent-text)]" />
+    <section className="mt-6 overflow-hidden rounded-2xl border border-teal-500/40 bg-gradient-to-br from-teal-500/10 via-[var(--fl-surface-2)] to-purple-500/10 p-6 shadow-xl">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-teal-400/40 bg-teal-500/15 text-[var(--fl-accent-text)]">
+          <Clapperboard className="h-6 w-6" />
+        </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-semibold text-[var(--fl-text)]">
-            Share your inspection? (optional)
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--fl-accent-text)]">Optional — and it really helps</p>
+          <h3 className="mt-1 text-xl font-bold text-[var(--fl-text)]">
+            Help a future homeowner? ✨
           </h3>
-          <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
-            Your inspector creates helpful videos for social media (Facebook, TikTok) using footage
-            from inspections — with <span className="font-semibold">no personal information shown</span>{" "}
-            (no address, no names, nothing that identifies you). If you&apos;re okay with that, you
-            can agree below. It&apos;s completely optional and doesn&apos;t affect your inspection or
-            report.
+          <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
+            Your inspector turns real inspection footage into quick, helpful tips on Facebook &amp; TikTok —
+            the kind of thing that helps a buyer catch a problem before it costs them. If you&apos;re open to it,
+            your inspection could be part of that, and <span className="font-semibold text-[var(--fl-text)]">nothing that identifies you is ever shown.</span>
           </p>
 
-          <details className="group mt-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
+          <div className="mt-4 flex flex-wrap gap-2">
+            {["✓ No address", "✓ No names", "✓ Remove anytime", "✓ Doesn't affect your report"].map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)]"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+
+          <details className="group mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)]/60 p-3">
             <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--fl-accent-text)] [&::-webkit-details-marker]:hidden">
               Read the full release
             </summary>
@@ -130,20 +142,20 @@ export default function SocialMediaConsentCard({
             />
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-4">
             <button
               type="button"
               onClick={() => submit(true)}
               disabled={status === "sending" || !name.trim()}
-              className="rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition enabled:hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-xl bg-teal-500 px-6 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-teal-500/20 transition enabled:hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
             >
-              {status === "sending" ? "Saving…" : "I agree — you can share it"}
+              {status === "sending" ? "Saving…" : "Yes — happy to help 🎬"}
             </button>
             <button
               type="button"
               onClick={() => submit(false)}
               disabled={status === "sending"}
-              className="text-sm font-semibold text-[var(--fl-faint)] hover:text-[var(--fl-muted)] hover:underline disabled:opacity-50"
+              className="text-sm font-semibold text-[var(--fl-faint)] hover:text-[var(--fl-muted)] hover:underline disabled:opacity-50 [touch-action:manipulation]"
             >
               No thanks
             </button>
