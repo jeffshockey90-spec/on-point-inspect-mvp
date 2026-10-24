@@ -145,16 +145,53 @@ Return the JSON fills now.`;
       parsed = {};
     }
 
+    // Indexes so matching is forgiving: the model only has to get the FIELD and
+    // VALUE right. A normalized section lookup handles spacing/punctuation/case,
+    // and a global field index recovers a fill even when the model put it under
+    // the wrong/misformatted section — the field title is what the inspector
+    // actually said. (Previously an exact-string section lookup silently DROPPED
+    // any fill whose section name didn't match verbatim → lots of "didn't catch".)
+    const sectionByNorm: Record<string, string> = {};
+    const fieldIndex: Record<string, { section: string; group: any }> = {};
+    for (const [sec, groups] of Object.entries(CHECKLIST_LIBRARY)) {
+      sectionByNorm[normKey(sec)] = sec;
+      for (const g of groups as any[]) {
+        const k = normKey((g as any).title);
+        if (!fieldIndex[k]) fieldIndex[k] = { section: sec, group: g };
+      }
+    }
+
     // Resolve each proposed fill against the real checklist.
     const proposed: ChecklistFill[] = [];
     for (const item of Array.isArray(parsed?.fills) ? parsed.fills : []) {
-      const section = cleanText(item?.section);
+      const sectionRaw = cleanText(item?.section);
       const field = cleanText(item?.field || item?.group);
       const value = cleanText(item?.value);
-      if (!section || !field || !value) continue;
-      const groups = (CHECKLIST_LIBRARY as any)[section];
-      if (!groups) continue;
-      const group = groups.find((g: any) => normKey(g.title) === normKey(field));
+      if (!field || !value) continue;
+
+      // Prefer the stated section (exact or normalized); else fall back to the
+      // field's own home section so a mislabeled section still resolves.
+      let section = "";
+      let group: any = null;
+      const canonSection = (CHECKLIST_LIBRARY as any)[sectionRaw]
+        ? sectionRaw
+        : sectionByNorm[normKey(sectionRaw)] || "";
+      if (canonSection) {
+        const g = ((CHECKLIST_LIBRARY as any)[canonSection] || []).find(
+          (x: any) => normKey(x.title) === normKey(field),
+        );
+        if (g) {
+          section = canonSection;
+          group = g;
+        }
+      }
+      if (!group) {
+        const hit = fieldIndex[normKey(field)];
+        if (hit) {
+          section = hit.section;
+          group = hit.group;
+        }
+      }
       if (!group) continue;
 
       if (group.type === "text") {

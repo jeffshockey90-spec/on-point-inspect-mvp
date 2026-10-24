@@ -1615,9 +1615,11 @@ export default function AILiveInspectionCamera({
         setToast(
           `Already checked — ${alreadySet} box${alreadySet === 1 ? " was" : "es were"} already set`,
         );
-      } else {
-        setToast("Didn't catch any matching fields — try again.");
       }
+      // Else: this incremental fragment matched nothing (a natural pause, filler,
+      // or words that aren't a checklist field). Stay SILENT — spamming "didn't
+      // catch" on every pause while the inspector keeps talking is the annoyance.
+      // A whole session that fills nothing is reported once when voice stops.
     } catch {
       setToast("Voice fill failed — check your connection.");
     } finally {
