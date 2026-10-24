@@ -518,6 +518,20 @@ export async function writeChecklistFills(
       row = { inspection_id: inspectionId, section: f.section, group_title: f.groupTitle, value: label, ...ownerFields };
     }
 
+    // Never create an EXACT duplicate of the same (section, group, value). This
+    // is what lets `overwrite` add a different 2nd value to a group WITHOUT
+    // doubling an identical one when continuous voice resubmits an overlapping
+    // transcript (the "Wall Material: Drywall ×2" bug).
+    const { data: dupe } = await supabase
+      .from("section_checklist_selections")
+      .select("id")
+      .eq("inspection_id", inspectionId)
+      .eq("section", f.section)
+      .eq("group_title", f.groupTitle)
+      .eq("value", row.value)
+      .limit(1);
+    if (dupe && dupe.length > 0) continue;
+
     const { error } = await supabase.from("section_checklist_selections").insert(row);
     if (!error) written += 1;
   }
