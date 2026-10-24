@@ -46,6 +46,7 @@ type PrefState = {
   overrides: Partial<Record<Key, boolean>>;
   effective: Record<Key, boolean>;
   referralRequests?: boolean;
+  socialMediaConsent?: boolean;
 };
 
 type InspectorReminders = {
@@ -159,6 +160,29 @@ export default function NotificationSettings() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ referralRequests: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not save.");
+      setState(data);
+    } catch (e: any) {
+      setState(prev);
+      setError(e?.message || "Could not save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleSocialMediaConsent(next: boolean) {
+    if (!state || saving) return;
+    setSaving(true);
+    setError("");
+    const prev = state;
+    setState({ ...state, socialMediaConsent: next });
+    try {
+      const res = await fetch("/api/settings/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ socialMediaConsent: next }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Could not save.");
@@ -357,6 +381,30 @@ export default function NotificationSettings() {
                   disabled={saving}
                   onChange={toggleReferralRequests}
                   ariaLabel="Referral request alerts"
+                  className="mt-0.5"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Social-media release accepted (per-inspector push) */}
+          {state && (
+            <div>
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[var(--fl-accent-text)]">
+                Marketing
+              </p>
+              <div className="flex items-start justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-[var(--fl-text)]">Social-media release accepted</span>
+                  <span className="mt-0.5 block text-xs text-[var(--fl-muted)]">
+                    Push you a notification when a client agrees to let you share photos/video from their inspection on social media.
+                  </span>
+                </span>
+                <SettingsToggle
+                  checked={state.socialMediaConsent !== false}
+                  disabled={saving}
+                  onChange={toggleSocialMediaConsent}
+                  ariaLabel="Social-media release accepted alerts"
                   className="mt-0.5"
                 />
               </div>

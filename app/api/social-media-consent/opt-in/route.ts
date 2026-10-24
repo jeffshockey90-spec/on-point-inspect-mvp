@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { resolveInspectionByToken } from "../../../../lib/socialMediaRelease";
+import { notifySocialMediaConsent } from "../../../../lib/socialMediaConsentNotify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,6 +69,12 @@ export async function POST(request: Request) {
     })
     .eq("id", inspection.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Best-effort: ping the owning inspector that this inspection is now cleared
+  // to post. Only on a grant; never blocks the client's response.
+  if (consent) {
+    await notifySocialMediaConsent(db, { inspection }).catch(() => {});
+  }
 
   return NextResponse.json({ ok: true, consent });
 }

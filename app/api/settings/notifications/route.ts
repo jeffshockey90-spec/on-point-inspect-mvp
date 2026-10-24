@@ -71,7 +71,14 @@ async function readState(ctx: { userId: string; companyId: string | null }) {
       ? Boolean((raw as any).referral_requests)
       : true;
 
-  return { company, overrides, effective, referralRequests };
+  // Alert me when a client accepts the optional social-media / content release.
+  // Default ON.
+  const socialMediaConsent =
+    raw && typeof raw === "object" && typeof (raw as any).social_media_consent === "boolean"
+      ? Boolean((raw as any).social_media_consent)
+      : true;
+
+  return { company, overrides, effective, referralRequests, socialMediaConsent };
 }
 
 export async function GET() {
@@ -123,6 +130,10 @@ export async function POST(req: Request) {
     // Standalone referral-request alert toggle.
     if (typeof body?.referralRequests === "boolean") {
       current.referral_requests = body.referralRequests;
+    }
+    // Standalone social-media-release-accepted alert toggle.
+    if (typeof body?.socialMediaConsent === "boolean") {
+      current.social_media_consent = body.socialMediaConsent;
     }
     if (body?.reset === true) {
       for (const key of NOTIFICATION_PREF_KEYS) delete current[key];
