@@ -1569,6 +1569,8 @@ export default function AILiveInspectionCamera({
         return;
       }
       const applied = Array.isArray(data.applied) ? data.applied : [];
+      const removed = Array.isArray(data.removed) ? data.removed : [];
+      const unmatched = Array.isArray(data.unmatched) ? data.unmatched : [];
       // Confirm by the ACTUAL saved count (written), not what the AI merely
       // matched (applied). A write can silently save fewer than it matched, and
       // "✓ Filled N" off applied would falsely confirm boxes that never saved —
@@ -1578,11 +1580,10 @@ export default function AILiveInspectionCamera({
         : applied.length;
 
       // Tell the report builder's checklists to reload so the boxes show as
-      // checked the moment the camera closes — otherwise an already-open builder
-      // keeps showing them unchecked until a manual reload.
-      if (written > 0 && typeof window !== "undefined") {
+      // checked/unchecked the moment the camera closes.
+      if ((written > 0 || removed.length) && typeof window !== "undefined") {
         const sections = Array.from(
-          new Set(applied.map((a: any) => a?.section).filter(Boolean)),
+          new Set([...applied, ...removed].map((a: any) => a?.section).filter(Boolean)),
         );
         window.dispatchEvent(
           new CustomEvent("opi:checklist-updated", {
@@ -1594,16 +1595,20 @@ export default function AILiveInspectionCamera({
       const alreadySet = Number.isFinite(Number(data.alreadySet))
         ? Number(data.alreadySet)
         : 0;
+      const removedNote = removed.length ? ` · removed ${removed.length}` : "";
 
       if (written > 0 && written >= applied.length) {
         setVoiceFilled(applied);
-        setToast(`✓ Filled ${written} box${written === 1 ? "" : "es"}`);
+        setToast(`✓ Filled ${written} box${written === 1 ? "" : "es"}${removedNote}`);
       } else if (written > 0) {
         // Partial save — be honest and tell them to re-check the section.
         setVoiceFilled(applied.slice(0, written));
         setToast(
-          `Saved ${written} of ${applied.length} — reopen the section to check`,
+          `Saved ${written} of ${applied.length}${removedNote} — reopen the section to check`,
         );
+      } else if (removed.length) {
+        setVoiceFilled(null);
+        setToast(`Removed ${removed.length} box${removed.length === 1 ? "" : "es"}`);
       } else if (applied.length > 0) {
         // Matched fields but NOTHING saved — never claim success.
         setVoiceFilled(null);
@@ -1615,6 +1620,10 @@ export default function AILiveInspectionCamera({
         setToast(
           `Already checked — ${alreadySet} box${alreadySet === 1 ? " was" : "es were"} already set`,
         );
+      } else if (unmatched.length) {
+        // Heard it but couldn't place it on the checklist — let them rephrase.
+        setVoiceFilled(null);
+        setToast(`Couldn't place: ${unmatched.slice(0, 2).join(", ")}`);
       }
       // Else: this incremental fragment matched nothing (a natural pause, filler,
       // or words that aren't a checklist field). Stay SILENT — spamming "didn't
@@ -1709,27 +1718,41 @@ export default function AILiveInspectionCamera({
       lastFilledTranscriptRef.current = clean;
       if (res.ok) {
         const applied = Array.isArray(data.applied) ? data.applied : [];
+        const removed = Array.isArray(data.removed) ? data.removed : [];
+        const unmatched = Array.isArray(data.unmatched) ? data.unmatched : [];
         const written = Number.isFinite(Number(data.written))
           ? Number(data.written)
           : applied.length;
+
+        const touchedSections = new Set<string>();
         if (written > 0) {
           const fresh = applied.slice(0, written);
           setVoiceFilled((prev) => mergeVoiceFilled(prev, fresh));
           voiceFillTotalRef.current += written;
-          const sections = Array.from(
-            new Set(fresh.map((a: any) => a?.section).filter(Boolean)),
-          );
-          if (typeof window !== "undefined" && sections.length) {
-            window.dispatchEvent(
-              new CustomEvent("opi:checklist-updated", {
-                detail: { inspectionId: selectedReport, sections },
-              }),
-            );
-          }
-          const total = voiceFillTotalRef.current;
-          setToast(`✓ Filled ${total} box${total === 1 ? "" : "es"} — keep going…`);
+          for (const a of fresh) if (a?.section) touchedSections.add(a.section);
         }
-        // Stay quiet on a pause that matched nothing new — don't nag mid-session.
+        if (removed.length) {
+          voiceFillTotalRef.current = Math.max(0, voiceFillTotalRef.current - removed.length);
+          for (const r of removed) if (r?.section) touchedSections.add(r.section);
+        }
+        if (typeof window !== "undefined" && touchedSections.size) {
+          window.dispatchEvent(
+            new CustomEvent("opi:checklist-updated", {
+              detail: { inspectionId: selectedReport, sections: Array.from(touchedSections) },
+            }),
+          );
+        }
+
+        const bits: string[] = [];
+        if (written > 0) bits.push(`✓ ${voiceFillTotalRef.current} filled`);
+        if (removed.length) bits.push(`removed ${removed.length}`);
+        if (bits.length) {
+          setToast(`${bits.join(" · ")} — keep going…`);
+        } else if (unmatched.length) {
+          // Heard it but couldn't place it — tell them so they can rephrase.
+          setToast(`Couldn't place: ${unmatched.slice(0, 2).join(", ")}`);
+        }
+        // Else: a pause that matched nothing new — stay quiet, don't nag.
       }
     } catch {
       // Network hiccup mid-session: keep listening; the next pause retries.

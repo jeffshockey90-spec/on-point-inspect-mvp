@@ -35,6 +35,105 @@ function getGroupOptions(section: string, groupTitle: string): string[] {
   return Array.isArray(group.options) ? group.options.map((o: any) => String(o)) : [];
 }
 
+// Common spoken variants → canonical term, so "sheetrock" ticks Drywall, "lvp"
+// ticks Vinyl, etc. Keyed by normalized token.
+const VALUE_SYNONYMS: Record<string, string> = {
+  sheetrock: "drywall",
+  gypsum: "drywall",
+  gyp: "drywall",
+  gypsumboard: "drywall",
+  wallboard: "drywall",
+  wood: "hardwood",
+  hardwoods: "hardwood",
+  woodfloor: "hardwood",
+  woodfloors: "hardwood",
+  lvp: "vinyl",
+  lvt: "vinyl",
+  luxuryvinyl: "vinyl",
+  vinylplank: "vinyl",
+  linoleum: "vinyl",
+  ceramic: "tile",
+  porcelain: "tile",
+  ceramictile: "tile",
+  tiled: "tile",
+  carpeted: "carpet",
+  carpeting: "carpet",
+  laminated: "laminate",
+  quartz: "quartz",
+  granitecountertop: "granite",
+  pvc: "pvc",
+  cpvc: "cpvc",
+  pex: "pex",
+  galvanized: "galvanized",
+  breaker: "breakers",
+  breakerpanel: "breakers",
+  fusebox: "fuses",
+};
+
+function tokenize(s: string): string[] {
+  return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").split(/\s+/).filter(Boolean);
+}
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  const dp = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i += 1) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j += 1) {
+      const tmp = dp[j];
+      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+
+// Forgiving map of a spoken value to the best built-in option: exact → synonym →
+// containment → token overlap → closest spelling. Returns null if nothing is a
+// confident match (caller then promotes it to a custom option).
+function fuzzyMatchOption(value: string, options: string[]): string | null {
+  if (!Array.isArray(options) || options.length === 0) return null;
+  const v = normKey(value);
+  if (!v) return null;
+
+  for (const o of options) if (normKey(o) === v) return o; // exact
+
+  const vTokens = tokenize(value).map((t) => VALUE_SYNONYMS[t] || t);
+  const vSyn = normKey(vTokens.join(""));
+  for (const o of options) if (normKey(o) === vSyn) return o; // synonym-exact
+
+  // Containment either direction (guard tiny fragments).
+  let best: string | null = null;
+  let bestScore = 0;
+  for (const o of options) {
+    const no = normKey(o);
+    if (no.length >= 3 && v.includes(no) && no.length > bestScore) { best = o; bestScore = no.length; }
+    if (v.length >= 3 && no.includes(v) && v.length > bestScore) { best = o; bestScore = v.length; }
+    if (no.length >= 3 && vSyn.includes(no) && no.length > bestScore) { best = o; bestScore = no.length; }
+  }
+  if (best) return best;
+
+  // Shared significant token (e.g. "double hung windows" ↔ "Double-hung").
+  const vSet = new Set(vTokens.filter((t) => t.length >= 3));
+  for (const o of options) {
+    if (tokenize(o).some((t) => t.length >= 3 && vSet.has(t))) return o;
+  }
+
+  // Closest spelling for a mishear/typo, scaled to length.
+  let lBest: string | null = null;
+  let lDist = Infinity;
+  for (const o of options) {
+    const no = normKey(o);
+    const d = levenshtein(v, no);
+    const tol = Math.max(1, Math.floor(Math.max(v.length, no.length) * 0.25));
+    if (d < lDist && d <= tol) { lDist = d; lBest = o; }
+  }
+  return lBest;
+}
+
 // Compact vocabulary of every section-info field + its allowed options, so the
 // model knows exactly which checkboxes exist and what they can be set to.
 function buildVocab() {
@@ -91,11 +190,15 @@ Examples:
 - "copper supply lines" -> Plumbing > Water Supply Material -> "Copper"
 - "the floor covering is vinyl, the walls are drywall, the countertops are granite, and the hood exhaust is vented" -> FOUR fills: Floor Coverings -> "Vinyl"; Wall Material -> "Drywall"; Countertop Material -> "Granite"; Exhaust Hood Type -> closest option (e.g. "Vented")
 
+Each fill has an "op": "add" (the default — check the box) or "remove" (uncheck/undo it).
+- REMOVE when the inspector says to take something back: "remove drywall", "take off drywall", "delete the vinyl", "not drywall", "scratch that, not plaster". Output that field+value with op "remove".
+- CORRECTION ("the walls are plaster, NOT drywall" / "change the walls to plaster" / "actually make the countertops quartz") = TWO fills: op "remove" for the old value AND op "add" for the new value, same field. If the old value isn't stated (just "change walls to plaster"), still emit the add; only emit a remove when a specific old value is named.
+
 Rules:
 - Choose the single best-matching ALLOWED option for each field. For a <number or short text> field, output the spoken value (e.g. "12" for insulation depth).
 - Only include fields the inspector CLEARLY stated. Never invent. If unsure which field or value, omit it.
 - One utterance can set MANY fields across different sections; output ALL of them, one per stated attribute.
-- Return ONLY valid JSON: { "fills": [ { "section": "", "field": "", "value": "" } ] }.`;
+- Return ONLY valid JSON: { "fills": [ { "section": "", "field": "", "value": "", "op": "add" } ] }. Omit "op" or use "add" for a normal selection; use "remove" to uncheck.`;
 
     const userPrompt = `Checklist (Section > Field: options):
 ${buildVocab()}
@@ -162,11 +265,14 @@ Return the JSON fills now.`;
     }
 
     // Resolve each proposed fill against the real checklist.
-    const proposed: ChecklistFill[] = [];
+    type Proposed = ChecklistFill & { op: "add" | "remove" };
+    const proposed: Proposed[] = [];
+    const unmatched: string[] = []; // heard but couldn't be placed — for feedback
     for (const item of Array.isArray(parsed?.fills) ? parsed.fills : []) {
       const sectionRaw = cleanText(item?.section);
       const field = cleanText(item?.field || item?.group);
       const value = cleanText(item?.value);
+      const op: "add" | "remove" = String(item?.op || "add").toLowerCase() === "remove" ? "remove" : "add";
       if (!field || !value) continue;
 
       // Prefer the stated section (exact or normalized); else fall back to the
@@ -192,22 +298,44 @@ Return the JSON fills now.`;
           group = hit.group;
         }
       }
-      if (!group) continue;
+      if (!group) {
+        unmatched.push(value);
+        continue;
+      }
 
       if (group.type === "text") {
         const num = value.match(/\d+(?:\.\d+)?/)?.[0] || value;
-        proposed.push({ section, groupTitle: group.title, kind: "text", value: num, matched: false });
+        proposed.push({ section, groupTitle: group.title, kind: "text", value: num, matched: false, op });
       } else {
-        const matchedOpt = (group.options || []).find((o: string) => normKey(o) === normKey(value));
+        // Forgiving option match: exact → synonym → containment → closest.
+        const matchedOpt = fuzzyMatchOption(value, group.options || []);
         proposed.push({
           section,
           groupTitle: group.title,
           kind: "option",
           value: matchedOpt || value,
           matched: Boolean(matchedOpt),
+          op,
         });
       }
     }
+
+    // Handle REMOVE ops up front: uncheck the matching selection(s). (Text groups
+    // store the value as "__TEXT_VALUE__"; options store the display value.)
+    const removedList: Array<{ section: string; group: string; value: string }> = [];
+    for (const r of proposed.filter((p) => p.op === "remove")) {
+      const delQ = supabaseAdmin
+        .from("section_checklist_selections")
+        .delete()
+        .eq("inspection_id", inspectionId)
+        .eq("section", r.section)
+        .eq("group_title", r.groupTitle);
+      const { error: delErr } =
+        r.kind === "text" ? await delQ.eq("value", "__TEXT_VALUE__") : await delQ.eq("value", r.value);
+      if (!delErr) removedList.push({ section: r.section, group: r.groupTitle, value: r.value });
+    }
+    // Only ADD ops flow into the write path below.
+    const addProposed = proposed.filter((p) => p.op === "add");
 
     // Add each spoken value as its own checkbox. Option groups are MULTI-SELECT
     // (e.g. Wall Material = Drywall AND Paneling, Floor Coverings = Tile AND
@@ -242,7 +370,7 @@ Return the JSON fills now.`;
       }
     }
 
-    for (const fill of proposed) {
+    for (const fill of addProposed) {
       // De-dupe WITHIN this one utterance by the exact target, so "drywall and
       // paneling" keeps BOTH (same group, different value) but "drywall drywall"
       // collapses to one.
@@ -292,14 +420,21 @@ Return the JSON fills now.`;
       inspectionId,
       tool: "voice_section_fill",
       prompt: "Voice section fill",
-      response: { proposed: proposed.length, applied: applied.length, written, alreadySet },
+      response: { proposed: proposed.length, applied: applied.length, written, alreadySet, removed: removedList.length, unmatched: unmatched.length },
       tokensUsed: completion.usage?.total_tokens ?? null,
       status: "success",
       model,
       aiVersion: getAIVersion("voice-section-fill"),
     });
 
-    return NextResponse.json({ success: true, written, applied, alreadySet });
+    return NextResponse.json({
+      success: true,
+      written,
+      applied,
+      alreadySet,
+      removed: removedList,
+      unmatched: [...new Set(unmatched)].slice(0, 6),
+    });
   } catch (error: any) {
     const svc = classifyAIServiceError(error);
     return NextResponse.json(
