@@ -69,18 +69,27 @@ export type FindingExample = {
   recommendation: string;
 };
 
+function normAddr(a: any): string {
+  return String(a || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+type PoolExample = FindingExample & { _srcAddr: string };
+
 async function queryPublished(
   db: any,
   inspectorId: string,
   section: string | null,
   limit: number,
-): Promise<FindingExample[]> {
+): Promise<PoolExample[]> {
   // findings has NO inspector_id column — the owning inspector lives on the
-  // parent inspection, so filter through the inner-joined inspections row.
+  // parent inspection, so filter through the inner-joined inspections row. Pull
+  // the parent address too so the caller can drop examples from the SAME
+  // property (e.g. a repeat inspection of this house) — a new report must never
+  // draw on that address's prior report.
   let q = db
     .from("findings")
     .select(
-      "title,section,severity,location,observation,implication,recommendation,created_at,inspections!inner(inspector_id,published)",
+      "title,section,severity,location,observation,implication,recommendation,created_at,inspections!inner(inspector_id,published,address,property_address)",
     )
     .eq("inspections.inspector_id", inspectorId)
     .eq("inspections.published", true)
@@ -103,6 +112,7 @@ async function queryPublished(
       observation: String(r.observation || "").trim(),
       implication: String(r.implication || "").trim(),
       recommendation: String(r.recommendation || "").trim(),
+      _srcAddr: normAddr(r.inspections?.property_address || r.inspections?.address),
     }));
 }
 
@@ -126,6 +136,23 @@ export async function getInspectorFindingExamples(opts: {
   const want = Math.max(1, Math.min(5, opts.limit ?? 3));
   const section = opts.section?.trim() || null;
 
+  // The property we're writing for — so we can exclude its OWN prior report from
+  // the style pool (a repeat inspection of this house must never pull the old
+  // one's findings, even as examples).
+  let currentAddr = "";
+  if (opts.inspectionId != null && opts.inspectionId !== "") {
+    try {
+      const { data } = await db
+        .from("inspections")
+        .select("address, property_address")
+        .eq("id", opts.inspectionId)
+        .maybeSingle();
+      currentAddr = normAddr((data as any)?.property_address || (data as any)?.address);
+    } catch {
+      /* no address → no exclusion */
+    }
+  }
+
   try {
     // Prefer same-section examples; backfill from all sections if too few.
     let pool = await queryPublished(db, inspectorId, section, 40);
@@ -140,6 +167,8 @@ export async function getInspectorFindingExamples(opts: {
         }
       }
     }
+    // Drop any example from THIS same property's prior report.
+    if (currentAddr) pool = pool.filter((p) => p._srcAddr !== currentAddr);
     if (!pool.length) return [];
 
     // Rank by keyword overlap with the subject; ties keep recency (query order).
@@ -158,7 +187,7 @@ export async function getInspectorFindingExamples(opts: {
         .map((r) => r.ex);
     }
 
-    return pool.slice(0, want);
+    return pool.slice(0, want).map(({ _srcAddr, ...ex }) => ex);
   } catch (err) {
     console.error("[findingRetrieval] getInspectorFindingExamples failed:", err);
     return [];

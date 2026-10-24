@@ -55,6 +55,7 @@ import SettingsToggle from "../../components/SettingsToggle";
 import OnlinePaymentFeeFields from "../../components/OnlinePaymentFeeFields";
 import Secure24ReferralSettings from "../../components/Secure24ReferralSettings";
 import InsuranceReferralSettings from "../../components/InsuranceReferralSettings";
+import ReferralAlertToggle from "../../components/ReferralAlertToggle";
 import OfficeAddressField from "../../components/OfficeAddressField";
 import { geocodeAddress } from "../../lib/geocode";
 
@@ -1286,6 +1287,9 @@ export default async function SettingsPage({
               payout on installs. Off by default — you control it, and clients always opt in
               themselves.
             </p>
+            <div className="mt-5">
+              <ReferralAlertToggle />
+            </div>
             <div className="mt-5">
               <Secure24ReferralSettings />
             </div>
