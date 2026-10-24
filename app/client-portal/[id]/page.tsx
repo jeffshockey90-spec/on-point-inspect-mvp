@@ -813,6 +813,13 @@ export default function ClientPortalPage() {
           />
         </section>
 
+        {inspection && (
+          <SocialMediaConsentCard
+            shareToken={getInspectionShareToken(inspection) || shareLookup}
+            placement="portal"
+          />
+        )}
+
         {!reportUnlocked && (
           <section className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-6 shadow-xl">
             <h2 className="text-2xl font-semibold text-[var(--fl-warn-text)]">
@@ -1361,13 +1368,6 @@ export default function ClientPortalPage() {
 
         {inspection && (
           <InsuranceReferralCard
-            shareToken={getInspectionShareToken(inspection) || shareLookup}
-            placement="portal"
-          />
-        )}
-
-        {inspection && (
-          <SocialMediaConsentCard
             shareToken={getInspectionShareToken(inspection) || shareLookup}
             placement="portal"
           />
