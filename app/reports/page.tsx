@@ -425,6 +425,20 @@ export default async function ReportsPage() {
       signedAgreementMap,
     });
 
+    // Realtor shown on the card: the legacy realtor field wins, but fall back to
+    // a realtor-role contact card (how realtors are added now) so the card never
+    // reads "N/A" when a realtor is actually on the job.
+    const realtorContact = (contactsByInspectionId[String(inspection.id)] || []).find(
+      (c: any) => {
+        const r = String(c?.role || "").toLowerCase();
+        return r.includes("realtor") || r.includes("agent");
+      }
+    );
+    const realtorName =
+      (inspection.realtor_name && String(inspection.realtor_name).trim()) ||
+      (realtorContact?.name && String(realtorContact.name).trim()) ||
+      "N/A";
+
     return {
       id: inspection.id,
       published: isPublished(inspection),
@@ -445,7 +459,7 @@ export default async function ReportsPage() {
         inspection.zip ? ` ${inspection.zip}` : "",
       ].join(""),
       clientName: inspection.client_name || "N/A",
-      realtorName: inspection.realtor_name || "N/A",
+      realtorName,
       inspectionDate: inspection.inspection_date || "N/A",
       // Social-media consent: true = OK to post, false = declined, null = not
       // answered (no badge). Lets the inspector scan which jobs they can post.
