@@ -12,6 +12,11 @@ function formatRole(role: string) {
     .join(" ");
 }
 
+function isRealtorRole(role: string) {
+  const clean = String(role || "").toLowerCase();
+  return clean.includes("realtor") || clean.includes("agent");
+}
+
 function roleBadgeClass(role: string) {
   const clean = String(role || "").toLowerCase();
   if (clean.includes("client")) return "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]";
@@ -81,6 +86,8 @@ export default function InspectionContactsManager({
   const [editPhone, setEditPhone] = useState("");
   const [editRole, setEditRole] = useState("client");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [savingRealtorId, setSavingRealtorId] = useState<string | null>(null);
+  const [realtorSaveMsg, setRealtorSaveMsg] = useState<{ id: string; type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     loadContacts();
@@ -221,6 +228,49 @@ export default function InspectionContactsManager({
       if (ok) setEditingId(null);
     } finally {
       setSavingEdit(false);
+    }
+  }
+
+  // Save a realtor-role contact card into the reusable saved-realtors list
+  // (/api/realtors). One tap — name/email/phone come straight from the card.
+  // Dedupes server-side, so a repeat tap (or a realtor you already have) is a
+  // no-op. Refreshes the saved list so the "saved realtor" dropdown stays in sync.
+  async function saveRealtorToSaved(contact: any) {
+    if (savingRealtorId) return;
+    const contactName = String(contact.name || "").trim();
+    if (!contactName) {
+      setRealtorSaveMsg({ id: contact.id, type: "error", text: "This contact has no name to save." });
+      return;
+    }
+    setSavingRealtorId(contact.id);
+    setRealtorSaveMsg(null);
+    try {
+      const res = await fetch("/api/realtors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: contactName, email: contact.email || "", phone: contact.phone || "" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRealtorSaveMsg({ id: contact.id, type: "error", text: data?.error || "Could not save the realtor." });
+        return;
+      }
+      setRealtorSaveMsg({
+        id: contact.id,
+        type: "success",
+        text: data?.deduped
+          ? `${contactName} is already in your saved realtors.`
+          : `Saved ${contactName} to your realtors.`,
+      });
+      // Keep the "saved realtor" dropdown in sync with the new addition.
+      fetch("/api/realtors", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setSavedRealtors(Array.isArray(d) ? d : d?.realtors || []))
+        .catch(() => {});
+    } catch (error: any) {
+      setRealtorSaveMsg({ id: contact.id, type: "error", text: error?.message || "Could not save the realtor." });
+    } finally {
+      setSavingRealtorId(null);
     }
   }
 
@@ -391,10 +441,26 @@ export default function InspectionContactsManager({
                         <button type="button" onClick={() => deleteContact(contact.id)} className="flex-1 rounded-xl border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-crit-text)] transition hover:bg-red-500 hover:text-[var(--fl-text)] sm:flex-none">Delete</button>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--fl-raised)] pt-4">
+                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--fl-raised)] pt-4">
                       <CompactToggle checked={Boolean(contact.agreement_required)} onChange={(checked) => updateContact(contact.id, { agreement_required: checked })} title="Agreement Required" />
                       <CompactToggle checked={Boolean(contact.portal_access)} onChange={(checked) => updateContact(contact.id, { portal_access: checked })} title="Portal Access" />
+                      {isRealtorRole(contact.role) && (
+                        <button
+                          type="button"
+                          onClick={() => saveRealtorToSaved(contact)}
+                          disabled={savingRealtorId === contact.id}
+                          title="Save this realtor to your saved realtors for future reports"
+                          className="rounded-full border border-teal-400/60 bg-teal-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-accent-text)] transition hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+                        >
+                          {savingRealtorId === contact.id ? "Saving…" : "＋ Save to my realtors"}
+                        </button>
+                      )}
                     </div>
+                    {realtorSaveMsg && realtorSaveMsg.id === contact.id && (
+                      <p className={`mt-2 text-sm font-semibold ${realtorSaveMsg.type === "success" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>
+                        {realtorSaveMsg.text}
+                      </p>
+                    )}
                   </>
                 )}
               </article>
