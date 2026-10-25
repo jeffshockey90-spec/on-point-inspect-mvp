@@ -572,14 +572,28 @@ export default function AILiveInspectionCamera({
         setLens("wide");
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: videoConstraints,
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+      } catch (micErr: any) {
+        // On iOS a phone call (or another app) holds the microphone exclusively,
+        // and because video + audio are requested together the WHOLE request
+        // fails — taking the viewfinder down with it. Retry video-only so the
+        // camera still works during a call; voice/dictation just pauses until the
+        // mic is free again (the call-recovery effect re-acquires both after).
+        logCam("camera:audio-busy-fallback", { msg: String(micErr?.message || micErr) });
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints,
+          audio: false,
+        });
+      }
 
       streamRef.current = stream;
       logCam("camera:started", {
