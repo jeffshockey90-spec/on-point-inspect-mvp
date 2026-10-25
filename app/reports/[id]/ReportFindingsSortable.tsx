@@ -3001,6 +3001,40 @@ function FindingCardBase({
   const [photoPickerLimit, setPhotoPickerLimit] = useState(
     PHOTO_PICKER_PAGE_SIZE,
   );
+  // Reverse-combine: this finding's snapshot of the originals it was combined
+  // from (null/absent = not a combined finding).
+  const combinedSources: any[] = Array.isArray(finding?.combined_sources?.sources)
+    ? finding.combined_sources.sources
+    : [];
+  const [uncombining, setUncombining] = useState(false);
+
+  async function runUncombine(action: "split-all" | "remove-source", sourceIndex?: number) {
+    if (uncombining) return;
+    setUncombining(true);
+    try {
+      const res = await fetch("/api/findings/uncombine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, findingId: finding.id, action, sourceIndex }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showMessage("error", data?.error || "Could not update the combined finding.");
+        return;
+      }
+      showMessage(
+        "success",
+        action === "split-all"
+          ? "Split back into separate defects."
+          : "Pulled that location out into its own defect.",
+      );
+      refreshKeepScroll(router);
+    } catch {
+      showMessage("error", "Could not update — check your connection.");
+    } finally {
+      setUncombining(false);
+    }
+  }
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -3983,6 +4017,53 @@ function FindingCardBase({
           </div>
         )}
 
+        {combinedSources.length >= 2 && (
+          <div className="mb-3 rounded-xl border border-purple-500/40 bg-purple-500/10 px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-bold text-[var(--fl-purple-text)]">
+                🔗 Combined from {combinedSources.length} locations
+              </span>
+              <button
+                type="button"
+                onClick={() => runUncombine("split-all")}
+                disabled={uncombining}
+                className="rounded-lg border border-purple-400 bg-purple-500/15 px-3 py-1.5 text-xs font-semibold text-[var(--fl-purple-text)] transition hover:bg-purple-500/25 disabled:opacity-50 [touch-action:manipulation]"
+              >
+                {uncombining ? "Working…" : "↩ Uncombine all"}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-[var(--fl-muted)]">
+              Remove a location to pull it back into its own defect, or uncombine all to split them fully apart.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {combinedSources.map((src: any, i: number) => {
+                const label =
+                  (src?.fields?.location && String(src.fields.location).trim()) ||
+                  (src?.fields?.title && String(src.fields.title).trim()) ||
+                  `Location ${i + 1}`;
+                return (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/50 bg-[var(--fl-surface)] px-2.5 py-1 text-xs font-semibold text-[var(--fl-text)]"
+                  >
+                    {label}
+                    <button
+                      type="button"
+                      onClick={() => runUncombine("remove-source", i)}
+                      disabled={uncombining}
+                      title={`Pull "${label}" back into its own defect`}
+                      aria-label={`Remove ${label} from this combined finding`}
+                      className="text-[var(--fl-crit-text)] transition hover:opacity-70 disabled:opacity-40 [touch-action:manipulation]"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {standardsHint.length > 0 && (
           <div className="mb-3 rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-3 py-2">
             {standardsHint.map((std: any) => (
@@ -4935,6 +5016,12 @@ function findingContentEqual(a: any, b: any) {
   ];
   for (const f of fields) {
     if (String(a[f] ?? "") !== String(b[f] ?? "")) return false;
+  }
+
+  // Reverse-combine: re-render when the combined-source count changes (combine,
+  // uncombine-all, or pulling a location out).
+  if ((a.combined_sources?.sources?.length || 0) !== (b.combined_sources?.sources?.length || 0)) {
+    return false;
   }
 
   const ap = a.photos || [];
