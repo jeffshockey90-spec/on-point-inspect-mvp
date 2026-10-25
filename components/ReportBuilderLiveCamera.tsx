@@ -191,6 +191,11 @@ export default function ReportBuilderLiveCamera({
     } catch {
       /* ignore */
     }
+    // Refresh the "combine with an existing defect" list so a finding you just
+    // captured becomes a combine target right away — without closing/reopening
+    // the camera (it only ran once on open before, so the previous finding
+    // lagged until a full reload).
+    void loadExistingFindings();
   }
 
   // Durable save — mirrors the field tool's confirmed-live path exactly so the
