@@ -41,6 +41,25 @@ IMPORTANT — you do NOT change code or data here. Changing code is deliberate a
 Never mention pull requests, branches, GitHub, SQL, tables, or internal tooling. Keep it to real-world results.`;
 
 type Msg = { role: "user" | "assistant"; content: string; images?: string[] };
+type Build = { title: string; state: string };
+
+// A plain-English snapshot of where the builds stand, so the chat can answer
+// "where do we stand / did that go live / what's left to approve" accurately —
+// without it, the chat only has the transcript and has to guess. Described in
+// real-world terms only (never pull requests / branches / GitHub).
+function buildStatusBlock(builds: Build[], inProgress: number): string {
+  if ((!builds || builds.length === 0) && !inProgress) return "";
+  const lines = (builds || [])
+    .slice(0, 12)
+    .map((b) => `- "${b.title}" — ${b.state}`)
+    .join("\n");
+  const prog = inProgress
+    ? `\n${inProgress} change${inProgress === 1 ? "" : "s"} currently being built (not ready yet).`
+    : "";
+  return `\n\nWHERE THE BUILDS STAND RIGHT NOW (use this to tell Jeff where things stand — describe it in real-world terms, never mention pull requests, branches, or GitHub):
+${lines || "- (nothing waiting)"}${prog}
+If he asks where things stand, what's been done lately, what's left to approve, or whether a change went live, answer from this list directly and specifically. "Approved and live" means it's already on his app.`;
+}
 
 function toOpenAIMsg(m: Msg): any {
   const imgs = m.role === "user" ? m.images || [] : [];
@@ -57,7 +76,7 @@ function toOpenAIMsg(m: Msg): any {
 // Primary path: OpenAI with the read-only data tools, so the chat can answer
 // account questions straight from live data. Returns the final text, or null to
 // fall back.
-async function runWithData(messages: Msg[], ownerId: string): Promise<string | null> {
+async function runWithData(messages: Msg[], ownerId: string, buildBlock: string): Promise<string | null> {
   if (!process.env.OPENAI_API_KEY) return null;
   try {
     const admin = getAdminClient();
@@ -69,7 +88,7 @@ async function runWithData(messages: Msg[], ownerId: string): Promise<string | n
       /* default */
     }
     const ctx = await buildAskFlowContext(admin, ownerId, timeZone);
-    const system = `${SYSTEM}\n\nToday is ${ctx.today} (timezone ${ctx.timeZone}). Convert relative dates ("this week", "last month") to explicit YYYY-MM-DD before calling a data tool.`;
+    const system = `${SYSTEM}${buildBlock}\n\nToday is ${ctx.today} (timezone ${ctx.timeZone}). Convert relative dates ("this week", "last month") to explicit YYYY-MM-DD before calling a data tool.`;
 
     const convo: any[] = [{ role: "system", content: system }, ...messages.map(toOpenAIMsg)];
 
@@ -116,7 +135,7 @@ async function runWithData(messages: Msg[], ownerId: string): Promise<string | n
 }
 
 // Fallback (no tools) if OpenAI is unavailable — prefers Claude, then plain OpenAI.
-async function viaAnthropic(messages: Msg[]): Promise<string | null> {
+async function viaAnthropic(messages: Msg[], buildBlock: string): Promise<string | null> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
   try {
@@ -126,7 +145,7 @@ async function viaAnthropic(messages: Msg[]): Promise<string | null> {
       body: JSON.stringify({
         model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
         max_tokens: 1200,
-        system: SYSTEM,
+        system: `${SYSTEM}${buildBlock}`,
         messages: messages.map((m) => {
           const imgs = m.role === "user" ? m.images || [] : [];
           if (imgs.length === 0) return { role: m.role, content: m.content };
@@ -171,8 +190,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Say something first." }, { status: 400 });
   }
 
+  // Optional build-status snapshot from the client (what it already polls), so
+  // the chat can say where things stand without re-hitting GitHub every message.
+  const rawBuilds: any[] = Array.isArray(body?.builds) ? body.builds : [];
+  const builds: Build[] = rawBuilds
+    .filter((b: any) => b && typeof b.title === "string" && typeof b.state === "string")
+    .slice(0, 12)
+    .map((b: any) => ({ title: String(b.title).slice(0, 140), state: String(b.state).slice(0, 60) }));
+  const inProgress = Number.isFinite(body?.inProgress) ? Math.max(0, Math.min(99, Number(body.inProgress))) : 0;
+  const buildBlock = buildStatusBlock(builds, inProgress);
+
   // Primary: OpenAI with read-only data tools. Fallback: Claude (no tools).
-  const raw2 = (await runWithData(messages, owner.id)) || (await viaAnthropic(messages));
+  const raw2 = (await runWithData(messages, owner.id, buildBlock)) || (await viaAnthropic(messages, buildBlock));
   if (!raw2) {
     return NextResponse.json(
       { error: "The chat isn't available right now (no AI key reachable)." },

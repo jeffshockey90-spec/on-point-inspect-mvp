@@ -413,6 +413,21 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
     const next = [...chat, userMsg];
     setChat(next);
     try {
+      // A plain snapshot of where builds stand, so the chat can answer "where do
+      // we stand / did that go live" accurately (the server would otherwise only
+      // see the transcript). Built from what we already poll — no extra fetch.
+      const builds = prs
+        .filter((p) => !(p.state === "closed" && !p.merged)) // drop denied/closed
+        .map((p) => ({
+          title: p.title || `Change #${p.number}`,
+          state: p.merged
+            ? "approved and live"
+            : p.checks?.state === "failed"
+              ? "a check failed — needs another look"
+              : p.checks?.state === "pending"
+                ? "being checked before you can approve"
+                : "waiting for your approval",
+        }));
       const res = await fetch("/api/owner/coder/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -422,6 +437,8 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
             content: m.content + (m.docText ? `\n\n[Attached documents]${m.docText}` : ""),
             images: m.images,
           })),
+          builds,
+          inProgress: pending.length,
         }),
       });
       const d = await res.json().catch(() => ({}));
