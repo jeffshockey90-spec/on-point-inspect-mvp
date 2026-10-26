@@ -6,7 +6,6 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import ScheduleCalendar from "../../components/ScheduleCalendarLazy";
-import ScheduleTypeTotals from "../../components/ScheduleTypeTotals";
 import ScheduleReminderSettings from "../../components/ScheduleReminderSettings";
 import BookingRequestActions from "../../components/BookingRequestActions";
 import InspectorAvailabilitySettings from "../../components/InspectorAvailabilitySettings";
@@ -533,13 +532,6 @@ export default async function SchedulePage({
             </div>
           )}
         </section>
-
-        <ScheduleTypeTotals
-          inspections={scheduledRows.map((row: InspectionRow) => ({
-            date: getInspectionDate(row),
-            type: row.inspection_type || row.type || "Home Inspection",
-          }))}
-        />
 
         <div className="mb-8">
           <ScheduleCalendar inspections={scheduledRows} />

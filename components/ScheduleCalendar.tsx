@@ -243,6 +243,11 @@ export default function ScheduleCalendar({
   const [message, setMessage] = useState("");
   const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
   const [timeFormat, setTimeFormat] = useState<"12h" | "24h">("24h");
+  // The period currently shown on the calendar (set by FullCalendar's datesSet
+  // on every prev/next/view change) so the type legend can count how many of
+  // each inspection type fall in THAT week/month/day — updating as you click
+  // through.
+  const [viewRange, setViewRange] = useState<{ startStr: string; endStr: string; title: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -317,24 +322,34 @@ export default function ScheduleCalendar({
   // Legend of the inspection TYPES actually present, each with the same color
   // the calendar paints it — so the key always matches what's on screen.
   const typeLegend = useMemo(() => {
-    const byLabel = new Map<string, EventColor>();
-    let hasCancelled = false;
+    const byLabel = new Map<string, { color: EventColor; count: number }>();
+    let cancelledCount = 0;
     for (const event of events) {
       const props = event.extendedProps as any;
+      const date = String(props.date || "");
+      // Only count what's in the period the calendar is showing. currentEnd is
+      // exclusive (first day of the next period), so [start, end).
+      if (viewRange && (!date || date < viewRange.startStr || date >= viewRange.endStr)) {
+        continue;
+      }
       if (String(props.status || "").toLowerCase().includes("cancel")) {
-        hasCancelled = true;
+        cancelledCount += 1;
         continue;
       }
       const label = String(props.type || "Home Inspection").trim();
-      if (!byLabel.has(label)) {
-        byLabel.set(label, colorForType(props.serviceMode || "", label));
-      }
+      const existing = byLabel.get(label);
+      if (existing) existing.count += 1;
+      else byLabel.set(label, { color: colorForType(props.serviceMode || "", label), count: 1 });
     }
     return {
-      items: Array.from(byLabel.entries()).map(([label, color]) => ({ label, color })),
-      hasCancelled,
+      items: Array.from(byLabel.entries())
+        .map(([label, v]) => ({ label, color: v.color, count: v.count }))
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+      total: Array.from(byLabel.values()).reduce((sum, v) => sum + v.count, 0),
+      cancelledCount,
+      hasCancelled: cancelledCount > 0,
     };
-  }, [events]);
+  }, [events, viewRange]);
 
   // Compute "today" only after mount. Deriving it from new Date() during render
   // makes the server (its clock/zone) and the client disagree on the current
@@ -512,12 +527,17 @@ export default function ScheduleCalendar({
         </div>
 
         <div className="flex flex-wrap content-start gap-2 text-xs font-bold">
+          <span className="w-full text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+            {viewRange?.title
+              ? `${typeLegend.total} inspection${typeLegend.total === 1 ? "" : "s"} by type · ${viewRange.title}`
+              : "Inspections by type"}
+          </span>
           {typeLegend.items.length === 0 ? (
             <span className="rounded-full border border-[var(--fl-line)] px-3 py-1 text-[var(--fl-muted)]">
-              Colors mark each inspection type
+              {viewRange?.title ? `None in ${viewRange.title}` : "Colors mark each inspection type"}
             </span>
           ) : (
-            typeLegend.items.map(({ label, color }) => (
+            typeLegend.items.map(({ label, color, count }) => (
               <span
                 key={label}
                 className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1"
@@ -533,6 +553,9 @@ export default function ScheduleCalendar({
                   style={{ backgroundColor: color.borderColor }}
                 />
                 {label}
+                <span className="rounded-full bg-[var(--fl-ground)]/60 px-1.5 font-bold tabular-nums">
+                  {count}
+                </span>
               </span>
             ))
           )}
@@ -551,6 +574,9 @@ export default function ScheduleCalendar({
                 style={{ backgroundColor: CANCELLED_COLOR.borderColor }}
               />
               Cancelled
+              <span className="rounded-full bg-[var(--fl-ground)]/60 px-1.5 font-bold tabular-nums">
+                {typeLegend.cancelledCount}
+              </span>
             </span>
           )}
         </div>
@@ -597,6 +623,18 @@ export default function ScheduleCalendar({
             month: "Month",
             week: "Week",
             day: "Day",
+          }}
+          datesSet={(arg) => {
+            const view = arg.view as any;
+            const toStr = (d: Date) =>
+              `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+                d.getDate(),
+              ).padStart(2, "0")}`;
+            setViewRange({
+              startStr: toStr(view.currentStart),
+              endStr: toStr(view.currentEnd),
+              title: String(view.title || ""),
+            });
           }}
           eventDrop={async (info) => {
             const start = info.event.start;
@@ -686,13 +724,13 @@ export default function ScheduleCalendar({
 
       {selected ? (
         <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 p-3 pb-[calc(78px+env(safe-area-inset-bottom)+0.75rem)] sm:items-center sm:p-4 sm:pb-4">
-          <div className="max-h-full w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 shadow-2xl sm:max-h-[85vh]">
+          <div className="max-h-full w-full max-w-lg overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 shadow-2xl sm:max-h-[85vh]">
             <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-xl font-semibold text-[var(--fl-text)]">
                   Edit Appointment
                 </h2>
-                <p className="mt-1 text-sm text-[var(--fl-muted)]">
+                <p className="mt-1 break-words text-sm text-[var(--fl-muted)]">
                   {selected.address}
                 </p>
               </div>
@@ -703,7 +741,7 @@ export default function ScheduleCalendar({
                   setSelected(null);
                   setMessage("");
                 }}
-                className="rounded-xl border border-[var(--fl-line)] px-3 py-2 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
+                className="shrink-0 rounded-xl border border-[var(--fl-line)] px-3 py-2 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
               >
                 Close
               </button>
