@@ -53,6 +53,10 @@ ${transcript}`;
 export function buildChangeTask(transcript: string): string {
   return `Jeff wants you to actually change FLOW's code to do the following. Make the change on this branch, follow the project's CLAUDE.md rules, run the build + tests, and keep it focused on exactly what he asked — don't touch unrelated things. Nothing ships until Jeff approves it.
 
+IF HE IS REPORTING A PROBLEM (something looks wrong, is broken, missing, cramped, or in the wrong place — especially with a screenshot), assume it is NOT already fixed. A reported symptom means the current code does NOT yet do what he wants. Find the screen in the real code, confirm the exact cause by reading it, and change the code to fix it. Do NOT end a reported problem with no change. "Nothing to change / already done" is almost never the right answer to a bug report, and a one-line fix (e.g. a missing CSS class) is easy to miss if you only skim — read the actual element, don't assume a nearby setting covers it.
+
+VERIFY, DON'T GUESS. You have the real code in front of you, so you CAN tell whether the thing is already done — prove it. You may only finish WITHOUT a code change if you can quote the specific file and lines that ALREADY satisfy his exact request and explain, concretely, why they do. If you cannot point to that proof, the fix is not done yet — make it. In your final message, either state exactly what you changed (file + what you did), or paste the existing code that already does it and explain why.
+
 DON'T RUN OUT OF STEPS WITH NOTHING TO SHOW. You have a limited number of steps in this one run. If the request is large (many files or screens), do NOT attempt all of it at once and risk hitting the limit with nothing committed. Instead: make a focused, coherent FIRST batch that fully builds and passes tests, commit it, and in your final message plainly list what you finished and what still remains for a follow-up run. A working partial change that Jeff can approve is far better than an unfinished attempt that produces nothing. Always leave the branch building and the work committed.
 
 ${DOC_PRIVACY}
