@@ -305,7 +305,7 @@ export default function CoderConsole({ connected }: { connected: boolean }) {
                 const res = await fetch(`/api/owner/coder/report?number=${salvage.number}`, { cache: "no-store" });
                 const d = await res.json().catch(() => ({}));
                 const body = d?.report ? String(d.report) : "";
-                setChat((c) => [...c, { id: uid(), role: "assistant", content: `I finished — but I didn't end up changing any code for that one. Usually that means it's already done, or there was nothing to change.${body ? `\n\nHere's what I looked at:\n\n${body}` : ""}` }]);
+                setChat((c) => [...c, { id: uid(), role: "assistant", content: `I finished that one without changing any code. That can mean it was already handled — but it can also mean I couldn't pin down the exact spot to fix. If you were expecting a change, send it again with a bit more detail (which screen, and what looks wrong), and I'll dig in.${body ? `\n\nHere's what I looked at:\n\n${body}` : ""}` }]);
                 fetch("/api/owner/coder/close-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ number: salvage.number }) }).catch(() => {});
               } catch {
                 /* leave it */
