@@ -311,7 +311,11 @@ export default async function ReportsPage() {
   ] = await Promise.all([
     createSignedPropertyPhotoMap(storageSupabase, propertyPhotoPaths),
     inspectionIds.length > 0
-      ? supabase
+      ? // Service-role read: inspection_view_events has RLS without an inspector
+        // SELECT policy, so the user client silently returns nothing (all reports
+        // show 0 views). Scoped to this owner's own inspectionIds, so it's safe —
+        // same pattern the owner dashboard / analytics / "who viewed" already use.
+        storageSupabase
           .from("inspection_view_events")
           .select("*")
           .in("inspection_id_bigint", inspectionIds)

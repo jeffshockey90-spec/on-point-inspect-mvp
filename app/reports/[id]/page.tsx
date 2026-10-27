@@ -1942,7 +1942,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     refPhotoCountResult,
   ] = await Promise.all([
       loadEmailLogs(supabase, inspection.id),
-      supabase
+      // Service-role read: inspection_view_events has RLS without an inspector
+      // SELECT policy, so the user client returns nothing (0 views / "no views
+      // yet"). Scoped to this one inspection, so it's safe.
+      storageSupabase
         .from("inspection_view_events")
         .select("*")
         .eq("inspection_id_bigint", Number(inspection.id))
