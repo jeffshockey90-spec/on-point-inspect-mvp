@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
+import { flowConfirm } from "./ConfirmProvider";
 
 const SECTIONS = [
   "Inspection Details",
@@ -145,6 +146,14 @@ export default function FieldReviewQueue({
     refreshKeepScroll(router);
   }
 
+  function handleDiscarded(findingId: string) {
+    setItems((current) =>
+      current.filter((finding) => String(finding.id) !== String(findingId)),
+    );
+    emitDraftQueueChanged();
+    refreshKeepScroll(router);
+  }
+
   function handleRepolished(findingId: string, updated: any) {
     setItems((current) =>
       current.map((finding) =>
@@ -230,6 +239,7 @@ export default function FieldReviewQueue({
               sectionOptions={sectionOptions}
               onApproved={handleApproved}
               onRepolished={handleRepolished}
+              onDiscarded={handleDiscarded}
             />
           ))}
         </div>
@@ -244,12 +254,14 @@ function ReviewCard({
   sectionOptions,
   onApproved,
   onRepolished,
+  onDiscarded,
 }: {
   inspectionId: string;
   finding: any;
   sectionOptions: string[];
   onApproved: (findingId: string) => void;
   onRepolished: (findingId: string, updated: any) => void;
+  onDiscarded: (findingId: string) => void;
 }) {
   const options = useMemo(() => {
     if (finding.section && !sectionOptions.includes(finding.section)) {
@@ -264,6 +276,7 @@ function ReviewCard({
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState(finding.observation || finding.title || "");
   const [repolishing, setRepolishing] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
   const [error, setError] = useState("");
 
   // Keep local write-up in sync after a re-polish updates the finding.
@@ -350,6 +363,43 @@ function ReviewCard({
     }
   }
 
+  async function discard() {
+    if (discarding || approving || repolishing) return;
+
+    const confirmed = await flowConfirm({
+      title: "Discard this capture?",
+      message:
+        "This permanently deletes this field capture and its photos. It won't be added to the report. This can't be undone.",
+      confirmText: "Discard",
+      tone: "danger",
+    });
+    if (!confirmed) return;
+
+    setDiscarding(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/findings/discard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, findingId: finding.id }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setError(data?.error || "Failed to discard.");
+        setDiscarding(false);
+        return;
+      }
+
+      onDiscarded(String(finding.id));
+    } catch (err: any) {
+      setError(err?.message || "Failed to discard.");
+      setDiscarding(false);
+    }
+  }
+
   return (
     <div className="w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 sm:p-4">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
@@ -413,7 +463,7 @@ function ReviewCard({
           <select
             value={section}
             onChange={(event) => setSection(event.target.value)}
-            disabled={approving || repolishing}
+            disabled={approving || repolishing || discarding}
             className="min-h-[44px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm font-bold text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:opacity-60"
           >
             {options.map((item) => (
@@ -431,7 +481,7 @@ function ReviewCard({
           <select
             value={severity}
             onChange={(event) => setSeverity(event.target.value)}
-            disabled={approving || repolishing}
+            disabled={approving || repolishing || discarding}
             className="min-h-[44px] w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm font-bold text-[var(--fl-text)] outline-none focus:border-cyan-400 disabled:opacity-60"
           >
             {SEVERITIES.map((item) => (
@@ -475,7 +525,7 @@ function ReviewCard({
         <button
           type="button"
           onClick={approve}
-          disabled={approving || repolishing}
+          disabled={approving || repolishing || discarding}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
         >
           {approving && (
@@ -491,7 +541,7 @@ function ReviewCard({
               setNote(finding.observation || finding.title || "");
               setNoteOpen(true);
             }}
-            disabled={approving || repolishing}
+            disabled={approving || repolishing || discarding}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-purple-500 bg-purple-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
           >
             Edit note & re-polish
@@ -520,6 +570,18 @@ function ReviewCard({
             </button>
           </>
         )}
+
+        <button
+          type="button"
+          onClick={discard}
+          disabled={approving || repolishing || discarding}
+          className="ml-auto inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/60 px-5 py-3 text-sm font-semibold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+        >
+          {discarding && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          )}
+          {discarding ? "Discarding..." : "Discard"}
+        </button>
       </div>
     </div>
   );
