@@ -23,6 +23,7 @@ import {
   getOfflineQueue,
   updateOfflineQueueItem,
   removeOfflineQueueItem,
+  processOfflineQueue,
   type OfflineQueueItem,
   type OfflineMediaInput,
 } from "./queue";
@@ -212,9 +213,10 @@ export async function processDraftQueue(): Promise<void> {
         }));
       } catch (err: any) {
         const message = err?.message || "Draft failed.";
+        const retryCount = Number(item.retryCount || 0) + 1;
+        const terminal = retryCount >= MAX_DRAFT_RETRIES;
         await updateOfflineQueueItem(item.id, (c) => {
-          const retryCount = Number(c.retryCount || 0) + 1;
-          if (retryCount >= MAX_DRAFT_RETRIES) {
+          if (terminal) {
             return { ...c, status: "draft_failed", retryCount, lastError: message, updatedAt: new Date().toISOString() };
           }
           const backoffMs = Math.min(2 * 60 * 1000, 3000 * 2 ** (retryCount - 1));
@@ -227,6 +229,22 @@ export async function processDraftQueue(): Promise<void> {
             updatedAt: new Date().toISOString(),
           };
         });
+
+        // Terminal failure: don't strand the capture as a local-only draft that
+        // only reaches the report if the camera is later closed cleanly. Flush it
+        // straight to the builder's review queue now (needs_review, AI re-run
+        // server-side) so the photos + note are safely in the report — matching
+        // the "review in the report" message the inspector sees — and survive an
+        // app kill. Best-effort; if the flush can't happen it stays draft_failed
+        // and the camera-close flush remains the backstop.
+        if (terminal) {
+          try {
+            const flushed = await flushDraftToReviewQueue(item.id);
+            if (flushed && isOnline()) void processOfflineQueue().catch(() => {});
+          } catch {
+            /* stays draft_failed; closeCamera flush is the backstop */
+          }
+        }
       }
       notifyDraftChange();
     }
