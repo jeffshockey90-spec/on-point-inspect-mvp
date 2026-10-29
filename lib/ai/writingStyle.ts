@@ -158,7 +158,7 @@ export function buildWritingStyleInstructions(config: AiWritingConfig): string {
   return `
 COMPANY WRITING STYLE — apply to the title, observation, implication, and recommendation.
 These are wording preferences ONLY. Never invent, exaggerate, downplay, or omit evidence to satisfy them, and never soften a genuine life-safety issue into something it is not.
-- Standards framing: where appropriate, frame recommendations in language consistent with the ${c.sopStandard} Standards of Practice.
+- Standards framing: recommend what the ${c.sopStandard} Standards of Practice call for — evaluation and/or correction by the appropriate qualified professional — written as your own plain advice to the client. Do NOT cite, quote, or name the Standards of Practice in the finding text itself (never open a recommendation with "In accordance with the ... Standards of Practice" or similar); the client should read a clear recommendation, not a rulebook reference.
 - Default length: ${LENGTH_TEXT[c.length]}
 - Default detail: ${DETAIL_TEXT[c.detail]}
 - Default tone: ${TONE_TEXT[c.tone]}
