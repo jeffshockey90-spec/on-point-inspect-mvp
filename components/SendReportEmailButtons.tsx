@@ -1,9 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type SendType = "client" | "realtor" | "all" | "custom";
+type SendType = "client" | "realtor" | "all" | "custom" | "selected";
 type NoticeType = "success" | "error" | "info";
+
+type Contact = {
+  id?: string | number;
+  name?: string | null;
+  email?: string | null;
+  role?: string | null;
+  phone?: string | null;
+  portal_access?: boolean | null;
+};
+
+// Roles that normally receive the report (used only to pre-check the picker).
+const ELIGIBLE_ROLE_RE = /(client|realtor|agent|transaction)/i;
+
+function cleanEmail(value: any) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function prettyRole(role: any) {
+  const r = String(role || "").trim();
+  if (!r) return "Contact";
+  return r.charAt(0).toUpperCase() + r.slice(1);
+}
 
 export default function SendReportEmailButtons({
   inspectionId,
@@ -17,9 +39,13 @@ export default function SendReportEmailButtons({
   const [customEmail, setCustomEmail] = useState("");
   const [sending, setSending] = useState<SendType | null>(null);
   const [statusLabel, setStatusLabel] = useState("");
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactClientEmail, setContactClientEmail] = useState("");
   const [contactRealtorEmail, setContactRealtorEmail] = useState("");
   const [notice, setNotice] = useState<{ type: NoticeType; message: string } | null>(null);
+  // Recipient picker: which contact emails are ticked, and whether it's open.
+  const [showPicker, setShowPicker] = useState(false);
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function loadContacts() {
@@ -31,13 +57,14 @@ export default function SendReportEmailButtons({
         );
 
         const data = await res.json();
-        const contacts = data.contacts || [];
+        const loaded: Contact[] = data.contacts || [];
+        setContacts(loaded);
 
-        const client = contacts.find((contact: any) =>
+        const client = loaded.find((contact: any) =>
           ["client", "co-client"].includes(String(contact.role).toLowerCase())
         );
 
-        const realtor = contacts.find((contact: any) =>
+        const realtor = loaded.find((contact: any) =>
           ["realtor", "agent", "transaction coordinator"].includes(
             String(contact.role).toLowerCase()
           )
@@ -45,6 +72,19 @@ export default function SendReportEmailButtons({
 
         if (client?.email) setContactClientEmail(client.email);
         if (realtor?.email) setContactRealtorEmail(realtor.email);
+
+        // Pre-check the people who'd normally get the report: an eligible role,
+        // an email on file, and not explicitly removed from portal access.
+        const defaults = new Set<string>();
+        loaded.forEach((contact) => {
+          const email = cleanEmail(contact.email);
+          if (!email) return;
+          if (contact.portal_access === false) return;
+          if (ELIGIBLE_ROLE_RE.test(String(contact.role || ""))) {
+            defaults.add(email);
+          }
+        });
+        setSelectedEmails(defaults);
       } catch (error) {
         console.error("Failed to load report email contacts:", error);
       }
@@ -57,12 +97,44 @@ export default function SendReportEmailButtons({
   const finalRealtorEmail = realtorEmail || contactRealtorEmail;
   const hasAnyKnownRecipient = Boolean(finalClientEmail || finalRealtorEmail);
 
+  // Contacts that can actually be emailed (have an address), deduped by email.
+  const emailableContacts = useMemo(() => {
+    const seen = new Set<string>();
+    return contacts.filter((contact) => {
+      const email = cleanEmail(contact.email);
+      if (!email || seen.has(email)) return false;
+      seen.add(email);
+      return true;
+    });
+  }, [contacts]);
+
   function showNotice(type: NoticeType, message: string) {
     setNotice({ type, message });
 
     window.setTimeout(() => {
       setNotice(null);
     }, type === "error" ? 4500 : 3000);
+  }
+
+  function toggleEmail(email: string) {
+    const key = cleanEmail(email);
+    if (!key) return;
+    setSelectedEmails((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedEmails(
+      new Set(emailableContacts.map((contact) => cleanEmail(contact.email)))
+    );
+  }
+
+  function clearAll() {
+    setSelectedEmails(new Set());
   }
 
   async function checkDeliveryRequirements() {
@@ -101,7 +173,15 @@ export default function SendReportEmailButtons({
             ? customEmail.trim()
             : "";
 
-    if (type !== "all" && !email) {
+    const pickedEmails =
+      type === "selected" ? Array.from(selectedEmails) : [];
+
+    if (type === "selected" && !pickedEmails.length) {
+      showNotice("error", "Pick at least one recipient.");
+      return;
+    }
+
+    if (type !== "all" && type !== "selected" && !email) {
       showNotice("error", "No email address entered.");
       return;
     }
@@ -125,7 +205,11 @@ export default function SendReportEmailButtons({
         recipientType: type,
       };
 
-      if (type !== "all") {
+      if (type === "custom") {
+        payload.recipientEmail = email;
+      } else if (type === "selected") {
+        payload.recipientEmails = pickedEmails;
+      } else if (type === "client" || type === "realtor") {
         payload.recipientEmail = email;
       }
 
@@ -145,7 +229,7 @@ export default function SendReportEmailButtons({
 
       setStatusLabel("Sent!");
 
-      if (type === "all") {
+      if (type === "all" || type === "selected") {
         const sentCount = Array.isArray(data.sent) ? data.sent.length : 0;
         const failedCount = Array.isArray(data.failed) ? data.failed.length : 0;
 
@@ -226,6 +310,27 @@ export default function SendReportEmailButtons({
           {getButtonText("all", "Send to All")}
         </button>
 
+        <button
+          type="button"
+          onClick={() => setShowPicker((open) => !open)}
+          disabled={sending !== null || emailableContacts.length === 0}
+          aria-expanded={showPicker}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-[var(--fl-ground)] sm:w-auto [touch-action:manipulation]"
+          title={
+            emailableContacts.length
+              ? "Choose exactly who gets the report"
+              : "No contacts with an email on file"
+          }
+        >
+          Choose recipients
+          <span
+            className={`text-xs transition-transform ${showPicker ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          >
+            ▾
+          </span>
+        </button>
+
         <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <input
             value={customEmail}
@@ -247,6 +352,88 @@ export default function SendReportEmailButtons({
           </button>
         </div>
       </div>
+
+      {showPicker && (
+        <div className="mt-3 w-full max-w-full rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-bold text-[var(--fl-text)]">
+              Pick who gets the report
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={selectAll}
+                disabled={sending !== null}
+                className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:opacity-50 [touch-action:manipulation]"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                onClick={clearAll}
+                disabled={sending !== null}
+                className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-faint)] transition hover:bg-[var(--fl-raised)] disabled:opacity-50 [touch-action:manipulation]"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {emailableContacts.map((contact) => {
+              const email = cleanEmail(contact.email);
+              const checked = selectedEmails.has(email);
+              return (
+                <label
+                  key={email}
+                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-raised)] px-4 py-3 transition hover:border-[var(--fl-faint)] [touch-action:manipulation]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleEmail(email)}
+                    disabled={sending !== null}
+                    className="mt-1 h-4 w-4 accent-teal-500"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-[var(--fl-text)]">
+                        {contact.name || contact.email}
+                      </span>
+                      <span className="rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+                        {prettyRole(contact.role)}
+                      </span>
+                      {contact.portal_access === false && (
+                        <span className="rounded-full border border-amber-500/60 px-2 py-0.5 text-[11px] font-semibold text-[var(--fl-warn-text)]">
+                          Portal off
+                        </span>
+                      )}
+                    </span>
+                    <span className="block truncate text-sm text-[var(--fl-faint)]">
+                      {contact.email}
+                      {contact.phone ? ` · ${contact.phone}` : ""}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => sendEmail("selected")}
+            disabled={sending !== null || selectedEmails.size === 0}
+            aria-busy={sending === "selected"}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-teal-400 [touch-action:manipulation]"
+          >
+            <Spinner active={sending === "selected"} />
+            {getButtonText(
+              "selected",
+              `Send to ${selectedEmails.size} selected`
+            )}
+          </button>
+        </div>
+      )}
 
       {notice && (
         <div
