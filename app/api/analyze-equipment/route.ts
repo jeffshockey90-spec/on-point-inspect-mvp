@@ -5,6 +5,7 @@ import { inspectionBrain } from "../../../lib/ai";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
 import { getSessionUser } from "../../../lib/apiAuth";
 import { loadFlowWriter, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
+import { resolveDaikinFamilyBrand } from "../../../lib/ai/brandResolver";
 
 export const runtime = "nodejs";
 
@@ -1285,7 +1286,7 @@ function getRecallAwareness(manufacturer: string, model: string, serial: string)
 
 function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1, inspectorNote = "") {
   const category = inferCategory(parsed);
-  const manufacturer = normalizeManufacturer(parsed.manufacturer);
+  const normalizedManufacturer = normalizeManufacturer(parsed.manufacturer);
   const equipmentType =
     cleanText(parsed.equipmentType) ||
     (category === "hvac"
@@ -1302,6 +1303,15 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1, inspectorNot
 
   const model = cleanText(parsed.model) || "Unknown";
   const serial = cleanText(parsed.serial) || "Unknown";
+
+  // The data plate's legal manufacturer is the PARENT company, not the consumer
+  // brand. For the Daikin family (Goodman/Amana/Daikin) the model-number prefix
+  // is the real brand — so a Goodman furnace whose plate reads "Daikin Comfort
+  // Technologies" is corrected back to Goodman here. This makes the brand
+  // deterministic regardless of whether the vision model read the plate text or
+  // the unit logo (the live-camera vs. field-tool discrepancy). See
+  // lib/ai/brandResolver.
+  const manufacturer = resolveDaikinFamilyBrand(normalizedManufacturer, model);
 
   const serialYearNumber = decodeManufactureYearFromSerial({
     manufacturer,
