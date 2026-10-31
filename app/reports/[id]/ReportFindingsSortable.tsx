@@ -21,6 +21,7 @@ import { supabase } from "../../../lib/supabaseClient";
 import { flowConfirm } from "../../../components/ConfirmProvider";
 import { refreshKeepScroll } from "../../../lib/refreshKeepScroll";
 import { markLocalEdit } from "../../../lib/localEditSignal";
+import { legacyImageMirrorsPhoto } from "../../../lib/findingLegacyImage";
 import { createVideoThumbnailForUpload } from "../../../lib/videoThumbnail";
 import { useSeverityConfig } from "../../../lib/severity/useSeverityConfig";
 import { severityOptions, severityLabel, severityBadgeStyle, resolveSeverity } from "../../../lib/severity/severityConfig";
@@ -3685,6 +3686,30 @@ function FindingCardBase({
     void reorderFindingPhotos(index, index + direction);
   }
 
+  // The field / live-camera save path mirrors a finding's first photo onto its
+  // own image_url column. If we delete that exact photo but leave image_url set,
+  // the client report and PDF fall back to the legacy column and the photo keeps
+  // showing even though it's gone from the photos table (the bug Jeff hit on the
+  // washer drain-pan photo). When the deleted photo IS that mirror, clear the
+  // column too so every surface agrees. A different, genuinely-legacy image on
+  // the finding is left untouched.
+  async function clearLegacyImageMirror(deletedPhoto: any) {
+    const base = localFinding || finding;
+    if (!legacyImageMirrorsPhoto(base, deletedPhoto)) return;
+
+    const { error } = await supabase
+      .from("findings")
+      .update({ image_url: null })
+      .eq("id", finding.id)
+      .eq("inspection_id", inspectionId);
+    if (error) throw error;
+
+    setLocalFinding((current: any) => ({
+      ...(current || finding),
+      image_url: null,
+    }));
+  }
+
   async function deletePhotoFromFinding(photo: any) {
     if (!photo?.id || photo.isLegacyImage) {
       showMessage(
@@ -3713,6 +3738,10 @@ function FindingCardBase({
         .eq("inspection_id", inspectionId);
 
       if (error) throw error;
+
+      // Also clear the legacy image_url if it mirrored this photo, so the client
+      // report/PDF don't resurrect the deleted photo from the finding row.
+      await clearLegacyImageMirror(photo);
 
       // Remove the photo from this card INSTANTLY — it's already gone from the
       // DB. Re-fetching the whole report made photo deletes feel laggy; updating
@@ -3782,6 +3811,10 @@ function FindingCardBase({
         .eq("inspection_id", inspectionId);
 
       if (deleteError) throw deleteError;
+
+      // Moving the photo out removes its photos row — clear the mirrored
+      // image_url too, or the client report/PDF would still show it here.
+      await clearLegacyImageMirror(photo);
 
       setRefMovePhoto(null);
       showMessage("success", `Moved to ${section} reference photos.`);
