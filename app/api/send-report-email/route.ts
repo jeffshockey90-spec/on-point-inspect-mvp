@@ -9,6 +9,7 @@ import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } 
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
 import { smsReportReadyClient, smsReportReadyAgent } from "../../../lib/smsTemplates";
+import { hasRadonService, hasMoldService } from "../../../lib/environmental/service";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -47,18 +48,6 @@ function getServiceType(inspection: any) {
       inspection?.services ||
       ""
   ).toLowerCase();
-}
-
-function hasRadonService(inspection: any) {
-  const serviceType = getServiceType(inspection);
-
-  return serviceType.includes("radon") || inspection?.radon === true;
-}
-
-function hasMoldService(inspection: any) {
-  const serviceType = getServiceType(inspection);
-
-  return serviceType.includes("mold") || inspection?.mold === true;
 }
 
 function isStandaloneEnvironmentalService(inspection: any) {
