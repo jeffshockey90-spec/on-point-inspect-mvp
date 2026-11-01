@@ -6,6 +6,11 @@ import { createClient } from "../../../utils/supabase/server";
 import PrintButton from "../../../components/PrintButton";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
+import {
+  hasRadonService,
+  hasMoldService,
+  getReportTitle,
+} from "../../../lib/environmental/service";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -89,39 +94,6 @@ function getPropertyPhoto(inspection: any) {
     inspection?.image_url ||
     ""
   );
-}
-
-function hasRadonService(inspection: any) {
-  const raw = String(
-    inspection?.service_mode ||
-      inspection?.inspection_type ||
-      inspection?.services ||
-      ""
-  ).toLowerCase();
-
-  return raw.includes("radon") || inspection?.radon === true;
-}
-
-function hasMoldService(inspection: any) {
-  const raw = String(
-    inspection?.service_mode ||
-      inspection?.inspection_type ||
-      inspection?.services ||
-      ""
-  ).toLowerCase();
-
-  return raw.includes("mold") || inspection?.mold === true;
-}
-
-function getReportTitle(inspection: any) {
-  const radon = hasRadonService(inspection);
-  const mold = hasMoldService(inspection);
-
-  if (radon && mold) return "Environmental Testing Report";
-  if (radon) return "Radon Testing Report";
-  if (mold) return "Mold Sampling Report";
-
-  return "Environmental Testing Report";
 }
 
 function classifyRadon(average: any) {
