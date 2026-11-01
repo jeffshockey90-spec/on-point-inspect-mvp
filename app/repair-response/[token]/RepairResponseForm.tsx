@@ -3,6 +3,7 @@
 
 import { formatAppValue } from "../../../lib/app-time";
 import { useMemo, useState } from "react";
+import ReportDownloadButton from "../../../components/ReportDownloadButton";
 
 type Finding = Record<string, any>;
 
@@ -598,12 +599,14 @@ export default function RepairResponseForm({
                   Open
                 </a>
 
-                <a
+                <ReportDownloadButton
                   href={`/api/repair-request-addendum/${encodeURIComponent(token)}?download=1`}
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-teal-400 bg-[var(--fl-ground)] px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 active:scale-[0.98]"
+                  filename={`repair-addendum-${token}.pdf`}
+                  preparingText="Preparing…"
+                  className="inline-flex w-full min-h-[48px] items-center justify-center rounded-xl border border-teal-400 bg-[var(--fl-ground)] px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 active:scale-[0.98] [touch-action:manipulation]"
                 >
                   Download
-                </a>
+                </ReportDownloadButton>
 
                 <button
                   type="button"
