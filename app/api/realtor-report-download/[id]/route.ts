@@ -8,6 +8,7 @@ import { authorizeInspection } from "../../../../lib/apiAuth";
 import { loadReinspectionItems } from "../../../../lib/reinspection";
 import { loadSeverityConfigForInspection } from "../../../../lib/severity/loadSeverityConfig";
 import { resolveSeverity } from "../../../../lib/severity/severityConfig";
+import { severityBucket, type SeverityBucket } from "../../../../lib/report/severityBucket";
 import { getReportTranslations, makeTranslator, isSupportedLanguage } from "../../../../lib/translate";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -351,22 +352,27 @@ function getFindingText(finding: any) {
   );
 }
 
+// Bucket logic is shared (lib/report/severityBucket); only the per-surface
+// MAPPING lives here. getSeverityBucket returns the human-readable label the PDF
+// shows and keys its counts by; severityKey (below) returns the matching CSS
+// class, whose hex color comes from severityConfig. The slug->label and
+// slug->class maps reproduce exactly what the old inline bucketing emitted.
+const SEVERITY_BUCKET_LABEL: Record<SeverityBucket, string> = {
+  safety: "Safety / Major",
+  repair: "Recommended Repair",
+  maintenance: "Maintenance / Monitor",
+  information: "Informational",
+};
+
+const SEVERITY_BUCKET_CLASS: Record<SeverityBucket, string> = {
+  safety: "safety-major",
+  repair: "recommended-repair",
+  maintenance: "maintenance-monitor",
+  information: "informational",
+};
+
 function getSeverityBucket(severityValue: any) {
-  const severity = cleanText(severityValue || "Recommended Repair").toLowerCase();
-
-  if (severity.includes("safety") || severity.includes("hazard") || severity.includes("major")) {
-    return "Safety / Major";
-  }
-
-  if (severity.includes("maintenance") || severity.includes("monitor") || severity.includes("minor")) {
-    return "Maintenance / Monitor";
-  }
-
-  if (severity.includes("information") || severity.includes("info") || severity.includes("client")) {
-    return "Informational";
-  }
-
-  return "Recommended Repair";
+  return SEVERITY_BUCKET_LABEL[severityBucket(severityValue)];
 }
 
 function getPropertyAddress(inspection: any) {
@@ -960,7 +966,7 @@ function getFindingAnchor(finding: any) {
 }
 
 function severityKey(value: any) {
-  return getSeverityBucket(value).toLowerCase().replace(/[^a-z]+/g, "-");
+  return SEVERITY_BUCKET_CLASS[severityBucket(value)];
 }
 
 function buildStandardsOfPracticePagesHtml({

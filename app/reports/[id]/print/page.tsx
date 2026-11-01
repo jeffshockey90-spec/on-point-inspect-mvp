@@ -6,6 +6,7 @@ import { resolveReportSections } from "../../../../lib/reportSections";
 import { getCompanyBrandingById } from "../../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 import { getCachedSignedUrls } from "../../../../lib/signedUrlCache";
+import { severityBucket } from "../../../../lib/report/severityBucket";
 
 import PrintControls from "./PrintControls";
 
@@ -171,30 +172,21 @@ function getStoragePathFromUrl(url: string | null | undefined) {
   return decodeURIComponent(url.substring(index + marker.length));
 }
 
+// Bucket logic is shared (lib/report/severityBucket); only the bucket->color
+// MAPPING is per-surface. Print uses solid paper colors (the "repair" bucket is
+// the teal fallback).
 function getSeverityClass(severity: string | null | undefined) {
-  const value = String(severity || "").toLowerCase();
+  const bucket = severityBucket(severity);
 
-  if (
-    value.includes("safety") ||
-    value.includes("hazard") ||
-    value.includes("major")
-  ) {
+  if (bucket === "safety") {
     return "bg-red-700 text-white border-red-800";
   }
 
-  if (
-    value.includes("maintenance") ||
-    value.includes("monitor") ||
-    value.includes("minor")
-  ) {
+  if (bucket === "maintenance") {
     return "bg-yellow-500 text-slate-950 border-yellow-600";
   }
 
-  if (
-    value.includes("information") ||
-    value.includes("info") ||
-    value.includes("client")
-  ) {
+  if (bucket === "information") {
     return "bg-blue-700 text-white border-blue-800";
   }
 
