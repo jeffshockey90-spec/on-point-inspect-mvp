@@ -2749,7 +2749,9 @@ export async function GET(req: Request, { params }: RouteProps) {
       // (__TEXT_VALUE__ or "OTHER") shows custom_text and is SKIPPED when blank
       // — otherwise an "OTHER" row with no custom text printed the literal
       // token "OTHER" here while share/print correctly rendered nothing.
-      const isCustom = row.value === "__TEXT_VALUE__" || row.value === "OTHER";
+      const isCustom =
+        row.value === "__TEXT_VALUE__" ||
+        String(row.value || "").toUpperCase() === "OTHER";
       const val = isCustom ? cleanText(row.custom_text) : cleanText(row.value);
       if (!val) continue;
       if (!checklistBySection[sec]) checklistBySection[sec] = {};
