@@ -104,7 +104,7 @@ export default function SettingsSectionTabs({
     <div className="lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-8">
       {/* Mobile / tablet: horizontal scroll strip */}
       <div
-        className="sticky top-0 z-40 -mx-3 border-y border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border lg:hidden"
+        className="sticky top-0 z-40 -mx-3 border-y border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur sm:mx-0 sm:rounded-2xl sm:border lg:hidden"
         aria-label="Settings sections"
       >
         <div className="-mx-3 flex gap-2 overflow-x-auto overscroll-x-contain px-3 pb-1 pr-6 [-webkit-overflow-scrolling:touch] sm:mx-0 sm:px-0">
