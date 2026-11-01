@@ -152,7 +152,7 @@ export default function ShareReportTabs({
   return (
     <div
       ref={navRef}
-      className="sticky top-0 z-40 mt-8 border-y border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-3 backdrop-blur print:hidden"
+      className="sticky top-0 z-40 mt-8 border-y border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur print:hidden"
       aria-label="Report views"
     >
       <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
