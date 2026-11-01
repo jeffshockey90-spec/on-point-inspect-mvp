@@ -1,4 +1,11 @@
 import { redirect } from "next/navigation";
+import {
+  isKnownEquipmentValue,
+  getTypicalIndustryRange,
+  getEquipmentConditionNote,
+  getEquipmentInspectorNote,
+  getEquipmentMaintenanceNote,
+} from "../../../../lib/report/equipmentInfo";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -320,84 +327,8 @@ function getPhotoFilePath(photo: any) {
 }
 
 
-function isKnownEquipmentValue(value: any) {
-  const clean = String(value ?? "").trim();
-  const lower = clean.toLowerCase();
-
-  if (!clean) return false;
-
-  return ![
-    "unknown",
-    "n/a",
-    "na",
-    "not available",
-    "not visible",
-    "not readable",
-    "unreadable",
-    "unable to determine",
-    "unable to confirm",
-    "cannot determine",
-    "not determined",
-    "none",
-    "null",
-    "undefined",
-  ].includes(lower);
-}
-
-function getTypicalIndustryRange(value: any) {
-  const clean = String(value || "").trim();
-  if (!isKnownEquipmentValue(clean)) return "";
-
-  const rangeMatch = clean.match(/(\d+)\s*[-–]\s*(\d+)/);
-  if (rangeMatch) {
-    return `${rangeMatch[1]}–${rangeMatch[2]} years`;
-  }
-
-  const numberMatch = clean.match(/\d+/);
-  if (!numberMatch) return clean;
-
-  const upper = Number(numberMatch[0]);
-  if (!Number.isFinite(upper) || upper <= 0) return clean;
-
-  const lower = Math.max(1, upper - 5);
-  return `${lower}–${upper} years`;
-}
-
-function getEquipmentConditionNote(value: any) {
-  const clean = String(value || "").trim();
-  const lower = clean.toLowerCase();
-
-  if (!isKnownEquipmentValue(clean)) return "";
-
-  if (
-    lower.includes("remaining") ||
-    lower.includes("service life") ||
-    lower.includes("life remaining")
-  ) {
-    return "No specific deficiency noted";
-  }
-
-  return clean;
-}
-
-function getEquipmentInspectorNote(item: any) {
-  return (
-    item?.inspector_note ||
-    item?.inspection_note ||
-    item?.note ||
-    item?.notes ||
-    ""
-  );
-}
-
-function getEquipmentMaintenanceNote(item: any) {
-  return (
-    item?.maintenance_note ||
-    item?.maintenance ||
-    item?.service_note ||
-    ""
-  );
-}
+// Equipment-info display helpers now live in lib/report/equipmentInfo.ts,
+// shared verbatim with the builder and share surfaces (Tier 1 render unification).
 
 // Percent of typical service life already used (age / max service life).
 // 0 means age could not be determined, so hide it rather than printing a
