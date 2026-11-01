@@ -754,12 +754,14 @@ export default async function RealtorPortalPage({
                                       {status === "responded" ? "View Addendum" : "Preview Addendum"}
                                     </a>
 
-                                    <a
+                                    <ReportDownloadButton
                                       href={`/api/repair-request-addendum/${encodeURIComponent(share.token)}?download=1`}
-                                      className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-orange-400 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-warn-text)] transition hover:bg-orange-500/10 active:scale-[0.98]"
+                                      filename={`repair-addendum-${share.token}.pdf`}
+                                      preparingText="Preparing…"
+                                      className="inline-flex w-full min-h-[48px] items-center justify-center rounded-xl border border-orange-400 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-warn-text)] transition hover:bg-orange-500/10 active:scale-[0.98] [touch-action:manipulation]"
                                     >
                                       Download Addendum
-                                    </a>
+                                    </ReportDownloadButton>
 
                                     <div className="sm:col-span-2 lg:col-span-4">
                                       <EmailAddendumButton
