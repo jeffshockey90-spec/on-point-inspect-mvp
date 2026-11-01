@@ -7,6 +7,7 @@
 // share / client-portal / PDF / print surfaces when "Show on client report" is on.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import ReportDownloadButton from "./ReportDownloadButton";
 
 type SlimFinding = { id: string; title: string; severity: string; section: string; itemNo?: string };
 type PriorityItem = { findingId: string; reason: string };
@@ -161,14 +162,14 @@ export default function PriorityRepairsPanel({
           {generating ? "Ranking…" : hasList ? "Regenerate" : "Generate priority list"}
         </button>
         {hasList && (
-          <a
+          <ReportDownloadButton
             href={`/api/realtor-report-download/${encodeURIComponent(downloadId)}?priority=1`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-sm font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
+            filename={`priority-repairs-${inspectionId}.pdf`}
+            preparingText="Preparing PDF…"
+            className="shrink-0 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-sm font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] [touch-action:manipulation]"
           >
             Download PDF
-          </a>
+          </ReportDownloadButton>
         )}
         {hasList && (
           <button
