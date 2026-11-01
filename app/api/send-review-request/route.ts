@@ -395,8 +395,8 @@ export async function POST(req: Request) {
 
       const askLine =
         type === "realtor"
-          ? `If your client had a great experience, a quick Google review would mean a lot &mdash; and it helps other agents find an inspector they can rely on for their deals.`
-          : `If you were happy with your inspection experience, would you mind leaving a quick Google review? Reviews help other homeowners and real estate professionals find a reliable inspector.`;
+          ? `If your client had a great experience, a quick 5-star Google review would mean a lot &mdash; and it helps other agents find an inspector they can rely on for their deals.`
+          : `If you were happy with your inspection experience, would you mind leaving us a 5-star Google review? Reviews help other homeowners and real estate professionals find a reliable inspector.`;
 
       const outroLine =
         type === "realtor"
@@ -422,11 +422,19 @@ export async function POST(req: Request) {
             ${askLine}
           </p>
 
-          <p style="margin:24px 0;">
+          <p style="margin:24px 0 6px; text-align:center; line-height:1;">
+            <a href="${escapeHtml(
+              googleReviewUrl
+            )}" style="text-decoration:none; color:#fbbf24; font-size:40px; letter-spacing:6px;">&#9733;&#9733;&#9733;&#9733;&#9733;</a>
+          </p>
+          <p style="margin:0 0 18px; text-align:center; color:#94a3b8; font-size:13px;">
+            Tap the stars to leave your 5-star review
+          </p>
+          <p style="margin:0 0 24px; text-align:center;">
             <a href="${escapeHtml(
               googleReviewUrl
             )}" style="display:inline-block; background:#14b8a6; color:#020617; padding:12px 18px; border-radius:10px; text-decoration:none; font-weight:bold;">
-              Leave a Google Review
+              Leave a 5-Star Google Review
             </a>
           </p>
 
@@ -534,7 +542,7 @@ export async function POST(req: Request) {
         const to = normalizePhone(t.phone);
         if (!to || seenPhones.has(to)) continue;
         seenPhones.add(to);
-        const smsBody = `${branding.name}: Thank you for choosing us! If you were happy with your service, a quick Google review would mean a lot: ${googleReviewUrl}`;
+        const smsBody = `${branding.name}: Thank you for choosing us! If you were happy with your service, a quick 5-star Google review would mean a lot: ${googleReviewUrl}`;
         const r = await sendSms({ to, body: smsBody }).catch(() => null);
         if (r?.ok) smsSent += 1;
       }
