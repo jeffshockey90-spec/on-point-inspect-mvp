@@ -2680,12 +2680,20 @@ export default async function PublicSharePage({
                 Your inspector ordered the report&apos;s items by priority — the most important are at the top. This is a guide to help you plan; see the full report below for complete details.
               </p>
 
-              <a
-                href={`/api/realtor-report-download/${encodeURIComponent(sharePathId)}?priority=1`}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-teal-500 px-4 py-2.5 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500 hover:text-black print:hidden"
-              >
-                🧭 Download Priority Repairs (PDF)
-              </a>
+              {/* Use ReportDownloadButton (not a bare <a>) so the PDF actually
+                  delivers on the iOS app + Safari — a plain anchor to the
+                  streamed PDF does nothing in WKWebView. Matches the full-report
+                  download button above. */}
+              <div className="mt-4 print:hidden">
+                <ReportDownloadButton
+                  href={`/api/realtor-report-download/${encodeURIComponent(sharePathId)}?priority=1`}
+                  filename={`priority-repairs-${inspectionId}.pdf`}
+                  preparingText="Preparing PDF..."
+                  className="inline-flex items-center gap-2 rounded-xl border border-teal-500 px-4 py-2.5 text-sm font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] active:opacity-80 [touch-action:manipulation] hover:bg-teal-500 hover:text-black"
+                >
+                  🧭 Download Priority Repairs (PDF)
+                </ReportDownloadButton>
+              </div>
 
               <ol className="mt-5 space-y-3">
                 {priorityRows.map((row: any, i: number) => {
