@@ -17,6 +17,7 @@ import QRCode from "qrcode";
 import { randomUUID, createHash } from "crypto";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
+import { normalizeSection } from "../../../../lib/report/normalizeSection";
 import sharp from "sharp";
 import { existsSync } from "fs";
 import { recompressPdfImages } from "../../../../lib/pdfRecompress";
@@ -224,26 +225,8 @@ function escapeHtml(value: any) {
     .replaceAll("'", "&#039;");
 }
 
-function normalizeSection(section: any) {
-  const clean = cleanText(section) || "Inspection Details";
-
-  const aliases: Record<string, string> = {
-    General: "Inspection Details",
-    Safety: "Inspection Details",
-    "Basement/Foundation/Crawlspace & Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Basement, Foundation, Crawlspace and Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
-    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
-    "Doors/Windows & Interior": "Doors, Windows & Interior",
-    "Doors, Windows and Interior": "Doors, Windows & Interior",
-    Appliances: "Built-in Appliances",
-    "Built In Appliances": "Built-in Appliances",
-  };
-
-  return aliases[clean] || clean;
-}
+// normalizeSection moved to lib/report/normalizeSection.ts (shared by all 5
+// report surfaces incl. these pages, so the alias map can't drift — Tier 1).
 
 function getSectionNumber(section: any, sectionOrder: string[] = SECTION_ORDER) {
   const clean = normalizeSection(section);

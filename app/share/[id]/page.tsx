@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { normalizeSection } from "../../../lib/report/normalizeSection";
 import { loadSeverityConfigForInspection } from "../../../lib/severity/loadSeverityConfig";
 import { severityBadgeStyle } from "../../../lib/severity/severityConfig";
 import { headers } from "next/headers";
@@ -289,28 +290,8 @@ function shouldShowStandardsInShare(company: any) {
 }
 
 
-function normalizeSection(section: string | null | undefined) {
-  if (!section) return "Inspection Details";
-
-  const clean = section.trim();
-
-  const aliases: Record<string, string> = {
-    General: "Inspection Details",
-    Safety: "Inspection Details",
-    "Basement/Foundation/Crawlspace & Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Basement, Foundation, Crawlspace and Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
-    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
-    "Doors/Windows & Interior": "Doors, Windows & Interior",
-    "Doors, Windows and Interior": "Doors, Windows & Interior",
-    Appliances: "Built-in Appliances",
-    "Built In Appliances": "Built-in Appliances",
-  };
-
-  return aliases[clean] || clean;
-}
+// normalizeSection moved to lib/report/normalizeSection.ts (shared by all 5
+// report surfaces incl. the PDF, so the alias map can't drift — Tier 1).
 
 function getStoragePathFromUrl(url: string | null | undefined) {
   if (!url) return "";

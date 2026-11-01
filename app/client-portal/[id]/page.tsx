@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import FastLinkButton from "../../../components/FastLinkButton";
+import { normalizeSection } from "../../../lib/report/normalizeSection";
 import ReportDownloadButton from "../../../components/ReportDownloadButton";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
@@ -29,28 +30,8 @@ const SECTION_ORDER = [
   "Garage",
 ];
 
-function normalizeSection(section: string | null | undefined) {
-  if (!section) return "Inspection Details";
-
-  const clean = section.trim();
-
-  const aliases: Record<string, string> = {
-    General: "Inspection Details",
-    Safety: "Inspection Details",
-    "Basement/Foundation/Crawlspace & Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Basement, Foundation, Crawlspace and Structure":
-      "Basement, Foundation, Crawlspace & Structure",
-    "Attic/Insulation & Ventilation": "Attic, Insulation & Ventilation",
-    "Attic, Insulation and Ventilation": "Attic, Insulation & Ventilation",
-    "Doors/Windows & Interior": "Doors, Windows & Interior",
-    "Doors, Windows and Interior": "Doors, Windows & Interior",
-    Appliances: "Built-in Appliances",
-    "Built In Appliances": "Built-in Appliances",
-  };
-
-  return aliases[clean] || clean;
-}
+// normalizeSection moved to lib/report/normalizeSection.ts (shared by all 5
+// report surfaces incl. the PDF, so the alias map can't drift — Tier 1).
 
 function getChecklistDedupeKey(value: string) {
   return value
