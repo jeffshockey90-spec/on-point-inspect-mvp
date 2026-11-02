@@ -317,7 +317,29 @@ function EditableFinding({
       setSaveLabel("Saved!");
       showMessage("success", "Finding saved.");
       setEditing(false);
-      refreshKeepScroll(router);
+
+      // Patch the card in place instead of a full server re-render. The whole-
+      // report router.refresh() on every save was the main scroll glitch: it
+      // re-rendered the entire ~11-query tree while refreshKeepScroll's restore
+      // chase fired across 1.8s as every card re-mounted and re-measured. The
+      // row is already persisted and markLocalEdit() ran above; the report page
+      // listens for opi:finding-updated and merges the saved fields into local
+      // state (so the card AND the House Graph stay in sync) with no refetch.
+      // Changing the SECTION still needs a refresh so the card moves groups.
+      const sectionChanged = section !== (finding.section || "");
+      if (sectionChanged) {
+        refreshKeepScroll(router);
+      } else if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("opi:finding-updated", {
+            detail: {
+              inspectionId: String(finding.inspection_id || ""),
+              findingId: String(finding.id || ""),
+              patch: payload,
+            },
+          }),
+        );
+      }
     } catch (error: any) {
       setSaveLabel("Failed");
       showMessage("error", error?.message || "Failed to save finding.");

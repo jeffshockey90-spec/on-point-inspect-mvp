@@ -686,6 +686,49 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
     };
   }, [inspectionId]);
 
+  // Instant edit: when a finding's fields are saved (from EditableFinding) and
+  // it stays in the same section, merge the saved fields into local state
+  // instead of a full server refetch. The row is already persisted, so this
+  // keeps the edited card — wording, severity chip, repair flags — and the
+  // House Graph (which reads these fields) in sync without the whole-report
+  // re-render that used to jump the scroll on every save. A section change
+  // still comes through as a refresh (EditableFinding decides) so the card
+  // moves to its new group.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function handleFindingUpdated(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      const eventInspectionId = String(detail.inspectionId || "");
+      const findingId = String(detail.findingId || "");
+      const patch = detail.patch;
+
+      if (!findingId || !patch || typeof patch !== "object") return;
+      if (eventInspectionId && eventInspectionId !== String(inspectionId)) return;
+
+      setOrderedGroups((groups) =>
+        (groups || []).map((group: any) => ({
+          ...group,
+          findings: (group.findings || []).map((f: any) =>
+            String(f.id) === findingId ? { ...f, ...patch } : f,
+          ),
+        })),
+      );
+    }
+
+    window.addEventListener(
+      "opi:finding-updated",
+      handleFindingUpdated as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "opi:finding-updated",
+        handleFindingUpdated as EventListener,
+      );
+    };
+  }, [inspectionId]);
+
   const allFindings = useMemo(() => {
     return (orderedGroups || []).flatMap((group: any) => group.findings || []);
   }, [orderedGroups]);
