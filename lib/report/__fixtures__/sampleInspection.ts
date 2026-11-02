@@ -70,6 +70,17 @@ export const CHECKLIST_ROWS = [
   { value: "__TEXT_VALUE__", custom_text: "" }, // sentinel but blank -> dropped
 ];
 
+// Findings with varied title / group field shapes for the field-resolution
+// helpers: the fallback chain, the "1.2.3 - " numeric-prefix strip, and defaults.
+export const FINDINGS = [
+  { title: "Roof covering past service life", component: "Roof" },
+  { finding_title: "1.2.3 - Cracked heat exchanger", system: "HVAC" },
+  { defect_title: "GFCI protection missing", category: "Electrical" },
+  { name: "Loose stair railing", subsection: "Stairs" },
+  { title: "4.5.6: Imported-style numbered title", group_title: "Interior" },
+  {}, // -> "Untitled Finding" / "General"
+];
+
 // Equipment values for the equipment-info helpers — chosen to hit each branch:
 // plain label, explicit year range, single number (-> derived range), the
 // cautious-wording "remaining service life" path, blocklist values, and blank.

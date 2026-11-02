@@ -31,6 +31,7 @@ import {
 } from "../environmental/service";
 import { classifyRadon, radonSummary } from "../environmental/radon";
 import { checklistRowDisplay } from "./checklist";
+import { getRepairNumberTitle, getRepairItemGroupLabel } from "./findingFields";
 import {
   SAMPLE_INSPECTION,
   SERVICE_CASES,
@@ -39,6 +40,7 @@ import {
   SECTIONS,
   CHECKLIST_ROWS,
   EQUIPMENT_VALUES,
+  FINDINGS,
 } from "./__fixtures__/sampleInspection";
 
 // The shared checklist custom-text contract lives in lib/report/checklist
@@ -74,6 +76,10 @@ describe("report golden master (logic layer)", () => {
       sectionNames: SECTIONS.map((s) => ({
         raw: s,
         normalized: normalizeSection(s),
+      })),
+      findingFields: FINDINGS.map((f) => ({
+        title: getRepairNumberTitle(f),
+        group: getRepairItemGroupLabel(f),
       })),
       checklist: CHECKLIST_ROWS.map((r) => ({
         value: r.value,

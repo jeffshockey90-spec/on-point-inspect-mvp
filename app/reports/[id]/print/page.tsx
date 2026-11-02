@@ -8,6 +8,7 @@ import {
 } from "../../../../lib/report/equipmentInfo";
 import { normalizeSection } from "../../../../lib/report/normalizeSection";
 import { checklistRowDisplay } from "../../../../lib/report/checklist";
+import { getRepairNumberTitle, getRepairItemGroupLabel } from "../../../../lib/report/findingFields";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -66,30 +67,6 @@ async function createSupabaseServerClient() {
 // (app/share/[id]/page.tsx) - this used to be a separate, differently
 // grouped algorithm (grouped by matching title text, always recomputed),
 // which caused the PDF's item numbers to disagree with the report.
-function getRepairNumberTitle(finding: any) {
-  const rawTitle = String(
-    finding?.title ||
-      finding?.finding_title ||
-      finding?.defect_title ||
-      finding?.name ||
-      "Untitled Finding"
-  ).trim();
-
-  return rawTitle.replace(/^\d+\.\d+\.\d+\s*[-–—:]\s*/g, "");
-}
-
-function getRepairItemGroupLabel(finding: any) {
-  return String(
-    finding?.component ||
-      finding?.subsection ||
-      finding?.category ||
-      finding?.system ||
-      finding?.group_title ||
-      finding?.item_group ||
-      "General"
-  ).trim() || "General";
-}
-
 function buildFindingItemNumbers(findings: any[], sectionOrder: string[] = SECTION_ORDER) {
   const sectionGroupMap = new Map<string, number>();
   const sectionGroupCounts = new Map<string, number>();

@@ -8,6 +8,7 @@ import {
 } from "../../../lib/report/equipmentInfo";
 import { normalizeSection } from "../../../lib/report/normalizeSection";
 import { checklistRowDisplay } from "../../../lib/report/checklist";
+import { getRepairNumberTitle, getRepairItemGroupLabel } from "../../../lib/report/findingFields";
 import { loadSeverityConfigForInspection } from "../../../lib/severity/loadSeverityConfig";
 import { severityBadgeStyle } from "../../../lib/severity/severityConfig";
 import { severityBucket } from "../../../lib/report/severityBucket";
@@ -449,30 +450,6 @@ function getSeverityClass(severityValue: any) {
   }
 
   return "border-teal-500/50 bg-teal-500/15 text-[var(--fl-accent-text)]";
-}
-
-function getRepairNumberTitle(finding: any) {
-  const rawTitle = String(
-    finding?.title ||
-      finding?.finding_title ||
-      finding?.defect_title ||
-      finding?.name ||
-      "Untitled Finding"
-  ).trim();
-
-  return rawTitle.replace(/^\d+\.\d+\.\d+\s*[-–—:]\s*/g, "");
-}
-
-function getRepairItemGroupLabel(finding: any) {
-  return String(
-    finding?.component ||
-      finding?.subsection ||
-      finding?.category ||
-      finding?.system ||
-      finding?.group_title ||
-      finding?.item_group ||
-      "General"
-  ).trim() || "General";
 }
 
 function addRepairItemNumbers(findings: any[], sectionOrder: string[] = SECTION_ORDER) {
