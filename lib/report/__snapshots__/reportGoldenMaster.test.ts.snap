@@ -118,6 +118,38 @@ exports[`report golden master (logic layer) > computes a stable snapshot across 
       "title": "Untitled Finding",
     },
   ],
+  "itemNumbers": [
+    {
+      "itemNumber": "1.1.1",
+      "section": "Roof",
+      "title": "Curling",
+    },
+    {
+      "itemNumber": "1.1.2",
+      "section": "Roof",
+      "title": "Moss",
+    },
+    {
+      "itemNumber": "1.2.1",
+      "section": "Roof",
+      "title": "Rusted",
+    },
+    {
+      "itemNumber": "2.1.1",
+      "section": "Electrical",
+      "title": "Double-tap",
+    },
+    {
+      "itemNumber": "9.9.9",
+      "section": "Electrical",
+      "title": "Preset",
+    },
+    {
+      "itemNumber": "4.1.1",
+      "section": "Mystery Room",
+      "title": "Odd",
+    },
+  ],
   "radon": [
     {
       "avg": 0,
