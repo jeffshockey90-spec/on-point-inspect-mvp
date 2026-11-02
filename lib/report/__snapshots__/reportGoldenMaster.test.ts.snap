@@ -1,0 +1,261 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`report golden master (logic layer) > computes a stable snapshot across all shared report helpers 1`] = `
+{
+  "checklist": [
+    {
+      "custom_text": "",
+      "display": "Asphalt Shingle",
+      "value": "Asphalt Shingle",
+    },
+    {
+      "custom_text": "Clay tile",
+      "display": "Clay tile",
+      "value": "OTHER",
+    },
+    {
+      "custom_text": "Rolled membrane",
+      "display": "Rolled membrane",
+      "value": "other",
+    },
+    {
+      "custom_text": "",
+      "display": null,
+      "value": "Other",
+    },
+    {
+      "custom_text": "Field note",
+      "display": "Field note",
+      "value": "__TEXT_VALUE__",
+    },
+    {
+      "custom_text": "",
+      "display": null,
+      "value": "__TEXT_VALUE__",
+    },
+  ],
+  "equipment": [
+    {
+      "condition": "Furnace",
+      "inspectorNote": "",
+      "known": true,
+      "maintenanceNote": "",
+      "range": "Furnace",
+      "value": "Furnace",
+    },
+    {
+      "condition": "Water Heater (12-15 years)",
+      "inspectorNote": "",
+      "known": true,
+      "maintenanceNote": "",
+      "range": "12–15 years",
+      "value": "Water Heater (12-15 years)",
+    },
+    {
+      "condition": "20",
+      "inspectorNote": "",
+      "known": true,
+      "maintenanceNote": "",
+      "range": "15–20 years",
+      "value": "20",
+    },
+    {
+      "condition": "No specific deficiency noted",
+      "inspectorNote": "",
+      "known": true,
+      "maintenanceNote": "",
+      "range": "10–15 years",
+      "value": "15 years remaining",
+    },
+    {
+      "condition": "",
+      "inspectorNote": "",
+      "known": false,
+      "maintenanceNote": "",
+      "range": "",
+      "value": "Unknown",
+    },
+    {
+      "condition": "",
+      "inspectorNote": "",
+      "known": false,
+      "maintenanceNote": "",
+      "range": "",
+      "value": "N/A",
+    },
+    {
+      "condition": "",
+      "inspectorNote": "",
+      "known": false,
+      "maintenanceNote": "",
+      "range": "",
+      "value": "",
+    },
+  ],
+  "radon": [
+    {
+      "avg": 0,
+      "band": "Pending",
+      "summary": "Radon test results have not been entered yet.",
+    },
+    {
+      "avg": 1.1,
+      "band": "Low",
+      "summary": "The average radon concentration measured during the testing period was 1.1 pCi/L. This is below the EPA action level of 4.0 pCi/L.",
+    },
+    {
+      "avg": 1.9,
+      "band": "Low",
+      "summary": "The average radon concentration measured during the testing period was 1.9 pCi/L. This is below the EPA action level of 4.0 pCi/L.",
+    },
+    {
+      "avg": 2,
+      "band": "Monitor",
+      "summary": "The average radon concentration measured during the testing period was 2 pCi/L. This is below the EPA action level of 4.0 pCi/L but above 2.0 pCi/L. Continued monitoring or consultation may be considered.",
+    },
+    {
+      "avg": 3.9,
+      "band": "Monitor",
+      "summary": "The average radon concentration measured during the testing period was 3.9 pCi/L. This is below the EPA action level of 4.0 pCi/L but above 2.0 pCi/L. Continued monitoring or consultation may be considered.",
+    },
+    {
+      "avg": 4,
+      "band": "Action Recommended",
+      "summary": "The average radon concentration measured during the testing period was 4 pCi/L. This is at or above the EPA action level of 4.0 pCi/L. Mitigation by a qualified radon contractor is recommended.",
+    },
+    {
+      "avg": 4.6,
+      "band": "Action Recommended",
+      "summary": "The average radon concentration measured during the testing period was 4.6 pCi/L. This is at or above the EPA action level of 4.0 pCi/L. Mitigation by a qualified radon contractor is recommended.",
+    },
+    {
+      "avg": 7.3,
+      "band": "Action Recommended",
+      "summary": "The average radon concentration measured during the testing period was 7.3 pCi/L. This is at or above the EPA action level of 4.0 pCi/L. Mitigation by a qualified radon contractor is recommended.",
+    },
+  ],
+  "sampleInspection": {
+    "hasMold": true,
+    "hasRadon": true,
+    "reportTitle": "Environmental Testing Report",
+  },
+  "sectionNames": [
+    {
+      "normalized": "Inspection Details",
+      "raw": "General",
+    },
+    {
+      "normalized": "Inspection Details",
+      "raw": "Safety",
+    },
+    {
+      "normalized": "Built-in Appliances",
+      "raw": "Appliances",
+    },
+    {
+      "normalized": "Built-in Appliances",
+      "raw": "Built In Appliances",
+    },
+    {
+      "normalized": "Attic, Insulation & Ventilation",
+      "raw": "Attic/Insulation & Ventilation",
+    },
+    {
+      "normalized": "Roof",
+      "raw": "Roof",
+    },
+    {
+      "normalized": "Inspection Details",
+      "raw": "",
+    },
+    {
+      "normalized": "Inspection Details",
+      "raw": null,
+    },
+  ],
+  "serviceDetection": [
+    {
+      "label": "home only",
+      "mold": false,
+      "radon": false,
+      "title": "Environmental Testing Report",
+    },
+    {
+      "label": "radon via boolean",
+      "mold": false,
+      "radon": true,
+      "title": "Radon Testing Report",
+    },
+    {
+      "label": "radon shadowed by service_mode=home (the asymmetry bug)",
+      "mold": false,
+      "radon": true,
+      "title": "Radon Testing Report",
+    },
+    {
+      "label": "mold standalone",
+      "mold": true,
+      "radon": false,
+      "title": "Mold Sampling Report",
+    },
+    {
+      "label": "both",
+      "mold": true,
+      "radon": true,
+      "title": "Environmental Testing Report",
+    },
+    {
+      "label": "neither",
+      "mold": false,
+      "radon": false,
+      "title": "Environmental Testing Report",
+    },
+  ],
+  "severityBuckets": [
+    {
+      "bucket": "safety",
+      "severity": "Safety Concern",
+    },
+    {
+      "bucket": "safety",
+      "severity": "Major Defect",
+    },
+    {
+      "bucket": "repair",
+      "severity": "Recommended Repair",
+    },
+    {
+      "bucket": "repair",
+      "severity": "Minor Defect",
+    },
+    {
+      "bucket": "repair",
+      "severity": "Minor Repair",
+    },
+    {
+      "bucket": "maintenance",
+      "severity": "Maintenance Item",
+    },
+    {
+      "bucket": "maintenance",
+      "severity": "Monitor",
+    },
+    {
+      "bucket": "information",
+      "severity": "Information",
+    },
+    {
+      "bucket": "repair",
+      "severity": "Custom Company Label",
+    },
+    {
+      "bucket": "repair",
+      "severity": "",
+    },
+    {
+      "bucket": "repair",
+      "severity": null,
+    },
+  ],
+}
+`;
