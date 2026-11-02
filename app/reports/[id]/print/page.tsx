@@ -8,7 +8,7 @@ import {
 } from "../../../../lib/report/equipmentInfo";
 import { normalizeSection } from "../../../../lib/report/normalizeSection";
 import { checklistRowDisplay } from "../../../../lib/report/checklist";
-import { getRepairNumberTitle, getRepairItemGroupLabel } from "../../../../lib/report/findingFields";
+import { withItemNumbers } from "../../../../lib/report/itemNumbers";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -68,42 +68,12 @@ async function createSupabaseServerClient() {
 // grouped algorithm (grouped by matching title text, always recomputed),
 // which caused the PDF's item numbers to disagree with the report.
 function buildFindingItemNumbers(findings: any[], sectionOrder: string[] = SECTION_ORDER) {
-  const sectionGroupMap = new Map<string, number>();
-  const sectionGroupCounts = new Map<string, number>();
-
-  return (findings || []).map((finding: any) => {
-    const section = normalizeSection(finding?.section);
-    const sectionNumberRaw = sectionOrder.indexOf(section) + 1;
-    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : sectionOrder.length + 1;
-    const groupLabel = getRepairItemGroupLabel(finding).toLowerCase();
-    const sectionGroupKey = `${sectionNumber}:${groupLabel}`;
-
-    if (!sectionGroupMap.has(sectionGroupKey)) {
-      const existingGroupsForSection = Array.from(sectionGroupMap.keys()).filter((key) =>
-        key.startsWith(`${sectionNumber}:`)
-      ).length;
-
-      sectionGroupMap.set(sectionGroupKey, existingGroupsForSection + 1);
-    }
-
-    const groupNumber = sectionGroupMap.get(sectionGroupKey) || 1;
-    const countKey = `${sectionNumber}.${groupNumber}`;
-    const nextCount = (sectionGroupCounts.get(countKey) || 0) + 1;
-    sectionGroupCounts.set(countKey, nextCount);
-
-    const repairItemNumber =
-      finding?.repair_item_number ||
-      finding?.item_number ||
-      finding?.finding_number ||
-      `${sectionNumber}.${groupNumber}.${nextCount}`;
-
-    return {
-      ...finding,
-      section,
-      original_title: getRepairNumberTitle(finding),
-      report_item_number: repairItemNumber,
-    };
-  });
+  return withItemNumbers(findings, sectionOrder, (finding, { section, originalTitle, itemNumber }) => ({
+    ...finding,
+    section,
+    original_title: originalTitle,
+    report_item_number: itemNumber,
+  }));
 }
 
 function getFindingItemNumber(finding: any) {

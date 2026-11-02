@@ -81,6 +81,20 @@ export const FINDINGS = [
   {}, // -> "Untitled Finding" / "General"
 ];
 
+// A fixed section order + findings to exercise item numbering: two findings in
+// the same section+group (count increments), a second group in that section
+// (group increments), a second section, a finding with a pre-set number (kept),
+// and a finding in an unknown section (falls to sectionOrder.length + 1).
+export const NUMBERING_SECTION_ORDER = ["Roof", "Electrical", "Interior"];
+export const NUMBERING_FINDINGS = [
+  { section: "Roof", component: "Shingles", title: "Curling" },
+  { section: "Roof", component: "Shingles", title: "Moss" },
+  { section: "Roof", component: "Flashing", title: "Rusted" },
+  { section: "Electrical", component: "Panel", title: "Double-tap" },
+  { section: "Electrical", component: "Panel", title: "Preset", item_number: "9.9.9" },
+  { section: "Mystery Room", component: "Thing", title: "Odd" },
+];
+
 // Equipment values for the equipment-info helpers — chosen to hit each branch:
 // plain label, explicit year range, single number (-> derived range), the
 // cautious-wording "remaining service life" path, blocklist values, and blank.

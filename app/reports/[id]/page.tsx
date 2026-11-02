@@ -33,6 +33,8 @@ import {
   getEquipmentMaintenanceNote,
 } from "../../../lib/report/equipmentInfo";
 import { normalizeSection } from "../../../lib/report/normalizeSection";
+import { getRepairNumberTitle } from "../../../lib/report/findingFields";
+import { withItemNumbers } from "../../../lib/report/itemNumbers";
 import ReportBuilderLiveCamera from "../../../components/ReportBuilderLiveCamera";
 import OfflineReportCacheBridge from "../../../components/OfflineReportCacheBridge";
 import { getCachedSignedUrls } from "../../../lib/signedUrlCache";
@@ -157,68 +159,14 @@ async function createSupabaseServerClient() {
 // normalizeSection moved to lib/report/normalizeSection.ts (shared by all 5
 // report surfaces incl. the PDF, so the alias map can't drift — Tier 1).
 
-function getRepairNumberTitle(finding: any) {
-  const rawTitle = String(
-    finding?.title ||
-      finding?.finding_title ||
-      finding?.defect_title ||
-      finding?.name ||
-      "Untitled Finding"
-  ).trim();
-
-  return rawTitle.replace(/^\d+\.\d+\.\d+\s*[-–—:]\s*/g, "");
-}
-
-function getRepairItemGroupLabel(finding: any) {
-  return String(
-    finding?.component ||
-      finding?.subsection ||
-      finding?.category ||
-      finding?.system ||
-      finding?.group_title ||
-      finding?.item_group ||
-      "General"
-  ).trim() || "General";
-}
-
 function addRepairItemNumbers(findings: any[], sectionOrder: string[] = SECTION_ORDER) {
-  const sectionGroupMap = new Map<string, number>();
-  const sectionGroupCounts = new Map<string, number>();
-
-  return (findings || []).map((finding: any) => {
-    const section = normalizeSection(finding?.section);
-    const sectionNumberRaw = sectionOrder.indexOf(section) + 1;
-    const sectionNumber = sectionNumberRaw > 0 ? sectionNumberRaw : sectionOrder.length + 1;
-    const groupLabel = getRepairItemGroupLabel(finding).toLowerCase();
-    const sectionGroupKey = `${sectionNumber}:${groupLabel}`;
-
-    if (!sectionGroupMap.has(sectionGroupKey)) {
-      const existingGroupsForSection = Array.from(sectionGroupMap.keys()).filter((key) =>
-        key.startsWith(`${sectionNumber}:`)
-      ).length;
-
-      sectionGroupMap.set(sectionGroupKey, existingGroupsForSection + 1);
-    }
-
-    const groupNumber = sectionGroupMap.get(sectionGroupKey) || 1;
-    const countKey = `${sectionNumber}.${groupNumber}`;
-    const nextCount = (sectionGroupCounts.get(countKey) || 0) + 1;
-    sectionGroupCounts.set(countKey, nextCount);
-
-    const repairItemNumber =
-      finding?.repair_item_number ||
-      finding?.item_number ||
-      finding?.finding_number ||
-      `${sectionNumber}.${groupNumber}.${nextCount}`;
-
-    return {
-      ...finding,
-      section,
-      original_title: getRepairNumberTitle(finding),
-      item_number: repairItemNumber,
-      repair_item_number: repairItemNumber,
-    };
-  });
+  return withItemNumbers(findings, sectionOrder, (finding, { section, originalTitle, itemNumber }) => ({
+    ...finding,
+    section,
+    original_title: originalTitle,
+    item_number: itemNumber,
+    repair_item_number: itemNumber,
+  }));
 }
 
 function getNumberedFindingTitle(finding: any) {
