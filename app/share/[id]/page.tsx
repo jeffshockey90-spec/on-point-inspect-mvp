@@ -7,6 +7,7 @@ import {
   getEquipmentMaintenanceNote,
 } from "../../../lib/report/equipmentInfo";
 import { normalizeSection } from "../../../lib/report/normalizeSection";
+import { checklistRowDisplay } from "../../../lib/report/checklist";
 import { loadSeverityConfigForInspection } from "../../../lib/severity/loadSeverityConfig";
 import { severityBadgeStyle } from "../../../lib/severity/severityConfig";
 import { severityBucket } from "../../../lib/report/severityBucket";
@@ -815,14 +816,6 @@ function isVideoPathOrPhoto(photo: any, pathValue: any = "") {
 
 // What a checklist row actually displays: a text-placeholder or "OTHER" row
 // shows its custom_text, everything else shows its value.
-function checklistRowDisplay(row: any): string {
-  const value = String(row?.value ?? "");
-  if (value === "__TEXT_VALUE__" || value.toUpperCase() === "OTHER") {
-    return String(row?.custom_text ?? "").trim();
-  }
-  return value.trim();
-}
-
 function groupChecklistRows(rows: any[]) {
   const grouped: Record<string, Record<string, any[]>> = {};
 

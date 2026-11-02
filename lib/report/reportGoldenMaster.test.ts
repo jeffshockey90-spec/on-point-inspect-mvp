@@ -30,6 +30,7 @@ import {
   getReportTitle,
 } from "../environmental/service";
 import { classifyRadon, radonSummary } from "../environmental/radon";
+import { checklistRowDisplay } from "./checklist";
 import {
   SAMPLE_INSPECTION,
   SERVICE_CASES,
@@ -40,16 +41,11 @@ import {
   EQUIPMENT_VALUES,
 } from "./__fixtures__/sampleInspection";
 
-// The canonical checklist custom-text contract, matching share / print /
-// client-portal / PDF (case-insensitive sentinel, blank custom text dropped).
-// Kept here as the pinned behavior; extract to a helper during Tier-2 and point
-// both this harness and the surfaces at it.
+// The shared checklist custom-text contract lives in lib/report/checklist
+// (checklistRowDisplay), used by share / print / PDF. A blank result means the
+// row is dropped from the rendered report; normalize that to null here.
 function checklistDisplay(row: { value: string; custom_text: string }) {
-  const isCustom =
-    row.value === "__TEXT_VALUE__" ||
-    String(row.value || "").toUpperCase() === "OTHER";
-  const val = isCustom ? String(row.custom_text || "").trim() : String(row.value || "").trim();
-  return val || null; // null = row is dropped from the rendered report
+  return checklistRowDisplay(row) || null;
 }
 
 describe("report golden master (logic layer)", () => {
