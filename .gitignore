@@ -13,3 +13,6 @@ tsconfig.tsbuildinfo
 next-env.d.ts
 
 .jarvis-watch-state.json
+
+# HTML golden-master baselines (manual; may contain rendered report content)
+report-golden/
