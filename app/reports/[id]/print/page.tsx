@@ -7,6 +7,7 @@ import {
   getEquipmentMaintenanceNote,
 } from "../../../../lib/report/equipmentInfo";
 import { normalizeSection } from "../../../../lib/report/normalizeSection";
+import { checklistRowDisplay } from "../../../../lib/report/checklist";
 import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -181,16 +182,6 @@ function getSeverityClass(severity: string | null | undefined) {
   return "bg-teal-700 text-white border-teal-800";
 }
 
-
-// What a checklist row actually displays: a text-placeholder or "OTHER" row
-// shows its custom_text, everything else shows its value.
-function checklistRowDisplay(row: any): string {
-  const value = String(row?.value ?? "");
-  if (value === "__TEXT_VALUE__" || value.toUpperCase() === "OTHER") {
-    return String(row?.custom_text ?? "").trim();
-  }
-  return value.trim();
-}
 
 function groupChecklistRows(rows: any[]) {
   const grouped: Record<string, Record<string, any[]>> = {};

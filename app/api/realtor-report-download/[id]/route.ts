@@ -19,6 +19,7 @@ import { randomUUID, createHash } from "crypto";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import { normalizeSection } from "../../../../lib/report/normalizeSection";
+import { checklistRowDisplay } from "../../../../lib/report/checklist";
 import sharp from "sharp";
 import { existsSync } from "fs";
 import { recompressPdfImages } from "../../../../lib/pdfRecompress";
@@ -2751,14 +2752,10 @@ export async function GET(req: Request, { params }: RouteProps) {
     for (const row of (checklistRows as any[]) || []) {
       const sec = normalizeSection(row.section);
       const group = cleanText(row.group_title) || "Details";
-      // Match share/print's checklistRowDisplay: a custom-text sentinel
-      // (__TEXT_VALUE__ or "OTHER") shows custom_text and is SKIPPED when blank
-      // — otherwise an "OTHER" row with no custom text printed the literal
-      // token "OTHER" here while share/print correctly rendered nothing.
-      const isCustom =
-        row.value === "__TEXT_VALUE__" ||
-        String(row.value || "").toUpperCase() === "OTHER";
-      const val = isCustom ? cleanText(row.custom_text) : cleanText(row.value);
+      // Shared with share/print via lib/report/checklist: a custom-text
+      // sentinel (__TEXT_VALUE__ or any-case "OTHER") shows custom_text and is
+      // skipped when blank, so all three surfaces render identical content.
+      const val = checklistRowDisplay(row);
       if (!val) continue;
       if (!checklistBySection[sec]) checklistBySection[sec] = {};
       if (!checklistBySection[sec][group]) checklistBySection[sec][group] = [];
