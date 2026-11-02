@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import { resolveInspectionAccessFilter, resolveTeamInspectorIds } from "../../lib/inspectionAccess";
+import { hasRadonService, hasMoldService } from "../../lib/environmental/service";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -246,42 +247,6 @@ function formatDuration(secondsValue: number) {
   const remainingMinutes = minutes % 60;
 
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-}
-
-function hasRadonService(inspection: any) {
-  const raw = String(
-    inspection?.inspection_type ||
-      inspection?.service_type ||
-      inspection?.type ||
-      inspection?.service_mode ||
-      inspection?.services ||
-      ""
-  ).toLowerCase();
-
-  return (
-    raw.includes("radon") ||
-    inspection?.radon === true ||
-    inspection?.radon_test === true ||
-    inspection?.radon_testing === true
-  );
-}
-
-function hasMoldService(inspection: any) {
-  const raw = String(
-    inspection?.inspection_type ||
-      inspection?.service_type ||
-      inspection?.type ||
-      inspection?.service_mode ||
-      inspection?.services ||
-      ""
-  ).toLowerCase();
-
-  return (
-    raw.includes("mold") ||
-    inspection?.mold === true ||
-    inspection?.mold_test === true ||
-    inspection?.mold_testing === true
-  );
 }
 
 function getViewType(log: any) {
