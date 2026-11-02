@@ -9,6 +9,7 @@ import {
 import { normalizeSection } from "../../../lib/report/normalizeSection";
 import { loadSeverityConfigForInspection } from "../../../lib/severity/loadSeverityConfig";
 import { severityBadgeStyle } from "../../../lib/severity/severityConfig";
+import { severityBucket } from "../../../lib/report/severityBucket";
 import { headers } from "next/headers";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -397,46 +398,12 @@ function isReportDefect(finding: any) {
   return true;
 }
 
-function getSeverityBucket(severityValue: any) {
-  const severity = String(severityValue || "Recommended Repair").toLowerCase();
-
-  if (
-    severity.includes("safety") ||
-    severity.includes("hazard") ||
-    severity.includes("major")
-  ) {
-    return "safety";
-  }
-
-  if (severity.includes("repair") || severity.includes("defect")) {
-    return "repair";
-  }
-
-  if (
-    severity.includes("maintenance") ||
-    severity.includes("monitor") ||
-    severity.includes("minor")
-  ) {
-    return "maintenance";
-  }
-
-  if (
-    severity.includes("information") ||
-    severity.includes("info") ||
-    severity.includes("client")
-  ) {
-    return "information";
-  }
-
-  return "repair";
-}
-
 function buildDefectTotals(findings: any[]) {
   return (findings || [])
     .filter(isReportDefect)
     .reduce(
       (acc: Record<string, number>, finding: any) => {
-        const bucket = getSeverityBucket(finding.severity);
+        const bucket = severityBucket(finding.severity);
 
         if (bucket === "information") {
           acc.information += 1;
@@ -466,7 +433,7 @@ function buildDefectTotals(findings: any[]) {
 }
 
 function getSeverityClass(severityValue: any) {
-  const bucket = getSeverityBucket(severityValue);
+  const bucket = severityBucket(severityValue);
 
   if (bucket === "safety") {
     return "border-red-500/50 bg-red-500/15 text-[var(--fl-crit-text)]";
@@ -1958,7 +1925,7 @@ export default async function PublicSharePage({
       tone: "red" as const,
       findings: numberedFindings.filter(
         (finding: any) =>
-          isReportDefect(finding) && getSeverityBucket(finding.severity) === "safety"
+          isReportDefect(finding) && severityBucket(finding.severity) === "safety"
       ),
     },
     {
@@ -1968,7 +1935,7 @@ export default async function PublicSharePage({
       tone: "teal" as const,
       findings: numberedFindings.filter(
         (finding: any) =>
-          isReportDefect(finding) && getSeverityBucket(finding.severity) === "repair"
+          isReportDefect(finding) && severityBucket(finding.severity) === "repair"
       ),
     },
     {
@@ -1978,7 +1945,7 @@ export default async function PublicSharePage({
       tone: "yellow" as const,
       findings: numberedFindings.filter(
         (finding: any) =>
-          isReportDefect(finding) && getSeverityBucket(finding.severity) === "maintenance"
+          isReportDefect(finding) && severityBucket(finding.severity) === "maintenance"
       ),
     },
     {
@@ -1988,7 +1955,7 @@ export default async function PublicSharePage({
       tone: "blue" as const,
       findings: numberedFindings.filter(
         (finding: any) =>
-          isReportDefect(finding) && getSeverityBucket(finding.severity) === "information"
+          isReportDefect(finding) && severityBucket(finding.severity) === "information"
       ),
     },
   ].filter((group) => group.findings.length > 0);
@@ -1998,10 +1965,10 @@ export default async function PublicSharePage({
   // initial state, from a ?defect_filter deep-link.
   const displayFindings = numberedFindings;
 
-  // getSeverityBucket already returns the slug ("safety" | "repair" |
+  // severityBucket already returns the slug ("safety" | "repair" |
   // "maintenance" | "information") the filter chips use, so this is a passthrough
   // that keeps data-sev exactly aligned with the badge each finding displays.
-  const findingSeveritySlug = (finding: any) => getSeverityBucket(finding.severity);
+  const findingSeveritySlug = (finding: any) => severityBucket(finding.severity);
   const severityFilterCounts: Record<string, number> = {
     all: 0, safety: 0, repair: 0, maintenance: 0, information: 0,
   };
