@@ -11,6 +11,7 @@ import {
   hasMoldService,
   getReportTitle,
 } from "../../../lib/environmental/service";
+import { classifyRadon, radonSummary } from "../../../lib/environmental/radon";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -96,31 +97,7 @@ function getPropertyPhoto(inspection: any) {
   );
 }
 
-function classifyRadon(average: any) {
-  const value = getNumber(average);
 
-  if (!value) return "Pending";
-  if (value >= 4) return "Action Recommended";
-  if (value >= 2) return "Monitor";
-
-  return "Low";
-}
-
-function radonSummary(average: any) {
-  const value = getNumber(average);
-
-  if (!value) return "Radon test results have not been entered yet.";
-
-  if (value >= 4) {
-    return `The average radon concentration measured during the testing period was ${value} pCi/L. This is at or above the EPA action level of 4.0 pCi/L. Mitigation by a qualified radon contractor is recommended.`;
-  }
-
-  if (value >= 2) {
-    return `The average radon concentration measured during the testing period was ${value} pCi/L. This is below the EPA action level of 4.0 pCi/L but above 2.0 pCi/L. Continued monitoring or consultation may be considered.`;
-  }
-
-  return `The average radon concentration measured during the testing period was ${value} pCi/L. This is below the EPA action level of 4.0 pCi/L.`;
-}
 
 function moldSummary(test: any, inspection: any) {
   const airSamples =
