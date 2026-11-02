@@ -92,6 +92,32 @@ exports[`report golden master (logic layer) > computes a stable snapshot across 
       "value": "",
     },
   ],
+  "findingFields": [
+    {
+      "group": "Roof",
+      "title": "Roof covering past service life",
+    },
+    {
+      "group": "HVAC",
+      "title": "Cracked heat exchanger",
+    },
+    {
+      "group": "Electrical",
+      "title": "GFCI protection missing",
+    },
+    {
+      "group": "Stairs",
+      "title": "Loose stair railing",
+    },
+    {
+      "group": "Interior",
+      "title": "Imported-style numbered title",
+    },
+    {
+      "group": "General",
+      "title": "Untitled Finding",
+    },
+  ],
   "radon": [
     {
       "avg": 0,
