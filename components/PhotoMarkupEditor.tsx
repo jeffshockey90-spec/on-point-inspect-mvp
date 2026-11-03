@@ -167,6 +167,10 @@ function PhotoMarkupEditor({
   const [activeColor, setActiveColor] = useState(() =>
     getSeverityColor(severity)
   );
+  // The color palette is collapsed by default and tucked in the corner so it
+  // never sits on top of the photo while you're marking it. Tap the swatch to
+  // open it, pick a color and it closes again; starting a mark also closes it.
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
@@ -367,6 +371,9 @@ function PhotoMarkupEditor({
 
     stopPageGesture(event);
 
+    // Touching the photo to mark it closes the palette so it's never in the way.
+    if (paletteOpen) setPaletteOpen(false);
+
     const stage = event.target.getStage();
     const pos = getPointerPosition(stage);
     if (!pos) return;
@@ -526,6 +533,7 @@ function PhotoMarkupEditor({
 
   function changeActiveColor(color: string) {
     setActiveColor(color);
+    setPaletteOpen(false);
 
     if (!selectedId || saving) return;
 
@@ -902,22 +910,44 @@ function PhotoMarkupEditor({
           </Layer>
         </Stage>
 
-        <div className="absolute right-4 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-3 rounded-2xl bg-[var(--fl-surface-2)] p-2 backdrop-blur">
-          {COLOR_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => changeActiveColor(option)}
-              disabled={saving}
-              className={`h-12 w-12 rounded-xl border-2 transition active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
-                activeColor === option
-                  ? "scale-105 border-white"
-                  : "border-black/50"
-              }`}
-              style={{ backgroundColor: option }}
-              title={option}
-            />
-          ))}
+        {/* Collapsible color palette — tucked in the top-right corner and closed
+            by default so it never covers the photo while you mark it. Tap the
+            swatch to open; picking a color (or starting a mark) closes it. */}
+        <div className="absolute right-3 top-3 z-20 flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={() => setPaletteOpen((open) => !open)}
+            disabled={saving}
+            aria-label={paletteOpen ? "Close color palette" : "Choose marker color"}
+            aria-expanded={paletteOpen}
+            title="Marker color"
+            className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white/80 shadow-lg ring-2 ring-black/30 transition active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+            style={{ backgroundColor: activeColor }}
+          >
+            <span className="text-base font-bold leading-none text-white drop-shadow-md">
+              {paletteOpen ? "✕" : "🎨"}
+            </span>
+          </button>
+
+          {paletteOpen && (
+            <div className="flex max-h-[62vh] flex-col gap-2 overflow-auto rounded-2xl bg-[var(--fl-surface-2)]/95 p-2 shadow-xl backdrop-blur">
+              {COLOR_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => changeActiveColor(option)}
+                  disabled={saving}
+                  className={`h-11 w-11 rounded-xl border-2 transition active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation] ${
+                    activeColor === option
+                      ? "scale-105 border-white"
+                      : "border-black/50"
+                  }`}
+                  style={{ backgroundColor: option }}
+                  title={option}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
