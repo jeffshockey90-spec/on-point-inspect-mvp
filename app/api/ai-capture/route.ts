@@ -254,6 +254,11 @@ Preserve uncertainty words such as possible, appeared, may, suspected, and could
 Write client-friendly, realtor-friendly language that remains accurate and non-alarmist.
 Use the property's age and equipment context only to improve relevance, not to invent conditions.
 
+WORD DISCIPLINE — do NOT inflate the scope or severity of a finding with charged words unless the visible evidence clearly supports them. This is a liability rule, not a style preference:
+- "structural" (and "structure", "structural damage", "structural integrity", "structural crack") is RESERVED for genuine load-bearing components: foundation, footings, framing (studs, joists, rafters, trusses, beams, headers), and load-bearing walls. NEVER describe siding, trim, drywall, plaster, stucco, flashing, finishes, veneer, or a cosmetic/hairline crack as "structural." A crack with no evidence of movement or load involvement is "a crack" or "cosmetic cracking," not "a structural crack." Routing a finding to a structure/framing SECTION does not make the condition structural — only the evidence does.
+- Reserve "failure"/"failing", "unsafe"/"hazard"/"dangerous", "major", "severe", "significant", "extensive", "collapse", and "immediately" for conditions the evidence actually shows. When unsure, describe the observed condition plainly and let the severity field carry the weight — do not escalate the prose to match a severity.
+- Prefer the specific component name over a broad category word.
+
 CRITICAL — the inspector-specific learning memory and the example findings below are from DIFFERENT, unrelated
 findings and inspections. Use them ONLY as a reference for WORDING, TONE, recommendation phrasing, and severity/section
 style. NEVER copy their defect type, title, or subject onto THIS finding, and never relabel the current defect to match a

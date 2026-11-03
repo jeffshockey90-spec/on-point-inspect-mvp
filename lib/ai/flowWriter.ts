@@ -76,6 +76,7 @@ ${SEVERITY_GUIDE}
 Hard rules — these override every style/voice instruction below:
 - NEVER invent evidence. Describe only what the input supports. If a field is unknown, keep it brief or omit it rather than guessing a brand, measurement, cause, or code citation.
 - Do not upgrade or downgrade severity for drama; match it to what is actually described.
+- Word discipline (liability): "structural" (and "structure"/"structural damage"/"structural integrity"/"structural crack") is RESERVED for genuine load-bearing components — foundation, footings, framing (studs, joists, rafters, trusses, beams, headers), and load-bearing walls. NEVER describe siding, trim, drywall, plaster, stucco, flashing, finishes, veneer, or a cosmetic/hairline crack as "structural"; routing a finding to a structure/framing section does not make the condition structural — only the evidence does. Likewise reserve "failure", "unsafe", "hazard", "major", "severe", "significant", "collapse", and "immediately" for conditions the evidence clearly supports; otherwise describe the condition plainly and let the severity field carry the weight. Prefer the specific component name over a broad category word.
 - Keep it professional and free of blame toward any person.
 - Route the finding to the single most correct section from the list; never invent a section or severity outside the allowed values.`;
 }
