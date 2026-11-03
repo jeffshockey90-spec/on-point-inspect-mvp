@@ -142,30 +142,40 @@ export default function ReportBuilderLiveCamera({
     await Promise.all(
       files.map((file) => uploadFindingMediaFile(inspectionId, String(findingId), file)),
     );
-    if (draft) {
-      try {
-        await fetch("/api/findings/combine-capture", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            inspectionId,
-            findingId,
-            newFinding: {
-              title: draft.title || "",
-              section: draft.section || "",
-              severity: draft.severity || "",
-              observation: draft.observation || "",
-              implication: draft.implication || "",
-              recommendation: draft.recommendation || "",
-              location: draft.location || "",
-            },
-          }),
-        });
-      } catch {
-        /* photos are attached; the AI rewrite is best-effort */
-      }
-    }
+    // Photos are attached and durable — surface the combine right away so the
+    // inspector can keep capturing instead of waiting on the merge. The AI
+    // rewrite that fuses both write-ups is the slow part; run it in the
+    // BACKGROUND (same as the builder's Combine Defects and the async-draft
+    // flow) and refresh again when it lands, rather than holding the camera on a
+    // spinner through the LLM call.
     notifyChanged();
+    if (draft) {
+      void fetch("/api/findings/combine-capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId,
+          findingId,
+          newFinding: {
+            title: draft.title || "",
+            section: draft.section || "",
+            severity: draft.severity || "",
+            observation: draft.observation || "",
+            implication: draft.implication || "",
+            recommendation: draft.recommendation || "",
+            location: draft.location || "",
+          },
+        }),
+      })
+        .then((res) => {
+          // The merged write-up changed the finding's text — refresh so the
+          // builder shows the rewrite once it lands.
+          if (res.ok) notifyChanged();
+        })
+        .catch(() => {
+          /* photos are attached; the AI rewrite is best-effort */
+        });
+    }
   }
 
   // Closing the camera: send any un-approved background drafts to the builder's
