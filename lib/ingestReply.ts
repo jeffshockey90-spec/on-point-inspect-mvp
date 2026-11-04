@@ -36,16 +36,31 @@ async function matchInspection(admin: any, fromEmail: string) {
   return data || null;
 }
 
+// Build the push body. Prefer the snippet (what they actually just said, with
+// the quoted "On ... wrote:" history already stripped) over the subject — on a
+// reply the subject is the ORIGINAL thread's subject, so showing it makes a
+// brand-new message look like the old email it replied to. Subject is only a
+// fallback for messages with no readable body text.
+export function buildReplyPushBody(reply: {
+  subject: string;
+  snippet: string;
+  address: string;
+}) {
+  const where = reply.address ? ` · ${reply.address}` : "";
+  const cleanSubject = reply.subject ? reply.subject.replace(/^\s*(re:\s*)+/i, "").trim() : "";
+  const message = reply.snippet?.trim() || cleanSubject || "New message";
+  return `${message}${where}`.slice(0, 140);
+}
+
 async function notifyOwners(reply: {
   fromName: string;
   fromEmail: string;
   subject: string;
+  snippet: string;
   address: string;
 }) {
   const who = reply.fromName || reply.fromEmail || "Someone";
-  const where = reply.address ? ` · ${reply.address}` : "";
-  const cleanSubject = reply.subject ? reply.subject.replace(/^\s*(re:\s*)+/i, "") : "New message";
-  const body = `${cleanSubject}${where}`.slice(0, 140);
+  const body = buildReplyPushBody(reply);
 
   const results: any[] = [];
   for (const email of OWNER_EMAILS) {
@@ -109,6 +124,7 @@ export async function ingestReply(admin: any, m: InboundMessage) {
     fromName: m.fromName,
     fromEmail: m.fromEmail,
     subject: m.subject,
+    snippet: m.snippet,
     address,
   });
 
