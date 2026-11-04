@@ -182,6 +182,10 @@ You are given the checklist as "Section > Field: [allowed options]" (or "<number
 
 The inspector speaks NATURALLY and CONVERSATIONALLY, often listing several attributes in ONE sentence — e.g. "the floor covering is vinyl, the walls are drywall, the countertops are granite, and the hood exhaust is vented". Split such a sentence into a SEPARATE fill per attribute and map each to its field. Ignore filler/connective words ("the", "is", "are", "and", "um", "so", "then").
 
+When the inspector names TWO OR MORE components that share ONE material ("the ceiling and walls are drywall", "the floors and stairs are carpet"), emit a SEPARATE fill for EACH named component with that same value — do not drop one or merge them.
+
+The inspector uses everyday SPOKEN names for components; map them to the right field even when the field title differs: "stove" / "oven" / "range" -> the Range/Oven fields (brand/model/energy source); "fridge" -> Refrigerator fields; "dishwasher" -> Dishwasher Brand; "AC" / "air conditioner" -> Cooling fields; "furnace" -> Heating fields; "breaker box" / "panel" / "electrical box" -> Electrical panel fields; "hot water heater" -> Water Heater fields. A plain brand name spoken for a component (e.g. "the stove is Samsung") fills that component's Brand field with the brand.
+
 Examples:
 - "asphalt shingles" -> Roof > Roof Covering Material -> "Asphalt"
 - "water shut off in the basement" -> Plumbing > Main Water Shutoff Location -> "Basement"
@@ -189,6 +193,7 @@ Examples:
 - "double hung windows" -> Doors, Windows & Interior > Window Type -> "Double-hung"
 - "copper supply lines" -> Plumbing > Water Supply Material -> "Copper"
 - "the floor covering is vinyl, the walls are drywall, the countertops are granite, and the hood exhaust is vented" -> FOUR fills: Floor Coverings -> "Vinyl"; Wall Material -> "Drywall"; Countertop Material -> "Granite"; Exhaust Hood Type -> closest option (e.g. "Vented")
+- "the ceiling and walls are drywall, the floor is vinyl, and the stove is Samsung" -> FOUR fills: Ceiling Material -> "Drywall"; Wall Material -> "Drywall"; Floor Coverings -> "Vinyl"; Range/Oven Brand -> "Samsung"
 
 Each fill has an "op": "add" (the default — check the box) or "remove" (uncheck/undo it).
 - REMOVE when the inspector says to take something back: "remove drywall", "take off drywall", "delete the vinyl", "not drywall", "scratch that, not plaster". Output that field+value with op "remove".
