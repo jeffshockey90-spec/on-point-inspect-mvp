@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { refreshKeepScroll } from "../lib/refreshKeepScroll";
 import { matchesInspectionEvent } from "../lib/inspectionEvents";
+import { flowConfirm } from "./ConfirmProvider";
 
 const SECTIONS = [
   "Inspection Details",
@@ -183,6 +184,71 @@ export default function LimitationEquipmentReview({
     }
   }
 
+  // Discard = permanently delete the review-queue item (it was never in the
+  // report). Confirmed first, mirrors the findings queue's Discard. The server
+  // only deletes items still awaiting review, so it can't touch approved work.
+  async function discardLimitation(id: string) {
+    if (busyId) return;
+    const confirmed = await flowConfirm({
+      title: "Discard this limitation?",
+      message: "This permanently deletes the captured limitation. It was never in the report or any client copy.",
+      confirmText: "Discard",
+    });
+    if (!confirmed) return;
+    setBusyId(`lim-discard:${id}`);
+    setError("");
+    try {
+      const res = await fetch("/api/limitations/discard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, limitationId: id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.error || "Could not discard that limitation.");
+        return;
+      }
+      setLimitations((cur) => cur.filter((l) => String(l.id) !== String(id)));
+      emitDraftQueueChanged();
+      refreshKeepScroll(router);
+    } catch (err: any) {
+      setError(err?.message || "Could not discard that limitation.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function discardEquipment(id: string) {
+    if (busyId) return;
+    const confirmed = await flowConfirm({
+      title: "Discard this equipment?",
+      message: "This permanently deletes the captured equipment. It was never in the report or any client copy.",
+      confirmText: "Discard",
+    });
+    if (!confirmed) return;
+    setBusyId(`eq-discard:${id}`);
+    setError("");
+    try {
+      const res = await fetch("/api/equipment/discard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId, equipmentId: id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.error || "Could not discard that equipment.");
+        return;
+      }
+      setEquipment((cur) => cur.filter((e) => String(e.id) !== String(id)));
+      emitDraftQueueChanged();
+      refreshKeepScroll(router);
+    } catch (err: any) {
+      setError(err?.message || "Could not discard that equipment.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
   async function approveAll() {
     if (approvingAll) return;
     setApprovingAll(true);
@@ -309,7 +375,9 @@ export default function LimitationEquipmentReview({
               photoUrl={firstPhotoUrl(limPhotos[lim.id] || [])}
               sectionOptions={sectionOptions}
               busy={busyId === `lim:${lim.id}`}
+              discarding={busyId === `lim-discard:${lim.id}`}
               onApprove={approveLimitation}
+              onDiscard={discardLimitation}
             />
           ))}
 
@@ -318,7 +386,9 @@ export default function LimitationEquipmentReview({
               key={`eq-${eq.id}`}
               eq={eq}
               busy={busyId === `eq:${eq.id}`}
+              discarding={busyId === `eq-discard:${eq.id}`}
               onApprove={approveEquipment}
+              onDiscard={discardEquipment}
             />
           ))}
         </div>
@@ -332,13 +402,17 @@ function LimitationReviewCard({
   photoUrl,
   sectionOptions,
   busy,
+  discarding,
   onApprove,
+  onDiscard,
 }: {
   lim: any;
   photoUrl: string;
   sectionOptions: string[];
   busy: boolean;
+  discarding: boolean;
   onApprove: (id: string, section?: string) => void;
+  onDiscard: (id: string) => void;
 }) {
   const [section, setSection] = useState<string>(lim.section || "Exterior");
   const body = String(lim.limitation_comment || lim.ai_notes || lim.custom_text || "").trim();
@@ -385,13 +459,24 @@ function LimitationReviewCard({
         <button
           type="button"
           onClick={() => onApprove(String(lim.id), section)}
-          disabled={busy}
+          disabled={busy || discarding}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-semibold text-white transition active:scale-[0.98] hover:bg-emerald-400 disabled:opacity-60 [touch-action:manipulation] sm:ml-auto"
         >
           {busy && (
             <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
           )}
           {busy ? "Approving..." : "Approve"}
+        </button>
+        <button
+          type="button"
+          onClick={() => onDiscard(String(lim.id))}
+          disabled={busy || discarding}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/60 px-4 py-2.5 text-xs font-semibold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 disabled:opacity-60 [touch-action:manipulation]"
+        >
+          {discarding && (
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          )}
+          {discarding ? "Discarding..." : "Discard"}
         </button>
       </div>
     </div>
@@ -401,11 +486,15 @@ function LimitationReviewCard({
 function EquipmentReviewCard({
   eq,
   busy,
+  discarding,
   onApprove,
+  onDiscard,
 }: {
   eq: any;
   busy: boolean;
+  discarding: boolean;
   onApprove: (id: string) => void;
+  onDiscard: (id: string) => void;
 }) {
   const title = [eq.manufacturer, eq.equipment_type].filter(Boolean).join(" ").trim() || "Equipment";
   const meta = [
@@ -439,17 +528,30 @@ function EquipmentReviewCard({
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => onApprove(String(eq.id))}
-          disabled={busy}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-semibold text-white transition active:scale-[0.98] hover:bg-emerald-400 disabled:opacity-60 [touch-action:manipulation]"
-        >
-          {busy && (
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          )}
-          {busy ? "Approving..." : "Approve"}
-        </button>
+        <div className="flex shrink-0 flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => onApprove(String(eq.id))}
+            disabled={busy || discarding}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-semibold text-white transition active:scale-[0.98] hover:bg-emerald-400 disabled:opacity-60 [touch-action:manipulation]"
+          >
+            {busy && (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            {busy ? "Approving..." : "Approve"}
+          </button>
+          <button
+            type="button"
+            onClick={() => onDiscard(String(eq.id))}
+            disabled={busy || discarding}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/60 px-4 py-2.5 text-xs font-semibold text-[var(--fl-crit-text)] transition active:scale-[0.98] hover:bg-red-500/10 disabled:opacity-60 [touch-action:manipulation]"
+          >
+            {discarding && (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            {discarding ? "Discarding..." : "Discard"}
+          </button>
+        </div>
       </div>
     </div>
   );
