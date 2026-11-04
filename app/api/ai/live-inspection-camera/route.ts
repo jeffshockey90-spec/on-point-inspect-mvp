@@ -840,7 +840,11 @@ If mode is "live_watch":
       images: [image],
       temperature: isLiveWatch ? 0.05 : 0.1,
       responseFormat: "json_object",
-      fast: true,
+      // The continuous "live watch" stream stays on the fast model (fires
+      // repeatedly — latency and cost matter). The deliberate Analyze pass is
+      // a one-shot capture the inspector asked to analyze, so give it the smart
+      // model for report-builder-quality defect depiction.
+      fast: isLiveWatch,
     });
 
     const parsed = safeJsonParse(brainResult.text || "{}");
