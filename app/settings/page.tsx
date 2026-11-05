@@ -534,6 +534,20 @@ export default async function SettingsPage({
       /* locale / common-ground columns may not exist yet */
     }
 
+    // DIY fix-it toggle in its OWN best-effort update so a not-yet-applied
+    // add-diy-fixit.sql migration can't 400 the locale save above with it.
+    try {
+      const { error: diyError } = await supabase
+        .from("companies")
+        .update({ show_diy_fixit: String(formData.get("show_diy_fixit") || "") === "on" })
+        .eq("id", company.id);
+      if (diyError) {
+        /* column not migrated yet — ignore */
+      }
+    } catch {
+      /* show_diy_fixit column may not exist yet */
+    }
+
     if (w9DocumentChanged && w9DocumentUrl) {
       await supabase.from("w9_documents").insert({
         company_id: company.id,
@@ -1191,6 +1205,22 @@ export default async function SettingsPage({
                   name="show_common_ground_costs"
                   defaultChecked={company.show_common_ground_costs === true}
                   ariaLabel="Show cost estimates to the client in Common Ground"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 md:col-span-2">
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-bold leading-6 text-[var(--fl-text)] sm:text-base">
+                    Show <span className="text-[var(--fl-accent-text)]">DIY fix-it</span> kits in the homeowner hub
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
+                    Off by default — for a curated set of homeowner-safe findings (caulk, weatherstripping, a running toilet, air filters, and the like), the maintenance hub shows the materials, tools, and a rough supply cost. Anything electrical, gas, structural, roof, or flagged a safety/major concern is never included.
+                  </p>
+                </div>
+                <SettingsToggle
+                  name="show_diy_fixit"
+                  defaultChecked={company.show_diy_fixit === true}
+                  ariaLabel="Show DIY fix-it kits in the homeowner hub"
                 />
               </div>
             </div>
