@@ -8,6 +8,7 @@ import {
   buildMaintenancePlan,
   type EquipmentRow,
 } from "../../../lib/homeMaintenance";
+import { buildDiyFixIts, type DiyFixIt } from "../../../lib/diyFixIt";
 import { isReportViewReload } from "../../../lib/reportViewThrottle";
 import { sendPushNotification } from "../../../lib/push";
 import ReportLanguageSwitcher from "../../../components/ReportLanguageSwitcher";
@@ -185,8 +186,10 @@ export default async function HomeownerPortal({
       .limit(400),
     inspection.company_id
       ? admin
+          // select * so a not-yet-migrated column (e.g. show_diy_fixit) can't
+          // 400 the row and drop the company name/language with it.
           .from("companies")
-          .select("name, display_name, preferred_language")
+          .select("*")
           .eq("id", inspection.company_id)
           .maybeSingle()
       : Promise.resolve({ data: null } as any),
@@ -206,6 +209,22 @@ export default async function HomeownerPortal({
     .map((f) => clean(f.title))
     .filter(Boolean)
     .slice(0, 6);
+
+  // Optional, off by default: homeowner "weekend fix" kits for a curated set of
+  // DIY-safe findings. The builder itself enforces the safety vetoes.
+  const diyEnabled = Boolean(company?.show_diy_fixit);
+  const diyFixIts: DiyFixIt[] = diyEnabled ? buildDiyFixIts(findings) : [];
+  // Fixed labels for the DIY section, translated through the same data path.
+  const DIY_LABELS = {
+    heading: "Things you can tackle yourself",
+    intro:
+      "A few items from your report are common do-it-yourself fixes. Here's roughly what you'd need from the hardware store. These are optional, homeowner-level jobs — if anything feels beyond your comfort, or you find something unexpected once you open it up, call a pro.",
+    materials: "Materials",
+    tools: "Tools",
+    time: "Time",
+    supplyCost: "Rough supply cost",
+    whatToKnow: "Good to know",
+  };
 
   const address =
     clean(inspection.property_address) || clean(inspection.address) || "Your Home";
@@ -237,6 +256,12 @@ export default async function HomeownerPortal({
       );
     }
     sources.push(...safetyItems);
+    if (diyFixIts.length) {
+      sources.push(...Object.values(DIY_LABELS));
+      for (const kit of diyFixIts) {
+        sources.push(kit.task, kit.difficulty, kit.timeEstimate, kit.note, ...kit.materials, ...kit.tools);
+      }
+    }
 
     try {
       const tmap = await getReportTranslations(
@@ -438,6 +463,59 @@ export default async function HomeownerPortal({
             >
               {tc("Open the full report")} →
             </Link>
+          </section>
+        )}
+
+        {/* DIY weekend fixes (optional, company toggle, safety-vetoed) */}
+        {diyFixIts.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{te(DIY_LABELS.heading)}</h2>
+            <p className="text-sm text-[var(--fl-muted)]">{te(DIY_LABELS.intro)}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {diyFixIts.map((kit, i) => (
+                <div key={i} className="flex flex-col rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-semibold text-[var(--fl-text)]">{te(kit.task)}</p>
+                    <span
+                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                        kit.difficulty === "Easy"
+                          ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                          : "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]"
+                      }`}
+                    >
+                      {te(kit.difficulty)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--fl-muted)]">
+                    <span>
+                      <span className="font-semibold text-[var(--fl-text)]">{te(DIY_LABELS.time)}:</span> {te(kit.timeEstimate)}
+                    </span>
+                    <span>
+                      <span className="font-semibold text-[var(--fl-text)]">{te(DIY_LABELS.supplyCost)}:</span> ${kit.costLow}–${kit.costHigh}
+                    </span>
+                  </div>
+                  <div className="mt-3 border-t border-[var(--fl-raised)] pt-3 text-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">{te(DIY_LABELS.materials)}</p>
+                    <ul className="mt-1 space-y-1 text-[var(--fl-muted)]">
+                      {kit.materials.map((m, j) => (
+                        <li key={j} className="flex items-start gap-2">
+                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--fl-accent-text)]" />
+                          {te(m)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-3 text-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">{te(DIY_LABELS.tools)}</p>
+                    <p className="mt-1 text-[var(--fl-muted)]">{kit.tools.map((x) => te(x)).join(" · ")}</p>
+                  </div>
+                  <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-[var(--fl-warn-text)]">
+                    <span className="font-semibold">{te(DIY_LABELS.whatToKnow)}: </span>
+                    {te(kit.note)}
+                  </p>
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
