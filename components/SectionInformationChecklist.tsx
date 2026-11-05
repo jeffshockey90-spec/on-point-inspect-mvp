@@ -78,7 +78,6 @@ function SectionInformationChecklist({
   // already open (those write from a separate view and don't refresh the page).
   const [reloadKey, setReloadKey] = useState(0);
   const [optionOverrides, setOptionOverrides] = useState<OptionOverride[]>([]);
-  const [otherTextByGroup, setOtherTextByGroup] = useState<Record<string, string>>({});
   const [textValueByGroup, setTextValueByGroup] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [editingOption, setEditingOption] = useState<{ groupTitle: string; optionLabel: string; nextLabel: string } | null>(null);
@@ -449,27 +448,6 @@ function SectionInformationChecklist({
     }
   }
 
-  async function addOther(groupTitle: string) {
-    const clean = (otherTextByGroup[groupTitle] || "").trim();
-    if (!clean || saving) return;
-    setSaving(true);
-
-    try {
-      const { data, error } = await supabase
-        .from("section_checklist_selections")
-        .insert({ inspection_id: inspectionId, section, group_title: groupTitle, value: "OTHER", custom_text: clean })
-        .select("*")
-        .single();
-      if (error) throw error;
-      if (data) setSelections((prev) => [...prev, data]);
-      setOtherTextByGroup((prev) => ({ ...prev, [groupTitle]: "" }));
-    } catch (error: any) {
-      showMessage("error", error?.message || "Failed to add OTHER item.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function removeSelection(id: string) {
     if (saving) return;
     setSaving(true);
@@ -722,7 +700,6 @@ function SectionInformationChecklist({
           {baseGroups.map((group) => {
             const options = getGroupOptions(group);
             const textValue = textValueByGroup[group.title] || "";
-            const otherRows = selections.filter((item) => item.group_title === group.title && item.value === "OTHER");
 
             return (
               <div key={group.title} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
@@ -795,40 +772,6 @@ function SectionInformationChecklist({
                       onDelete={() => deleteOption(group.title, option)}
                     />
                   ))}
-                </div>
-
-                <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">+ OTHER</p>
-                  <div className="flex flex-col gap-2 md:flex-row">
-                    <input
-                      value={otherTextByGroup[group.title] || ""}
-                      onChange={(event) => setOtherTextByGroup((prev) => ({ ...prev, [group.title]: event.target.value }))}
-                      placeholder="Add custom item..."
-                      className="min-w-0 flex-1 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-[var(--fl-text)] outline-none focus:border-teal-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => addOther(group.title)}
-                      disabled={saving || !(otherTextByGroup[group.title] || "").trim()}
-                      className="rounded-lg border border-teal-500 px-4 py-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  {otherRows.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {otherRows.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => removeSelection(item.id)}
-                          className="rounded-full border border-yellow-500/60 bg-yellow-500/10 px-3 py-1 text-xs font-bold text-[var(--fl-warn-text)] hover:bg-yellow-500/20"
-                        >
-                          {item.custom_text} ×
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             );
