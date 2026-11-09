@@ -7,6 +7,7 @@ import {
   unauthorized,
 } from "../../../lib/apiAuth";
 import { pickLatestSentAtByContact } from "../../../lib/agreementContactStatus";
+import { syncPrimaryContactsToInspection } from "../../../lib/syncInspectionContacts";
 
 const supabaseAdmin = getAdminClient();
 
@@ -161,6 +162,10 @@ export async function POST(req: Request) {
 
     if (error) throw error;
 
+    // Mirror the primary client/realtor into the inspection record so what the
+    // inspector entered here applies everywhere (emails, texts, invoices, etc.).
+    await syncPrimaryContactsToInspection(supabaseAdmin, inspection.id);
+
     return NextResponse.json({
       contact: data,
     });
@@ -215,6 +220,9 @@ export async function PATCH(req: Request) {
 
     if (error) throw error;
 
+    // Keep the inspection record in lockstep with the edited contact.
+    await syncPrimaryContactsToInspection(supabaseAdmin, check.contact.inspection_id);
+
     return NextResponse.json({
       contact: data,
     });
@@ -250,6 +258,10 @@ export async function DELETE(req: Request) {
       .eq("id", id);
 
     if (error) throw error;
+
+    // A removed client/realtor should re-point the inspection record to whoever
+    // remains the primary (or clear nothing if another still holds the role).
+    await syncPrimaryContactsToInspection(supabaseAdmin, check.contact.inspection_id);
 
     return NextResponse.json({
       ok: true,

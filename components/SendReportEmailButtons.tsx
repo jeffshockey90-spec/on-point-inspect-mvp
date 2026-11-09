@@ -46,6 +46,8 @@ export default function SendReportEmailButtons({
   // Recipient picker: which contact emails are ticked, and whether it's open.
   const [showPicker, setShowPicker] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  // Delivery channel the inspector picked: email, text, or both.
+  const [channel, setChannel] = useState<"both" | "email" | "sms">("both");
 
   useEffect(() => {
     async function loadContacts() {
@@ -181,12 +183,20 @@ export default function SendReportEmailButtons({
       return;
     }
 
-    if (type !== "all" && type !== "selected" && !email) {
+    // A custom one-off recipient is always email-only (no phone to text).
+    if (type === "custom" && !email) {
       showNotice("error", "No email address entered.");
       return;
     }
 
-    if (type === "all" && !hasAnyKnownRecipient) {
+    // Email/both need an address on file; a text-only send rides on the phone,
+    // so don't block it for a missing email.
+    if ((type === "client" || type === "realtor") && channel !== "sms" && !email) {
+      showNotice("error", "No email address entered.");
+      return;
+    }
+
+    if (type === "all" && channel !== "sms" && !hasAnyKnownRecipient) {
       showNotice("error", "No client or realtor email found.");
       return;
     }
@@ -203,6 +213,7 @@ export default function SendReportEmailButtons({
       const payload: Record<string, any> = {
         inspectionId,
         recipientType: type,
+        channel,
       };
 
       if (type === "custom") {
@@ -267,37 +278,68 @@ export default function SendReportEmailButtons({
     );
   }
 
+  const channelOptions: Array<{ value: "both" | "email" | "sms"; label: string }> = [
+    { value: "email", label: "Email" },
+    { value: "sms", label: "Text" },
+    { value: "both", label: "Both" },
+  ];
+
   return (
     <div className="w-full max-w-full overflow-hidden">
+      {/* How to deliver: email, text, or both. Applies to every send button below. */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+          Send by
+        </span>
+        <div className="inline-flex rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-0.5">
+          {channelOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setChannel(option.value)}
+              disabled={sending !== null}
+              aria-pressed={channel === option.value}
+              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition [touch-action:manipulation] disabled:opacity-50 ${
+                channel === option.value
+                  ? "bg-cyan-500/20 text-[var(--fl-info-text)]"
+                  : "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex w-full max-w-full flex-col gap-3 overflow-hidden sm:flex-row sm:flex-wrap sm:items-center">
         <button
           type="button"
           onClick={() => sendEmail("client")}
-          disabled={sending !== null || !finalClientEmail}
+          disabled={sending !== null || (channel !== "sms" && !finalClientEmail)}
           aria-busy={sending === "client"}
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-teal-400 sm:w-auto [touch-action:manipulation]"
           title={finalClientEmail || "No client email found"}
         >
           <Spinner active={sending === "client"} />
-          {getButtonText("client", "Email Client")}
+          {getButtonText("client", "Send to Client")}
         </button>
 
         <button
           type="button"
           onClick={() => sendEmail("realtor")}
-          disabled={sending !== null || !finalRealtorEmail}
+          disabled={sending !== null || (channel !== "sms" && !finalRealtorEmail)}
           aria-busy={sending === "realtor"}
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 px-5 py-3 font-bold text-[var(--fl-purple-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-purple-500/10 sm:w-auto [touch-action:manipulation]"
           title={finalRealtorEmail || "No realtor email found"}
         >
           <Spinner active={sending === "realtor"} />
-          {getButtonText("realtor", "Email Realtor")}
+          {getButtonText("realtor", "Send to Realtor")}
         </button>
 
         <button
           type="button"
           onClick={() => sendEmail("all")}
-          disabled={sending !== null || !hasAnyKnownRecipient}
+          disabled={sending !== null || (channel !== "sms" && !hasAnyKnownRecipient)}
           aria-busy={sending === "all"}
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500 bg-blue-500/10 px-5 py-3 font-bold text-[var(--fl-info-text)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 hover:bg-blue-500/20 sm:w-auto [touch-action:manipulation]"
           title={
