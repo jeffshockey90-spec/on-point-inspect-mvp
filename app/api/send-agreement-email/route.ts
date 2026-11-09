@@ -288,8 +288,17 @@ export async function POST(req: Request) {
     const user = await getSessionUser();
     if (!user) return unauthorized();
 
-    const { inspectionId, recipientType } = await req.json();
+    const { inspectionId, recipientType, channel: channelRaw } = await req.json();
     const sendToRealtor = String(recipientType || "client") === "realtor";
+
+    // Delivery channel: "email", "sms", or "both" (default). Lets the inspector
+    // resend an unsigned agreement by email, text, or both. Default stays "both"
+    // to preserve the prior behavior (email + best-effort text).
+    const channel = ["email", "sms", "both"].includes(String(channelRaw || "").toLowerCase())
+      ? String(channelRaw).toLowerCase()
+      : "both";
+    const wantEmail = channel !== "sms";
+    const wantSms = channel !== "email";
 
     if (!inspectionId) {
       return NextResponse.json(
@@ -625,7 +634,7 @@ ${branding.name}`,
             </div>
           `;
 
-      try {
+      if (wantEmail) try {
         const result = await resend.emails.send({
           from: fromEmail,
           to: email,
@@ -723,7 +732,7 @@ ${branding.name}`,
       // Best-effort SMS to this signer with their own signing link (requires a
       // phone on the contact + Twilio configured). Never blocks the email.
       const contactPhone = String(contact.phone || "").trim();
-      if (isSmsConfigured()) {
+      if (wantSms && isSmsConfigured()) {
         if (!contactPhone) {
           smsSkippedNoPhoneCount += 1;
         } else {
@@ -785,11 +794,18 @@ ${branding.name}`,
       failed: smsFailedCount,
     });
 
+    const message = wantEmail
+      ? `Agreement email sent to ${sent.length} client recipient${
+          sent.length === 1 ? "" : "s"
+        } with separate signing links${smsOutcome ? ` (${smsOutcome})` : ""}.`
+      : smsSentCount
+        ? `Agreement texted to ${smsSentCount} client recipient${smsSentCount === 1 ? "" : "s"}.`
+        : "No text was sent — no phone on file for a client signer, or texting isn't configured.";
+
     return NextResponse.json({
       success: true,
-      message: `Agreement email sent to ${sent.length} client recipient${
-        sent.length === 1 ? "" : "s"
-      } with separate signing links${smsOutcome ? ` (${smsOutcome})` : ""}.`,
+      message,
+      channel,
       sent,
       failed,
       smsSent: smsSentCount,

@@ -10,6 +10,8 @@ export default function SendAgreementButton({
   inspectionId: string;
 }) {
   const [sending, setSending] = useState<SendTarget | null>(null);
+  // Delivery channel for the client agreement send: email, text, or both.
+  const [channel, setChannel] = useState<"both" | "email" | "sms">("both");
   const [clientLabel, setClientLabel] = useState("Send Client Agreement");
   const [realtorLabel, setRealtorLabel] = useState("Send to Realtor to Forward");
   const [showRealtorOption, setShowRealtorOption] = useState(false);
@@ -36,6 +38,9 @@ export default function SendAgreementButton({
         body: JSON.stringify({
           inspectionId,
           recipientType: target,
+          // Channel applies to the direct-to-client send; the realtor-forward
+          // is always an email.
+          channel: target === "client" ? channel : "both",
         }),
       });
 
@@ -49,9 +54,11 @@ export default function SendAgreementButton({
         setClientLabel("Sent!");
         setMessage({
           type: "success",
-          text: `Sent ${
-            data.sent?.length || 0
-          } client agreement email(s). Realtors are not included on this send.`,
+          text:
+            data.message ||
+            `Sent ${
+              data.sent?.length || 0
+            } client agreement email(s). Realtors are not included on this send.`,
         });
       } else {
         setRealtorLabel("Sent!");
@@ -73,8 +80,39 @@ export default function SendAgreementButton({
     }
   }
 
+  const channelOptions: Array<{ value: "both" | "email" | "sms"; label: string }> = [
+    { value: "email", label: "Email" },
+    { value: "sms", label: "Text" },
+    { value: "both", label: "Both" },
+  ];
+
   return (
     <div className="flex flex-col items-start gap-2">
+      {/* How to deliver the client's agreement: email, text, or both. */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+          Send by
+        </span>
+        <div className="inline-flex rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-0.5">
+          {channelOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setChannel(option.value)}
+              disabled={sending !== null}
+              aria-pressed={channel === option.value}
+              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition [touch-action:manipulation] disabled:opacity-50 ${
+                channel === option.value
+                  ? "bg-emerald-500/20 text-[var(--fl-good-text)]"
+                  : "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={() => sendAgreement("client")}
