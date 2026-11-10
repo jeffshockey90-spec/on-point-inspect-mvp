@@ -43,6 +43,7 @@ const SETTINGS_TABS = [
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import NotificationSettings from "../../components/NotificationSettings";
 import AsyncDraftSetting from "../../components/AsyncDraftSetting";
+import IdentifySetting from "../../components/IdentifySetting";
 import CompassAutoSetting from "../../components/CompassAutoSetting";
 import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
@@ -988,6 +989,9 @@ export default async function SettingsPage({
             </div>
             <div className="mt-6 border-t border-[var(--fl-line)] pt-6">
               <AsyncDraftSetting />
+            </div>
+            <div className="mt-6 border-t border-[var(--fl-line)] pt-6">
+              <IdentifySetting />
             </div>
           </section>
 

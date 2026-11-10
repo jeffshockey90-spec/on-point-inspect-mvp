@@ -299,6 +299,11 @@ export default function AILiveInspectionCamera({
   const [identifyBusy, setIdentifyBusy] = useState(false);
   const [identifyError, setIdentifyError] = useState("");
 
+  // The background draft queue + "draft ready" popup are active when EITHER the
+  // async-draft beta or point-and-identify is on — identify feeds the same queue,
+  // so its drafts must still process and surface even if async-Analyze is off.
+  const draftQueueActive = Boolean(asyncDraftEnabled || identifyEnabled);
+
   // --- Async draft (beta): background generation + approval popup ---
   const [draftCounts, setDraftCounts] = useState<DraftCounts>({
     pending: 0,
@@ -1369,7 +1374,7 @@ export default function AILiveInspectionCamera({
   // whenever the beta is on. Also resumes generation on foreground/online (the
   // iOS WebView refires these when the app returns), so queued drafts never stall.
   useEffect(() => {
-    if (!asyncDraftEnabled || !selectedReport) return;
+    if (!draftQueueActive || !selectedReport) return;
     let active = true;
     const kick = () => {
       if (!active) return;
@@ -1397,7 +1402,7 @@ export default function AILiveInspectionCamera({
       window.clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asyncDraftEnabled, selectedReport]);
+  }, [draftQueueActive, selectedReport]);
 
   // Revoke any approval-preview object URLs on unmount.
   useEffect(() => () => revokeApprovePreviews(), []);
@@ -2876,7 +2881,7 @@ export default function AILiveInspectionCamera({
       {/* Async-draft (beta): a tappable "draft ready" popup over the live view,
           plus a quiet "drafting…" progress chip. Never interrupts the viewfinder —
           tap it when you're ready to review & approve. */}
-      {asyncDraftEnabled &&
+      {draftQueueActive &&
         !approvingDraft &&
         !(voiceFilled && voiceFilled.length > 0) &&
         stage !== "confirm" &&
@@ -3258,7 +3263,7 @@ export default function AILiveInspectionCamera({
                     }`}
                   >
                     {voiceBusy ? "…" : voiceListening ? "■" : "🎤"}
-                    {asyncDraftEnabled &&
+                    {draftQueueActive &&
                       draftCounts.generating + draftCounts.pending > 0 && (
                         <span
                           className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border border-white/20 bg-neutral-900 px-0.5"

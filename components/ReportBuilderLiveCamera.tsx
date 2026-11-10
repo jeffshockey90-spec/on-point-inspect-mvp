@@ -45,9 +45,10 @@ export default function ReportBuilderLiveCamera({
   const [open, setOpen] = useState(false);
   const [online, setOnlineState] = useState(true);
   // Beta flags, fetched lazily on first open (not on builder load).
-  const [flags, setFlags] = useState<{ async: boolean; compass: boolean }>({
+  const [flags, setFlags] = useState<{ async: boolean; compass: boolean; identify: boolean }>({
     async: false,
     compass: false,
+    identify: false,
   });
   const [flagsLoaded, setFlagsLoaded] = useState(false);
   // Existing findings in THIS report, so the camera can offer "Combine with an
@@ -88,28 +89,33 @@ export default function ReportBuilderLiveCamera({
     try {
       const a = window.localStorage.getItem("flow:asyncDraftEnabled");
       const c = window.localStorage.getItem("flow:compassAutoEnable");
-      if (a != null || c != null) {
+      const i = window.localStorage.getItem("flow:identifyEnabled");
+      if (a != null || c != null || i != null) {
         setFlags((prev) => ({
           async: a != null ? a === "1" : prev.async,
           compass: c != null ? c === "1" : prev.compass,
+          identify: i != null ? i === "1" : prev.identify,
         }));
       }
     } catch {
       /* ignore */
     }
     try {
-      const [a, c] = await Promise.all([
+      const [a, c, i] = await Promise.all([
         fetch("/api/settings/async-draft", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch("/api/settings/compass-auto", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch("/api/settings/identify", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       ]);
       // Only overwrite from a SUCCESSFUL response; a null (failed) fetch keeps cache.
       setFlags((prev) => ({
         async: a ? Boolean(a.enabled) : prev.async,
         compass: c ? Boolean(c.enabled) : prev.compass,
+        identify: i ? Boolean(i.enabled) : prev.identify,
       }));
       try {
         if (a) window.localStorage.setItem("flow:asyncDraftEnabled", a.enabled ? "1" : "0");
         if (c) window.localStorage.setItem("flow:compassAutoEnable", c.enabled ? "1" : "0");
+        if (i) window.localStorage.setItem("flow:identifyEnabled", i.enabled ? "1" : "0");
       } catch {
         /* ignore */
       }
@@ -334,7 +340,7 @@ export default function ReportBuilderLiveCamera({
         <AILiveInspectionCamera
           online={online}
           asyncDraftEnabled={flags.async}
-          identifyEnabled={flags.async}
+          identifyEnabled={flags.identify}
           compassAutoEnable={flags.compass}
           autoStart
           onClose={closeCamera}
