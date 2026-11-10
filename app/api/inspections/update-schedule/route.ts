@@ -103,6 +103,14 @@ export async function POST(request: Request) {
       updatePayload.start_time = inspectionTime;
     }
 
+    // The reminder cron PREFERS the denormalized scheduled_start_at instant over
+    // the date/time columns, so leaving it stale here makes reminders fire at the
+    // OLD time after a reschedule. Null it out (both readers fall back to the
+    // freshly-updated, timezone-aware date/time columns) so it can never go stale.
+    if (hasColumn(existingInspection, "scheduled_start_at")) {
+      updatePayload.scheduled_start_at = null;
+    }
+
     if (status) {
       if (hasColumn(existingInspection, "status")) {
         updatePayload.status = status;
@@ -128,6 +136,14 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    // NOTE: corrected reminders are intentionally NOT re-armed here. Saving a new
+    // time must not, by itself, send anything to clients/agents. The reminder
+    // dedup rows are cleared only after the inspector confirms the new date/time
+    // in the reschedule dialog (see /api/send-schedule-confirmation), so no new
+    // alert can go out until that human confirmation. Nulling scheduled_start_at
+    // above is not an alert — it only ensures a reminder that DOES fire later
+    // reads the correct, freshly-saved time.
 
     return NextResponse.json({
       ok: true,

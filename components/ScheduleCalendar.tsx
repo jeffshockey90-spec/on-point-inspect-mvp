@@ -7,7 +7,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DEFAULT_TIME_ZONE, detectDeviceTimeZone, formatAppValue, toLocalDateKey } from "../lib/app-time";
+import { DEFAULT_TIME_ZONE, detectDeviceTimeZone, formatAppValue, formatClockTime, toLocalDateKey } from "../lib/app-time";
 import ResendConfirmationButton from "./ResendConfirmationButton";
 
 type InspectionRow = Record<string, any>;
@@ -373,10 +373,41 @@ export default function ScheduleCalendar({
   // After a date/time change, offer to email the client + realtor an updated
   // confirmation. Prompted (not automatic) so a status-only tweak or a quick
   // correction doesn't fire a surprise email.
-  async function offerRescheduleNotification(inspectionId: string) {
-    const notify = await flowConfirm(
-      "Appointment updated. Send an updated confirmation with the new date and time to the client and realtor?"
-    );
+  // Human-readable new appointment time for the failsafe confirm, e.g.
+  // "Thursday, November 12 at 2:00 PM". Date is anchored at noon so the label
+  // never shifts a day across time zones; the time is a bare wall-clock value.
+  function formatApptForConfirm(date: string, time: string) {
+    let dateLabel = date;
+    const parsed = new Date(`${String(date).slice(0, 10)}T12:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      dateLabel = parsed.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+    return `${dateLabel} at ${formatClockTime(time)}`;
+  }
+
+  // Failsafe: make the inspector eyeball and confirm the NEW date and time
+  // before any reschedule alert reaches the client or realtor. Only on an
+  // explicit "yes" do we send the updated confirmation AND re-arm the corrected
+  // reminders (clearing the old dedup rows). Decline = nothing goes out.
+  async function offerRescheduleNotification(
+    inspectionId: string,
+    newDate: string,
+    newTime: string,
+  ) {
+    const notify = await flowConfirm({
+      title: "Confirm the new appointment time",
+      message: `Please double-check the updated date and time before anyone is notified:\n\n📅 ${formatApptForConfirm(
+        newDate,
+        newTime,
+      )}\n\nSend an updated confirmation with this date and time to the client and realtor?`,
+      confirmText: "Looks right — notify",
+      cancelText: "Don't notify yet",
+    });
     if (!notify) return;
 
     try {
@@ -424,7 +455,11 @@ export default function ScheduleCalendar({
       router.refresh();
 
       if (dateOrTimeChanged) {
-        await offerRescheduleNotification(String(eventToSave.id));
+        await offerRescheduleNotification(
+          String(eventToSave.id),
+          eventToSave.date,
+          eventToSave.time,
+        );
       }
     } catch (error) {
       setMessage("Could not save. Please try again.");
@@ -666,7 +701,7 @@ export default function ScheduleCalendar({
               }
 
               router.refresh();
-              await offerRescheduleNotification(String(info.event.id));
+              await offerRescheduleNotification(String(info.event.id), date, time);
             } catch (error) {
               info.revert();
               await flowAlert("Could not move this appointment. Please try again.");
