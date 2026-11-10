@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getAdminClient, authorizeInspection, notFound } from "../../../../lib/apiAuth";
+import {
+  appointmentChanged,
+  APPOINTMENT_REMINDER_TYPES,
+} from "../../../../lib/scheduleReminderInvalidation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -103,6 +107,14 @@ export async function POST(request: Request) {
       updatePayload.start_time = inspectionTime;
     }
 
+    // The reminder cron PREFERS the denormalized scheduled_start_at instant over
+    // the date/time columns, so leaving it stale here makes reminders fire at the
+    // OLD time after a reschedule. Null it out (both readers fall back to the
+    // freshly-updated, timezone-aware date/time columns) so it can never go stale.
+    if (hasColumn(existingInspection, "scheduled_start_at")) {
+      updatePayload.scheduled_start_at = null;
+    }
+
     if (status) {
       if (hasColumn(existingInspection, "status")) {
         updatePayload.status = status;
@@ -127,6 +139,42 @@ export async function POST(request: Request) {
         { error: updateError.message, updatePayload },
         { status: 500 }
       );
+    }
+
+    // If the appointment actually moved, clear the already-sent reminder dedup
+    // rows for this inspection so the corrected reminders can fire against the
+    // new time. Otherwise a client who already received the old-time reminder is
+    // never re-notified (the cron's alreadySent() dedup blocks the resend). This
+    // is best-effort cleanup — a failure here must not fail the reschedule. Uses
+    // the service-role client because schedule_reminder_logs is service-written.
+    const prevDate =
+      existingInspection.inspection_date ??
+      existingInspection.scheduled_date ??
+      existingInspection.date ??
+      existingInspection.start_date ??
+      null;
+    const prevTime =
+      existingInspection.inspection_time ??
+      existingInspection.scheduled_time ??
+      existingInspection.time ??
+      existingInspection.start_time ??
+      null;
+
+    if (
+      appointmentChanged(
+        { date: prevDate, time: prevTime },
+        { date: inspectionDate, time: inspectionTime },
+      )
+    ) {
+      try {
+        await getAdminClient()
+          .from("schedule_reminder_logs")
+          .delete()
+          .eq("inspection_id", String(inspectionId))
+          .in("reminder_type", [...APPOINTMENT_REMINDER_TYPES]);
+      } catch {
+        // Non-fatal: reschedule still succeeded; worst case a reminder dedups.
+      }
     }
 
     return NextResponse.json({
