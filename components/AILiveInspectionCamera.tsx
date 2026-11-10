@@ -3161,21 +3161,25 @@ export default function AILiveInspectionCamera({
           </div>
 
           {identifyEnabled && selectedReport && (
-            <button
-              type="button"
-              onClick={() => void runIdentify()}
-              disabled={identifyBusy || !online}
-              className="mx-auto mb-3 flex w-full max-w-[520px] items-center justify-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-4 py-2.5 text-xs font-semibold text-cyan-200 backdrop-blur transition active:scale-[0.99] disabled:opacity-50 [touch-action:manipulation]"
-            >
-              {identifyBusy ? (
-                <>
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
-                  Identifying…
-                </>
-              ) : (
-                <>🔎 Identify what I&apos;m pointing at</>
-              )}
-            </button>
+            <div className="mb-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => void runIdentify()}
+                disabled={identifyBusy || !online}
+                title="Identify what I'm pointing at"
+                aria-label="Identify what I'm pointing at"
+                className="flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-200/90 backdrop-blur transition active:scale-95 disabled:opacity-50 [touch-action:manipulation]"
+              >
+                {identifyBusy ? (
+                  <>
+                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
+                    Identifying…
+                  </>
+                ) : (
+                  <>🔎 Identify</>
+                )}
+              </button>
+            </div>
           )}
 
           <div className="grid grid-cols-3 items-center">
