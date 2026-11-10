@@ -9,6 +9,8 @@ import { flowConfirm, flowPrompt } from "./ConfirmProvider";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
 import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/captureTypes";
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
+import IdentifyPeekCard from "./ai-camera/IdentifyPeekCard";
+import type { IdentifyResult } from "../lib/ai/identifyResult";
 import { shrinkForAi, dataUrlToFile } from "../lib/aiFrame";
 import { generateLiveDraft, type LiveDraftCategory } from "../lib/ai/liveDraftGen";
 import {
@@ -82,6 +84,10 @@ type Props = {
   // Beta: when true, tapping Analyze queues the capture and drafts in the
   // background (the inspector keeps shooting) instead of blocking on the draft.
   asyncDraftEnabled?: boolean;
+  // Beta: when true, show the point-and-identify control — snap, get a label +
+  // proposed severity, then hand it to the SAME background draft pipeline. Rides
+  // the background-draft beta (it needs that queue + the "draft ready" popup).
+  identifyEnabled?: boolean;
   // When true, auto-enable the compass each session so the inspector never has to
   // tap "Enable compass" (iOS still prompts once for motion-sensor access).
   compassAutoEnable?: boolean;
@@ -148,6 +154,7 @@ const CATEGORIES: {
 export default function AILiveInspectionCamera({
   online,
   asyncDraftEnabled,
+  identifyEnabled,
   compassAutoEnable,
   onClose,
   autoStart,
@@ -280,6 +287,17 @@ export default function AILiveInspectionCamera({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [toast, setToast] = useState("");
+
+  // --- Point-and-identify (beta): snap → label + proposed severity → hand off ---
+  // The peek card (identify != null) sits on top of the live view; sending it
+  // queues the SAME background draft pipeline every capture uses.
+  const [identify, setIdentify] = useState<{
+    result: IdentifyResult;
+    previewUrl: string;
+    file: File;
+  } | null>(null);
+  const [identifyBusy, setIdentifyBusy] = useState(false);
+  const [identifyError, setIdentifyError] = useState("");
 
   // --- Async draft (beta): background generation + approval popup ---
   const [draftCounts, setDraftCounts] = useState<DraftCounts>({
@@ -1021,6 +1039,109 @@ export default function AILiveInspectionCamera({
     const files = shots.map((s) => s.file);
     setStage("drafting");
     await runDraft(last.frame, last.file, undefined, frames, files);
+  }
+
+  // --- Point-and-identify helpers --------------------------------------------
+
+  // Snap the current frame and ask the identify route what it is. Opens the peek
+  // card with the label + a proposed severity. Needs the network.
+  async function runIdentify() {
+    if (identifyBusy || identify) return;
+    if (!online) {
+      setToast("Identify needs a connection");
+      return;
+    }
+    const frame = captureFrame();
+    if (!frame) {
+      setToast("Point the camera at something first");
+      return;
+    }
+    setIdentifyError("");
+    setIdentifyBusy(true);
+    try {
+      const res = await fetch("/api/ai/identify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          imageDataUrl: frame,
+          inspectionId: selectedReport,
+          section: currentSection,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Couldn't identify that — try again.");
+      const file = dataUrlToFile(frame, "identify");
+      const previewUrl = URL.createObjectURL(file);
+      setIdentify({ result: data as IdentifyResult, previewUrl, file });
+      logCam("identify:result", {
+        label: String((data as any)?.label || "").slice(0, 60),
+        hazard: Boolean((data as any)?.hazard),
+      });
+    } catch (err: any) {
+      setToast(err?.message || "Couldn't identify that — try again.");
+      logCam("identify:error", { msg: String(err?.message || err) });
+    } finally {
+      setIdentifyBusy(false);
+    }
+  }
+
+  function dismissIdentify() {
+    setIdentify((current) => {
+      if (current?.previewUrl) {
+        try {
+          URL.revokeObjectURL(current.previewUrl);
+        } catch {
+          /* ignore */
+        }
+      }
+      return null;
+    });
+    setIdentifyError("");
+    setIdentifyBusy(false);
+  }
+
+  // Hand the identified capture to the background draft queue — the SAME pipeline
+  // every async capture uses. The label (+ any context) seeds the finding note so
+  // FLOW drafts knowing what it is; the chosen severity rides along.
+  async function sendIdentifyToDraft(severity: string, context: string) {
+    if (!identify || !selectedReport) return;
+    const { result, file } = identify;
+    const note = [
+      result.label,
+      result.hazard ? result.hazardNote : "",
+      context,
+    ]
+      .map((part) => String(part || "").trim())
+      .filter(Boolean)
+      .join(". ");
+    const section = sections.includes(result.section) ? result.section : currentSection;
+    setIdentifyError("");
+    setIdentifyBusy(true);
+    try {
+      await enqueueDraft({
+        inspectionId: selectedReport,
+        category: "finding",
+        note,
+        section,
+        availableSections: sections,
+        location: composedLocation(),
+        severity,
+        aiFrames: [],
+        files: [file],
+        label: result.label,
+      });
+    } catch (err: any) {
+      setIdentifyBusy(false);
+      setIdentifyError("Couldn't queue that draft — try again.");
+      logCam("identify:enqueue-error", { msg: String(err?.message || err) });
+      return;
+    }
+    logCam("identify:queued", { section, severity });
+    dismissIdentify();
+    setToast("Queued — drafting in the background");
+    void processDraftQueue();
+    void refreshDraftCounts();
   }
 
   // --- Async draft helpers ---------------------------------------------------
@@ -3034,6 +3155,24 @@ export default function AILiveInspectionCamera({
             )}
           </div>
 
+          {identifyEnabled && selectedReport && (
+            <button
+              type="button"
+              onClick={() => void runIdentify()}
+              disabled={identifyBusy || !online}
+              className="mx-auto mb-3 flex w-full max-w-[520px] items-center justify-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-4 py-2.5 text-xs font-semibold text-cyan-200 backdrop-blur transition active:scale-[0.99] disabled:opacity-50 [touch-action:manipulation]"
+            >
+              {identifyBusy ? (
+                <>
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
+                  Identifying…
+                </>
+              ) : (
+                <>🔎 Identify what I&apos;m pointing at</>
+              )}
+            </button>
+          )}
+
           <div className="grid grid-cols-3 items-center">
             {activeCategoryMeta.supportsVideo ? (
               <div className="grid grid-cols-2 justify-self-start rounded-full border border-white/15 bg-black/35 p-1 backdrop-blur-md">
@@ -3488,6 +3627,19 @@ export default function AILiveInspectionCamera({
               ? approvePreviewUrlsRef.current.slice(1)
               : undefined
           }
+        />
+      )}
+
+      {/* Point-and-identify peek card — sits over the live view; sending it hands
+          off to the same background draft pipeline, never disturbing a capture. */}
+      {identify && (
+        <IdentifyPeekCard
+          previewUrl={identify.previewUrl}
+          result={identify.result}
+          busy={identifyBusy}
+          error={identifyError}
+          onSend={(severity, context) => void sendIdentifyToDraft(severity, context)}
+          onDismiss={dismissIdentify}
         />
       )}
 

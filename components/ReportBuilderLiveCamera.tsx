@@ -334,6 +334,7 @@ export default function ReportBuilderLiveCamera({
         <AILiveInspectionCamera
           online={online}
           asyncDraftEnabled={flags.async}
+          identifyEnabled={flags.async}
           compassAutoEnable={flags.compass}
           autoStart
           onClose={closeCamera}

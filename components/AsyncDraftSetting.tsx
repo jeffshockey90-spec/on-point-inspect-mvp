@@ -96,7 +96,9 @@ export default function AsyncDraftSetting() {
             In the live camera, after you tap Analyze the AI drafts in the
             background so you can keep capturing right away. When a draft is
             ready, a popup appears — tap it to review and approve. Nothing is
-            saved to the report until you approve it.
+            saved to the report until you approve it. This also turns on
+            point-and-identify: tap Identify to get a label and a proposed
+            severity, then hand it to the same background draft.
           </p>
           {globalPaused && (
             <p className="mt-1 text-xs text-amber-400">

@@ -4534,6 +4534,7 @@ function FieldPageContent() {
                   <AILiveInspectionCamera
                     online={online}
                     asyncDraftEnabled={asyncDraftEnabled}
+                    identifyEnabled={asyncDraftEnabled}
                     compassAutoEnable={compassAutoEnable}
                     selectedReport={selectedReport}
                     currentSection={section}
