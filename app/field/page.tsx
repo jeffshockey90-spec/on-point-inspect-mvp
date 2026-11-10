@@ -484,6 +484,8 @@ function FieldPageContent() {
   const [asyncDraftEnabled, setAsyncDraftEnabled] = useState(false);
   // Beta: auto-enable the compass in the live camera every session (opt-in).
   const [compassAutoEnable, setCompassAutoEnable] = useState(false);
+  // Beta: point-and-identify control in the live camera (its own opt-in).
+  const [identifyEnabled, setIdentifyEnabled] = useState(false);
   useEffect(() => {
     let active = true;
     // Hydrate from the last-known values INSTANTLY (localStorage) so a capture
@@ -496,6 +498,8 @@ function FieldPageContent() {
       if (a != null) setAsyncDraftEnabled(a === "1");
       const c = window.localStorage.getItem("flow:compassAutoEnable");
       if (c != null) setCompassAutoEnable(c === "1");
+      const i = window.localStorage.getItem("flow:identifyEnabled");
+      if (i != null) setIdentifyEnabled(i === "1");
     } catch {
       /* ignore */
     }
@@ -521,6 +525,20 @@ function FieldPageContent() {
           setCompassAutoEnable(on);
           try {
             window.localStorage.setItem("flow:compassAutoEnable", on ? "1" : "0");
+          } catch {
+            /* ignore */
+          }
+        }
+      })
+      .catch(() => {});
+    fetch("/api/settings/identify", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active && d) {
+          const on = Boolean(d.enabled);
+          setIdentifyEnabled(on);
+          try {
+            window.localStorage.setItem("flow:identifyEnabled", on ? "1" : "0");
           } catch {
             /* ignore */
           }
@@ -4534,6 +4552,7 @@ function FieldPageContent() {
                   <AILiveInspectionCamera
                     online={online}
                     asyncDraftEnabled={asyncDraftEnabled}
+                    identifyEnabled={identifyEnabled}
                     compassAutoEnable={compassAutoEnable}
                     selectedReport={selectedReport}
                     currentSection={section}

@@ -51,12 +51,18 @@ export async function generateLiveDraft(
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data?.error || "AI could not draft this finding.");
+    // Normally the finding lets the AI pick severity from the evidence (sev is
+    // passed as "" above). The point-and-identify flow is the exception: the
+    // inspector already flagged and confirmed a severity on the peek card, so an
+    // explicit non-empty severity wins as the draft's starting value (still
+    // editable at approval).
+    const severity = inp.severity ? inp.severity : data.severity;
     return {
       draft: {
         kind: "finding",
         title: data.title,
         section: data.section,
-        severity: data.severity,
+        severity,
         observation: data.observation,
         implication: data.implication,
         recommendation: data.recommendation,
@@ -67,7 +73,7 @@ export async function generateLiveDraft(
       baseline: {
         title: data.title || "",
         section: data.section || "",
-        severity: data.severity || "",
+        severity: severity || "",
         observation: data.observation || "",
         implication: data.implication || "",
         recommendation: data.recommendation || "",
