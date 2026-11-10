@@ -10,6 +10,7 @@ import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
 import { getNotificationPrefs } from "../../../lib/notificationPrefs";
 import { smsConfirmation, smsConfirmationAgent } from "../../../lib/smsTemplates";
+import { APPOINTMENT_REMINDER_TYPES } from "../../../lib/scheduleReminderInvalidation";
 
 export const runtime = "nodejs";
 
@@ -399,6 +400,25 @@ ${branding.name}`;
             : smsConfirmation({ company: branding.name, address, date: dateText, time: timeText });
 
         await sendSms({ to: target.phone, body }).catch(() => null);
+      }
+    }
+
+    // Re-arm the corrected reminders for a reschedule. This runs only on the
+    // reschedule path, i.e. AFTER the inspector confirmed the new date/time in
+    // the dialog — so clearing the already-sent dedup rows (which lets the cron
+    // re-send the 24h/2h/30m reminders against the new time) can never fire an
+    // alert the inspector hasn't approved. Best-effort: never block the send.
+    // Radon deploy/retrieve reminders are left intact (they key off the radon
+    // test times, not the appointment).
+    if (isReschedule) {
+      try {
+        await supabase
+          .from("schedule_reminder_logs")
+          .delete()
+          .eq("inspection_id", String(inspectionId))
+          .in("reminder_type", [...APPOINTMENT_REMINDER_TYPES]);
+      } catch {
+        // Non-fatal: the confirmation still sent; worst case a reminder dedups.
       }
     }
 

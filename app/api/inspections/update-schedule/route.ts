@@ -2,10 +2,6 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getAdminClient, authorizeInspection, notFound } from "../../../../lib/apiAuth";
-import {
-  appointmentChanged,
-  APPOINTMENT_REMINDER_TYPES,
-} from "../../../../lib/scheduleReminderInvalidation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -141,41 +137,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // If the appointment actually moved, clear the already-sent reminder dedup
-    // rows for this inspection so the corrected reminders can fire against the
-    // new time. Otherwise a client who already received the old-time reminder is
-    // never re-notified (the cron's alreadySent() dedup blocks the resend). This
-    // is best-effort cleanup — a failure here must not fail the reschedule. Uses
-    // the service-role client because schedule_reminder_logs is service-written.
-    const prevDate =
-      existingInspection.inspection_date ??
-      existingInspection.scheduled_date ??
-      existingInspection.date ??
-      existingInspection.start_date ??
-      null;
-    const prevTime =
-      existingInspection.inspection_time ??
-      existingInspection.scheduled_time ??
-      existingInspection.time ??
-      existingInspection.start_time ??
-      null;
-
-    if (
-      appointmentChanged(
-        { date: prevDate, time: prevTime },
-        { date: inspectionDate, time: inspectionTime },
-      )
-    ) {
-      try {
-        await getAdminClient()
-          .from("schedule_reminder_logs")
-          .delete()
-          .eq("inspection_id", String(inspectionId))
-          .in("reminder_type", [...APPOINTMENT_REMINDER_TYPES]);
-      } catch {
-        // Non-fatal: reschedule still succeeded; worst case a reminder dedups.
-      }
-    }
+    // NOTE: corrected reminders are intentionally NOT re-armed here. Saving a new
+    // time must not, by itself, send anything to clients/agents. The reminder
+    // dedup rows are cleared only after the inspector confirms the new date/time
+    // in the reschedule dialog (see /api/send-schedule-confirmation), so no new
+    // alert can go out until that human confirmation. Nulling scheduled_start_at
+    // above is not an alert — it only ensures a reminder that DOES fire later
+    // reads the correct, freshly-saved time.
 
     return NextResponse.json({
       ok: true,
