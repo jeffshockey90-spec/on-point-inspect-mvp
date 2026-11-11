@@ -3048,8 +3048,11 @@ function FieldPageContent() {
         label: "New item",
         photoIndexes: [photoIndex],
         classification: from?.classification || "finding",
-        section: from?.section || "General",
-        severity: from?.severity || "",
+        // Inherit a REAL section/severity (fall back to the active capture
+        // section and a valid severity) — never "General"/blank, which would
+        // save the finding into a section the report doesn't have.
+        section: from?.section || section,
+        severity: from?.severity || SEVERITIES[0] || "Recommended Repair",
         title: "",
         observation: "",
         implication: "",
@@ -3156,72 +3159,91 @@ function FieldPageContent() {
     try {
       let savedCount = 0;
       const usedIndexes = new Set<number>();
+      const failures: string[] = [];
+      const unsavedGroupIds = new Set<string>();
       const groupFilesFor = (group: AIMediaGroup) =>
         group.photoIndexes.map((index) => photos[index]).filter(Boolean);
 
-      // Findings — one batch insert for speed (each group keeps photo order).
-      if (findingGroups.length) {
-        const preparedGroups = await Promise.all(
-          findingGroups.map(async (group) => {
-            const uploaded: UploadedPhoto[] = await Promise.all(
-              groupFilesFor(group).map((file) => uploadPhotoFile(file, "field-media")),
-            );
-            return { group, uploaded };
-          }),
-        );
+      // Coerce a group's section/severity to values that actually exist in THIS
+      // report. A split/edited group can carry a section the report doesn't have
+      // (e.g. "General") or a blank severity; saving those makes the finding land
+      // in a phantom section and vanish from the builder/report — which looks
+      // exactly like "it didn't save."
+      const safeSection = (value: string) =>
+        activeSections.includes(value) ? value : section;
+      const safeSeverity = (value: string) =>
+        SEVERITIES.includes(value) ? value : SEVERITIES[0] || "Recommended Repair";
 
-        const findingRows = preparedGroups.map(({ group, uploaded }) => ({
-          inspection_id: selectedReport,
-          title: group.title || group.label || "Inspection Finding",
-          section: group.section,
-          severity: group.severity,
-          observation: group.observation,
-          implication: group.implication,
-          recommendation: group.recommendation,
-          image_url: uploaded.find((item) => !item.isVideo)?.publicUrl || null,
-        }));
+      // Findings — saved one group at a time (not one all-or-nothing batch) so a
+      // single failed photo upload or insert can't wipe the whole save. Each
+      // failure is collected and surfaced, and the groups that failed stay in the
+      // organizer for another try.
+      for (const group of findingGroups) {
+        try {
+          const uploaded: UploadedPhoto[] = await Promise.all(
+            groupFilesFor(group).map((file) => uploadPhotoFile(file, "field-media")),
+          );
 
-        const { data: insertedFindings, error } = await supabase
-          .from("findings")
-          .insert(findingRows)
-          .select();
-        if (error) throw error;
+          const { data: finding, error } = await supabase
+            .from("findings")
+            .insert({
+              inspection_id: selectedReport,
+              title: group.title || group.label || "Inspection Finding",
+              section: safeSection(group.section),
+              severity: safeSeverity(group.severity),
+              observation: group.observation,
+              implication: group.implication,
+              recommendation: group.recommendation,
+              image_url: uploaded.find((item) => !item.isVideo)?.publicUrl || null,
+            })
+            .select()
+            .single();
+          if (error) throw error;
 
-        const photoRows = preparedGroups.flatMap(({ uploaded }, groupIndex) => {
-          const finding = insertedFindings?.[groupIndex];
-          if (!finding || !uploaded.length) return [];
-          return uploaded.map((item) => ({
-            inspection_id: selectedReport,
-            finding_id: finding.id,
-            public_url: item.publicUrl,
-            file_path: item.filePath,
-            is_video: Boolean(item.isVideo),
-            mime_type: item.mimeType || null,
-            thumbnail_url: item.thumbnailUrl || null,
-            thumbnail_path: item.thumbnailPath || null,
-          }));
-        });
-        if (photoRows.length) {
-          const { error: photoError } = await supabase.from("photos").insert(photoRows);
-          if (photoError) throw photoError;
+          if (uploaded.length) {
+            const photoRows = uploaded.map((item) => ({
+              inspection_id: selectedReport,
+              finding_id: finding.id,
+              public_url: item.publicUrl,
+              file_path: item.filePath,
+              is_video: Boolean(item.isVideo),
+              mime_type: item.mimeType || null,
+              thumbnail_url: item.thumbnailUrl || null,
+              thumbnail_path: item.thumbnailPath || null,
+            }));
+            const { error: photoError } = await supabase.from("photos").insert(photoRows);
+            if (photoError) throw photoError;
+          }
+
+          group.photoIndexes.forEach((i) => usedIndexes.add(i));
+          savedCount += 1;
+        } catch (err: any) {
+          unsavedGroupIds.add(group.id);
+          failures.push(
+            `${group.title || group.label || "Finding"}: ${err?.message || err?.details || "could not save"}`,
+          );
         }
-
-        findingGroups.forEach((group) => group.photoIndexes.forEach((i) => usedIndexes.add(i)));
-        savedCount += preparedGroups.length;
       }
 
       // Reference photos — into section_reference_photos (images only).
       for (const group of referenceGroups) {
         const files = groupFilesFor(group).filter((f) => f.type.startsWith("image/"));
         if (!files.length) continue;
-        await saveReferencePhotosOnline({
-          photos: files,
-          section: group.section,
-          note: group.observation,
-          title: group.title || group.label,
-        });
-        group.photoIndexes.forEach((i) => usedIndexes.add(i));
-        savedCount += 1;
+        try {
+          await saveReferencePhotosOnline({
+            photos: files,
+            section: safeSection(group.section),
+            note: group.observation,
+            title: group.title || group.label,
+          });
+          group.photoIndexes.forEach((i) => usedIndexes.add(i));
+          savedCount += 1;
+        } catch (err: any) {
+          unsavedGroupIds.add(group.id);
+          failures.push(
+            `${group.title || group.label || "Reference"}: ${err?.message || err?.details || "could not save"}`,
+          );
+        }
       }
 
       // Limitations — saved as limitations (images only; needs wording).
@@ -3233,25 +3255,40 @@ function FieldPageContent() {
           (group.title || "").trim() ||
           group.label ||
           "Limitation";
-        await saveLimitationWithPhotoOnline({
-          photos: files,
-          title: group.title || group.label,
-          note,
-          section: group.section,
-          recommendation: group.recommendation,
-        });
-        group.photoIndexes.forEach((i) => usedIndexes.add(i));
-        savedCount += 1;
+        try {
+          await saveLimitationWithPhotoOnline({
+            photos: files,
+            title: group.title || group.label,
+            note,
+            section: safeSection(group.section),
+            recommendation: group.recommendation,
+          });
+          group.photoIndexes.forEach((i) => usedIndexes.add(i));
+          savedCount += 1;
+        } catch (err: any) {
+          unsavedGroupIds.add(group.id);
+          failures.push(
+            `${group.title || group.label || "Limitation"}: ${err?.message || err?.details || "could not save"}`,
+          );
+        }
       }
 
       setPhotos((current) =>
         current.filter((_file, index) => !usedIndexes.has(index)),
       );
-      setMediaGroups([]);
-      setMediaOrganizerOpen(false);
-      setOrganizeNote("");
+      // Keep only the groups that failed, so the inspector can retry them; the
+      // organizer stays open when anything failed, and closes when all saved.
+      setMediaGroups((current) =>
+        current.filter((group) => unsavedGroupIds.has(group.id)),
+      );
+      if (!failures.length) {
+        setMediaOrganizerOpen(false);
+        setOrganizeNote("");
+      }
       setMessage(
-        `${savedCount} AI-organized item${savedCount === 1 ? "" : "s"} saved.`,
+        failures.length
+          ? `Saved ${savedCount} item${savedCount === 1 ? "" : "s"}. ${failures.length} couldn't save — ${failures.join("; ")}`
+          : `${savedCount} AI-organized item${savedCount === 1 ? "" : "s"} saved.`,
       );
 
       window.dispatchEvent(
