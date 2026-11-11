@@ -61,6 +61,9 @@ export function fitStageToViewport(
  * editing) and additionally scaled by fitScale, so we divide the logical ratio
  * by fitScale to undo the fit shrink — output dimensions then match a full-size
  * desktop stage. Capped so a pathologically tiny fitScale can't explode memory.
+ *
+ * Note: this uses the FIT scale, not the user's zoom. Zoom/pan only move the
+ * on-screen view; the export always re-reads the whole photo at fit size.
  */
 export function exportPixelRatioFor(
   sourceWidth: number,
@@ -70,4 +73,97 @@ export function exportPixelRatioFor(
   const safeStageW = Math.max(1, stageWidth);
   const logicalPixelRatio = Math.min(4, Math.max(2, sourceWidth / safeStageW));
   return Math.min(10, logicalPixelRatio / Math.max(0.05, fitScale));
+}
+
+// ── Zoom / pan view transform ────────────────────────────────────────────────
+// The on-screen view is the stage's { scale, x, y }. "Fit" is the resting view
+// (whole photo centered). Pinch / wheel zoom in up to maxZoom× the fit scale,
+// and drag pans — always kept inside bounds so the photo can't be lost.
+
+export type StageView = { scale: number; x: number; y: number };
+
+/** Largest the user can zoom in, as a multiple of the fit (whole-photo) scale. */
+export const MAX_ZOOM_MULTIPLE = 8;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+/** The resting view: whole photo scaled to fit and centered in the viewport. */
+export function fittedView(
+  stageWidth: number,
+  stageHeight: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): StageView {
+  const { fitScale, renderWidth, renderHeight } = fitStageToViewport(
+    stageWidth,
+    stageHeight,
+    viewportWidth,
+    viewportHeight,
+  );
+  const vw = viewportWidth > 0 ? viewportWidth : renderWidth;
+  const vh = viewportHeight > 0 ? viewportHeight : renderHeight;
+  return {
+    scale: fitScale,
+    x: (vw - renderWidth) / 2,
+    y: (vh - renderHeight) / 2,
+  };
+}
+
+/**
+ * Keep the view inside bounds: when the photo is smaller than the viewport on an
+ * axis it stays centered; when it's larger (zoomed in) it can pan but not past
+ * its own edges, so the photo can never be dragged completely off-screen.
+ */
+export function clampView(
+  view: StageView,
+  stageWidth: number,
+  stageHeight: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): StageView {
+  const contentW = stageWidth * view.scale;
+  const contentH = stageHeight * view.scale;
+
+  let x = view.x;
+  let y = view.y;
+
+  if (contentW <= viewportWidth) {
+    x = (viewportWidth - contentW) / 2;
+  } else {
+    x = clamp(x, viewportWidth - contentW, 0);
+  }
+
+  if (contentH <= viewportHeight) {
+    y = (viewportHeight - contentH) / 2;
+  } else {
+    y = clamp(y, viewportHeight - contentH, 0);
+  }
+
+  return { scale: view.scale, x, y };
+}
+
+/**
+ * Zoom around a focal point (in viewport px) by `factor`, keeping the logical
+ * point under the focus fixed. Scale is clamped to [minScale, maxScale]. The
+ * caller should clampView() the result to re-bound the pan.
+ */
+export function zoomAround(
+  view: StageView,
+  focusX: number,
+  focusY: number,
+  factor: number,
+  minScale: number,
+  maxScale: number,
+): StageView {
+  const nextScale = clamp(view.scale * factor, minScale, maxScale);
+  // Logical point currently under the focus.
+  const logicalX = (focusX - view.x) / view.scale;
+  const logicalY = (focusY - view.y) / view.scale;
+  return {
+    scale: nextScale,
+    x: focusX - logicalX * nextScale,
+    y: focusY - logicalY * nextScale,
+  };
 }
