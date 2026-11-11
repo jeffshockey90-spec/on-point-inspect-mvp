@@ -322,10 +322,17 @@ function calculateFullInspectionPrice({
   const subtotal = base + radonFee + moldFee + customFee + safeTravelFee;
   const total = Math.max(0, subtotal - safeDiscount);
 
+  // Square footage drives the price for the Home Inspection AND for any custom
+  // service configured as a square-footage formula (e.g. "Mechanical & Structural",
+  // "Pre-DryWall"). Without this, those services hid the Sq Ft field and silently
+  // priced at their base, with no way to enter the size.
+  const needsSqft = includesHome || customService?.type === "sqft_formula";
+
   return {
     base,
     customFee,
     customServiceKey: customService ? String(serviceMode) : "",
+    needsSqft,
     radonFee,
     moldSetupFee,
     moldAirFee,
@@ -1094,8 +1101,8 @@ function NewInspectionPageContent() {
             inspection_time: inspectionTime,
             inspection_status: "Scheduled",
 
-            square_feet: quote.includesHome && squareFeet ? Number(squareFeet) : null,
-            sqft: quote.includesHome ? squareFeet || null : null,
+            square_feet: quote.needsSqft && squareFeet ? Number(squareFeet) : null,
+            sqft: quote.needsSqft ? squareFeet || null : null,
 
             price: totalPrice,
             invoice_amount: totalPrice,
@@ -1192,7 +1199,7 @@ function NewInspectionPageContent() {
           state: stateValue || null,
           zip: zip || null,
 
-          square_feet: quote.includesHome && squareFeet ? String(squareFeet) : null,
+          square_feet: quote.needsSqft && squareFeet ? String(squareFeet) : null,
           year_built: yearBuilt || null,
           bedrooms: null,
           bathrooms: null,
@@ -1918,7 +1925,7 @@ function NewInspectionPageContent() {
               placeholder="Price"
             />
 
-            {quote.includesHome && (
+            {quote.needsSqft && (
               <LabeledInput
                 label="Square Feet"
                 value={squareFeet}
