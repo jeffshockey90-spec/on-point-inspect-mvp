@@ -11,6 +11,7 @@ import type { CaptureCategory, CaptureDraft, FindingDraft } from "../lib/ai/capt
 import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
 import IdentifyPeekCard from "./ai-camera/IdentifyPeekCard";
 import type { IdentifyResult } from "../lib/ai/identifyResult";
+import { MATERIAL_FIELDS } from "../lib/ai/checklistAutofill";
 import { shrinkForAi, dataUrlToFile } from "../lib/aiFrame";
 import { generateLiveDraft, type LiveDraftCategory } from "../lib/ai/liveDraftGen";
 import {
@@ -295,6 +296,9 @@ export default function AILiveInspectionCamera({
     result: IdentifyResult;
     previewUrl: string;
     file: File;
+    // The raw frame data URL, kept so "Add to section info" can re-send it to
+    // the material recognizer without re-snapping.
+    frame: string;
   } | null>(null);
   const [identifyBusy, setIdentifyBusy] = useState(false);
   const [identifyError, setIdentifyError] = useState("");
@@ -1078,7 +1082,7 @@ export default function AILiveInspectionCamera({
       if (!res.ok) throw new Error(data?.error || "Couldn't identify that — try again.");
       const file = dataUrlToFile(frame, "identify");
       const previewUrl = URL.createObjectURL(file);
-      setIdentify({ result: data as IdentifyResult, previewUrl, file });
+      setIdentify({ result: data as IdentifyResult, previewUrl, file, frame });
       logCam("identify:result", {
         label: String((data as any)?.label || "").slice(0, 60),
         hazard: Boolean((data as any)?.hazard),
@@ -1147,6 +1151,54 @@ export default function AILiveInspectionCamera({
     setToast("Queued — drafting in the background");
     void processDraftQueue();
     void refreshDraftCounts();
+  }
+
+  // The report section an identified component maps to (its own, when valid,
+  // else the camera's current section) — used to decide whether its system-info
+  // checklist can be auto-filled and where those boxes get written.
+  const identifyFillSection =
+    identify && sections.includes(identify.result.section)
+      ? identify.result.section
+      : currentSection;
+  // True when that section has recognizable system-info material fields (e.g.
+  // Attic → Insulation Type / Ventilation Type), so "Add to section info" applies.
+  const identifyCanFill = Boolean(identify) && Boolean(MATERIAL_FIELDS[identifyFillSection]);
+
+  // Point-and-identify companion to the finding hand-off: read the frame for the
+  // section's system-info materials and tick the matching checklist boxes. Reuses
+  // the same recognizer + write path as reference-photo autofill
+  // (/api/ai/section-materials → buildMaterialFills → writeChecklistFills: fills
+  // only EMPTY groups, snaps to options, stamps inspector_id). Returns what it
+  // recognized so the card can show it.
+  async function fillSectionInfoFromIdentify(): Promise<{
+    written: number;
+    values: string[];
+  }> {
+    if (!identify || !selectedReport) return { written: 0, values: [] };
+    const res = await fetch("/api/ai/section-materials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({
+        inspectionId: selectedReport,
+        section: identifyFillSection,
+        imageDataUrl: identify.frame,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || "Couldn't read that — try again.");
+    const info =
+      data?.sectionInfo && typeof data.sectionInfo === "object" ? data.sectionInfo : {};
+    const values = Object.entries(info)
+      .map(([group, value]) => ({ group, value: String(value || "").trim() }))
+      .filter(({ value }) => value && value.toLowerCase() !== "unknown")
+      .map(({ group, value }) => `${group} · ${value}`);
+    logCam("identify:fill", {
+      section: identifyFillSection,
+      written: Number(data?.written || 0),
+      count: values.length,
+    });
+    return { written: Number(data?.written || 0), values };
   }
 
   // --- Async draft helpers ---------------------------------------------------
@@ -3647,6 +3699,9 @@ export default function AILiveInspectionCamera({
           result={identify.result}
           busy={identifyBusy}
           error={identifyError}
+          canFillChecklist={identifyCanFill}
+          fillSectionLabel={identifyFillSection}
+          onFillChecklist={fillSectionInfoFromIdentify}
           onSend={(severity, context) => void sendIdentifyToDraft(severity, context)}
           onDismiss={dismissIdentify}
         />
