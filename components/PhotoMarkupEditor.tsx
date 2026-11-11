@@ -12,6 +12,15 @@ import {
   Text,
 } from "react-konva";
 import useImage from "use-image";
+import {
+  fitStageToViewport,
+  exportPixelRatioFor,
+  fittedView,
+  clampView,
+  zoomAround,
+  MAX_ZOOM_MULTIPLE,
+  type StageView,
+} from "../lib/markupFit";
 
 type Tool = "select" | "arrow" | "circle" | "text";
 
@@ -266,13 +275,161 @@ function PhotoMarkupEditor({
       ? maxStageHeight
       : Math.max(1, Math.round(maxStageWidth * sourceRatio));
 
+  // stageWidth/stageHeight above are the LOGICAL coordinate space the markups
+  // live in — derived only from the photo's aspect ratio, so a given photo maps
+  // to the same coordinates on every device and saved markups re-open in place.
+  // But the editor must also FIT the actual screen: on a phone the usable area
+  // is far narrower than 900px, so without fitting, the stage overflowed and the
+  // photo's edges were clipped off-screen (you couldn't reach them to mark).
+  // We measure the photo area and scale the stage down to fit it, never up
+  // (keeps desktop at native size, so nothing there changes).
+  const photoAreaRef = useRef<HTMLDivElement | null>(null);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const el = photoAreaRef.current;
+    if (!el) return;
+
+    const measure = () =>
+      setViewport({ width: el.clientWidth, height: el.clientHeight });
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const { fitScale, renderWidth, renderHeight } = fitStageToViewport(
+    stageWidth,
+    stageHeight,
+    viewport.width,
+    viewport.height,
+  );
+
+  // ── Zoom / pan ──────────────────────────────────────────────────────────────
+  // "Fit" (fitScale) shows the whole photo. On top of that the user can pinch
+  // (two fingers) or wheel to zoom in for fine marks, and drag with two fingers
+  // (or hold Space + drag on desktop) to pan. The stage's { scale, x, y } is this
+  // view; marks are still read in LOGICAL coords (getRelativePointerPosition),
+  // so zoom/pan never shifts where a mark lands or how it's saved/exported.
+  const [view, setView] = useState<StageView>({ scale: 1, x: 0, y: 0 });
+  const [userMovedView, setUserMovedView] = useState(false);
+  const [spacePan, setSpacePan] = useState(false);
+  const spaceDownRef = useRef(false);
+  // Two-finger pinch/pan gesture snapshot (null when not pinching).
+  const pinchRef = useRef<
+    { startDist: number; startMid: { x: number; y: number }; startView: StageView } | null
+  >(null);
+  // Space+drag (desktop) pan snapshot.
+  const panRef = useRef<{ start: { x: number; y: number }; startView: StageView } | null>(null);
+  // After a multitouch gesture, suppress drawing until all fingers lift so a
+  // lingering finger can't leave a stray mark.
+  const suppressDrawRef = useRef(false);
+
+  const minScale = fitScale;
+  const maxScale = fitScale * MAX_ZOOM_MULTIPLE;
+  const isZoomed = view.scale > fitScale * 1.001;
+  const zoomPercent = fitScale > 0 ? Math.round((view.scale / fitScale) * 100) : 100;
+
+  // While the user hasn't manually zoomed/panned, keep the view fitted (so the
+  // photo loading or the device rotating re-centers it). Once they have, just
+  // re-clamp on size changes so the photo stays on-screen.
+  useEffect(() => {
+    if (!(viewport.width > 0) || !(viewport.height > 0)) return;
+
+    if (!userMovedView) {
+      setView(fittedView(stageWidth, stageHeight, viewport.width, viewport.height));
+    } else {
+      setView((current) =>
+        clampView(current, stageWidth, stageHeight, viewport.width, viewport.height),
+      );
+    }
+  }, [userMovedView, viewport.width, viewport.height, stageWidth, stageHeight]);
+
+  // Hold Space to temporarily pan with the mouse (desktop).
+  useEffect(() => {
+    function isTypingTarget(target: EventTarget | null) {
+      const el = target as HTMLElement | null;
+      const tag = String(el?.tagName || "").toLowerCase();
+      return (
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        Boolean(el?.isContentEditable)
+      );
+    }
+
+    function onDown(event: KeyboardEvent) {
+      if (event.code !== "Space" || isTypingTarget(event.target)) return;
+      event.preventDefault();
+      spaceDownRef.current = true;
+      setSpacePan(true);
+    }
+
+    function onUp(event: KeyboardEvent) {
+      if (event.code !== "Space") return;
+      spaceDownRef.current = false;
+      setSpacePan(false);
+    }
+
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("keyup", onUp);
+    return () => {
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("keyup", onUp);
+    };
+  }, []);
+
+  function viewportPointFromTouches(stage: any, touches: TouchList) {
+    const rect = stage.container().getBoundingClientRect();
+    const a = { x: touches[0].clientX - rect.left, y: touches[0].clientY - rect.top };
+    const b = { x: touches[1].clientX - rect.left, y: touches[1].clientY - rect.top };
+    return {
+      dist: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)),
+      mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+    };
+  }
+
+  function applyView(next: StageView) {
+    setView(clampView(next, stageWidth, stageHeight, viewport.width, viewport.height));
+    if (!userMovedView) setUserMovedView(true);
+  }
+
+  function zoomAtViewportCenter(factor: number) {
+    if (saving) return;
+    const cx = (viewport.width || renderWidth) / 2;
+    const cy = (viewport.height || renderHeight) / 2;
+    applyView(zoomAround(view, cx, cy, factor, minScale, maxScale));
+  }
+
+  function resetView() {
+    // Snap back to the whole-photo fit (and let it auto-fit again afterward).
+    setUserMovedView(false);
+    setView(fittedView(stageWidth, stageHeight, viewport.width, viewport.height));
+  }
+
+  function handleWheelZoom(event: any) {
+    if (saving) return;
+    event?.evt?.preventDefault?.();
+    const stage = event.target.getStage();
+    const pointer = stage?.getPointerPosition();
+    const cx = pointer?.x ?? (viewport.width || renderWidth) / 2;
+    const cy = pointer?.y ?? (viewport.height || renderHeight) / 2;
+    const factor = event.evt.deltaY < 0 ? 1.12 : 1 / 1.12;
+    applyView(zoomAround(view, cx, cy, factor, minScale, maxScale));
+  }
+
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
     setMessage(text);
   }
 
   function getPointerPosition(stage: any) {
-    const pos = stage?.getPointerPosition();
+    // The stage is scaled to fit the screen, so read the pointer in the stage's
+    // LOGICAL coordinate space (getRelativePointerPosition inverts the scale) —
+    // otherwise marks would land at the wrong spot on anything but a 1:1 screen.
+    const pos =
+      stage?.getRelativePointerPosition?.() ?? stage?.getPointerPosition?.();
     if (!pos) return null;
 
     return {
@@ -371,10 +528,38 @@ function PhotoMarkupEditor({
 
     stopPageGesture(event);
 
+    const stage = event.target.getStage();
+    const touches: TouchList | undefined = event.evt?.touches;
+
+    // Two fingers = pinch-zoom / pan. Start the gesture, cancel any mark the
+    // first finger may have begun, and don't draw.
+    if (touches && touches.length >= 2) {
+      const { dist, mid } = viewportPointFromTouches(stage, touches);
+      pinchRef.current = { startDist: dist, startMid: mid, startView: view };
+      suppressDrawRef.current = true;
+      if (!userMovedView) setUserMovedView(true);
+      if (draftId) {
+        setItems(items.filter((item) => item.id !== draftId));
+        setDraftId(null);
+      }
+      setSelectedId(null);
+      return;
+    }
+
+    // Hold Space + drag (desktop mouse) = pan.
+    if (spaceDownRef.current && !touches) {
+      const pointer = stage?.getPointerPosition();
+      if (pointer) panRef.current = { start: pointer, startView: view };
+      return;
+    }
+
+    // A multitouch gesture is still winding down (a finger lingering after a
+    // pinch) — ignore it so it can't drop a stray mark.
+    if (suppressDrawRef.current) return;
+
     // Touching the photo to mark it closes the palette so it's never in the way.
     if (paletteOpen) setPaletteOpen(false);
 
-    const stage = event.target.getStage();
     const pos = getPointerPosition(stage);
     if (!pos) return;
 
@@ -449,9 +634,58 @@ function PhotoMarkupEditor({
     if (saving) return;
 
     stopPageGesture(event);
-    if (!draftId) return;
 
     const stage = event.target.getStage();
+    const touches: TouchList | undefined = event.evt?.touches;
+
+    // Live pinch-zoom + two-finger pan.
+    if (pinchRef.current && touches && touches.length >= 2) {
+      const gesture = pinchRef.current;
+      const { dist, mid } = viewportPointFromTouches(stage, touches);
+      const factor = dist / gesture.startDist;
+      const zoomed = zoomAround(
+        gesture.startView,
+        gesture.startMid.x,
+        gesture.startMid.y,
+        factor,
+        minScale,
+        maxScale,
+      );
+      // Add the midpoint drift so two fingers can pan while pinching.
+      const panned: StageView = {
+        scale: zoomed.scale,
+        x: zoomed.x + (mid.x - gesture.startMid.x),
+        y: zoomed.y + (mid.y - gesture.startMid.y),
+      };
+      setView(clampView(panned, stageWidth, stageHeight, viewport.width, viewport.height));
+      return;
+    }
+
+    // Space+drag pan (desktop).
+    if (panRef.current) {
+      const pointer = stage?.getPointerPosition();
+      if (pointer) {
+        const { start, startView } = panRef.current;
+        setView(
+          clampView(
+            {
+              scale: startView.scale,
+              x: startView.x + (pointer.x - start.x),
+              y: startView.y + (pointer.y - start.y),
+            },
+            stageWidth,
+            stageHeight,
+            viewport.width,
+            viewport.height,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (suppressDrawRef.current) return;
+    if (!draftId) return;
+
     const pos = getPointerPosition(stage);
     if (!pos) return;
 
@@ -474,6 +708,27 @@ function PhotoMarkupEditor({
     if (saving) return;
 
     stopPageGesture(event);
+
+    const remaining: number = event?.evt?.touches?.length ?? 0;
+
+    // Winding down a pinch: drop the gesture once below two fingers, and only
+    // re-enable drawing once every finger is off the glass.
+    if (pinchRef.current) {
+      if (remaining < 2) pinchRef.current = null;
+      if (remaining === 0) suppressDrawRef.current = false;
+      return;
+    }
+
+    if (panRef.current) {
+      panRef.current = null;
+      return;
+    }
+
+    if (suppressDrawRef.current) {
+      if (remaining === 0) suppressDrawRef.current = false;
+      return;
+    }
+
     if (!draftId) return;
 
     setDraftId(null);
@@ -595,7 +850,10 @@ function PhotoMarkupEditor({
       // made them look blurry in the report. Scaling pixelRatio by the source
       // size keeps the flattened image as sharp as the original (capped so a
       // huge photo can't blow up canvas memory on mobile).
-      const exportPixelRatio = Math.min(4, Math.max(2, sourceWidth / stageWidth));
+      // Export at the photo's native resolution regardless of device size: the
+      // stage is rendered small (for editing) and scaled by fitScale, so the
+      // export ratio undoes the fit shrink. See lib/markupFit.
+      const exportPixelRatio = exportPixelRatioFor(sourceWidth, stageWidth, fitScale);
       const flattenedDataUrl = stage.toDataURL({
         pixelRatio: exportPixelRatio,
         mimeType: "image/jpeg",
@@ -688,21 +946,33 @@ function PhotoMarkupEditor({
       )}
 
       <div
+        ref={photoAreaRef}
         className="relative flex min-h-0 flex-1 select-none items-center justify-center overflow-hidden bg-[var(--fl-surface-2)] touch-none"
         style={{ touchAction: "none", overscrollBehavior: "contain" }}
         onTouchMove={(event) => event.preventDefault()}
       >
         <Stage
           ref={stageRef}
-          width={stageWidth}
-          height={stageHeight}
+          width={viewport.width || renderWidth}
+          height={viewport.height || renderHeight}
+          scaleX={view.scale}
+          scaleY={view.scale}
+          x={view.x}
+          y={view.y}
           onMouseDown={handleStagePointerDown}
           onMouseMove={handleStagePointerMove}
           onMouseUp={handleStagePointerUp}
           onTouchStart={handleStagePointerDown}
           onTouchMove={handleStagePointerMove}
           onTouchEnd={handleStagePointerUp}
-          className={tool === "select" ? "cursor-default" : "cursor-crosshair"}
+          onWheel={handleWheelZoom}
+          className={
+            spacePan
+              ? "cursor-grab"
+              : tool === "select"
+                ? "cursor-default"
+                : "cursor-crosshair"
+          }
         >
           <Layer>
             {image && (
@@ -949,6 +1219,46 @@ function PhotoMarkupEditor({
             </div>
           )}
         </div>
+
+        {/* Zoom controls — bottom-left so they never cover a mark. Pinch (two
+            fingers) or wheel also zoom; two-finger drag (or Space+drag) pans. */}
+        <div className="absolute bottom-3 left-3 z-20 flex items-center gap-1 rounded-full border border-white/15 bg-[var(--fl-surface-2)]/90 p-1 shadow-lg backdrop-blur">
+          <button
+            type="button"
+            onClick={() => zoomAtViewportCenter(1 / 1.25)}
+            disabled={saving || view.scale <= minScale * 1.001}
+            aria-label="Zoom out"
+            title="Zoom out"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-xl font-bold text-[var(--fl-text)] transition active:scale-[0.94] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+          >
+            −
+          </button>
+          <span className="min-w-[3.25rem] text-center text-xs font-semibold tabular-nums text-[var(--fl-muted)]">
+            {zoomPercent}%
+          </span>
+          <button
+            type="button"
+            onClick={() => zoomAtViewportCenter(1.25)}
+            disabled={saving || view.scale >= maxScale * 0.999}
+            aria-label="Zoom in"
+            title="Zoom in"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-xl font-bold text-[var(--fl-text)] transition active:scale-[0.94] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+          >
+            +
+          </button>
+          {isZoomed && (
+            <button
+              type="button"
+              onClick={resetView}
+              disabled={saving}
+              aria-label="Fit photo to screen"
+              title="Fit to screen"
+              className="ml-0.5 flex h-9 items-center justify-center rounded-full px-3 text-xs font-bold text-[#65c832] transition active:scale-[0.94] hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
+            >
+              Fit
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="border-t border-white/10 bg-[var(--fl-surface-2)] px-3 py-4">
@@ -1072,6 +1382,7 @@ function PhotoMarkupEditor({
 
           <span className="text-center text-[var(--fl-muted)]">
             Select a markup to move, resize, recolor, duplicate, edit, or delete it.
+            Pinch (or scroll) to zoom in for fine detail; drag with two fingers to pan.
           </span>
         </div>
       </div>
