@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import PrintButton from "../../../components/PrintButton";
 import {
   formatAgreementTime,
-  deriveServiceFees,
+  deriveAgreementServiceFees,
   getAgreementTemplatesForInspection,
   getAgreementTitle,
   mergeMultipleAgreementBodies,
@@ -266,7 +266,7 @@ export default async function ClientAgreementPage({
           clientOrganization: inspection.client_organization_name,
           propertyAddress: inspection.address || inspection.property_address,
           fee: inspection.invoice_amount || inspection.fee || inspection.price,
-          serviceFees: deriveServiceFees(inspection),
+          serviceFees: deriveAgreementServiceFees(inspection),
           inspectorName: branding.name,
           ownerName,
           inspectionDate: inspection.inspection_date,

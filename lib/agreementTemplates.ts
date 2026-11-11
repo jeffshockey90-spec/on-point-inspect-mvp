@@ -397,6 +397,45 @@ export function deriveServiceFees(inspection: any): AgreementServiceFees {
   return map;
 }
 
+// Agreement-only variant of deriveServiceFees. The base map above keeps CLEAN
+// per-service prices (that's what the receipt itemizes), so inspection-level
+// adjustments — the fuel/travel fee and any discount — are NOT reflected in it.
+// The signed agreement, though, must show the amount the client actually pays:
+// its fees have to sum to invoice_amount. So we fold the leftover
+// (invoice_amount − sum of service bases, i.e. travel − discount) onto the
+// PRIMARY service's line. Primary = home/home_inspection when present, else the
+// highest-priced service. Single-service jobs whose home line already equals the
+// total get a zero delta and are left untouched. Use this for agreement rendering;
+// use deriveServiceFees for the receipt.
+export function deriveAgreementServiceFees(inspection: any): AgreementServiceFees {
+  const map = deriveServiceFees(inspection);
+  const keys = Object.keys(map);
+  if (keys.length === 0) return map;
+
+  const total =
+    Number(inspection?.invoice_amount ?? inspection?.price ?? inspection?.fee ?? 0) || 0;
+  if (!Number.isFinite(total) || total <= 0) return map;
+
+  const currentSum = keys.reduce((sum, key) => sum + (Number(map[key]) || 0), 0);
+  const delta = total - currentSum;
+  if (Math.abs(delta) < 0.005) return map;
+
+  // Choose the service line that carries the fuel-fee / discount adjustment.
+  let primaryKey: string | undefined = keys.find(
+    (key) => key === "home" || key === "home_inspection",
+  );
+  if (!primaryKey) {
+    primaryKey = keys.reduce(
+      (best, key) => ((Number(map[key]) || 0) > (Number(map[best]) || 0) ? key : best),
+      keys[0],
+    );
+  }
+
+  const adjusted: AgreementServiceFees = { ...map };
+  adjusted[primaryKey] = Math.max(0, (Number(map[primaryKey]) || 0) + delta);
+  return adjusted;
+}
+
 export function mergeMultipleAgreementBodies({
   templates,
   state,
