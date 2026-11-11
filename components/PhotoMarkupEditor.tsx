@@ -12,6 +12,7 @@ import {
   Text,
 } from "react-konva";
 import useImage from "use-image";
+import { fitStageToViewport, exportPixelRatioFor } from "../lib/markupFit";
 
 type Tool = "select" | "arrow" | "circle" | "text";
 
@@ -266,13 +267,48 @@ function PhotoMarkupEditor({
       ? maxStageHeight
       : Math.max(1, Math.round(maxStageWidth * sourceRatio));
 
+  // stageWidth/stageHeight above are the LOGICAL coordinate space the markups
+  // live in — derived only from the photo's aspect ratio, so a given photo maps
+  // to the same coordinates on every device and saved markups re-open in place.
+  // But the editor must also FIT the actual screen: on a phone the usable area
+  // is far narrower than 900px, so without fitting, the stage overflowed and the
+  // photo's edges were clipped off-screen (you couldn't reach them to mark).
+  // We measure the photo area and scale the stage down to fit it, never up
+  // (keeps desktop at native size, so nothing there changes).
+  const photoAreaRef = useRef<HTMLDivElement | null>(null);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const el = photoAreaRef.current;
+    if (!el) return;
+
+    const measure = () =>
+      setViewport({ width: el.clientWidth, height: el.clientHeight });
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const { fitScale, renderWidth, renderHeight } = fitStageToViewport(
+    stageWidth,
+    stageHeight,
+    viewport.width,
+    viewport.height,
+  );
+
   function showMessage(type: "success" | "error", text: string) {
     setMessageType(type);
     setMessage(text);
   }
 
   function getPointerPosition(stage: any) {
-    const pos = stage?.getPointerPosition();
+    // The stage is scaled to fit the screen, so read the pointer in the stage's
+    // LOGICAL coordinate space (getRelativePointerPosition inverts the scale) —
+    // otherwise marks would land at the wrong spot on anything but a 1:1 screen.
+    const pos =
+      stage?.getRelativePointerPosition?.() ?? stage?.getPointerPosition?.();
     if (!pos) return null;
 
     return {
@@ -595,7 +631,10 @@ function PhotoMarkupEditor({
       // made them look blurry in the report. Scaling pixelRatio by the source
       // size keeps the flattened image as sharp as the original (capped so a
       // huge photo can't blow up canvas memory on mobile).
-      const exportPixelRatio = Math.min(4, Math.max(2, sourceWidth / stageWidth));
+      // Export at the photo's native resolution regardless of device size: the
+      // stage is rendered small (for editing) and scaled by fitScale, so the
+      // export ratio undoes the fit shrink. See lib/markupFit.
+      const exportPixelRatio = exportPixelRatioFor(sourceWidth, stageWidth, fitScale);
       const flattenedDataUrl = stage.toDataURL({
         pixelRatio: exportPixelRatio,
         mimeType: "image/jpeg",
@@ -688,14 +727,17 @@ function PhotoMarkupEditor({
       )}
 
       <div
+        ref={photoAreaRef}
         className="relative flex min-h-0 flex-1 select-none items-center justify-center overflow-hidden bg-[var(--fl-surface-2)] touch-none"
         style={{ touchAction: "none", overscrollBehavior: "contain" }}
         onTouchMove={(event) => event.preventDefault()}
       >
         <Stage
           ref={stageRef}
-          width={stageWidth}
-          height={stageHeight}
+          width={renderWidth}
+          height={renderHeight}
+          scaleX={fitScale}
+          scaleY={fitScale}
           onMouseDown={handleStagePointerDown}
           onMouseMove={handleStagePointerMove}
           onMouseUp={handleStagePointerUp}
