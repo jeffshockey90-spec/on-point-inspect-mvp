@@ -57,7 +57,7 @@ export default async function OwnerRefundsPage() {
     admin
       .from("audit_logs")
       .select("action, resource_id, metadata, created_at")
-      .in("action", ["stripe_charge_refunded", "stripe_charge_disputed"])
+      .in("action", ["stripe_charge_refunded", "refund_recorded", "stripe_charge_disputed"])
       .order("created_at", { ascending: false })
       .limit(500),
     admin.from("inspections").select("id, property_address, address, client_name"),

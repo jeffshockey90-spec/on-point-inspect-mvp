@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { formatMoney } from "../lib/locale";
 import { getPaymentStatusDetail } from "../lib/paymentStatusDetail";
@@ -76,6 +76,23 @@ export default function PaymentInvoicePanel({
   const [receiptMsg, setReceiptMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [receiptHtml, setReceiptHtml] = useState("");
   const [receiptLoading, setReceiptLoading] = useState(false);
+
+  // Refund recording — a refund is tracked as its OWN quantity (amount_refunded)
+  // and never lowers amount_paid, raises balance_due, or re-locks the report.
+  const savedRefunded = getNumber(inspection.amount_refunded);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundMethod, setRefundMethod] = useState(inspection.payment_method || "");
+  const [refundReason, setRefundReason] = useState("");
+  const [refundEmail, setRefundEmail] = useState(
+    String(inspection.client_email || inspection.email || inspection.contact_email || ""),
+  );
+  const [refundSendEmail, setRefundSendEmail] = useState(true);
+  const [refundBusy, setRefundBusy] = useState(false);
+  const refundBusyRef = useRef(false);
+  const [refundMsg, setRefundMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [refundHtml, setRefundHtml] = useState("");
+  const [refundLoading, setRefundLoading] = useState(false);
 
   async function openReceipt() {
     if (busy) return;
@@ -197,6 +214,114 @@ export default function PaymentInvoicePanel({
     setSaveLabel("Save Payment Status");
   }
 
+  // Most that can still be refunded = what was collected (fallback: invoice)
+  // minus what's already been refunded.
+  const refundBasis = savedAmountPaid > 0 ? savedAmountPaid : invoiceAmountNumber;
+  const remainingRefundable = Math.max(0, Math.round((refundBasis - savedRefunded) * 100) / 100);
+
+  function openRefund() {
+    if (busy) return;
+    setRefundMsg(null);
+    setRefundHtml("");
+    setRefundAmount(remainingRefundable > 0 ? String(remainingRefundable) : "");
+    setRefundReason("");
+    setRefundMethod(inspection.payment_method || "");
+    setRefundEmail(String(inspection.client_email || inspection.email || inspection.contact_email || ""));
+    setRefundOpen(true);
+  }
+
+  // Live preview of the exact refund notice the client will receive.
+  useEffect(() => {
+    if (!refundOpen || !refundSendEmail) return;
+    const amt = getNumber(refundAmount);
+    if (!(amt > 0)) {
+      setRefundHtml("");
+      return;
+    }
+    let cancelled = false;
+    setRefundLoading(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          inspectionId,
+          amount: String(amt),
+          method: refundMethod || "",
+          reason: refundReason || "",
+        });
+        const res = await fetch(`/api/record-refund?${params.toString()}`, { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) {
+          setRefundMsg({ type: "error", text: data?.error || "Could not build the preview." });
+          setRefundHtml("");
+        } else {
+          setRefundHtml(String(data?.html || ""));
+          if (data?.defaultTo && !refundEmail) setRefundEmail(String(data.defaultTo));
+        }
+      } catch (error: any) {
+        if (!cancelled) setRefundMsg({ type: "error", text: error?.message || "Could not build the preview." });
+      } finally {
+        if (!cancelled) setRefundLoading(false);
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refundOpen, refundSendEmail, refundAmount, refundMethod, refundReason, inspectionId]);
+
+  async function submitRefund() {
+    if (refundBusyRef.current || refundBusy) return;
+    const amt = Math.round(getNumber(refundAmount) * 100) / 100;
+    if (!(amt > 0)) {
+      setRefundMsg({ type: "error", text: "Enter a refund amount greater than $0." });
+      return;
+    }
+    const to = refundEmail.trim();
+    if (refundSendEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      setRefundMsg({ type: "error", text: "Enter a valid client email, or turn off the email." });
+      return;
+    }
+    refundBusyRef.current = true;
+    setRefundBusy(true);
+    setRefundMsg(null);
+    try {
+      const res = await fetch("/api/record-refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspectionId,
+          amount: amt,
+          method: refundMethod || "",
+          reason: refundReason || "",
+          sendEmail: refundSendEmail,
+          recipientEmail: to,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRefundMsg({ type: "error", text: data?.error || "Could not record the refund." });
+        return;
+      }
+      const emailNote = refundSendEmail
+        ? data?.email?.sent
+          ? ` Notice emailed to ${data.email.to}.`
+          : data?.email?.error
+            ? ` (Email not sent: ${data.email.error})`
+            : ""
+        : "";
+      setRefundMsg({ type: "success", text: `Refund of ${money(amt)} recorded.${emailNote}` });
+      startTransition(() => router.refresh());
+      window.setTimeout(() => setRefundOpen(false), 1600);
+    } catch (error: any) {
+      setRefundMsg({ type: "error", text: error?.message || "Could not record the refund." });
+    } finally {
+      refundBusyRef.current = false;
+      setRefundBusy(false);
+    }
+  }
+
   const fieldClass = "box-border w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
@@ -211,6 +336,7 @@ export default function PaymentInvoicePanel({
               <Badge tone="slate">Invoice {money(invoiceAmountNumber)}</Badge>
               <Badge tone="slate">Paid {money(amountPaidNumber)}</Badge>
               <Badge tone={isPaid ? "green" : "orange"}>Due {money(balanceDue)}</Badge>
+              {savedRefunded > 0 && <Badge tone="slate">Refunded {money(savedRefunded)}</Badge>}
             </div>
             {statusDetail && (
               <p className="mt-3 text-xs font-semibold text-[var(--fl-muted)]">{statusDetail}</p>
@@ -288,6 +414,16 @@ export default function PaymentInvoicePanel({
               🧾 Send Receipt
             </button>
           )}
+          {savedAmountPaid > 0 && (
+            <button
+              type="button"
+              onClick={openRefund}
+              disabled={busy}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-orange-400/60 bg-orange-500/10 px-5 py-3 font-semibold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-orange-500/20 disabled:opacity-50 [touch-action:manipulation]"
+            >
+              ↩ Record Refund
+            </button>
+          )}
         </div>
       </div>
 
@@ -355,6 +491,89 @@ export default function PaymentInvoicePanel({
               <button type="button" onClick={sendReceipt} disabled={receiptBusy || receiptLoading || !receiptHtml} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-500 px-4 py-3 text-sm font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:opacity-60 [touch-action:manipulation]">
                 {receiptBusy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
                 {receiptBusy ? "Sending…" : "Send Receipt"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {refundOpen && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm [touch-action:manipulation]"
+          onClick={() => !refundBusy && setRefundOpen(false)}
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--fl-warn-text)]">Refund</p>
+                <h3 className="mt-1 text-lg font-semibold text-[var(--fl-text)]">Record a refund</h3>
+              </div>
+              <button type="button" onClick={() => !refundBusy && setRefundOpen(false)} className="rounded-full border border-[var(--fl-line)] px-3 py-1 text-xs font-semibold text-[var(--fl-muted)] [touch-action:manipulation]">Close ✕</button>
+            </div>
+
+            <p className="mt-2 text-[12px] leading-5 text-[var(--fl-muted)]">
+              Recorded separately — this does not change the amount paid or re-lock the report. Up to {money(remainingRefundable)} can be refunded on this inspection.
+            </p>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Refund amount</p>
+                <input type="number" value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} disabled={refundBusy} className={fieldClass} />
+              </label>
+              <label>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Method</p>
+                <select value={refundMethod} onChange={(e) => setRefundMethod(e.target.value)} disabled={refundBusy} className={fieldClass}>
+                  {PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method || "Not selected"}</option>)}
+                </select>
+              </label>
+            </div>
+            <label className="mt-3 block">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Reason (optional)</p>
+              <input value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="Example: partial refund for canceled add-on" disabled={refundBusy} className={fieldClass} />
+            </label>
+
+            <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[var(--fl-text)]">
+              <input type="checkbox" checked={refundSendEmail} onChange={(e) => setRefundSendEmail(e.target.checked)} disabled={refundBusy} className="h-4 w-4 [touch-action:manipulation]" />
+              Email the client a refund notice
+            </label>
+
+            {refundSendEmail && (
+              <>
+                <label className="mt-3 block">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Send to</p>
+                  <input type="email" value={refundEmail} onChange={(e) => setRefundEmail(e.target.value)} placeholder="client@email.com" disabled={refundBusy} className={fieldClass} />
+                </label>
+                <div className="mt-3 overflow-hidden rounded-xl border border-[var(--fl-line)] bg-white">
+                  {refundLoading ? (
+                    <div className="flex h-40 items-center justify-center text-sm text-[var(--fl-muted)]">
+                      <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Building preview…
+                    </div>
+                  ) : refundHtml ? (
+                    <iframe title="Refund notice preview" srcDoc={refundHtml} className="h-[40vh] w-full border-0 bg-white" />
+                  ) : (
+                    <div className="flex h-24 items-center justify-center px-4 text-center text-sm text-[var(--fl-muted)]">
+                      Enter an amount to preview the notice.
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {refundMsg && (
+              <p className={`mt-3 text-sm font-semibold ${refundMsg.type === "success" ? "text-[var(--fl-good-text)]" : "text-[var(--fl-crit-text)]"}`}>
+                {refundMsg.text}
+              </p>
+            )}
+
+            <div className="mt-4 flex gap-2">
+              <button type="button" onClick={() => !refundBusy && setRefundOpen(false)} className="flex-1 rounded-xl border border-[var(--fl-line)] px-4 py-3 text-sm font-semibold text-[var(--fl-text)] [touch-action:manipulation]">Cancel</button>
+              <button type="button" onClick={submitRefund} disabled={refundBusy || !(getNumber(refundAmount) > 0)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-orange-400 disabled:opacity-60 [touch-action:manipulation]">
+                {refundBusy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />}
+                {refundBusy ? "Recording…" : refundSendEmail ? "Record & send notice" : "Record refund"}
               </button>
             </div>
           </div>
