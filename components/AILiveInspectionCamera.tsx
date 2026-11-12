@@ -2883,6 +2883,44 @@ export default function AILiveInspectionCamera({
           {selectedReport && (
             <FieldFindingLinker inspectionId={String(selectedReport)} compact />
           )}
+
+          {/* Compass + note live up here in the top chrome, next to the link
+              button, so neither one sits over the live viewfinder. */}
+          {stage === "note_entry" && activeCategoryMeta && (
+            <>
+              {activeCategoryMeta.key !== "reference" && (
+                <button
+                  type="button"
+                  onClick={() => void compass.start()}
+                  aria-label="Compass heading"
+                  className="flex h-9 shrink-0 items-center gap-1 rounded-full border border-white/15 bg-neutral-900/85 px-2.5 text-[11px] font-semibold text-cyan-300 shadow-xl backdrop-blur active:scale-95"
+                >
+                  🧭{" "}
+                  {compass.cardinal
+                    ? `${compass.cardinal} ${Math.round(compass.heading ?? 0)}°`
+                    : compass.needsPermission
+                      ? "Enable"
+                      : "…"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setNoteOpen((open) => !open)}
+                aria-label={noteText.trim() ? "Edit note for the AI" : "Add a note for the AI"}
+                title="Note for the AI"
+                className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-base shadow-xl backdrop-blur transition active:scale-95 ${
+                  noteOpen
+                    ? "border-cyan-400 bg-cyan-500/20 text-cyan-200"
+                    : "border-white/15 bg-neutral-900/85 text-cyan-300"
+                }`}
+              >
+                📝
+                {noteText.trim() && !noteOpen && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-neutral-900 bg-emerald-400" />
+                )}
+              </button>
+            </>
+          )}
         </div>
 
         {activeCategoryMeta && stage !== "note_entry" && (
@@ -3170,11 +3208,11 @@ export default function AILiveInspectionCamera({
               );
             })}
           </div>
-          <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-neutral-900/85 p-3 backdrop-blur">
-            {/* Note is collapsed by default so it never covers the live
-                viewfinder while you're framing/shooting. Tap to expand and type
-                or 🎤 dictate — it still guides the AI exactly as before. */}
-            {noteOpen ? (
+
+          {/* The note editor only appears when you tap 📝 up top — it's never on
+              the viewfinder while you're framing. It still guides the AI. */}
+          {noteOpen && (
+            <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-neutral-900/85 p-3 backdrop-blur">
               <div className="relative">
                 <textarea
                   value={noteText}
@@ -3206,35 +3244,21 @@ export default function AILiveInspectionCamera({
                     if (voiceListening && voiceTarget === "note") void stopVoiceFill();
                     setNoteOpen(false);
                   }}
-                  aria-label="Hide the note"
-                  title="Hide the note"
-                  className="absolute right-11 top-1.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/40 text-base text-white/70 transition active:scale-95 [touch-action:manipulation]"
+                  aria-label="Done with the note"
+                  title="Done"
+                  className="absolute right-11 top-1.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/40 text-sm font-bold text-emerald-300 transition active:scale-95 [touch-action:manipulation]"
                 >
-                  ⌄
+                  ✓
                 </button>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setNoteOpen(true)}
-                className="flex w-full items-center gap-2 rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-left text-sm text-white/70 transition active:scale-[0.99] [touch-action:manipulation]"
-              >
-                <span aria-hidden className="shrink-0 text-cyan-300">📝</span>
-                <span className="min-w-0 flex-1 truncate">
-                  {noteText.trim()
-                    ? noteText.trim()
-                    : activeCategoryMeta.key === "reference"
-                      ? "Add a caption"
-                      : "Add a note for the AI"}
-                </span>
-                <span aria-hidden className="shrink-0 text-[11px] font-semibold text-cyan-300">
-                  {noteText.trim() ? "Edit" : "＋"}
-                </span>
-              </button>
-            )}
+            </div>
+          )}
 
-            {activeCategoryMeta.key !== "reference" && (
-              <div className="mt-2 rounded-lg border border-white/10 bg-black/25 p-2">
+          {/* Location only — the note lives up top (📝 in the top bar) so it's
+              off the viewfinder, and the compass moved up there too. */}
+          {activeCategoryMeta.key !== "reference" && (
+            <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-neutral-900/85 p-3 backdrop-blur">
+              <div className="rounded-lg border border-white/10 bg-black/25 p-2">
                 <div className="flex items-center justify-between gap-2">
                   <button
                     type="button"
@@ -3249,18 +3273,6 @@ export default function AILiveInspectionCamera({
                     <span aria-hidden className="text-white/60">
                       {locationOpen ? "⌃" : "⌄"}
                     </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void compass.start()}
-                    className="flex shrink-0 items-center gap-1 rounded-full border border-white/15 px-2 py-0.5 text-[11px] font-semibold text-cyan-300"
-                  >
-                    🧭{" "}
-                    {compass.cardinal
-                      ? `${compass.cardinal} ${Math.round(compass.heading ?? 0)}°`
-                      : compass.needsPermission
-                        ? "Enable compass"
-                        : "…"}
                   </button>
                 </div>
                 <div hidden={!locationOpen} className="mt-2 grid grid-cols-3 gap-2">
@@ -3296,8 +3308,8 @@ export default function AILiveInspectionCamera({
                   />
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {identifyEnabled && selectedReport && (
             <div className="mb-2 flex justify-end">
