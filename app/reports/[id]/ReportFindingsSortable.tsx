@@ -25,6 +25,7 @@ import { legacyImageMirrorsPhoto } from "../../../lib/findingLegacyImage";
 import { createVideoThumbnailForUpload } from "../../../lib/videoThumbnail";
 import { useSeverityConfig } from "../../../lib/severity/useSeverityConfig";
 import { severityOptions, severityLabel, severityBadgeStyle, resolveSeverity } from "../../../lib/severity/severityConfig";
+import { normalizeUnits, type InspectionUnit } from "../../../lib/report/units";
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -160,7 +161,11 @@ function DeferredOpenSection({
   );
 }
 
-export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes, weatherContext, hasEquipment, equipment }: any) {
+export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes, weatherContext, hasEquipment, equipment, units: unitRows, isMultiUnit }: any) {
+  // Multi-Unit: ordered units for the per-finding + add-form unit pickers. Empty
+  // for single-family jobs, in which case no unit UI renders anywhere below.
+  const units: InspectionUnit[] = useMemo(() => normalizeUnits(unitRows), [unitRows]);
+  const multiUnit = Boolean(isMultiUnit) && units.length > 0;
   const params = useParams();
   const router = useRouter();
   const inspectionId = String(params?.id || "");
@@ -1560,6 +1565,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                     inspectionId={inspectionId}
                     section={group.section}
                     router={router}
+                    units={multiUnit ? units : []}
                   />
 
                   <SectionReferencePhotos
@@ -1592,6 +1598,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
                       allPhotos={allPhotos}
                       allFindings={allFindings}
                       availableSections={availableSections}
+                      units={multiUnit ? units : []}
                       onNeedPhotoPicker={handleNeedPhotoPicker}
                       onStartCombine={startCombineWith}
                       relatedHint={relatedByFinding.get(String(finding.id))}
@@ -1840,11 +1847,15 @@ function AddSectionFindingForm({
   inspectionId,
   section,
   router,
+  units,
 }: {
   inspectionId: string;
   section: string;
   router: any;
+  units?: InspectionUnit[];
 }) {
+  const unitChoices: InspectionUnit[] = Array.isArray(units) ? units : [];
+  const [unitId, setUnitId] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [severity, setSeverity] = useState("Recommended Repair");
@@ -2039,6 +2050,7 @@ function AddSectionFindingForm({
           implication: implication.trim(),
           recommendation: recommendation.trim(),
           image_url: null,
+          ...(unitChoices.length > 0 ? { unit_id: unitId } : {}),
         })
         .select("id")
         .single();
@@ -2059,6 +2071,7 @@ function AddSectionFindingForm({
         recommendation: recommendation.trim(),
         image_url: null,
         photos: [],
+        ...(unitChoices.length > 0 ? { unit_id: unitId } : {}),
       };
 
       const hadPendingFiles = pendingFiles.length > 0;
@@ -2196,6 +2209,29 @@ function AddSectionFindingForm({
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
+            {unitChoices.length > 0 && (
+              <label className="flex items-center gap-2 rounded-xl border border-teal-500/40 bg-teal-500/10 px-3 py-2 md:col-span-2">
+                <span className="text-xs font-bold uppercase tracking-wide text-[var(--fl-accent-text)]">
+                  Unit
+                </span>
+                <select
+                  value={unitId == null ? "" : String(unitId)}
+                  onChange={(event) =>
+                    setUnitId(event.target.value === "" ? null : Number(event.target.value))
+                  }
+                  disabled={saving}
+                  className="flex-1 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm font-semibold text-[var(--fl-text)] outline-none focus:border-teal-300 disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+                >
+                  <option value="">Unassigned</option>
+                  {unitChoices.map((unit) => (
+                    <option key={unit.id} value={String(unit.id)}>
+                      {unit.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -3028,6 +3064,7 @@ function FindingCardBase({
   allPhotos,
   allFindings,
   availableSections,
+  units,
   onNeedPhotoPicker,
   onStartCombine,
   relatedHint,
@@ -3175,6 +3212,35 @@ function FindingCardBase({
   useEffect(() => {
     setLocalFinding(finding);
   }, [finding]);
+
+  // Multi-Unit: reassign this finding to a unit (or "Unassigned"). Only rendered
+  // when the job has units. Optimistic local update + markLocalEdit so the
+  // realtime sync doesn't stomp the change before the next refresh.
+  const unitList: InspectionUnit[] = Array.isArray(units) ? units : [];
+  const [savingUnit, setSavingUnit] = useState(false);
+  async function assignUnit(nextUnitId: number | null) {
+    const current = displayFinding.unit_id == null ? null : Number(displayFinding.unit_id);
+    if (current === nextUnitId) return;
+    setSavingUnit(true);
+    setLocalFinding((prev: any) => ({ ...(prev || finding), unit_id: nextUnitId }));
+    try {
+      const { error } = await supabase
+        .from("findings")
+        .update({ unit_id: nextUnitId })
+        .eq("id", finding.id);
+      if (error) throw error;
+      markLocalEdit();
+    } catch {
+      // Roll back the optimistic change on failure.
+      setLocalFinding((prev: any) => ({
+        ...(prev || finding),
+        unit_id: current,
+      }));
+      showMessage("error", "Could not change the unit — check your connection.");
+    } finally {
+      setSavingUnit(false);
+    }
+  }
 
   const photos = getFindingPhotos(displayFinding);
   const hiddenPhotoCount = Math.max(
@@ -5018,6 +5084,35 @@ function FindingCardBase({
           </button>
         </div>
 
+        {unitList.length > 0 && (
+          <div
+            onClick={(event) => event.stopPropagation()}
+            className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3 sm:p-4"
+          >
+            <span className="text-xs font-bold uppercase tracking-wide text-[var(--fl-accent-text)]">
+              Unit
+            </span>
+            <select
+              value={displayFinding.unit_id == null ? "" : String(displayFinding.unit_id)}
+              disabled={savingUnit}
+              onChange={(event) =>
+                void assignUnit(event.target.value === "" ? null : Number(event.target.value))
+              }
+              className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2 text-sm font-semibold text-[var(--fl-text)] outline-none focus:border-teal-300 disabled:opacity-60 [touch-action:manipulation]"
+            >
+              <option value="">Unassigned</option>
+              {unitList.map((unit) => (
+                <option key={unit.id} value={String(unit.id)}>
+                  {unit.label}
+                </option>
+              ))}
+            </select>
+            {savingUnit && (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent text-[var(--fl-accent-text)]" />
+            )}
+          </div>
+        )}
+
         <div
           onClick={(event) => event.stopPropagation()}
           className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 sm:p-4"
@@ -5089,6 +5184,7 @@ function findingContentEqual(a: any, b: any) {
     "defect_title",
     "name",
     "image_url",
+    "unit_id",
   ];
   for (const f of fields) {
     if (String(a[f] ?? "") !== String(b[f] ?? "")) return false;

@@ -1995,6 +1995,23 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     (row: any) => row.deleted_at,
   );
 
+  // Multi-Unit: the units (Common Areas + Unit A/B…) the inspector can assign
+  // findings to in the builder. Loaded tolerantly so a pre-migration DB just
+  // returns none and the builder shows no unit UI (single-family behavior).
+  let reportUnits: any[] = [];
+  try {
+    const { data: unitRows } = await supabase
+      .from("inspection_units")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .order("sort_order", { ascending: true });
+    reportUnits = unitRows || [];
+  } catch {
+    reportUnits = [];
+  }
+  const inspectionIsMultiUnit =
+    Boolean((inspection as any).is_multi_unit) || reportUnits.length > 0;
+
   // Per-section notes (shown above each section's findings). Service-role read
   // so a company owner sees notes on a team member's inspection too. Missing
   // table (pre-migration) just yields an empty map.
@@ -3817,6 +3834,8 @@ Service-life information is a general industry estimate only. Actual service lif
               groupedFindings={groupedFindingsArray}
               deletedSections={deletedReportSections}
               sectionNotes={sectionNotesMap}
+              units={reportUnits}
+              isMultiUnit={inspectionIsMultiUnit}
               hasEquipment={equipmentInventory.length > 0}
               equipment={equipmentInventory.map((item: any) => ({
                 name: item.equipment_type || item.equipmentType || item.name || item.type || "Equipment",
