@@ -874,17 +874,21 @@ export async function POST(req: Request) {
         file_path: mainImagePath || "",
       };
 
+      // Multi-Unit: stamp the captured unit so equipment groups by unit too.
+      const unitStamp =
+        payload.unit_id != null ? { unit_id: Number(payload.unit_id) } : {};
+
       let equipmentRowId: any = null;
       const { data: enhancedRow, error: enhancedError } = await supabase
         .from("equipment_inventory")
-        .insert({ ...inventoryEnhanced, ...imageStamp })
+        .insert({ ...inventoryEnhanced, ...imageStamp, ...unitStamp })
         .select("id")
         .single();
 
       if (enhancedError) {
         const { data: baseRow, error: baseError } = await supabase
           .from("equipment_inventory")
-          .insert({ ...inventoryBase, ...imageStamp })
+          .insert({ ...inventoryBase, ...imageStamp, ...unitStamp })
           .select("id")
           .single();
         if (baseError) throw baseError;
@@ -916,6 +920,7 @@ export async function POST(req: Request) {
           .from("findings")
           .insert({
             inspection_id: inspectionId,
+            ...unitStamp,
             section: cleanText(f.section) || "Heating",
             severity: safeSeverityValue(f.severity, "Informational"),
             title: cleanText(f.title) || "Equipment",
