@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition as NativeSpeechRecognition } from "@capgo/capacitor-speech-recognition";
 import { supabase } from "../../lib/supabaseClient";
+import { normalizeUnits, type InspectionUnit } from "../../lib/report/units";
 import { createVideoThumbnailForUpload } from "../../lib/videoThumbnail";
 import { buildEquipmentFills, buildMaterialFills, writeChecklistFills } from "../../lib/ai/checklistAutofill";
 import { isLikelyNetworkError } from "../../lib/networkError";
@@ -380,6 +381,46 @@ function FieldPageContent() {
         if (!cancelled && Array.isArray(d?.sections) && d.sections.length) setActiveSections(d.sections);
       })
       .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedReport]);
+  // Multi-Unit: the selected job's units (Common Areas + Unit A/B…) and the unit
+  // the inspector is currently capturing under. Empty/none for single-family
+  // jobs, in which case no unit switcher shows and nothing stamps unit_id.
+  const [units, setUnits] = useState<InspectionUnit[]>([]);
+  const [activeUnit, setActiveUnit] = useState<number | null>(null);
+  useEffect(() => {
+    if (!selectedReport) {
+      setUnits([]);
+      setActiveUnit(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("inspection_units")
+          .select("*")
+          .eq("inspection_id", selectedReport)
+          .order("sort_order", { ascending: true });
+        if (cancelled) return;
+        const normalized = normalizeUnits(data || []);
+        setUnits(normalized);
+        // Default to the first unit so captures land somewhere sensible; the
+        // inspector can switch. Null (Unassigned) stays available in the switcher.
+        setActiveUnit((prev) =>
+          prev != null && normalized.some((u) => u.id === prev)
+            ? prev
+            : normalized[0]?.id ?? null,
+        );
+      } catch {
+        if (!cancelled) {
+          setUnits([]);
+          setActiveUnit(null);
+        }
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -1508,6 +1549,7 @@ function FieldPageContent() {
         type: "finding",
         payload: {
           inspection_id: selectedReport,
+          unit_id: activeUnit ?? null,
           title: draft.title || "",
           section: effectiveSection,
           severity: effectiveSeverity,
@@ -1609,6 +1651,7 @@ function FieldPageContent() {
         type: "limitation",
         payload: {
           inspection_id: selectedReport,
+          unit_id: activeUnit ?? null,
           section: effectiveSection,
           title: draft.title || "",
           limitation: draft.limitation || "",
@@ -3195,6 +3238,8 @@ function FieldPageContent() {
               implication: group.implication,
               recommendation: group.recommendation,
               image_url: uploaded.find((item) => !item.isVideo)?.publicUrl || null,
+              // Multi-Unit: file AI-organized findings under the active unit too.
+              ...(activeUnit != null ? { unit_id: activeUnit } : {}),
             })
             .select()
             .single();
@@ -3556,6 +3601,8 @@ function FieldPageContent() {
         public_url: uploaded.publicUrl,
         thumbnail_path: uploaded.thumbnailPath || null,
         thumbnail_url: uploaded.thumbnailUrl || null,
+        // Multi-Unit: scope to the active unit (only when one is set).
+        ...(activeUnit != null ? { unit_id: activeUnit } : {}),
       })),
     );
 
@@ -3666,6 +3713,9 @@ function FieldPageContent() {
               /\.(jpg|jpeg|png|webp|gif|heic)$/i,
             ),
           )?.publicUrl || null,
+        // Multi-Unit: stamp the active unit only when one is set, so single-
+        // family jobs (and any DB before the migration) never write unit_id.
+        ...(activeUnit != null ? { unit_id: activeUnit } : {}),
       })
       .select()
       .single();
@@ -3786,6 +3836,8 @@ function FieldPageContent() {
           recommendation: effectiveRecommendation.trim(),
           imageDataUrls: batch,
           limitationId: limitationId || undefined,
+          // Multi-Unit: the unit this limitation belongs to (null when none).
+          unitId: activeUnit ?? undefined,
         }),
       });
 
@@ -3874,6 +3926,7 @@ function FieldPageContent() {
             type: "finding",
             payload: {
               inspection_id: snapshot.inspectionId,
+              unit_id: activeUnit ?? null,
               title: snapshot.title,
               section: snapshot.section,
               severity: snapshot.severity,
@@ -4016,6 +4069,7 @@ function FieldPageContent() {
             type: "reference_photo",
             payload: {
               inspection_id: snapshot.inspectionId,
+              unit_id: activeUnit ?? null,
               title: snapshot.title,
               section: snapshot.section,
               severity: snapshot.severity,
@@ -4272,6 +4326,7 @@ function FieldPageContent() {
           type: photoType === "reference_photo" ? "reference_photo" : "finding",
           payload: {
             inspection_id: selectedReport,
+            unit_id: activeUnit ?? null,
             title,
             section,
             severity,
@@ -4363,6 +4418,7 @@ function FieldPageContent() {
             type: photoType === "reference_photo" ? "reference_photo" : "finding",
             payload: {
               inspection_id: selectedReport,
+              unit_id: activeUnit ?? null,
               title,
               section,
               severity,
@@ -5442,6 +5498,29 @@ function FieldPageContent() {
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-info-text)]">
                   Step 3
               </p>
+
+              {units.length > 0 && (
+                <div className="mb-4 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3">
+                  <label className="mb-2 block font-bold text-[var(--fl-accent-text)]">Unit</label>
+                  <select
+                    value={activeUnit == null ? "" : String(activeUnit)}
+                    onChange={(e) =>
+                      setActiveUnit(e.target.value === "" ? null : Number(e.target.value))
+                    }
+                    className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)] [touch-action:manipulation]"
+                  >
+                    <option value="">Unassigned</option>
+                    {units.map((unit) => (
+                      <option key={unit.id} value={String(unit.id)}>
+                        {unit.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1.5 text-[11px] font-semibold text-[var(--fl-muted)]">
+                    New findings, photos &amp; limitations are filed under this unit.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="mb-2 block font-bold">Section</label>
