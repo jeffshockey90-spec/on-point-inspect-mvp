@@ -65,6 +65,20 @@ export const DEFAULT_PRICING_CONFIG: InspectorPricingConfig = {
       perUnitFee: 75,
       unitLabel: "sample",
     },
+    // Multi-family. The base service already prices the building by square
+    // footage, so this charges only for the EXTRA dwellings: enter units minus
+    // one (a duplex is 1, a fourplex is 3). Unit count, not floor area, is what
+    // drives the work -- each dwelling adds its own kitchen, baths and often
+    // its own furnace, water heater and panel. Quote 5+ units custom: per-unit
+    // rates fall at that scale rather than continuing to stack.
+    {
+      id: "additional_units",
+      name: "Additional Dwelling Units",
+      type: "flat_plus_per_unit",
+      baseFee: 0,
+      perUnitFee: 200,
+      unitLabel: "additional unit",
+    },
   ],
 };
 
