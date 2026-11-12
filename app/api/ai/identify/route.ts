@@ -7,6 +7,7 @@ import {
   IDENTIFY_SECTIONS,
   IDENTIFY_SEVERITIES,
 } from "../../../../lib/ai/identifyResult";
+import { BRAND_READING_RULE } from "../../../../lib/ai/brandResolver";
 
 export const runtime = "nodejs";
 
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
 Return ONLY valid JSON. No markdown. Do not invent a defect that is not visibly supported. Do not overstate. The inspector has final authority.
 
 Rules:
-- "label": a short, SPECIFIC name of the component — never a bare generic noun. Name the brand/series ONLY when it is clearly legible or unmistakable (e.g. "Federal Pacific Stab-Lok electrical panel", "Rheem gas water heater"). When it is a building MATERIAL rather than a piece of equipment (insulation, siding, roof covering, flooring, foundation, ducting, gutters, decking, wall/ceiling finish…), name its specific TYPE from what is visible, not the category — e.g. "Blown-in fiberglass insulation" not "insulation", "Asphalt-shingle roof covering" not "roof", "Vinyl siding" not "siding", "Cast-iron drain piping" not "pipe". If a measurable attribute is plainly visible (rough insulation depth, number of panel slots), you may include it; never estimate one that isn't visible, and only note a condition when a defect is actually visible.
+- "label": a short, SPECIFIC name of the component — never a bare generic noun. Name the brand/series ONLY when it is clearly legible or unmistakable (e.g. "Federal Pacific Stab-Lok electrical panel", "Rheem gas water heater"). Obey the BRAND rule below: read the printed cabinet badge, never guess a brand from appearance, and never substitute a competitor brand. If no brand is legible, leave the brand out of the label and name the component generically. When it is a building MATERIAL rather than a piece of equipment (insulation, siding, roof covering, flooring, foundation, ducting, gutters, decking, wall/ceiling finish…), name its specific TYPE from what is visible, not the category — e.g. "Blown-in fiberglass insulation" not "insulation", "Asphalt-shingle roof covering" not "roof", "Vinyl siding" not "siding", "Cast-iron drain piping" not "pipe". If a measurable attribute is plainly visible (rough insulation depth, number of panel slots), you may include it; never estimate one that isn't visible, and only note a condition when a defect is actually visible.
 - "componentType": the generic component ("insulation", "electrical panel", "water heater", "furnace", "roof covering"…).
 - "section": the single best report section from this list, character-for-character: ${IDENTIFY_SECTIONS.join(", ")}.
 - "hazard": true ONLY for a WELL-KNOWN, widely-recognized inspection hazard that is identifiable from the component itself — e.g. a Federal Pacific Stab-Lok or Zinsco/Sylvania panel, a TPR valve with no discharge pipe, knob-and-tube wiring, a missing garage fire separation. Otherwise false. Never guess a hazard.
@@ -50,6 +51,8 @@ Rules:
 - "severity": one of ${IDENTIFY_SEVERITIES.join(", ")}. Choose a CONSERVATIVE severity ONLY when a defect or hazard is visibly supported. If it's just a normal component with no visible problem, use "Informational".
 - "confidence": 0-100, how sure you are of the identification.
 - "worthLogging": true when this is a defect, a known hazard, or a notable component worth creating a finding for; false for an unremarkable background object.
+
+${BRAND_READING_RULE}
 
 Return exactly:
 {"label":"","componentType":"","section":"","hazard":false,"hazardNote":"","severity":"","confidence":0,"worthLogging":false}`;
