@@ -31,7 +31,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-09-16-reinspection";
+const PDF_TEMPLATE_VERSION = "2026-11-11-signature-content-fix";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -2587,26 +2587,45 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     let pdfSignature = "";
     try {
-      const sel = (table: string, cols: string) =>
-        admin.from(table).select(cols).eq("inspection_id", inspectionId).order("created_at", { ascending: true });
+      // Hash each content table's rows into the signature. Try a tight column
+      // list; if the query ERRORS (a column was renamed or removed — schema
+      // drift), fall back to the full row so the table's content STILL enters
+      // the hash. Without this, one non-existent column silently nulls the whole
+      // table and the cached PDF never regenerates when that table changes —
+      // which is exactly how edited findings, added/removed photos, swapped
+      // video posters, and equipment edits were all served stale from an old
+      // cache (the findings/photos/equipment selects each referenced a column
+      // that no longer exists, so all three hashed as null every time).
+      const sigSel = async (
+        table: string,
+        cols: string,
+        filter?: (q: any) => any,
+      ) => {
+        const build = (c: string) => {
+          const q = admin
+            .from(table)
+            .select(c)
+            .eq("inspection_id", inspectionId)
+            .order("created_at", { ascending: true });
+          return filter ? filter(q) : q;
+        };
+        let res = await build(cols);
+        if (res.error) res = await build("*");
+        return res.data ?? null;
+      };
+      // Exclude review-pending rows (findings / equipment / limitations) so that
+      // APPROVING a draft flips needs_review, pulls the row into the signature,
+      // and the cached PDF regenerates WITH the now-approved item. Selecting the
+      // full row also keeps reinspection_* verdict/summary edits in the hash.
+      const notReview = (q: any) => q.not("needs_review", "is", true);
       const [f, ph, eq, di, ch, rf, li, nt, rb] = await Promise.all([
-        // reinspection_* are part of the signature on purpose: without them, changing a
-        // verdict or re-drafting a re-inspection note would leave the signature
-        // identical and the download would serve the previous PDF from cache.
-        // Exclude review-pending findings from the signature (like equipment +
-        // limitations below), so approving a draft changes the signature and the
-        // cached PDF regenerates WITH the now-approved finding. Without this,
-        // Approve-All / approve-as-is left the signature byte-identical and the
-        // realtor kept downloading a PDF missing the approved finding.
-        sel("findings", "id,title,observation,implication,recommendation,severity,section,component,report_item_number,defect_type,reinspection_status,reinspection_summary,source_finding_id").not("needs_review", "is", true),
-        sel("photos", "id,finding_id,file_path,thumbnail_path,thumbnail_url,caption,is_video"),
-        // Exclude review-pending rows from the signature too, so approving one
-        // changes the signature and the cached PDF regenerates with it included.
-        sel("equipment_inventory", "id,equipment_type,manufacturer,model,serial,manufacture_year,estimated_age,capacity,fuel_type,condition,notes,file_path,thumbnail_path").not("needs_review", "is", true),
-        sel("report_disclaimers", "id,topic,disclaimer_text"),
-        sel("section_checklist_selections", "id,section,group_title,value,custom_text"),
-        sel("section_reference_photos", "id,section,caption,file_path,thumbnail_path"),
-        sel("section_limitations", "id,section,label,limitation_comment,custom_text").not("needs_review", "is", true),
+        sigSel("findings", "*", notReview),
+        sigSel("photos", "*"),
+        sigSel("equipment_inventory", "*", notReview),
+        sigSel("report_disclaimers", "id,topic,disclaimer_text"),
+        sigSel("section_checklist_selections", "id,section,group_title,value,custom_text"),
+        sigSel("section_reference_photos", "id,section,caption,file_path,thumbnail_path"),
+        sigSel("section_limitations", "id,section,label,limitation_comment,custom_text", notReview),
         admin.from("report_section_notes").select("section_name,notes").eq("inspection_id", inspectionId).order("section_name", { ascending: true }),
         sigRealtorEmail
           ? admin.from("realtor_profiles").select("name,brokerage,photo_url").ilike("email", sigRealtorEmail).maybeSingle()
@@ -2619,8 +2638,8 @@ export async function GET(req: Request, { params }: RouteProps) {
             u: inspection.updated_at,
             v: pdfVariant,
             logo: cleanText(inspection.company_id),
-            f: f.data, ph: ph.data, eq: eq.data, di: di.data,
-            ch: ch.data, rf: rf.data, li: li.data, nt: nt.data,
+            f, ph, eq, di,
+            ch, rf, li, nt: nt.data,
             re: sigRealtorEmail, rn: cleanText(inspection.realtor_name), rb: rb.data,
           }),
         )
