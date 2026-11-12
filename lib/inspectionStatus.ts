@@ -53,6 +53,17 @@ export function isPaymentComplete(inspection: any) {
   const invoiceAmount = getInvoiceAmount(inspection);
   const amountPaid = getNumber(inspection?.amount_paid);
   const balanceDue = getBalanceDue(inspection);
+  const amountRefunded = getNumber(inspection?.amount_refunded);
+
+  // A refund returns money that was already collected — it is NOT a new balance
+  // owed and must never re-lock a delivered report. If this inspection was paid
+  // (or waived) and then refunded in full or in part, it stays payment-complete.
+  if (
+    (amountRefunded > 0 || status.includes("refund")) &&
+    (amountPaid > 0 || Boolean(inspection?.paid_at))
+  ) {
+    return true;
+  }
 
   if (status === "paid" || status === "waived") return true;
   if (status === "unpaid" || status === "partial") return false;

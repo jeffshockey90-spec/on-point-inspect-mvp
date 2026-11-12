@@ -1105,14 +1105,20 @@ export async function POST(req: Request) {
               ).replace(/[^0-9.-]/g, "")
             ) || 0;
 
+          // charge.amount_refunded is CUMULATIVE, so this is the total refunded.
           const refundedDollars = amountRefunded / 100;
-          const newAmountPaid = Math.max(0, invoiceAmount - refundedDollars);
-          const newBalance = Math.max(0, invoiceAmount - newAmountPaid);
-          const fullyRefunded = newAmountPaid <= 0;
+          const amountPaidOnRecord =
+            Number(String(inspection.amount_paid ?? "").replace(/[^0-9.-]/g, "")) || 0;
+          // Refund basis = what was actually collected (fall back to invoice).
+          const refundBasis = amountPaidOnRecord > 0 ? amountPaidOnRecord : invoiceAmount;
+          const fullyRefunded =
+            refundBasis > 0 ? refundedDollars >= refundBasis - 0.005 : refundedDollars > 0;
           const newStatus = fullyRefunded ? "Refunded" : "Partial Refund";
 
           const currentStatus = String(inspection.payment_status || "").toLowerCase();
-          const alreadyRecorded = currentStatus === newStatus.toLowerCase();
+          const alreadyRecorded =
+            currentStatus === newStatus.toLowerCase() &&
+            (Number(inspection.amount_refunded || 0) || 0) >= refundedDollars - 0.005;
 
           const note = `Refund recorded via Stripe: ${money(
             refundedDollars
@@ -1123,9 +1129,12 @@ export async function POST(req: Request) {
             .update({
               payment_status: newStatus,
               invoice_status: newStatus,
-              amount_paid: newAmountPaid,
-              balance_due: newBalance,
-              ...(fullyRefunded ? { paid_at: null } : {}),
+              // A refund returns collected money; it is NOT a new balance owed.
+              // Leave amount_paid / balance_due / paid_at untouched so the
+              // invoice stays satisfied and the delivered report stays unlocked
+              // (full or partial refund). Track the refund as its own quantity.
+              amount_refunded: refundedDollars,
+              refunded_at: new Date().toISOString(),
               payment_notes: note,
               invoice_notes: note,
             })
