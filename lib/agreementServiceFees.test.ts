@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { deriveServiceFees, deriveAgreementServiceFees } from "./agreementTemplates";
+import {
+  deriveServiceFees,
+  deriveAgreementServiceFees,
+  buildAddOnPairingDisclosure,
+  ADDON_PAIRING_DISCLOSURE_MARKER,
+} from "./agreementTemplates";
 
 const sum = (map: Record<string, any>) =>
   Object.values(map).reduce((total, value) => total + (Number(value) || 0), 0);
@@ -80,5 +85,39 @@ describe("deriveAgreementServiceFees", () => {
     };
     const agreement = deriveAgreementServiceFees(inspection);
     expect(Number(agreement.home_inspection)).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("buildAddOnPairingDisclosure", () => {
+  it("includes the disclosure when an add-on is bundled with a home inspection", () => {
+    const text = buildAddOnPairingDisclosure({ home_inspection: 450, radon: 175 });
+    expect(text).toContain(ADDON_PAIRING_DISCLOSURE_MARKER);
+    expect(text).toContain("Radon Testing");
+    expect(text).toContain("standalone");
+  });
+
+  it("names multiple add-ons in a readable list", () => {
+    const text = buildAddOnPairingDisclosure({
+      home: 500,
+      radon: 175,
+      sewer_scope: 150,
+    });
+    expect(text).toContain("Radon Testing and Sewer Scope");
+  });
+
+  it("is empty for a lone home inspection (nothing bundled)", () => {
+    expect(buildAddOnPairingDisclosure({ home_inspection: 450 })).toBe("");
+  });
+
+  it("is empty for a lone add-on with no home inspection", () => {
+    expect(buildAddOnPairingDisclosure({ radon: 175 })).toBe("");
+  });
+
+  it("ignores zero-priced add-ons", () => {
+    expect(buildAddOnPairingDisclosure({ home_inspection: 450, radon: 0 })).toBe("");
+  });
+
+  it("is empty when no service fees are provided", () => {
+    expect(buildAddOnPairingDisclosure(undefined)).toBe("");
   });
 });
