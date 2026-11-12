@@ -436,6 +436,57 @@ export function deriveAgreementServiceFees(inspection: any): AgreementServiceFee
   return adjusted;
 }
 
+// Stable heading used to detect (and avoid duplicating) the disclosure once a
+// body already contains it.
+export const ADDON_PAIRING_DISCLOSURE_MARKER = "BUNDLED SERVICE PRICING & CANCELLATION";
+
+const ADDON_SERVICE_LABELS: Record<string, string> = {
+  radon: "Radon Testing",
+  mold: "Mold Testing",
+  water: "Water Testing",
+  well_water: "Well Water Testing",
+  sewer_scope: "Sewer Scope",
+  termite: "Termite / WDO",
+  termite_wdo: "Termite / WDO",
+  wdo: "Termite / WDO",
+  pool: "Pool & Spa",
+  pool_spa: "Pool & Spa",
+  pre_drywall: "Pre-Drywall",
+  mechanical_and_structural: "Mechanical & Structural",
+};
+
+function addOnServiceLabel(key: string): string {
+  if (ADDON_SERVICE_LABELS[key]) return ADDON_SERVICE_LABELS[key];
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// The bundled add-on pricing / cancellation disclosure. Returned ONLY when a
+// home inspection is bundled with at least one paid add-on service; "" when the
+// job is a lone home inspection or a lone add-on. Appended to every qualifying
+// agreement so the pairing discount + clawback is clear to the client: add-ons
+// are discounted because they ride with the home inspection, and if the pairing
+// is canceled the discount is forfeited and standalone pricing applies.
+export function buildAddOnPairingDisclosure(serviceFees?: AgreementServiceFees): string {
+  if (!serviceFees) return "";
+  const num = (v: any) => Number(String(v ?? "").replace(/[^0-9.-]/g, "")) || 0;
+  const entries = Object.entries(serviceFees);
+  const isHome = (k: string) => k === "home" || k === "home_inspection";
+  const hasHome = entries.some(([k, v]) => isHome(k) && num(v) > 0);
+  if (!hasHome) return "";
+  const addOns = entries
+    .filter(([k, v]) => !isHome(k) && num(v) > 0)
+    .map(([k]) => addOnServiceLabel(k));
+  if (addOns.length === 0) return "";
+  const list =
+    addOns.length === 1
+      ? addOns[0]
+      : addOns.length === 2
+        ? `${addOns[0]} and ${addOns[1]}`
+        : `${addOns.slice(0, -1).join(", ")}, and ${addOns[addOns.length - 1]}`;
+  return `${ADDON_PAIRING_DISCLOSURE_MARKER}
+When additional inspection service(s) — ${list} — are scheduled together with a home inspection, they are provided at a discounted, bundled rate. This discount applies only because the services are performed together with the home inspection. If the home inspection, or any bundled add-on service, is later canceled or removed, the bundled discount no longer applies: the remaining service(s) will be billed at their standard standalone price, and any discount previously applied as part of the bundle may be charged back. Any refund issued for a canceled service will be calculated using standard standalone pricing (less the forfeited bundle discount), not the discounted bundled amount. By signing, the Client acknowledges and agrees to this bundled pricing and cancellation term.`;
+}
+
 export function mergeMultipleAgreementBodies({
   templates,
   state,
@@ -484,8 +535,9 @@ export function mergeMultipleAgreementBodies({
   }
 
   const showGroupHeaders = templates.length > 1;
+  const separator = "\n\n\n============================================================\n\n\n";
 
-  return templates
+  const merged = templates
     .map((template, index) => {
       const body = mergeAgreementBody({
         templateBody: template?.body || "",
@@ -515,7 +567,17 @@ Service Type: ${serviceType}
 
 ${body}`;
     })
-    .join("\n\n\n============================================================\n\n\n");
+    .join(separator);
+
+  // Append the bundled add-on pricing / cancellation disclosure whenever add-ons
+  // ride with a home inspection, so it appears in every such agreement. Idempotent
+  // — skip if the merged body already contains it (e.g. a template that embeds it).
+  const disclosure = buildAddOnPairingDisclosure(serviceFees);
+  if (disclosure && !merged.includes(ADDON_PAIRING_DISCLOSURE_MARKER)) {
+    return `${merged}${separator}${disclosure}`;
+  }
+
+  return merged;
 }
 
 export function buildAgreementBody({
