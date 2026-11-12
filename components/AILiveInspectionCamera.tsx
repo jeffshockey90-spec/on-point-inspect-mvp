@@ -26,6 +26,7 @@ import {
   type LoadedDraft,
   type DraftCounts,
 } from "../lib/offline/draftQueue";
+import type { InspectionUnit } from "../lib/report/units";
 import {
   addOfflineQueueItem,
   processOfflineQueue,
@@ -72,6 +73,7 @@ type Props = {
     category: CaptureCategory,
     draft: CaptureDraft,
     files: File | File[],
+    unitId?: number | null,
   ) => Promise<void>;
   existingFindings?: ExistingFinding[];
   // Attach the capture's media to an existing finding. When `draft` is provided
@@ -101,6 +103,14 @@ type Props = {
   // builder launch passes finding/limitation/reference (equipment's save is
   // field-tool-only for now).
   categories?: CaptureCategory[];
+  // Multi-Unit: the inspection's units (Common Areas + Unit A/B…) and the active
+  // one. When units exist, the camera shows a unit switcher so the inspector can
+  // change units without leaving the camera; onUnitChange updates the parent so
+  // every save (and each queued draft) files under the chosen unit. Empty units
+  // = single-family: no switcher, nothing stamped.
+  units?: InspectionUnit[];
+  activeUnit?: number | null;
+  onUnitChange?: (unitId: number | null) => void;
 };
 
 // Max angles collected into one finding/equipment item before the inspector must
@@ -167,6 +177,9 @@ export default function AILiveInspectionCamera({
   onAccept,
   existingFindings,
   onAttachToExisting,
+  units,
+  activeUnit,
+  onUnitChange,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -1027,6 +1040,7 @@ export default function AILiveInspectionCamera({
           aiFrames: [],
           files,
           label,
+          unitId: activeUnit ?? null,
         });
       } catch (err: any) {
         logCam("async-draft:enqueue-error", { msg: String(err?.message || err) });
@@ -1139,6 +1153,7 @@ export default function AILiveInspectionCamera({
         aiFrames: [],
         files: [file],
         label: result.label,
+        unitId: activeUnit ?? null,
       });
     } catch (err: any) {
       setIdentifyBusy(false);
@@ -1354,7 +1369,7 @@ export default function AILiveInspectionCamera({
     setApprovingBusy(true);
     setApprovingError("");
     try {
-      await onAccept(loaded.category, editedDraft, loaded.files);
+      await onAccept(loaded.category, editedDraft, loaded.files, loaded.unitId);
 
       // Learning: the pinned first draft (baseline) vs. what was approved.
       if (loaded.category === "finding" && editedDraft.kind === "finding" && loaded.baseline) {
@@ -2542,6 +2557,7 @@ export default function AILiveInspectionCamera({
           category,
           editedDraft,
           shots.length ? shots.map((s) => s.file) : capturedFile,
+          activeUnit ?? null,
         );
 
         // Teach the per-inspector learning brain from the AI draft vs. what the
@@ -2877,6 +2893,30 @@ export default function AILiveInspectionCamera({
           </button>
         </div>
       </div>
+
+      {units && units.length > 0 && (
+        <div
+          className="absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-neutral-900/85 px-3 py-1.5 text-white shadow-2xl backdrop-blur"
+          style={{ top: "calc(max(1rem, env(safe-area-inset-top)) + 3.75rem)" }}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-white/60">Unit</span>
+          <select
+            value={activeUnit == null ? "" : String(activeUnit)}
+            onChange={(event) =>
+              onUnitChange?.(event.target.value === "" ? null : Number(event.target.value))
+            }
+            aria-label="Active unit"
+            className="max-w-[9.5rem] truncate bg-transparent text-sm font-semibold text-white outline-none [&>option]:text-black"
+          >
+            <option value="">Unassigned</option>
+            {units.map((unit) => (
+              <option key={unit.id} value={String(unit.id)}>
+                {unit.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {voiceFilled && voiceFilled.length > 0 && (
         <div

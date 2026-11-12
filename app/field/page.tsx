@@ -1508,12 +1508,18 @@ function FieldPageContent() {
     category: CaptureCategory,
     draft: CaptureDraft,
     fileOrFiles: File | File[],
+    unitId?: number | null,
   ) {
     // Live camera can bundle several photos into one finding; other categories
     // stay single. Normalize to an array and keep `file` as the primary.
     const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
     const file = files[0];
     if (!file) return;
+
+    // Multi-Unit: prefer the unit the camera captured WITH this draft (so an
+    // async draft keeps its capture-time unit even if the inspector has since
+    // switched units); fall back to the field tool's current active unit.
+    const effectiveUnit = unitId !== undefined ? unitId : activeUnit ?? null;
 
     if (category === "finding" && draft.kind === "finding") {
       const effectiveSection = activeSections.includes(draft.section)
@@ -1549,7 +1555,7 @@ function FieldPageContent() {
         type: "finding",
         payload: {
           inspection_id: selectedReport,
-          unit_id: activeUnit ?? null,
+          unit_id: effectiveUnit,
           title: draft.title || "",
           section: effectiveSection,
           severity: effectiveSeverity,
@@ -1651,7 +1657,7 @@ function FieldPageContent() {
         type: "limitation",
         payload: {
           inspection_id: selectedReport,
-          unit_id: activeUnit ?? null,
+          unit_id: effectiveUnit,
           section: effectiveSection,
           title: draft.title || "",
           limitation: draft.limitation || "",
@@ -4654,6 +4660,9 @@ function FieldPageContent() {
                     onAccept={handleCameraAccept}
                     existingFindings={existingFindings}
                     onAttachToExisting={handleCameraAttachToExisting}
+                    units={units}
+                    activeUnit={activeUnit}
+                    onUnitChange={setActiveUnit}
                   />
                 )}
 
