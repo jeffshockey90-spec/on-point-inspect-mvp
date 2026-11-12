@@ -15,6 +15,7 @@ import {
 import { uploadFindingMediaFile } from "../lib/uploadFindingMedia";
 import { supabase } from "../lib/supabaseClient";
 import type { CaptureCategory, CaptureDraft } from "../lib/ai/captureTypes";
+import { normalizeUnits, type InspectionUnit } from "../lib/report/units";
 
 // Lazy-loaded: the camera's heavy code (speech plugin, markup editor, the 2900-
 // line component) is NOT in the builder's bundle — it downloads only when the
@@ -54,6 +55,28 @@ export default function ReportBuilderLiveCamera({
   // Existing findings in THIS report, so the camera can offer "Combine with an
   // existing defect". Loaded lazily on open (RLS scopes it to the owner).
   const [existingFindings, setExistingFindings] = useState<any[]>([]);
+  // Multi-Unit: the inspection's units + the active one, so the builder's live
+  // camera shows the SAME in-camera unit switcher as the field tool. Empty =
+  // single-family (no switcher, nothing stamped).
+  const [units, setUnits] = useState<InspectionUnit[]>([]);
+  const [activeUnit, setActiveUnit] = useState<number | null>(null);
+
+  async function loadUnits() {
+    try {
+      const { data } = await supabase
+        .from("inspection_units")
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .order("sort_order", { ascending: true });
+      const normalized = normalizeUnits(data || []);
+      setUnits(normalized);
+      // Default to the first unit (matches the field tool) so captures land
+      // somewhere sensible; the inspector switches from there.
+      setActiveUnit((prev) => (prev != null ? prev : normalized[0]?.id ?? null));
+    } catch {
+      setUnits([]);
+    }
+  }
 
   async function loadExistingFindings() {
     try {
@@ -129,6 +152,7 @@ export default function ReportBuilderLiveCamera({
   function openCamera() {
     void loadFlags(); // parallel; camera opens immediately, flags apply on arrival
     void loadExistingFindings(); // for "Combine with an existing defect"
+    void loadUnits(); // multi-unit: for the in-camera unit switcher
     setOpen(true);
   }
 
@@ -220,10 +244,14 @@ export default function ReportBuilderLiveCamera({
     category: CaptureCategory,
     draft: CaptureDraft,
     fileOrFiles: File | File[],
+    unitId?: number | null,
   ) {
     const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
     if (!files[0]) return;
     const fallbackSection = sections[0] || "Exterior";
+    // Multi-Unit: prefer the unit the camera captured with this draft (keeps an
+    // async draft's capture-time unit); fall back to the current active unit.
+    const effectiveUnit = unitId !== undefined ? unitId : activeUnit ?? null;
 
     if (category === "finding" && draft.kind === "finding") {
       const section = sections.includes(draft.section) ? draft.section : fallbackSection;
@@ -231,6 +259,7 @@ export default function ReportBuilderLiveCamera({
         type: "finding",
         payload: {
           inspection_id: inspectionId,
+          unit_id: effectiveUnit,
           title: draft.title || "",
           section,
           severity: draft.severity || "Recommended Repair",
@@ -269,6 +298,7 @@ export default function ReportBuilderLiveCamera({
         type: "limitation",
         payload: {
           inspection_id: inspectionId,
+          unit_id: effectiveUnit,
           section,
           title: draft.title || "",
           limitation: draft.limitation || "",
@@ -303,6 +333,7 @@ export default function ReportBuilderLiveCamera({
         type: "equipment",
         payload: {
           inspection_id: inspectionId,
+          unit_id: effectiveUnit,
           inventory,
           inventory_base,
           create_finding,
@@ -352,6 +383,9 @@ export default function ReportBuilderLiveCamera({
           existingFindings={existingFindings}
           onAttachToExisting={handleAttachToExisting}
           onAccept={handleAccept}
+          units={units}
+          activeUnit={activeUnit}
+          onUnitChange={setActiveUnit}
         />
       )}
     </>
