@@ -220,6 +220,11 @@ export default function AILiveInspectionCamera({
   const [stage, setStage] = useState<Stage>("idle");
   const [category, setCategory] = useState<CaptureCategory | null>(null);
   const [noteText, setNoteText] = useState("");
+  // The note is collapsed by default so it never sits over the live viewfinder
+  // while you're framing/shooting; tap "📝 Note" to expand it (and it reopens on
+  // its own when something prefills it). Everything else about the note flow —
+  // it still guides the AI write-up — is unchanged.
+  const [noteOpen, setNoteOpen] = useState(false);
   // Location captured BEFORE the AI runs, so the model gets confirmed facts (which
   // wall / level / room) instead of guessing. Side auto-fills from the compass.
   const compass = useCompassHeading();
@@ -393,6 +398,7 @@ export default function AILiveInspectionCamera({
       setOpen(true);
       setCategory(cat);
       setNoteText(prefillNote);
+      setNoteOpen(Boolean(prefillNote.trim()));
       setStage("note_entry");
       window.setTimeout(() => void startCamera(facingMode), 50);
     }
@@ -912,6 +918,7 @@ export default function AILiveInspectionCamera({
   function selectCategory(cat: CaptureCategory) {
     setCategory(cat);
     setNoteText("");
+    setNoteOpen(false);
     // Side / level / room deliberately survive a category switch -- you are
     // still standing in the same room, and the chips make switching casual
     // enough that re-typing the location every time would be the new friction.
@@ -2102,6 +2109,9 @@ export default function AILiveInspectionCamera({
     }
 
     if (voiceStartingRef.current) return; // double-tap guard during async start
+    // Dictating into the note? Make sure the (collapsed-by-default) note box is
+    // open so the inspector can see the text land.
+    if (target === "note") setNoteOpen(true);
     voiceStartingRef.current = true;
     voiceTargetRef.current = target;
     setVoiceTarget(target);
@@ -2703,6 +2713,7 @@ export default function AILiveInspectionCamera({
     setDraftError("");
     setReferenceCaption("");
     setNoteText("");
+    setNoteOpen(false);
     setShowMarkup(false);
     // Fresh capture → fresh learning baseline (set again on the first AI draft).
     aiFindingBaselineRef.current = null;
@@ -2896,17 +2907,17 @@ export default function AILiveInspectionCamera({
 
       {units && units.length > 0 && (
         <div
-          className="absolute left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-neutral-900/85 px-3 py-1.5 text-white shadow-2xl backdrop-blur"
-          style={{ top: "calc(max(1rem, env(safe-area-inset-top)) + 3.75rem)" }}
+          className="absolute left-4 z-20 flex items-center gap-1 rounded-full border border-white/15 bg-neutral-900/80 px-2 py-1 text-white shadow-xl backdrop-blur"
+          style={{ top: "calc(max(1rem, env(safe-area-inset-top)) + 4.25rem)" }}
         >
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-white/60">Unit</span>
+          <span className="text-[9px] font-semibold uppercase tracking-wide text-white/50">Unit</span>
           <select
             value={activeUnit == null ? "" : String(activeUnit)}
             onChange={(event) =>
               onUnitChange?.(event.target.value === "" ? null : Number(event.target.value))
             }
             aria-label="Active unit"
-            className="max-w-[9.5rem] truncate bg-transparent text-sm font-semibold text-white outline-none [&>option]:text-black"
+            className="max-w-[7rem] truncate bg-transparent text-xs font-semibold text-white outline-none [&>option]:text-black"
           >
             <option value="">Unassigned</option>
             {units.map((unit) => (
@@ -3160,31 +3171,67 @@ export default function AILiveInspectionCamera({
             })}
           </div>
           <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-neutral-900/85 p-3 backdrop-blur">
-            <div className="relative">
-              <textarea
-                value={noteText}
-                onChange={(event) => setNoteText(event.target.value)}
-                placeholder={
-                  activeCategoryMeta.key === "reference"
-                    ? "Optional caption (add after capture too)"
-                    : "Tell the AI what to look at… or 🎤 dictate"
-                }
-                className="min-h-16 w-full resize-none rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 pr-12 text-sm text-white outline-none focus:border-cyan-400"
-              />
+            {/* Note is collapsed by default so it never covers the live
+                viewfinder while you're framing/shooting. Tap to expand and type
+                or 🎤 dictate — it still guides the AI exactly as before. */}
+            {noteOpen ? (
+              <div className="relative">
+                <textarea
+                  value={noteText}
+                  onChange={(event) => setNoteText(event.target.value)}
+                  autoFocus
+                  placeholder={
+                    activeCategoryMeta.key === "reference"
+                      ? "Optional caption (add after capture too)"
+                      : "Tell the AI what to look at… or 🎤 dictate"
+                  }
+                  className="min-h-16 w-full resize-none rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 pr-20 text-sm text-white outline-none focus:border-cyan-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleVoiceFill("note")}
+                  aria-label="Dictate the note"
+                  title="Speak your note instead of typing"
+                  className={`absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-full border text-base transition active:scale-95 [touch-action:manipulation] ${
+                    voiceListening && voiceTarget === "note"
+                      ? "animate-pulse border-red-400 bg-red-500/80 text-white"
+                      : "border-white/15 bg-black/40 text-cyan-300"
+                  }`}
+                >
+                  {voiceListening && voiceTarget === "note" ? "■" : "🎤"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (voiceListening && voiceTarget === "note") void stopVoiceFill();
+                    setNoteOpen(false);
+                  }}
+                  aria-label="Hide the note"
+                  title="Hide the note"
+                  className="absolute right-11 top-1.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/40 text-base text-white/70 transition active:scale-95 [touch-action:manipulation]"
+                >
+                  ⌄
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
-                onClick={() => toggleVoiceFill("note")}
-                aria-label="Dictate the note"
-                title="Speak your note instead of typing"
-                className={`absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-full border text-base transition active:scale-95 [touch-action:manipulation] ${
-                  voiceListening && voiceTarget === "note"
-                    ? "animate-pulse border-red-400 bg-red-500/80 text-white"
-                    : "border-white/15 bg-black/40 text-cyan-300"
-                }`}
+                onClick={() => setNoteOpen(true)}
+                className="flex w-full items-center gap-2 rounded-lg border border-white/15 bg-neutral-900/85 px-3 py-2 text-left text-sm text-white/70 transition active:scale-[0.99] [touch-action:manipulation]"
               >
-                {voiceListening && voiceTarget === "note" ? "■" : "🎤"}
+                <span aria-hidden className="shrink-0 text-cyan-300">📝</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {noteText.trim()
+                    ? noteText.trim()
+                    : activeCategoryMeta.key === "reference"
+                      ? "Add a caption"
+                      : "Add a note for the AI"}
+                </span>
+                <span aria-hidden className="shrink-0 text-[11px] font-semibold text-cyan-300">
+                  {noteText.trim() ? "Edit" : "＋"}
+                </span>
               </button>
-            </div>
+            )}
 
             {activeCategoryMeta.key !== "reference" && (
               <div className="mt-2 rounded-lg border border-white/10 bg-black/25 p-2">
