@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { formatMoney } from "../lib/locale";
 import { getPaymentStatusDetail } from "../lib/paymentStatusDetail";
+import { inspectionServiceLines, computeAddOnCancellationRefund } from "../lib/refundMath";
 
 type InspectionRecord = Record<string, any>;
 
@@ -219,10 +220,41 @@ export default function PaymentInvoicePanel({
   const refundBasis = savedAmountPaid > 0 ? savedAmountPaid : invoiceAmountNumber;
   const remainingRefundable = Math.max(0, Math.round((refundBasis - savedRefunded) * 100) / 100);
 
+  // Bundled add-on clawback: when a bundled service is canceled, the kept
+  // service(s) revert to standalone price and the refund is the leftover.
+  const serviceLines = useMemo(() => inspectionServiceLines(inspection), [inspection]);
+  const isBundle = serviceLines.length >= 2;
+  const [canceledKeys, setCanceledKeys] = useState<string[]>([]);
+  const clawback = useMemo(
+    () => (canceledKeys.length > 0 ? computeAddOnCancellationRefund(inspection, canceledKeys) : null),
+    [inspection, canceledKeys],
+  );
+
+  function toggleCanceledKey(key: string) {
+    setCanceledKeys((keys) => (keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]));
+  }
+
+  // When the inspector picks which service(s) are being canceled, prefill the
+  // suggested (clawback-adjusted) refund amount and a descriptive reason.
+  useEffect(() => {
+    if (!refundOpen || !clawback) return;
+    setRefundAmount(String(clawback.refund));
+    const labels = clawback.canceledLabels.join(", ");
+    setRefundReason(
+      clawback.forfeitedDiscount > 0
+        ? `Canceled ${labels} — remaining service(s) revert to standalone price; ${money(
+            clawback.forfeitedDiscount,
+          )} bundle discount forfeited.`
+        : `Canceled ${labels}.`,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canceledKeys, refundOpen]);
+
   function openRefund() {
     if (busy) return;
     setRefundMsg(null);
     setRefundHtml("");
+    setCanceledKeys([]);
     setRefundAmount(remainingRefundable > 0 ? String(remainingRefundable) : "");
     setRefundReason("");
     setRefundMethod(inspection.payment_method || "");
@@ -517,6 +549,41 @@ export default function PaymentInvoicePanel({
             <p className="mt-2 text-[12px] leading-5 text-[var(--fl-muted)]">
               Recorded separately — this does not change the amount paid or re-lock the report. Up to {money(remainingRefundable)} can be refunded on this inspection.
             </p>
+
+            {isBundle && (
+              <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Canceling a bundled service?</p>
+                <p className="mt-1 text-[11px] leading-5 text-[var(--fl-muted)]">
+                  Tick any service being canceled. Kept services revert to their standalone price (the bundle discount is forfeited), and the refund is calculated for you.
+                </p>
+                <div className="mt-3 flex flex-col gap-2">
+                  {serviceLines.map((line) => (
+                    <label key={line.key} className="flex items-center justify-between gap-3 text-sm text-[var(--fl-text)]">
+                      <span className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={canceledKeys.includes(line.key)}
+                          onChange={() => toggleCanceledKey(line.key)}
+                          disabled={refundBusy}
+                          className="h-4 w-4 [touch-action:manipulation]"
+                        />
+                        {line.label}
+                      </span>
+                      <span className="text-[var(--fl-muted)]">{money(line.standalone)}</span>
+                    </label>
+                  ))}
+                </div>
+                {clawback && (
+                  <p className="mt-3 rounded-lg border border-teal-400/40 bg-teal-500/10 px-3 py-2 text-[12px] leading-5 text-[var(--fl-accent-text)]">
+                    Suggested refund <strong>{money(clawback.refund)}</strong>
+                    {clawback.keptLabels.length > 0
+                      ? ` — ${clawback.keptLabels.join(", ")} revert${clawback.keptLabels.length === 1 ? "s" : ""} to ${money(clawback.keptStandaloneTotal)} standalone`
+                      : " — full refund"}
+                    {clawback.forfeitedDiscount > 0 ? `; ${money(clawback.forfeitedDiscount)} bundle discount forfeited` : ""}.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label>
