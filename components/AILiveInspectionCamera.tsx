@@ -267,13 +267,6 @@ export default function AILiveInspectionCamera({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [locSide, setLocSide] = useState("");
-  const [locLevel, setLocLevel] = useState("");
-  const [locRoom, setLocRoom] = useState("");
-  // Location starts collapsed so the viewfinder keeps the screen. The compass
-  // fills Side on its own, so most captures never need it opened; once opened
-  // it stays open for the rest of the session.
-  const [locationOpen, setLocationOpen] = useState(false);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [capturedPreviewUrl, setCapturedPreviewUrl] = useState("");
   const [capturedIsVideo, setCapturedIsVideo] = useState(false);
@@ -943,8 +936,10 @@ export default function AILiveInspectionCamera({
   // The confirmed location, composed for the AI (side auto-filled from the
   // compass when the inspector didn't override it).
   function composedLocation() {
-    const side = locSide || compass.cardinal || "";
-    return [side, locLevel, locRoom.trim()].filter(Boolean).join(", ");
+    // The manual side/level/room selector was removed; the compass alone stamps
+    // the finding's confirmed direction (e.g. "SE"), shown on the report and
+    // handed to the AI as a fact.
+    return compass.cardinal || "";
   }
 
   async function proceedAfterCapture(
@@ -3250,63 +3245,6 @@ export default function AILiveInspectionCamera({
                 >
                   ✓
                 </button>
-              </div>
-            </div>
-          )}
-
-          {/* Location only — the note lives up top (📝 in the top bar) so it's
-              off the viewfinder, and the compass moved up there too. */}
-          {activeCategoryMeta.key !== "reference" && (
-            <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-neutral-900/85 p-3 backdrop-blur">
-              <div className="rounded-lg border border-white/10 bg-black/25 p-2">
-                <div className="flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setLocationOpen((open) => !open)}
-                    aria-expanded={locationOpen}
-                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-xs font-semibold text-white"
-                  >
-                    <span aria-hidden>📍</span>
-                    <span className="truncate">
-                      {composedLocation() || "Add level, room"}
-                    </span>
-                    <span aria-hidden className="text-white/60">
-                      {locationOpen ? "⌃" : "⌄"}
-                    </span>
-                  </button>
-                </div>
-                <div hidden={!locationOpen} className="mt-2 grid grid-cols-3 gap-2">
-                  <select
-                    value={locSide}
-                    onChange={(event) => setLocSide(event.target.value)}
-                    className="rounded-lg border border-white/15 bg-neutral-900/85 px-2 py-2 text-xs text-white outline-none focus:border-cyan-400"
-                  >
-                    <option value="">{compass.cardinal ? `Side · ${compass.cardinal}?` : "Side"}</option>
-                    {["N", "NE", "E", "SE", "S", "SW", "W", "NW"].map((dir) => (
-                      <option key={dir} value={dir}>
-                        {dir}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={locLevel}
-                    onChange={(event) => setLocLevel(event.target.value)}
-                    className="rounded-lg border border-white/15 bg-neutral-900/85 px-2 py-2 text-xs text-white outline-none focus:border-cyan-400"
-                  >
-                    <option value="">Level</option>
-                    {["Exterior", "Basement", "Crawlspace", "Main Level", "Upper Level", "Attic", "Garage"].map((lvl) => (
-                      <option key={lvl} value={lvl}>
-                        {lvl}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    value={locRoom}
-                    onChange={(event) => setLocRoom(event.target.value)}
-                    placeholder="Room / area"
-                    className="min-w-0 rounded-lg border border-white/15 bg-neutral-900/85 px-2 py-2 text-xs text-white outline-none focus:border-cyan-400"
-                  />
-                </div>
               </div>
             </div>
           )}
