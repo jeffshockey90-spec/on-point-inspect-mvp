@@ -68,6 +68,9 @@ export async function POST(req: Request) {
     const recommendation = cleanText(body.recommendation);
     // Optional: attach photos to a limitation created by an earlier batch.
     const limitationId = cleanText(body.limitationId);
+    // Multi-Unit: the unit this limitation belongs to (null/absent = no unit).
+    const unitId =
+      body.unitId == null || body.unitId === "" ? null : Number(body.unitId);
     // Accept either a single imageDataUrl (legacy) or an array of imageDataUrls.
     const imageDataUrls: string[] = (
       Array.isArray(body.imageDataUrls)
@@ -134,6 +137,7 @@ export async function POST(req: Request) {
           ai_notes: reason || limitation,
           limitation_comment: limitationComment,
           custom_text: null,
+          ...(unitId != null && Number.isFinite(unitId) ? { unit_id: unitId } : {}),
         })
         .select("*")
         .single();

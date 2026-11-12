@@ -512,6 +512,9 @@ export async function POST(req: Request) {
           caption,
           file_path: upload.filePath,
           public_url: upload.publicUrl,
+          // Multi-Unit: carry the unit the capture was filed under (only set on
+          // multi-unit jobs, so single-family syncs never touch the column).
+          ...(payload.unit_id != null ? { unit_id: Number(payload.unit_id) } : {}),
         });
 
         if (error) throw error;
@@ -553,6 +556,8 @@ export async function POST(req: Request) {
           implication: cleanText(payload.implication),
           recommendation: cleanText(payload.recommendation),
           image_url: null,
+          // Multi-Unit: file the synced finding under its captured unit.
+          ...(payload.unit_id != null ? { unit_id: Number(payload.unit_id) } : {}),
         })
         .select()
         .single();
@@ -764,6 +769,8 @@ export async function POST(req: Request) {
           ai_notes: reason || limitationText,
           limitation_comment: limitationComment,
           custom_text: null,
+          // Multi-Unit: carry the unit the limitation was captured under.
+          ...(payload.unit_id != null ? { unit_id: Number(payload.unit_id) } : {}),
         })
         .select("*")
         .single();
