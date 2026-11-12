@@ -17,6 +17,7 @@ import { headers } from "next/headers";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { resolveReportSections } from "../../../lib/reportSections";
+import { normalizeUnits, hasUnits, type InspectionUnit } from "../../../lib/report/units";
 import { matchStandards } from "../../../lib/ai/standardsReference";
 import { estimatePrognosis, deriveAgeYears } from "../../../lib/ai/serviceLife";
 import { formatClockTime } from "../../../lib/app-time";
@@ -1322,6 +1323,24 @@ export default async function PublicSharePage({
     templateSections: (inspection as any).template_sections,
   });
 
+  // Multi-Unit Inspections: a job may hold multiple units + Common Areas. When
+  // there are no units (every single-family job, and any job created before the
+  // units migration ran) `units` is empty and the whole report renders exactly
+  // as before — the unit layer is skipped entirely below.
+  let unitRows: any[] = [];
+  try {
+    const { data: unitData } = await supabase
+      .from("inspection_units")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("sort_order", { ascending: true });
+    unitRows = unitData || [];
+  } catch {
+    unitRows = [];
+  }
+  const units: InspectionUnit[] = normalizeUnits(unitRows);
+  const multiUnit = hasUnits(units);
+
   if (findingsError) {
     return (
       <main className="min-h-screen bg-[var(--fl-ground)] p-10 text-[var(--fl-text)]">
@@ -1959,6 +1978,85 @@ export default async function PublicSharePage({
       findings: otherFindings,
     });
   }
+
+  // ── Multi-Unit layer ──────────────────────────────────────────────────────
+  // When the inspection has units, the findings list is grouped by UNIT, then
+  // section (with a unit divider before each unit). `matchUnit`/`refPhotosFor`/
+  // `noteFor` scope the per-section content to a unit; in single-family mode
+  // (multiUnit === false) they return the existing by-section values unchanged,
+  // and the render falls back to `groupedFindings` exactly as before.
+  const matchUnit = (rowUnitId: any, unitId: number | null) =>
+    unitId == null ? rowUnitId == null : Number(rowUnitId) === unitId;
+
+  const refPhotosFor = (section: string, unitId: number | null): any[] =>
+    multiUnit
+      ? sectionReferencePhotos.filter(
+          (photo: any) => photo.section === section && matchUnit(photo.unit_id, unitId),
+        )
+      : referencePhotosBySection[section] || [];
+
+  // Section notes stay inspection-level in Stage 1 (not unit-keyed), so they
+  // render only in single-family mode here to avoid duplicating one note under
+  // every unit; per-unit notes placement is a follow-up.
+  const noteFor = (section: string, unitId: number | null): string =>
+    multiUnit ? "" : notesBySection[section] || "";
+
+  type RenderBlock =
+    | { kind: "divider"; unit: InspectionUnit }
+    | { kind: "section"; section: string; findings: any[]; unitId: number | null };
+
+  const buildUnitGroups = (unitId: number | null) => {
+    const scoped = displayFindings.filter((finding: any) => matchUnit(finding.unit_id, unitId));
+    const groups = activeSectionOrder
+      .map((section) => ({
+        section,
+        unitId,
+        findings: scoped.filter((finding: any) => finding.section === section),
+      }))
+      .filter(
+        (group) =>
+          group.findings.length > 0 ||
+          refPhotosFor(group.section, unitId).length > 0 ||
+          Boolean(noteFor(group.section, unitId)),
+      );
+    const other = scoped.filter((finding: any) => !activeSectionOrder.includes(finding.section));
+    if (other.length > 0) groups.push({ section: "Other", unitId, findings: other });
+    return groups;
+  };
+
+  // The unified list the findings section renders. Single-family keeps the exact
+  // legacy shape; multi-unit interleaves a divider before each non-empty unit,
+  // with a leading "General" group for anything not assigned to a unit so a
+  // stray finding is never hidden.
+  const GENERAL_UNIT: InspectionUnit = {
+    id: -1,
+    label: "General",
+    sortOrder: -1,
+    isCommonArea: false,
+  };
+  const findingsBlocks: RenderBlock[] = [];
+  if (multiUnit) {
+    const pushUnit = (unit: InspectionUnit, unitId: number | null) => {
+      const groups = buildUnitGroups(unitId);
+      if (groups.length === 0) return;
+      findingsBlocks.push({ kind: "divider", unit });
+      for (const group of groups) {
+        findingsBlocks.push({ kind: "section", ...group });
+      }
+    };
+    pushUnit(GENERAL_UNIT, null);
+    for (const unit of units) pushUnit(unit, unit.id);
+  } else {
+    for (const group of groupedFindings) {
+      findingsBlocks.push({
+        kind: "section",
+        section: group.section,
+        findings: group.findings,
+        unitId: null,
+      });
+    }
+  }
+  const hasFindingsBlocks = findingsBlocks.some((block) => block.kind === "section");
 
   const sectionStats = activeSectionOrder.map((section) => ({
     section,
@@ -3096,20 +3194,44 @@ export default async function PublicSharePage({
               </div>
             </div>
 
-            {groupedFindings.length === 0 ? (
+            {!hasFindingsBlocks ? (
               <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center text-[var(--fl-muted)]">
                 No findings saved yet.
               </div>
             ) : (
               <div className="space-y-8">
-                {groupedFindings.map((group) => {
+                {findingsBlocks.map((block, blockIndex) => {
+                  if (block.kind === "divider") {
+                    const dividerUnit = block.unit;
+                    const eyebrow =
+                      dividerUnit.id === -1
+                        ? "Not assigned to a unit"
+                        : dividerUnit.isCommonArea
+                          ? "Common Area"
+                          : "Unit";
+                    return (
+                      <div
+                        key={`unit-divider-${dividerUnit.id}`}
+                        className="flex flex-wrap items-center gap-3 rounded-2xl border border-teal-500/40 bg-teal-500/10 px-6 py-5"
+                      >
+                        <span className="rounded-full border border-teal-500/40 bg-teal-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--fl-accent-text)]">
+                          {eyebrow}
+                        </span>
+                        <h2 className="text-2xl font-bold text-[var(--fl-text)]">
+                          {dividerUnit.label}
+                        </h2>
+                      </div>
+                    );
+                  }
+
+                  const group = block;
                   const sectionDefects = group.findings.filter(isReportDefect).length;
 
                   return (
                     <section
-                      key={group.section}
+                      key={`${group.unitId ?? "x"}-${group.section}-${blockIndex}`}
                       data-finding-section
-                      id={`section-${group.section
+                      id={`section-${group.unitId != null ? `${group.unitId}-` : ""}${group.section
                         .toLowerCase()
                         .replace(/[^a-z0-9]+/g, "-")}`}
                       className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6"
@@ -3124,13 +3246,13 @@ export default async function PublicSharePage({
                         </span>
                       </div>
 
-                      {notesBySection[group.section] && (
+                      {noteFor(group.section, group.unitId) && (
                         <div className="mb-6 whitespace-pre-wrap rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-[var(--fl-warn-text)] print:border-amber-500/50 print:bg-transparent print:text-black">
-                          {notesBySection[group.section]}
+                          {noteFor(group.section, group.unitId)}
                         </div>
                       )}
 
-                      {referencePhotosBySection[group.section]?.length > 0 && (
+                      {refPhotosFor(group.section, group.unitId).length > 0 && (
                         <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
                           <h4 className="mb-3 text-lg font-bold text-[var(--fl-info-text)]">
                             Section Reference Photos
@@ -3141,7 +3263,7 @@ export default async function PublicSharePage({
                           </p>
 
                           <div className="grid gap-4 md:grid-cols-3">
-                            {referencePhotosBySection[group.section].map((photo: any, index: number) => {
+                            {refPhotosFor(group.section, group.unitId).map((photo: any, index: number) => {
                               const photoUrl = photo.signed_thumbnail_url || photo.thumbnail_url || photo.signed_url || photo.public_url || photo.image_url || photo.photo_url || "";
 
                               if (!photoUrl) return null;

@@ -20,6 +20,7 @@ import { useAddressAutocomplete } from "../../../hooks/useAddressAutocomplete";
 import NewInspectionAgreementPicker from "../../../components/NewInspectionAgreementPicker";
 import DroneAirspaceCard from "../../../components/DroneAirspaceCard";
 import { buildPropertyFills, writeChecklistFills } from "../../../lib/ai/checklistAutofill";
+import { buildDefaultUnitRows, type UnitNaming } from "../../../lib/report/units";
 import { isAppleActive } from "../../../lib/entitlements";
 import { toPhoneDigits } from "../../../lib/phone";
 
@@ -460,6 +461,13 @@ function NewInspectionPageContent() {
   const [yearBuilt, setYearBuilt] = useState("");
   const [propertyStyle, setPropertyStyle] = useState("");
   const [roofStyle, setRoofStyle] = useState("");
+
+  // Multi-unit (duplex / small multifamily). Off by default — a single-family
+  // job never touches this and is created exactly as before.
+  const [multiUnit, setMultiUnit] = useState(false);
+  const [unitCount, setUnitCount] = useState(2);
+  const [unitNaming, setUnitNaming] = useState<UnitNaming>("numeric");
+  const [includeCommonAreas, setIncludeCommonAreas] = useState(true);
   const [propertyImage, setPropertyImage] = useState("");
   const [propertyImagePreview, setPropertyImagePreview] = useState("");
   const [propertyImageLoadError, setPropertyImageLoadError] = useState(false);
@@ -1175,6 +1183,41 @@ function NewInspectionPageContent() {
         }
       }
 
+      // Multi-unit: create the unit/scope rows and stamp the inspection flags.
+      // Best-effort and tolerant of the not-yet-run migration, so it can never
+      // block creating the inspection. Single-family jobs skip this entirely.
+      if (data?.id && multiUnit) {
+        const unitRows = buildDefaultUnitRows({
+          count: unitCount,
+          naming: unitNaming,
+          commonAreas: includeCommonAreas,
+        }).map((u) => ({ ...u, inspection_id: data.id }));
+        const realUnitCount = unitRows.filter((u) => !u.is_common_area).length;
+
+        const { error: unitsError } = await supabase
+          .from("inspection_units")
+          .insert(unitRows);
+
+        if (unitsError) {
+          console.warn(
+            "Could not create inspection units (run supabase/add-multi-unit-inspections.sql):",
+            unitsError.message,
+          );
+        } else {
+          const { error: flagError } = await supabase
+            .from("inspections")
+            .update({
+              is_multi_unit: true,
+              unit_count: realUnitCount,
+              unit_naming: unitNaming,
+            })
+            .eq("id", data.id);
+          if (flagError) {
+            console.warn("Could not set multi-unit flags:", flagError.message);
+          }
+        }
+      }
+
       // Best-effort: geocode the property and cache driving distance from
       // the company's office address, if set. Never blocks inspection
       // creation - the report page just won't show a distance yet if this
@@ -1589,6 +1632,83 @@ function NewInspectionPageContent() {
                 onChange={setRoofStyle}
                 placeholder="Roof Style"
               />
+            </div>
+
+            <div className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+              <label className="flex cursor-pointer items-center justify-between gap-3 [touch-action:manipulation]">
+                <span>
+                  <span className="block font-semibold text-[var(--fl-text)]">
+                    Multi-unit property
+                  </span>
+                  <span className="block text-xs text-[var(--fl-muted)]">
+                    Duplex, triplex, or small multifamily — set up units + common
+                    areas and the report builds for each.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={multiUnit}
+                  onChange={(e) => setMultiUnit(e.target.checked)}
+                  className="h-5 w-5 shrink-0 accent-teal-500"
+                />
+              </label>
+
+              {multiUnit && (
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+                      Number of units
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={unitCount}
+                      onChange={(e) =>
+                        setUnitCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
+                      }
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-2 text-[var(--fl-text)]"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+                      Unit naming
+                    </span>
+                    <select
+                      value={unitNaming}
+                      onChange={(e) => setUnitNaming(e.target.value as UnitNaming)}
+                      className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-2 text-[var(--fl-text)]"
+                    >
+                      <option value="numeric">Unit 1, 2, 3…</option>
+                      <option value="alpha">Unit A, B, C…</option>
+                    </select>
+                  </label>
+
+                  <label className="flex items-center gap-2 md:mt-6 [touch-action:manipulation]">
+                    <input
+                      type="checkbox"
+                      checked={includeCommonAreas}
+                      onChange={(e) => setIncludeCommonAreas(e.target.checked)}
+                      className="h-5 w-5 shrink-0 accent-teal-500"
+                    />
+                    <span className="text-sm text-[var(--fl-text)]">Include Common Areas</span>
+                  </label>
+
+                  <p className="text-xs text-[var(--fl-muted)] md:col-span-3">
+                    Report will be set up with:{" "}
+                    <span className="font-semibold text-[var(--fl-text)]">
+                      {buildDefaultUnitRows({
+                        count: unitCount,
+                        naming: unitNaming,
+                        commonAreas: includeCommonAreas,
+                      })
+                        .map((u) => u.label)
+                        .join(" · ")}
+                    </span>
+                  </p>
+                </div>
+              )}
             </div>
 
             <button
