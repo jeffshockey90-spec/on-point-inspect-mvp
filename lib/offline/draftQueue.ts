@@ -67,6 +67,9 @@ export type EnqueueDraftInput = {
   files: OfflineMediaInput[];
   /** A short label for the "draft ready" popup (falls back to the note). */
   label?: string;
+  /** Multi-Unit: the unit active WHEN THIS CAPTURE WAS TAKEN. Stored on the
+   * draft so switching units later never re-files a pending draft. */
+  unitId?: number | null;
 };
 
 // Persist a capture for background drafting. Returns the queue item id.
@@ -87,6 +90,7 @@ export async function enqueueDraft(input: EnqueueDraftInput): Promise<string | n
       severity: input.severity || "",
       aiFrames: input.aiFrames || [],
       label: input.label || input.note || "",
+      unit_id: input.unitId ?? null,
     },
   });
   notifyDraftChange();
@@ -263,6 +267,8 @@ export type LoadedDraft = {
   note: string;
   location: string;
   label: string;
+  /** Multi-Unit: the unit captured with this draft (null = none). */
+  unitId: number | null;
 };
 
 export async function loadDraftForApproval(id: string): Promise<LoadedDraft | null> {
@@ -279,6 +285,7 @@ export async function loadDraftForApproval(id: string): Promise<LoadedDraft | nu
     note: p.note || "",
     location: p.location || "",
     label: p.label || p.note || "",
+    unitId: p.unit_id ?? null,
   };
 }
 
@@ -343,6 +350,7 @@ async function flushFindingItem(item: OfflineQueueItem): Promise<boolean> {
       implication: d.implication || "",
       recommendation: d.recommendation || "",
       location: p.location || "",
+      unit_id: p.unit_id ?? null,
       inspector_note: note,
       note,
       confirmed_live: false,
@@ -376,6 +384,7 @@ async function flushLimitationItem(item: OfflineQueueItem): Promise<boolean> {
       limitation: d.limitation || note || "",
       reason: d.reason || "",
       recommendation: d.recommendation || "",
+      unit_id: p.unit_id ?? null,
       // confirmed_live:false → the server stamps section_limitations.needs_review.
       confirmed_live: false,
       offline_created_at: item.createdAt,
@@ -409,6 +418,7 @@ async function flushEquipmentItem(item: OfflineQueueItem): Promise<boolean> {
       inventory_base,
       create_finding,
       finding,
+      unit_id: p.unit_id ?? null,
       // confirmed_live:false → the server stamps equipment_inventory.needs_review
       // (and the derived finding, if any).
       confirmed_live: false,
