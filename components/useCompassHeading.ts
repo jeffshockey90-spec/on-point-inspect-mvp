@@ -54,6 +54,10 @@ export function useCompassHeading() {
 
   const start = useCallback(async () => {
     if (typeof window === "undefined") return;
+    // Already live — do nothing (and never re-call requestPermission, which would
+    // be a needless prompt). This makes it safe for the camera to call start() on
+    // open AND on every touch until the sensor actually attaches.
+    if (startedRef.current) return;
     const DOE: any = (window as any).DeviceOrientationEvent;
     if (!DOE) return;
     if (typeof DOE.requestPermission === "function") {

@@ -238,13 +238,15 @@ export default function AILiveInspectionCamera({
   // it stuck on "Enable compass", so we never do that. Android/desktop auto-attach.
   useEffect(() => {
     if (!compassAutoEnable) return;
-    let done = false;
+    // Best-effort immediate start the moment the camera opens: this is instant on
+    // Android/native and on iOS once the origin has been granted (requestPermission
+    // then resolves with no prompt). Where iOS still needs a real user gesture, the
+    // listener below retries on EVERY touch until the sensor is live — the old code
+    // gave up after the first touch, so a single missed/rejected attempt left the
+    // compass stuck on "Enable" for the whole session. start() no-ops once live.
+    void compass.start();
     const onGesture = () => {
-      if (done) return;
-      done = true;
       void compass.start();
-      window.removeEventListener("click", onGesture, true);
-      window.removeEventListener("touchend", onGesture, true);
     };
     window.addEventListener("click", onGesture, true);
     window.addEventListener("touchend", onGesture, true);
