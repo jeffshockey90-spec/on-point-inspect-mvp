@@ -7,6 +7,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // on mount. Nothing here throws if the sensor is missing — `heading` stays null.
 const CARDINALS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
 
+// Module-level so it survives the hook unmounting/remounting (the live camera
+// mounts a fresh instance every time it opens). Once the inspector has granted
+// the iOS orientation prompt during this app session, every later camera open
+// can attach the sensor directly — no second tap on 🧭. It resets to false on a
+// full page/app reload, where iOS legitimately requires the gesture again.
+let compassGrantedThisSession = false;
+
 export function headingToCardinal(deg: number): string {
   const idx = Math.round(((deg % 360) + 360) % 360 / 45) % 8;
   return CARDINALS[idx];
@@ -57,6 +64,7 @@ export function useCompassHeading() {
           return;
         }
         setNeedsPermission(false);
+        compassGrantedThisSession = true; // remember for later camera opens
       } catch {
         setNeedsPermission(true);
         return;
@@ -70,8 +78,12 @@ export function useCompassHeading() {
     const DOE: any = typeof window !== "undefined" ? (window as any).DeviceOrientationEvent : null;
     if (DOE && typeof DOE.requestPermission !== "function") {
       attach();
+    } else if (DOE && compassGrantedThisSession) {
+      // Already granted earlier this session — the sensor can attach without a
+      // fresh prompt or tap, so the compass is live the moment the camera opens.
+      attach();
     } else if (DOE) {
-      setNeedsPermission(true); // iOS: wait for a tap to request permission
+      setNeedsPermission(true); // iOS, first time this session: wait for a tap
     }
     return () => {
       window.removeEventListener("deviceorientationabsolute", handle, true);
