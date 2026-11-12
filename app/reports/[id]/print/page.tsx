@@ -13,6 +13,7 @@ import { getReportDeliveryState } from "../../../../lib/reportDelivery";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { resolveReportSections } from "../../../../lib/reportSections";
+import { normalizeUnits, hasUnits, type InspectionUnit } from "../../../../lib/report/units";
 import { getCompanyBrandingById } from "../../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../../lib/inspectionAccess";
 import { getCachedSignedUrls } from "../../../../lib/signedUrlCache";
@@ -516,6 +517,22 @@ export default async function PrintableReportPage({ params }: PageProps) {
     templateSections: (inspection as any).template_sections,
   });
 
+  // Multi-Unit: group the printed findings by unit when the job has units;
+  // loaded tolerantly so single-family / pre-migration reports are unchanged.
+  let printUnitRows: any[] = [];
+  try {
+    const { data: unitData } = await supabase
+      .from("inspection_units")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .order("sort_order", { ascending: true });
+    printUnitRows = unitData || [];
+  } catch {
+    printUnitRows = [];
+  }
+  const units: InspectionUnit[] = normalizeUnits(printUnitRows);
+  const multiUnit = hasUnits(units);
+
   const findingIds = (findingsRaw || []).map((finding: any) => finding.id);
 
   // Page past Supabase's 1000-row cap so photo-heavy inspections don't lose media.
@@ -796,6 +813,62 @@ export default async function PrintableReportPage({ params }: PageProps) {
       section: "Other",
       findings: otherFindings,
     });
+  }
+
+  // Multi-Unit: unit dividers + per-unit section groups for the printed findings
+  // list. Single-family falls back to the flat groupedFindingsArray unchanged.
+  const matchPrintUnit = (rowUnitId: any, unitId: number | null) =>
+    unitId == null ? rowUnitId == null : Number(rowUnitId) === unitId;
+  // Section notes stay inspection-level, so they print only in single-family
+  // mode (avoids one note repeating under every unit).
+  const printNoteFor = (section: string, unitId: number | null) =>
+    multiUnit ? "" : notesBySection[section] || "";
+
+  type PrintBlock =
+    | { kind: "divider"; unit: InspectionUnit }
+    | { kind: "section"; section: string; findings: any[]; unitId: number | null };
+
+  const buildPrintUnitSections = (unitId: number | null) => {
+    const scoped = numberedFindings.filter((finding: any) =>
+      matchPrintUnit(finding.unit_id, unitId),
+    );
+    const groups = activeSectionOrder
+      .map((section) => ({
+        section,
+        unitId,
+        findings: scoped.filter((finding: any) => finding.section === section),
+      }))
+      .filter((group) => group.findings.length > 0 || Boolean(printNoteFor(group.section, unitId)));
+    const other = scoped.filter((finding: any) => !activeSectionOrder.includes(finding.section));
+    if (other.length > 0) groups.push({ section: "Other", unitId, findings: other });
+    return groups;
+  };
+
+  const PRINT_GENERAL_UNIT: InspectionUnit = {
+    id: -1,
+    label: "General",
+    sortOrder: -1,
+    isCommonArea: false,
+  };
+  const printFindingsBlocks: PrintBlock[] = [];
+  if (multiUnit) {
+    const pushUnit = (unit: InspectionUnit, unitId: number | null) => {
+      const groups = buildPrintUnitSections(unitId);
+      if (groups.length === 0) return;
+      printFindingsBlocks.push({ kind: "divider", unit });
+      for (const group of groups) printFindingsBlocks.push({ kind: "section", ...group });
+    };
+    pushUnit(PRINT_GENERAL_UNIT, null);
+    for (const unit of units) pushUnit(unit, unit.id);
+  } else {
+    for (const group of groupedFindingsArray) {
+      printFindingsBlocks.push({
+        kind: "section",
+        section: group.section,
+        findings: group.findings,
+        unitId: null,
+      });
+    }
   }
 
   const propertyPhoto =
@@ -1213,18 +1286,44 @@ export default async function PrintableReportPage({ params }: PageProps) {
           </h2>
 
           <div className="space-y-10">
-            {groupedFindingsArray.map((group) => {
-              if (group.findings.length === 0 && !notesBySection[group.section]) return null;
+            {printFindingsBlocks.map((block, blockIndex) => {
+              if (block.kind === "divider") {
+                const dividerUnit = block.unit;
+                const eyebrow =
+                  dividerUnit.id === -1
+                    ? "Not assigned to a unit"
+                    : dividerUnit.isCommonArea
+                      ? "Common Area"
+                      : "Unit";
+                return (
+                  <div
+                    key={`unit-divider-${dividerUnit.id}`}
+                    className="section-print-block border-y-4 border-teal-600 py-5"
+                  >
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-teal-700">
+                      {eyebrow}
+                    </p>
+                    <h2 className="mt-1 text-4xl font-black text-teal-900">{dividerUnit.label}</h2>
+                  </div>
+                );
+              }
+
+              const group = block;
+              const noteForGroup = printNoteFor(group.section, group.unitId);
+              if (group.findings.length === 0 && !noteForGroup) return null;
 
               return (
-                <section key={group.section} className="section-print-block space-y-5">
+                <section
+                  key={`${group.unitId ?? "x"}-${group.section}-${blockIndex}`}
+                  className="section-print-block space-y-5"
+                >
                   <h3 className="border-b-4 border-teal-600 pb-2 text-3xl font-black text-teal-800">
                     {group.section}
                   </h3>
 
-                  {notesBySection[group.section] && (
+                  {noteForGroup && (
                     <div className="avoid-break whitespace-pre-wrap rounded-xl border border-amber-500 bg-amber-50 p-4 text-sm leading-6 text-slate-900">
-                      {notesBySection[group.section]}
+                      {noteForGroup}
                     </div>
                   )}
 

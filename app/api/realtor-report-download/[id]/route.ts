@@ -20,6 +20,7 @@ import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import { normalizeSection } from "../../../../lib/report/normalizeSection";
 import { checklistRowDisplay } from "../../../../lib/report/checklist";
+import { normalizeUnits, type InspectionUnit } from "../../../../lib/report/units";
 import sharp from "sharp";
 import { existsSync } from "fs";
 import { recompressPdfImages } from "../../../../lib/pdfRecompress";
@@ -31,7 +32,7 @@ export const dynamic = "force-dynamic";
 // PDF cache signature, so a change here invalidates every cached PDF and forces
 // a rebuild with the new template. Without it, a template change would only show
 // on reports whose content also changed (the "changes only on one report" trap).
-const PDF_TEMPLATE_VERSION = "2026-11-11-signature-content-fix";
+const PDF_TEMPLATE_VERSION = "2026-11-11-multi-unit-grouping";
 // Vercel kills the function at this many seconds (Pro plan ceiling; Hobby caps
 // at 60). Photo-heavy reports were exceeding 60s and getting killed mid-render.
 // RENDER_BUDGET_MS below follows this automatically.
@@ -1018,6 +1019,9 @@ function buildAgentReportHtml({
   limitations,
   checklistBySection,
   referencePhotosBySection,
+  units: pdfUnits,
+  checklistByUnitSection,
+  refPhotosByUnitSection,
   disclaimers,
   equipment,
   realtorBrand,
@@ -1040,6 +1044,12 @@ function buildAgentReportHtml({
   limitations?: Array<{ section: string; label: string; comment: string }>;
   checklistBySection?: Record<string, Record<string, string[]>>;
   referencePhotosBySection?: Record<string, Array<{ url: string; caption: string }>>;
+  // Multi-Unit: when present and non-empty, the report is grouped by unit, then
+  // section. The unit-keyed maps ("" = unassigned) scope each unit's checklist /
+  // reference photos. Absent/empty = single-family (renders exactly as before).
+  units?: InspectionUnit[];
+  checklistByUnitSection?: Record<string, Record<string, Record<string, string[]>>>;
+  refPhotosByUnitSection?: Record<string, Record<string, Array<{ url: string; caption: string }>>>;
   disclaimers?: Array<{ topic: string; text: string }>;
   equipment?: Array<{ type: string; name: string; photoUrl: string; rows: Array<[string, string]>; note: string; prognosis?: string }>;
   realtorBrand?: { name: string; brokerage: string; photo: string } | null;
@@ -1167,6 +1177,70 @@ function buildAgentReportHtml({
 
   if (otherFindings.length) grouped.push({ section: "Other", findings: otherFindings });
 
+  // ── Multi-Unit grouping ────────────────────────────────────────────────────
+  // When the job has units, the report is grouped by unit, then section (with a
+  // unit divider page before each unit). The helpers below fall back to the
+  // existing section-keyed maps when there are no units, so a single-family PDF
+  // is produced by exactly the same code paths as before.
+  const unitsForPdf = Array.isArray(pdfUnits) ? pdfUnits : [];
+  const isMultiUnit = unitsForPdf.length > 0;
+  const matchUnit = (rowUnitId: any, unitId: number | null) =>
+    unitId == null ? rowUnitId == null : Number(rowUnitId) === unitId;
+  const unitKeyOf = (unitId: number | null) => (unitId == null ? "" : String(unitId));
+  const sectionAnchorFor = (section: any, unitId: number | null) =>
+    isMultiUnit && unitId != null
+      ? `${getSectionAnchor(section)}-u${unitId}`
+      : getSectionAnchor(section);
+  const checklistFor = (section: string, unitId: number | null) =>
+    isMultiUnit
+      ? checklistByUnitSection?.[unitKeyOf(unitId)]?.[section]
+      : checklistBySection && checklistBySection[section];
+  const refPhotosFor = (section: string, unitId: number | null) =>
+    isMultiUnit
+      ? refPhotosByUnitSection?.[unitKeyOf(unitId)]?.[section] || []
+      : (referencePhotosBySection && referencePhotosBySection[section]) || [];
+  // Section notes stay inspection-level in Stage 1, so they render only in
+  // single-family mode (avoids duplicating one note under every unit).
+  const sectionNoteFor = (section: string, unitId: number | null) =>
+    isMultiUnit ? "" : sectionNotes && sectionNotes[section];
+
+  const groupedForUnit = (unitId: number | null) => {
+    const scoped = defects.filter((f: any) => matchUnit(f.unit_id, unitId));
+    const g = activeSectionOrder
+      .map((section) => ({
+        section,
+        findings: scoped.filter((f: any) => normalizeSection(f.section) === section),
+      }))
+      .filter(
+        (group) =>
+          group.findings.length > 0 ||
+          Boolean(checklistFor(group.section, unitId)) ||
+          Boolean(refPhotosFor(group.section, unitId).length),
+      );
+    const other = scoped.filter((f: any) => !activeSectionOrder.includes(normalizeSection(f.section)));
+    if (other.length) g.push({ section: "Other", findings: other });
+    return g;
+  };
+
+  // The ordered units to render, with a leading "General" scope only when
+  // something is unassigned so a stray finding/photo is never dropped.
+  const renderUnits: Array<{ unitId: number | null; label: string; isCommonArea: boolean }> = [];
+  if (isMultiUnit) {
+    if (groupedForUnit(null).length) {
+      renderUnits.push({ unitId: null, label: "General", isCommonArea: false });
+    }
+    for (const u of unitsForPdf) {
+      renderUnits.push({ unitId: u.id, label: u.label, isCommonArea: u.isCommonArea });
+    }
+  }
+  const unitLabelForFinding = (finding: any): string => {
+    if (!isMultiUnit) return "";
+    const uid = finding?.unit_id == null ? null : Number(finding.unit_id);
+    if (uid == null) return "General";
+    const u = unitsForPdf.find((x) => x.id === uid);
+    return u ? u.label : "General";
+  };
+
   const clientName = clientNameOverride || inspection.client_name || inspection.client || "N/A";
   const clientEmail = clientEmailOverride || inspection.client_email || "N/A";
   const realtorName = inspection.realtor_name || inspection.agent_name || inspection.buyer_agent_name || "N/A";
@@ -1209,17 +1283,30 @@ function buildAgentReportHtml({
   // matching section's `id` further down. Chrome's printToPDF turns these into
   // clickable jump links inside the PDF -- click a row, land on that section
   // (the same behavior as Spectora's report).
-  const tocHtml = grouped.map((group) => {
+  const tocSectionRow = (group: { section: string; findings: any[] }, unitId: number | null) => {
     const sectionNumber = getSectionNumber(group.section, activeSectionOrder);
     return `
-      <a class="toc-row" href="#${escapeHtml(getSectionAnchor(group.section))}">
+      <a class="toc-row" href="#${escapeHtml(sectionAnchorFor(group.section, unitId))}">
         <span class="toc-num">${escapeHtml(String(sectionNumber))}</span>
         <span class="toc-name">${escapeHtml(group.section)}</span>
         <span class="toc-dots"></span>
         <span class="toc-count">${group.findings.length} item${group.findings.length === 1 ? "" : "s"}</span>
       </a>
     `;
-  }).join("");
+  };
+
+  const tocHtml = isMultiUnit
+    ? renderUnits
+        .map((u) => {
+          const g = groupedForUnit(u.unitId);
+          if (!g.length) return "";
+          return (
+            `<div class="toc-unit">${escapeHtml(u.label)}</div>` +
+            g.map((group) => tocSectionRow(group, u.unitId)).join("")
+          );
+        })
+        .join("")
+    : grouped.map((group) => tocSectionRow(group, null)).join("");
 
   const tocExtraRow = (label: string, count: string, anchor: string) => `
       <a class="toc-row" href="#${escapeHtml(anchor)}">
@@ -1251,9 +1338,10 @@ function buildAgentReportHtml({
     const section = normalizeSection(finding.section);
     const bucket = getSeverityBucket(finding.severity);
     const anchor = getFindingAnchor(finding);
+    const unitPrefix = isMultiUnit ? `${unitLabelForFinding(finding)} · ` : "";
     const rowInner = `
         <span class="key-dot ${severityKey(finding.severity)}"></span>
-        <span><strong>${escapeHtml(String(finding.report_item_number || ""))}</strong> ${escapeHtml(section)} — ${escapeHtml(getFindingTitle(finding))}</span>
+        <span><strong>${escapeHtml(String(finding.report_item_number || ""))}</strong> ${escapeHtml(unitPrefix + section)} — ${escapeHtml(getFindingTitle(finding))}</span>
         <em>${escapeHtml(bucket)}</em>`;
     // Each row links to its finding's anchor further down (clickable in the PDF).
     return `
@@ -1280,7 +1368,7 @@ function buildAgentReportHtml({
     </div>
   `;
 
-  const pagesHtml = grouped.map((group) => {
+  const renderSectionPage = (group: { section: string; findings: any[] }, unitId: number | null) => {
     const sectionNumber = getSectionNumber(group.section, activeSectionOrder);
 
     const findingsHtml = group.findings.map((finding: any) => {
@@ -1369,7 +1457,7 @@ function buildAgentReportHtml({
       `;
     }).join("");
 
-    const sectionInfo = checklistBySection && checklistBySection[group.section];
+    const sectionInfo = checklistFor(group.section, unitId);
     const infoHtml = sectionInfo && Object.keys(sectionInfo).length
       ? `
         <div class="sub-head">Information</div>
@@ -1384,8 +1472,7 @@ function buildAgentReportHtml({
       `
       : "";
 
-    const refPhotosForSection =
-      (referencePhotosBySection && referencePhotosBySection[group.section]) || [];
+    const refPhotosForSection = refPhotosFor(group.section, unitId);
     const refPhotosHtml = refPhotosForSection.length
       ? `
         <div class="sub-head">Reference Photos</div>
@@ -1404,8 +1491,10 @@ function buildAgentReportHtml({
       ? `<div class="sub-head">Findings <span class="sub-count">${group.findings.length} item${group.findings.length === 1 ? "" : "s"}</span></div>${findingsHtml}`
       : "";
 
+    const noteForSection = sectionNoteFor(group.section, unitId);
+
     return `
-      <section class="page report-page" id="${escapeHtml(getSectionAnchor(group.section))}">
+      <section class="page report-page" id="${escapeHtml(sectionAnchorFor(group.section, unitId))}">
         <header class="page-header">
           <div class="mini-brand">
             ${headerLogoHtml}
@@ -1422,8 +1511,8 @@ function buildAgentReportHtml({
         </div>
 
         ${
-          sectionNotes && sectionNotes[group.section]
-            ? `<div class="section-note">${escapeHtml(sectionNotes[group.section])}</div>`
+          noteForSection
+            ? `<div class="section-note">${escapeHtml(noteForSection)}</div>`
             : ""
         }
 
@@ -1437,7 +1526,41 @@ function buildAgentReportHtml({
         </footer>
       </section>
     `;
-  }).join("");
+  };
+
+  // A full-page unit divider before each unit's sections (multi-unit only).
+  const unitDividerPageHtml = (u: { unitId: number | null; label: string; isCommonArea: boolean }) => {
+    const eyebrow = u.unitId == null ? "Not assigned to a unit" : u.isCommonArea ? "Common Area" : "Unit";
+    return `
+      <section class="page report-page unit-divider-page">
+        <header class="page-header">
+          <div class="mini-brand">${headerLogoHtml}</div>
+          <div class="header-address">${escapeHtml(property)}<br/>${escapeHtml(cityStateZip)}</div>
+        </header>
+        <div class="unit-divider">
+          <p class="unit-divider-eyebrow">${escapeHtml(eyebrow)}</p>
+          <h2 class="unit-divider-name">${escapeHtml(u.label)}</h2>
+        </div>
+        <footer class="black-footer">
+          <span>${escapeHtml(companyName)}</span>
+          <span>${escapeHtml(u.label)}</span>
+        </footer>
+      </section>
+    `;
+  };
+
+  const pagesHtml = isMultiUnit
+    ? renderUnits
+        .map((u) => {
+          const g = groupedForUnit(u.unitId);
+          if (!g.length) return "";
+          return (
+            unitDividerPageHtml(u) +
+            g.map((group) => renderSectionPage(group, u.unitId)).join("")
+          );
+        })
+        .join("")
+    : grouped.map((group) => renderSectionPage(group, null)).join("");
 
   const limitationsList = Array.isArray(limitations) ? limitations : [];
   const limitationsPageHtml =
@@ -1656,6 +1779,11 @@ function buildAgentReportHtml({
     .section-head { text-align: center; margin: 4px 0 4px; }
     .section-eyebrow { margin: 0; color: #94a3b8; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; font-weight: 600; }
     .section-name { margin: 6px 0 0; color: #1f2937; font-size: 28px; font-weight: 400; letter-spacing: .01em; }
+    .toc-unit { margin: 16px 0 4px; color: #0f8f8f; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    .unit-divider-page { display: flex; flex-direction: column; }
+    .unit-divider { margin: auto 0; padding: 44px 0; border-top: 3px solid #0f8f8f; border-bottom: 3px solid #0f8f8f; }
+    .unit-divider-eyebrow { margin: 0; color: #0f8f8f; font-size: 13px; letter-spacing: .26em; text-transform: uppercase; font-weight: 700; }
+    .unit-divider-name { margin: 10px 0 0; color: #1f2937; font-size: 40px; font-weight: 500; letter-spacing: .01em; }
     .sub-head { display: flex; align-items: baseline; gap: 10px; color: #0f8f8f; font-size: 15px; font-weight: 600; border-bottom: 1px solid #cbd5e1; padding-bottom: 7px; margin: 24px 0 18px; }
     .sub-count { color: #94a3b8; font-size: 11px; font-weight: 500; }
     .section-note { border-left: 3px solid #f59e0b; background: #fffbeb; color: #374151; padding: 10px 14px; margin: 0 0 18px; font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
@@ -2618,18 +2746,23 @@ export async function GET(req: Request, { params }: RouteProps) {
       // and the cached PDF regenerates WITH the now-approved item. Selecting the
       // full row also keeps reinspection_* verdict/summary edits in the hash.
       const notReview = (q: any) => q.not("needs_review", "is", true);
-      const [f, ph, eq, di, ch, rf, li, nt, rb] = await Promise.all([
+      const [f, ph, eq, di, ch, rf, li, nt, rb, un] = await Promise.all([
         sigSel("findings", "*", notReview),
         sigSel("photos", "*"),
         sigSel("equipment_inventory", "*", notReview),
         sigSel("report_disclaimers", "id,topic,disclaimer_text"),
-        sigSel("section_checklist_selections", "id,section,group_title,value,custom_text"),
-        sigSel("section_reference_photos", "id,section,caption,file_path,thumbnail_path"),
-        sigSel("section_limitations", "id,section,label,limitation_comment,custom_text", notReview),
+        // unit_id added so a finding/checklist/reference-photo/limitation changing
+        // units invalidates the cached PDF (multi-unit grouping).
+        sigSel("section_checklist_selections", "id,section,group_title,value,custom_text,unit_id"),
+        sigSel("section_reference_photos", "id,section,caption,file_path,thumbnail_path,unit_id"),
+        sigSel("section_limitations", "id,section,label,limitation_comment,custom_text,unit_id", notReview),
         admin.from("report_section_notes").select("section_name,notes").eq("inspection_id", inspectionId).order("section_name", { ascending: true }),
         sigRealtorEmail
           ? admin.from("realtor_profiles").select("name,brokerage,photo_url").ilike("email", sigRealtorEmail).maybeSingle()
           : Promise.resolve({ data: null } as any),
+        // The units themselves (label/order/count) — adding or renaming a unit
+        // must rebuild the PDF. Tolerant: missing table hashes as null.
+        admin.from("inspection_units").select("id,label,sort_order,is_common_area").eq("inspection_id", inspectionId).order("sort_order", { ascending: true }),
       ]);
       pdfSignature = createHash("sha1")
         .update(
@@ -2640,6 +2773,7 @@ export async function GET(req: Request, { params }: RouteProps) {
             logo: cleanText(inspection.company_id),
             f, ph, eq, di,
             ch, rf, li, nt: nt.data,
+            un: un.data,
             re: sigRealtorEmail, rn: cleanText(inspection.realtor_name), rb: rb.data,
           }),
         )
@@ -2765,9 +2899,12 @@ export async function GET(req: Request, { params }: RouteProps) {
     // section shows its inspected details and reference pics, not only defects.
     const { data: checklistRows } = await admin
       .from("section_checklist_selections")
-      .select("section, group_title, value, custom_text")
+      .select("section, group_title, value, custom_text, unit_id")
       .eq("inspection_id", inspectionId);
     const checklistBySection: Record<string, Record<string, string[]>> = {};
+    // Multi-Unit: same content keyed by unitKey ("" = unassigned) → section →
+    // group → values, so each unit's section page shows only its own checklist.
+    const checklistByUnitSection: Record<string, Record<string, Record<string, string[]>>> = {};
     for (const row of (checklistRows as any[]) || []) {
       const sec = normalizeSection(row.section);
       const group = cleanText(row.group_title) || "Details";
@@ -2779,6 +2916,12 @@ export async function GET(req: Request, { params }: RouteProps) {
       if (!checklistBySection[sec]) checklistBySection[sec] = {};
       if (!checklistBySection[sec][group]) checklistBySection[sec][group] = [];
       checklistBySection[sec][group].push(val);
+
+      const uk = row.unit_id == null ? "" : String(row.unit_id);
+      if (!checklistByUnitSection[uk]) checklistByUnitSection[uk] = {};
+      if (!checklistByUnitSection[uk][sec]) checklistByUnitSection[uk][sec] = {};
+      if (!checklistByUnitSection[uk][sec][group]) checklistByUnitSection[uk][sec][group] = [];
+      checklistByUnitSection[uk][sec][group].push(val);
     }
 
     const { data: refPhotosRaw } = await admin
@@ -2794,6 +2937,8 @@ export async function GET(req: Request, { params }: RouteProps) {
       signedUrlMap(admin, refPhotoPaths),
     ]);
     const referencePhotosBySection: Record<string, Array<{ url: string; caption: string }>> = {};
+    // Multi-Unit: reference photos keyed by unitKey ("" = unassigned) → section.
+    const refPhotosByUnitSection: Record<string, Record<string, Array<{ url: string; caption: string }>>> = {};
     for (const p of (refPhotosRaw as any[]) || []) {
       const sec = normalizeSection(p.section);
       if (!sec) continue;
@@ -2808,7 +2953,27 @@ export async function GET(req: Request, { params }: RouteProps) {
       if (!refUrl) continue;
       if (!referencePhotosBySection[sec]) referencePhotosBySection[sec] = [];
       referencePhotosBySection[sec].push({ url: refUrl, caption: cleanText(p.caption) });
+
+      const uk = p.unit_id == null ? "" : String(p.unit_id);
+      if (!refPhotosByUnitSection[uk]) refPhotosByUnitSection[uk] = {};
+      if (!refPhotosByUnitSection[uk][sec]) refPhotosByUnitSection[uk][sec] = [];
+      refPhotosByUnitSection[uk][sec].push({ url: refUrl, caption: cleanText(p.caption) });
     }
+
+    // Multi-Unit: the ordered units (Common Areas + Unit A/B…). Loaded tolerantly
+    // so a pre-migration DB returns none and the PDF renders single-family.
+    let pdfUnitRows: any[] = [];
+    try {
+      const { data: unitData } = await admin
+        .from("inspection_units")
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .order("sort_order", { ascending: true });
+      pdfUnitRows = unitData || [];
+    } catch {
+      pdfUnitRows = [];
+    }
+    const pdfUnits: InspectionUnit[] = normalizeUnits(pdfUnitRows);
 
     // Report disclaimers + equipment inventory — part of the full report.
     const { data: disclaimerRows } = await admin
@@ -3165,6 +3330,9 @@ export async function GET(req: Request, { params }: RouteProps) {
       limitations,
       checklistBySection,
       referencePhotosBySection,
+      units: pdfUnits,
+      checklistByUnitSection,
+      refPhotosByUnitSection,
       disclaimers,
       equipment,
       realtorBrand,
