@@ -290,16 +290,20 @@ export default function QuotePage() {
             : `${service.name} is $${service.flatPrice ?? 0}.`;
         }
 
-        const setupText =
+        const included = Math.max(0, Math.floor(Number(service.includedUnits) || 0));
+        const unit = service.unitLabel || "unit";
+        const packageText =
           service.pairedBaseFee !== undefined
-            ? `$${service.pairedBaseFee} setup with a home inspection or $${
+            ? `$${service.pairedBaseFee} with a home inspection or $${
                 service.baseFee ?? 0
               } standalone`
-            : `$${service.baseFee ?? 0} setup`;
+            : `$${service.baseFee ?? 0}`;
+        const inclText =
+          included > 0 ? ` (includes ${included} ${unit}${included === 1 ? "" : "s"})` : "";
 
-        return `${service.name} is ${setupText}, plus $${service.perUnitFee ?? 0} per ${
-          service.unitLabel || "unit"
-        }.`;
+        return `${service.name} is ${packageText}${inclText}, plus $${
+          service.perUnitFee ?? 0
+        } per additional ${unit}.`;
       })
       .join(" ");
   }, [pricingConfig]);

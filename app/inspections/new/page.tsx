@@ -320,15 +320,22 @@ function calculateFullInspectionPrice({
     : 0;
   const totalMoldSamples = airSamples + surfaceSamples;
 
+  // Mold package price already includes the first `includedMoldSamples` samples;
+  // only samples beyond that allowance add the per-sample fee. Every collected
+  // sample (air + surface, outdoor controls included) counts toward the total.
+  // includedUnits unset/0 reproduces the original "charge every sample" math.
   const moldSetupFee = includesMold
     ? includesHome && moldService?.pairedBaseFee !== undefined
       ? Number(moldService.pairedBaseFee)
       : Number(moldService?.baseFee ?? (includesHome ? 175 : 225))
     : 0;
   const moldPerSample = Number(moldService?.perUnitFee ?? 75);
-  const moldAirFee = airSamples * moldPerSample;
-  const moldSurfaceFee = surfaceSamples * moldPerSample;
-  const moldFee = moldSetupFee + moldAirFee + moldSurfaceFee;
+  const includedMoldSamples = includesMold
+    ? Math.max(0, Math.floor(Number(moldService?.includedUnits) || 0))
+    : 0;
+  const billableMoldSamples = Math.max(0, totalMoldSamples - includedMoldSamples);
+  const moldSampleFee = billableMoldSamples * moldPerSample;
+  const moldFee = moldSetupFee + moldSampleFee;
 
   const safeTravelFee = Math.max(0, getNumber(travelFee));
   const safeDiscount = Math.max(0, getNumber(discount));
@@ -354,8 +361,10 @@ function calculateFullInspectionPrice({
     needsSqft,
     radonFee,
     moldSetupFee,
-    moldAirFee,
-    moldSurfaceFee,
+    moldPerSample,
+    includedMoldSamples,
+    billableMoldSamples,
+    moldSampleFee,
     moldFee,
     airSamples,
     surfaceSamples,
@@ -2149,9 +2158,23 @@ function NewInspectionPageContent() {
                 )}
               </p>
               <p>Radon: ${quote.radonFee}</p>
-              <p>Mold Setup/Admin: ${quote.moldSetupFee}</p>
-              <p>Mold Air Samples: ${quote.moldAirFee}</p>
-              <p>Mold Surface Samples: ${quote.moldSurfaceFee}</p>
+              <p>
+                Mold Package: ${quote.moldSetupFee}
+                {quote.includesMold && quote.includedMoldSamples > 0 && (
+                  <span className="text-[var(--fl-faint)]">
+                    {" "}(incl. {quote.includedMoldSamples} sample
+                    {quote.includedMoldSamples === 1 ? "" : "s"})
+                  </span>
+                )}
+              </p>
+              <p>
+                Additional Samples: ${quote.moldSampleFee}
+                {quote.includesMold && quote.totalMoldSamples > 0 && (
+                  <span className="text-[var(--fl-faint)]">
+                    {" "}({quote.billableMoldSamples} × ${quote.moldPerSample})
+                  </span>
+                )}
+              </p>
               <p>Travel Fee: ${quote.travelFee}</p>
               <p>Discount: -${quote.discount}</p>
               <p className="font-bold text-[var(--fl-text)]">Total: ${effectiveTotal}</p>
