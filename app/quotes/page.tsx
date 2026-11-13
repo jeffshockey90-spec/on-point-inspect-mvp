@@ -8,6 +8,8 @@ import { useAddressAutocomplete } from "../../hooks/useAddressAutocomplete";
 import {
   DEFAULT_PRICING_CONFIG,
   calculateServiceFee,
+  calculateMultiUnitPrice,
+  hasMultiUnitPricing,
   getBaseService,
   getService,
   type InspectorPricingConfig,
@@ -58,6 +60,7 @@ type QuoteLineItem = {
   unitLabel?: string;
   units: number;
   fee: number;
+  multiUnitApplied?: boolean;
 };
 
 function calculateQuote({
@@ -67,6 +70,8 @@ function calculateQuote({
   travelFee,
   discount,
   pricingConfig,
+  multiUnit,
+  unitCount,
 }: {
   sqft: number;
   selectedServiceIds: string[];
@@ -74,17 +79,26 @@ function calculateQuote({
   travelFee: number;
   discount: number;
   pricingConfig: InspectorPricingConfig;
+  multiUnit: boolean;
+  unitCount: number;
 }) {
   const baseService = getBaseService(pricingConfig);
   const includesBase = Boolean(baseService && selectedServiceIds.includes(baseService.id));
+  const safeUnitCount = Math.max(1, Math.floor(unitCount || 1));
 
   const lineItems: QuoteLineItem[] = selectedServiceIds
     .map((id) => getService(pricingConfig, id))
     .filter((service): service is PricingService => Boolean(service))
     .map((service) => {
-      const paired = includesBase && service.id !== baseService?.id;
+      const isBase = service.id === baseService?.id;
+      const paired = includesBase && !isBase;
       const units = Math.max(0, Math.floor(getNumber(serviceUnits[service.id])));
-      const fee = calculateServiceFee(service, { sqft, units, paired });
+      // Per-door pricing replaces the base service's sqft fee when the quote is
+      // marked multi-unit and a per-unit fee is configured.
+      const useMultiUnit = isBase && multiUnit && hasMultiUnitPricing(service);
+      const fee = useMultiUnit
+        ? calculateMultiUnitPrice(service, safeUnitCount)
+        : calculateServiceFee(service, { sqft, units, paired });
 
       return {
         id: service.id,
@@ -93,6 +107,7 @@ function calculateQuote({
         unitLabel: service.unitLabel,
         units,
         fee,
+        multiUnitApplied: useMultiUnit,
       };
     });
 
@@ -106,6 +121,7 @@ function calculateQuote({
     lineItems,
     includesBase,
     baseServiceId: baseService?.id || null,
+    multiUnitCount: safeUnitCount,
     travelFee: safeTravelFee,
     discount: safeDiscount,
     subtotal,
@@ -128,6 +144,8 @@ export default function QuotePage() {
   const [travelFee, setTravelFee] = useState(0);
   const [serviceUnits, setServiceUnits] = useState<Record<string, number>>({});
   const [discount, setDiscount] = useState(0);
+  const [multiUnit, setMultiUnit] = useState(false);
+  const [unitCount, setUnitCount] = useState(2);
   const [pricingConfig, setPricingConfig] = useState<InspectorPricingConfig>(
     DEFAULT_PRICING_CONFIG,
   );
@@ -234,9 +252,16 @@ export default function QuotePage() {
         travelFee,
         discount,
         pricingConfig,
+        multiUnit,
+        unitCount,
       }),
-    [sqft, selectedServiceIds, serviceUnits, travelFee, discount, pricingConfig]
+    [sqft, selectedServiceIds, serviceUnits, travelFee, discount, pricingConfig, multiUnit, unitCount]
   );
+
+  // Only offer the multi-unit toggle when the base service is selected and the
+  // inspector has configured per-door pricing (a per-unit fee). Otherwise it
+  // would do nothing, so we hide it.
+  const baseHasMultiUnit = hasMultiUnitPricing(getBaseService(pricingConfig));
 
   const pricingRulesSummary = useMemo(() => {
     return pricingConfig.services
@@ -302,6 +327,12 @@ export default function QuotePage() {
     if (stateValue) params.set("state", stateValue);
     if (zip) params.set("zip", zip);
     if (quote.includesBase) params.set("squareFeet", String(sqft));
+
+    // Carry the multi-family selection so New Inspection opens per-door priced.
+    if (quote.includesBase && multiUnit && baseHasMultiUnit) {
+      params.set("multiUnit", "1");
+      params.set("unitCount", String(quote.multiUnitCount));
+    }
 
     const legacyServiceMode = toLegacyServiceMode(selectedServiceIds);
     if (legacyServiceMode) params.set("serviceMode", legacyServiceMode);
@@ -429,6 +460,35 @@ export default function QuotePage() {
                 </div>
               )}
 
+              {quote.includesBase && baseHasMultiUnit && (
+                <div className="space-y-2 md:col-span-2">
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+                    <input
+                      type="checkbox"
+                      checked={multiUnit}
+                      onChange={(e) => setMultiUnit(e.target.checked)}
+                      className="h-4 w-4 shrink-0 accent-teal-500"
+                    />
+                    <span className="text-sm font-bold text-[var(--fl-text)]">
+                      Multi-family (price per door, not by square footage)
+                    </span>
+                  </label>
+                  {multiUnit && (
+                    <div className="space-y-1">
+                      <Input
+                        label="Number of Units"
+                        value={unitCount}
+                        onChange={(value) => setUnitCount(Math.max(1, Math.floor(value || 1)))}
+                      />
+                      <p className="text-xs text-[var(--fl-muted)]">
+                        Base building fee + a fee for each unit (set in Settings → Pricing).
+                        Square footage is ignored for the base fee.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Input
                 label="Travel Fee"
                 value={travelFee}
@@ -462,7 +522,15 @@ export default function QuotePage() {
                 <p className="text-sm text-[var(--fl-faint)]">No services selected yet.</p>
               ) : (
                 quote.lineItems.map((item) => (
-                  <SummaryLine key={item.id} label={item.name} value={item.fee} />
+                  <SummaryLine
+                    key={item.id}
+                    label={
+                      item.multiUnitApplied
+                        ? `${item.name} (per-door · ${quote.multiUnitCount} units)`
+                        : item.name
+                    }
+                    value={item.fee}
+                  />
                 ))
               )}
               <SummaryLine label="Travel Fee" value={quote.travelFee} />
