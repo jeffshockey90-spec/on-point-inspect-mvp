@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   DEFAULT_PRICING_CONFIG,
   PRICING_SERVICE_TYPE_OPTIONS,
+  calculateServiceFee,
   createCustomService,
   type InspectorPricingConfig,
   type PricingService,
@@ -41,6 +42,55 @@ function NumberField({
         {suffix && <span className="shrink-0 text-xs font-semibold text-[var(--fl-faint)]">{suffix}</span>}
       </div>
     </label>
+  );
+}
+
+// Live preview of what a mold job totals at 2, 3, and 4 collected samples, for
+// both standalone and paired, using the exact same calculation the quote,
+// booking, and invoice flows use — so the displayed settings match the real
+// effective price.
+function MoldPricePreview({ service }: { service: PricingService }) {
+  const included = Math.max(0, Math.floor(Number(service.includedUnits) || 0));
+  const perSample = Math.max(0, Number(service.perUnitFee) || 0);
+  const hasPaired = service.pairedBaseFee !== undefined && service.pairedBaseFee !== null;
+  const rows = [2, 3, 4].map((samples) => ({
+    samples,
+    standalone: calculateServiceFee(service, { units: samples, paired: false }),
+    paired: calculateServiceFee(service, { units: samples, paired: true }),
+  }));
+
+  return (
+    <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+        Live preview
+      </p>
+      <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
+        Package includes {included} sample{included === 1 ? "" : "s"}; each sample beyond that
+        adds ${perSample}. Counts every collected sample, outdoor controls included.
+      </p>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm text-[var(--fl-text)]">
+          <thead>
+            <tr className="text-[var(--fl-faint)]">
+              <th className="py-1 pr-4 text-left font-medium">Samples</th>
+              <th className="py-1 pr-4 text-right font-medium">Standalone</th>
+              {hasPaired && (
+                <th className="py-1 text-right font-medium">With home inspection</th>
+              )}
+            </tr>
+          </thead>
+          <tbody style={{ fontVariantNumeric: "tabular-nums" }}>
+            {rows.map((row) => (
+              <tr key={row.samples} className="border-t border-[var(--fl-line)]">
+                <td className="py-1.5 pr-4">{row.samples}</td>
+                <td className="py-1.5 pr-4 text-right">${row.standalone}</td>
+                {hasPaired && <td className="py-1.5 text-right">${row.paired}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -384,26 +434,33 @@ export default function PricingEditor({
           <ServiceHeader
             icon="🦠"
             title="Mold Testing"
-            hint="A setup fee plus a fee per sample. Setup fee can be lower when paired with an inspection."
+            hint="A package price that already includes a set number of samples, plus a fee for each additional sample. The package price can be lower when paired with an inspection."
           />
 
           <div className="mt-5 grid gap-3">
             <NumberField
-              label="Standalone Setup Fee"
+              label="Standalone package price"
               value={mold.baseFee}
               onChange={(value) => updateService("mold", { baseFee: value })}
             />
             <NumberField
-              label="Setup Fee When Paired"
+              label="Package price when paired with a home inspection"
               value={mold.pairedBaseFee}
               onChange={(value) => updateService("mold", { pairedBaseFee: value })}
             />
             <NumberField
-              label="Fee Per Sample"
+              label="Included samples"
+              value={mold.includedUnits ?? 0}
+              onChange={(value) => updateService("mold", { includedUnits: value })}
+            />
+            <NumberField
+              label="Price per additional sample"
               value={mold.perUnitFee}
               onChange={(value) => updateService("mold", { perUnitFee: value })}
             />
           </div>
+
+          <MoldPricePreview service={mold} />
         </section>
       )}
       </div>
@@ -540,17 +597,22 @@ function CustomServiceCard({
       {service.type === "flat_plus_per_unit" && (
         <div className="mt-4 grid gap-3">
           <NumberField
-            label="Standalone Setup Fee"
+            label="Package Price"
             value={service.baseFee}
             onChange={(value) => onChange({ baseFee: value })}
           />
           <NumberField
-            label="Setup Fee When Paired (Optional)"
+            label="Package Price When Paired (Optional)"
             value={service.pairedBaseFee}
             onChange={(value) => onChange({ pairedBaseFee: value })}
           />
           <NumberField
-            label="Fee Per Unit"
+            label="Included Units"
+            value={service.includedUnits ?? 0}
+            onChange={(value) => onChange({ includedUnits: value })}
+          />
+          <NumberField
+            label="Price Per Additional Unit"
             value={service.perUnitFee}
             onChange={(value) => onChange({ perUnitFee: value })}
           />

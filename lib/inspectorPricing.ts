@@ -25,11 +25,16 @@ export type PricingService = {
   flatPrice?: number;
   pairedPrice?: number;
 
-  // flat_plus_per_unit: a setup fee plus a per-unit fee (e.g. mold: setup +
-  // per air/surface sample). pairedBaseFee overrides baseFee when paired.
+  // flat_plus_per_unit: a package/base fee plus a per-unit fee for units beyond
+  // the included allowance (e.g. mold: a package price that INCLUDES the first
+  // `includedUnits` samples, then `perUnitFee` for each additional sample).
+  // pairedBaseFee overrides baseFee when paired. includedUnits is the pricing
+  // allowance baked into the package price; left unset it is 0, so the package
+  // fee + per-unit × every unit (the original behavior) is preserved exactly.
   baseFee?: number;
   pairedBaseFee?: number;
   perUnitFee?: number;
+  includedUnits?: number;
   unitLabel?: string;
 
   // Multi-family (per-door) pricing for the base Home Inspection service: a flat
@@ -111,11 +116,17 @@ export function calculateServiceFee(
     return paired ? Number(service.pairedPrice) : Number(service.flatPrice ?? 0);
   }
 
-  // flat_plus_per_unit
+  // flat_plus_per_unit: the package price already includes `includedUnits`
+  // units; only units beyond that allowance add the per-unit fee. Count every
+  // collected unit (e.g. all mold samples, outdoor controls included) in
+  // `opts.units`. includedUnits unset/0 reproduces the original behavior
+  // (package + per-unit × every unit).
   const paired = opts.paired && service.pairedBaseFee !== undefined;
   const base = paired ? Number(service.pairedBaseFee) : Number(service.baseFee ?? 0);
   const units = Math.max(0, Math.floor(opts.units ?? 0));
-  return base + units * Number(service.perUnitFee ?? 0);
+  const included = Math.max(0, Math.floor(Number(service.includedUnits) || 0));
+  const billableUnits = Math.max(0, units - included);
+  return base + billableUnits * Number(service.perUnitFee ?? 0);
 }
 
 // True when the base service has a usable multi-family rate configured (a
@@ -198,6 +209,7 @@ export function createCustomService(type: PricingServiceType): PricingService {
       type,
       baseFee: 0,
       perUnitFee: 0,
+      includedUnits: 0,
       unitLabel: "unit",
     };
   }

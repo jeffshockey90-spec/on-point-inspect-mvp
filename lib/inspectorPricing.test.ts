@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   calculateMultiUnitPrice,
+  calculateServiceFee,
   multiUnitSizeFee,
   hasMultiUnitPricing,
   type PricingService,
@@ -16,6 +17,54 @@ const baseHome: PricingService = {
   incrementPrice: 50,
   incrementSqftBlock: 1000,
 };
+
+describe("calculateServiceFee — flat_plus_per_unit with included samples", () => {
+  // A mold package that includes 2 samples at $300, $75 per additional sample,
+  // $225 package when paired with a home inspection.
+  const mold: PricingService = {
+    id: "mold",
+    name: "Mold Testing",
+    type: "flat_plus_per_unit",
+    baseFee: 300,
+    pairedBaseFee: 225,
+    perUnitFee: 75,
+    includedUnits: 2,
+    unitLabel: "sample",
+  };
+
+  it("charges only the package price while within the included allowance", () => {
+    expect(calculateServiceFee(mold, { units: 0 })).toBe(300);
+    expect(calculateServiceFee(mold, { units: 1 })).toBe(300);
+    expect(calculateServiceFee(mold, { units: 2 })).toBe(300);
+  });
+
+  it("adds the per-sample fee only for samples beyond the allowance", () => {
+    expect(calculateServiceFee(mold, { units: 3 })).toBe(375);
+    expect(calculateServiceFee(mold, { units: 4 })).toBe(450);
+  });
+
+  it("uses the paired package price when paired, same inclusion math", () => {
+    expect(calculateServiceFee(mold, { units: 2, paired: true })).toBe(225);
+    expect(calculateServiceFee(mold, { units: 4, paired: true })).toBe(375);
+  });
+
+  it("counts every collected sample (outdoor controls included) in the total", () => {
+    // 1 indoor + 1 outdoor control = 2 samples -> still the package price.
+    expect(calculateServiceFee(mold, { units: 1 + 1 })).toBe(300);
+    // 2 indoor + 1 outdoor = 3 -> one over the allowance.
+    expect(calculateServiceFee(mold, { units: 2 + 1 })).toBe(375);
+  });
+
+  it("is backward-compatible: unset includedUnits behaves like 0 (charge every sample)", () => {
+    const legacy: PricingService = { ...mold, includedUnits: undefined };
+    expect(calculateServiceFee(legacy, { units: 2 })).toBe(300 + 2 * 75); // 450
+    expect(calculateServiceFee(legacy, { units: 0 })).toBe(300);
+  });
+
+  it("never goes negative when included exceeds the collected samples", () => {
+    expect(calculateServiceFee({ ...mold, includedUnits: 5 }, { units: 2 })).toBe(300);
+  });
+});
 
 describe("hasMultiUnitPricing", () => {
   it("is false when no per-unit fee is configured", () => {
