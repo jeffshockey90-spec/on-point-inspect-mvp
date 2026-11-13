@@ -267,7 +267,9 @@ export default function QuotePage() {
   const multiUnitBaseFee = Math.max(0, Number(baseService?.multiUnitBaseFee) || 0);
   const multiUnitPerUnitFee = Math.max(0, Number(baseService?.multiUnitPerUnitFee) || 0);
   const quoteMultiUnitSizeFee =
-    multiUnit && baseService ? multiUnitSizeFee(baseService, sqft) : 0;
+    multiUnit && baseService
+      ? multiUnitSizeFee(baseService, sqft, Math.max(1, Math.floor(unitCount || 1)))
+      : 0;
 
   const pricingRulesSummary = useMemo(() => {
     return pricingConfig.services
