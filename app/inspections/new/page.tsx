@@ -478,8 +478,13 @@ function NewInspectionPageContent() {
 
   // Multi-unit (duplex / small multifamily). Off by default — a single-family
   // job never touches this and is created exactly as before.
-  const [multiUnit, setMultiUnit] = useState(false);
-  const [unitCount, setUnitCount] = useState(2);
+  const [multiUnit, setMultiUnit] = useState(
+    () => searchParams.get("multiUnit") === "1",
+  );
+  const [unitCount, setUnitCount] = useState(() => {
+    const fromQuote = Number(searchParams.get("unitCount"));
+    return Number.isFinite(fromQuote) && fromQuote >= 2 ? Math.floor(fromQuote) : 2;
+  });
   const [unitNaming, setUnitNaming] = useState<UnitNaming>("numeric");
   const [includeCommonAreas, setIncludeCommonAreas] = useState(true);
   const [propertyImage, setPropertyImage] = useState("");
