@@ -61,6 +61,23 @@ export type InspectorPricingConfig = {
   services: PricingService[];
 };
 
+// Built-in "Home Orientation" service (a new-owner / possession walkthrough — an
+// educational familiarization visit, NOT a home inspection). It ships as a
+// first-class flat service every inspector can price and book.
+//   - ORIENTATION_SERVICE_ID      the stable config-service id.
+//   - ORIENTATION_SERVICE_KEY     the canonical key derived from the NAME, which
+//                                 New Inspection uses as the serviceMode /
+//                                 service_fees key (canonicalServiceKey("Home
+//                                 Orientation") === "home_orientation").
+//   - ORIENTATION_AGREEMENT_SERVICE_TYPE  the agreement service_type / picker
+//                                 category. Deliberately "orientation" (NO "home"
+//                                 substring) so it never cross-matches the Home
+//                                 Inspection agreement in the keyword-based picker.
+export const ORIENTATION_SERVICE_ID = "orientation";
+export const ORIENTATION_SERVICE_NAME = "Home Orientation";
+export const ORIENTATION_SERVICE_KEY = "home_orientation";
+export const ORIENTATION_AGREEMENT_SERVICE_TYPE = "orientation";
+
 export const DEFAULT_PRICING_CONFIG: InspectorPricingConfig = {
   services: [
     {
@@ -89,8 +106,41 @@ export const DEFAULT_PRICING_CONFIG: InspectorPricingConfig = {
       perUnitFee: 75,
       unitLabel: "sample",
     },
+    {
+      id: ORIENTATION_SERVICE_ID,
+      name: ORIENTATION_SERVICE_NAME,
+      type: "flat",
+      // A generic platform placeholder, like the base/radon/mold numbers above —
+      // every inspector sets their own in Settings → My Pricing.
+      flatPrice: 175,
+    },
   ],
 };
+
+// Always-available built-in services that a saved config might predate. The
+// pricing resolver returns a stored override/company sheet verbatim, so a service
+// added to DEFAULT_PRICING_CONFIG after someone saved their pricing would never
+// reach them. This injects any missing built-in (by id) into a resolved config so
+// every inspector — new or existing — sees it, while preserving the price they've
+// already set. Additive only; it never edits or removes an existing service.
+const ALWAYS_AVAILABLE_BUILTINS: PricingService[] = [
+  {
+    id: ORIENTATION_SERVICE_ID,
+    name: ORIENTATION_SERVICE_NAME,
+    type: "flat",
+    flatPrice: 175,
+  },
+];
+
+export function ensureBuiltInServices(
+  config: InspectorPricingConfig,
+): InspectorPricingConfig {
+  if (!config || !Array.isArray(config.services)) return config;
+  const presentIds = new Set(config.services.map((s) => s.id));
+  const missing = ALWAYS_AVAILABLE_BUILTINS.filter((s) => !presentIds.has(s.id));
+  if (missing.length === 0) return config;
+  return { ...config, services: [...config.services, ...missing.map((s) => ({ ...s }))] };
+}
 
 export function calculateSqftFormulaPrice(service: PricingService, sqft: number) {
   const base = service.basePrice ?? 0;

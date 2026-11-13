@@ -16,6 +16,8 @@ import {
   multiUnitSizeFee,
   hasMultiUnitPricing,
   getService,
+  ORIENTATION_SERVICE_KEY,
+  ORIENTATION_AGREEMENT_SERVICE_TYPE,
   type InspectorPricingConfig,
   type PricingService,
 } from "../../../lib/inspectorPricing";
@@ -1318,6 +1320,24 @@ function NewInspectionPageContent() {
         }
       }
 
+      // Best-effort: flag a Home Orientation job as a non-inspection so later
+      // client-facing surfaces (follow-up deliverable PR) can present it as an
+      // orientation, never a defect inspection. Separate update, tolerant of the
+      // column not existing yet, so a not-yet-run migration never blocks creation.
+      if (data?.id && serviceMode === ORIENTATION_SERVICE_KEY) {
+        const { error: orientationError } = await supabase
+          .from("inspections")
+          .update({ is_orientation: true })
+          .eq("id", data.id);
+
+        if (orientationError) {
+          console.warn(
+            "Could not flag orientation job (run supabase/add-orientation-flag.sql):",
+            orientationError.message,
+          );
+        }
+      }
+
       // Multi-unit: create the unit/scope rows and stamp the inspection flags.
       // Best-effort and tolerant of the not-yet-run migration, so it can never
       // block creating the inspection. Single-family jobs skip this entirely.
@@ -2080,12 +2100,19 @@ function NewInspectionPageContent() {
               hasHomeInspection(serviceMode) ? "home" : null,
               hasRadon(serviceMode) ? "radon" : null,
               hasMold(serviceMode) ? "mold" : null,
+              // Home Orientation is a custom primary service: map it to the
+              // orientation agreement category (NOT its "home_orientation" key,
+              // which contains "home" and would cross-match the home agreement).
+              serviceMode === ORIENTATION_SERVICE_KEY
+                ? ORIENTATION_AGREEMENT_SERVICE_TYPE
+                : null,
               ...addonServices.map((addon) =>
                 canonicalServiceKey(
                   addon.type === "other" && addon.label.trim() ? addon.label : addon.type,
                 ),
               ),
             ].filter(Boolean) as string[]}
+            disableHomeFallback={serviceMode === ORIENTATION_SERVICE_KEY}
             onChange={(state, templateIds) => {
               setAgreementState(state);
               setAgreementTemplateIds(templateIds);

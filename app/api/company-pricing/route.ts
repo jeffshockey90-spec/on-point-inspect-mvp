@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import {
   DEFAULT_PRICING_CONFIG,
+  ensureBuiltInServices,
   type InspectorPricingConfig,
 } from "../../../lib/inspectorPricing";
 
@@ -67,7 +68,7 @@ export async function GET() {
 
   if (!companyId) {
     return NextResponse.json({
-      config: DEFAULT_PRICING_CONFIG,
+      config: ensureBuiltInServices(DEFAULT_PRICING_CONFIG),
       source: "default",
       isOwner,
       hasCompanySheet: false,
@@ -84,7 +85,9 @@ export async function GET() {
     Boolean(data?.config) && Array.isArray(data?.config?.services);
 
   return NextResponse.json({
-    config: hasCompanySheet ? data!.config : DEFAULT_PRICING_CONFIG,
+    config: ensureBuiltInServices(
+      hasCompanySheet ? (data!.config as InspectorPricingConfig) : DEFAULT_PRICING_CONFIG,
+    ),
     source: hasCompanySheet ? "company" : "default",
     isOwner,
     hasCompanySheet,
