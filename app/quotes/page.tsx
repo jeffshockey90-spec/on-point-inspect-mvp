@@ -261,7 +261,10 @@ export default function QuotePage() {
   // Only offer the multi-unit toggle when the base service is selected and the
   // inspector has configured per-door pricing (a per-unit fee). Otherwise it
   // would do nothing, so we hide it.
-  const baseHasMultiUnit = hasMultiUnitPricing(getBaseService(pricingConfig));
+  const baseService = getBaseService(pricingConfig);
+  const baseHasMultiUnit = hasMultiUnitPricing(baseService);
+  const multiUnitBaseFee = Math.max(0, Number(baseService?.multiUnitBaseFee) || 0);
+  const multiUnitPerUnitFee = Math.max(0, Number(baseService?.multiUnitPerUnitFee) || 0);
 
   const pricingRulesSummary = useMemo(() => {
     return pricingConfig.services
@@ -526,7 +529,7 @@ export default function QuotePage() {
                     key={item.id}
                     label={
                       item.multiUnitApplied
-                        ? `${item.name} (per-door · ${quote.multiUnitCount} units)`
+                        ? `${item.name} ($${multiUnitBaseFee} base + $${multiUnitPerUnitFee} × ${quote.multiUnitCount} units)`
                         : item.name
                     }
                     value={item.fee}
