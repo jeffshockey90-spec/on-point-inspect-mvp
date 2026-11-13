@@ -345,6 +345,8 @@ function calculateFullInspectionPrice({
     base,
     multiUnitApplied: usingMultiUnitPrice,
     multiUnitCount: usingMultiUnitPrice ? Math.max(1, Math.floor(unitCount || 1)) : 0,
+    multiUnitBaseFee: usingMultiUnitPrice ? Math.max(0, Number(homeService?.multiUnitBaseFee) || 0) : 0,
+    multiUnitPerUnitFee: usingMultiUnitPrice ? Math.max(0, Number(homeService?.multiUnitPerUnitFee) || 0) : 0,
     customFee,
     customServiceKey: customService ? String(serviceMode) : "",
     needsSqft,
@@ -2139,7 +2141,7 @@ function NewInspectionPageContent() {
                 Home Inspection: ${quote.base}
                 {quote.multiUnitApplied && (
                   <span className="text-[var(--fl-faint)]">
-                    {" "}(per-door · {quote.multiUnitCount} units)
+                    {" "}(${quote.multiUnitBaseFee} base + ${quote.multiUnitPerUnitFee} × {quote.multiUnitCount} units)
                   </span>
                 )}
               </p>
