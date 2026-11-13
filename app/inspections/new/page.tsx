@@ -12,6 +12,8 @@ import {
   DEFAULT_PRICING_CONFIG,
   calculateSqftFormulaPrice,
   calculateServiceFee,
+  calculateMultiUnitPrice,
+  hasMultiUnitPricing,
   getService,
   type InspectorPricingConfig,
   type PricingService,
@@ -247,6 +249,8 @@ function calculateFullInspectionPrice({
   travelFee,
   discount,
   config,
+  multiUnit,
+  unitCount,
 }: {
   squareFeet: string | number;
   serviceMode: ServiceMode;
@@ -255,6 +259,8 @@ function calculateFullInspectionPrice({
   travelFee: string | number;
   discount: string | number;
   config: InspectorPricingConfig;
+  multiUnit: boolean;
+  unitCount: number;
 }) {
   const includesHome = hasHomeInspection(serviceMode);
   const includesRadon = hasRadon(serviceMode);
@@ -286,8 +292,14 @@ function calculateFullInspectionPrice({
   const radonService = getService(config, "radon");
   const moldService = getService(config, "mold");
 
-  const base =
-    includesHome && homeService
+  // Multi-family (per-door) pricing replaces the sqft formula for the base fee
+  // when the job is marked multi-unit AND the inspector configured a per-unit
+  // fee. Otherwise single-family sqft pricing is unchanged.
+  const usingMultiUnitPrice =
+    includesHome && multiUnit && hasMultiUnitPricing(homeService);
+  const base = usingMultiUnitPrice
+    ? calculateMultiUnitPrice(homeService!, unitCount)
+    : includesHome && homeService
       ? calculateSqftFormulaPrice(homeService, getNumber(squareFeet))
       : includesHome
         ? calculateHomeInspectionPrice(squareFeet)
@@ -331,6 +343,8 @@ function calculateFullInspectionPrice({
 
   return {
     base,
+    multiUnitApplied: usingMultiUnitPrice,
+    multiUnitCount: usingMultiUnitPrice ? Math.max(1, Math.floor(unitCount || 1)) : 0,
     customFee,
     customServiceKey: customService ? String(serviceMode) : "",
     needsSqft,
@@ -506,6 +520,8 @@ function NewInspectionPageContent() {
         travelFee,
         discount,
         config: pricingConfig,
+        multiUnit,
+        unitCount,
       }),
     [
       squareFeet,
@@ -515,6 +531,8 @@ function NewInspectionPageContent() {
       travelFee,
       discount,
       pricingConfig,
+      multiUnit,
+      unitCount,
     ]
   );
 
@@ -2112,7 +2130,14 @@ function NewInspectionPageContent() {
               )}
             </div>
             <div className="mt-4 grid gap-2 text-sm text-[var(--fl-text)] md:grid-cols-2">
-              <p>Home Inspection: ${quote.base}</p>
+              <p>
+                Home Inspection: ${quote.base}
+                {quote.multiUnitApplied && (
+                  <span className="text-[var(--fl-faint)]">
+                    {" "}(per-door · {quote.multiUnitCount} units)
+                  </span>
+                )}
+              </p>
               <p>Radon: ${quote.radonFee}</p>
               <p>Mold Setup/Admin: ${quote.moldSetupFee}</p>
               <p>Mold Air Samples: ${quote.moldAirFee}</p>

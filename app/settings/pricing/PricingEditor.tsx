@@ -275,6 +275,38 @@ export default function PricingEditor({
             Example: ${home.basePrice || 0} for up to {home.baseSqftLimit || 0} sqft, then +$
             {home.incrementPrice || 0} for every {home.incrementSqftBlock || 0} sqft over that.
           </p>
+
+          <div className="mt-5 border-t border-[var(--fl-line)] pt-5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+              Multi-family (duplex &amp; up)
+            </p>
+            <p className="mt-1 mb-3 text-xs leading-5 text-[var(--fl-muted)]">
+              When a job is marked multi-unit, price it per door instead of by square
+              footage: a base building fee plus a fee for each unit. Leave the per-unit
+              fee at 0 to keep using square footage.
+            </p>
+            <div className="grid gap-3">
+              <NumberField
+                label="Base Building Fee"
+                value={home.multiUnitBaseFee}
+                onChange={(value) => updateService("home", { multiUnitBaseFee: value })}
+              />
+              <NumberField
+                label="Fee Per Unit"
+                value={home.multiUnitPerUnitFee}
+                onChange={(value) => updateService("home", { multiUnitPerUnitFee: value })}
+              />
+            </div>
+            {Number(home.multiUnitPerUnitFee) > 0 && (
+              <p className="mt-3 rounded-lg bg-[var(--fl-ground)] px-3 py-2 text-xs leading-5 text-[var(--fl-faint)]">
+                Example: a duplex = $
+                {(Number(home.multiUnitBaseFee) || 0) + (Number(home.multiUnitPerUnitFee) || 0) * 2}{" "}
+                (${Number(home.multiUnitBaseFee) || 0} base + ${Number(home.multiUnitPerUnitFee) || 0}{" "}
+                × 2 units); a fourplex = $
+                {(Number(home.multiUnitBaseFee) || 0) + (Number(home.multiUnitPerUnitFee) || 0) * 4}.
+              </p>
+            )}
+          </div>
         </section>
       )}
 

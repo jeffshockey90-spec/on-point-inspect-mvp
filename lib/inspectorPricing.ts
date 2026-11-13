@@ -31,6 +31,14 @@ export type PricingService = {
   pairedBaseFee?: number;
   perUnitFee?: number;
   unitLabel?: string;
+
+  // Multi-family (per-door) pricing for the base Home Inspection service: a flat
+  // base building fee (roof, exterior, foundation, grounds, shared systems) plus
+  // a fee per dwelling unit. When a job is marked multi-unit AND multiUnitPerUnitFee
+  // is set (> 0), this REPLACES the sqft formula for the base fee. Left unset, a
+  // multi-unit job just falls back to the sqft formula (unchanged behavior).
+  multiUnitBaseFee?: number;
+  multiUnitPerUnitFee?: number;
 };
 
 export type InspectorPricingConfig = {
@@ -97,6 +105,27 @@ export function calculateServiceFee(
   const base = paired ? Number(service.pairedBaseFee) : Number(service.baseFee ?? 0);
   const units = Math.max(0, Math.floor(opts.units ?? 0));
   return base + units * Number(service.perUnitFee ?? 0);
+}
+
+// True when the base service has a usable multi-family rate configured (a
+// per-unit fee > 0). The base building fee may legitimately be 0, so only the
+// per-unit fee gates whether per-door pricing is "set up".
+export function hasMultiUnitPricing(
+  service: PricingService | null | undefined,
+): boolean {
+  return !!service && Number(service.multiUnitPerUnitFee) > 0;
+}
+
+// Per-door price: base building fee + per-unit fee × units. Units is floored to
+// a sane minimum of 1 so a malformed count never zeroes the base building fee.
+export function calculateMultiUnitPrice(
+  service: PricingService,
+  units: number,
+): number {
+  const base = Math.max(0, Number(service.multiUnitBaseFee) || 0);
+  const perUnit = Math.max(0, Number(service.multiUnitPerUnitFee) || 0);
+  const safeUnits = Math.max(1, Math.floor(Number(units) || 1));
+  return base + perUnit * safeUnits;
 }
 
 export function getService(config: InspectorPricingConfig, id: string) {
