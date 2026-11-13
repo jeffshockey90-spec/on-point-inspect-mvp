@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { DEFAULT_PRICING_CONFIG, type InspectorPricingConfig } from "../../../lib/inspectorPricing";
+import {
+  DEFAULT_PRICING_CONFIG,
+  ensureBuiltInServices,
+  type InspectorPricingConfig,
+} from "../../../lib/inspectorPricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -115,8 +119,10 @@ export async function GET() {
 
   if (own?.config && Array.isArray(own.config.services)) {
     return NextResponse.json({
-      config: dedupeServicesByName(
-        withCompanyCustomServices(own.config as InspectorPricingConfig),
+      config: ensureBuiltInServices(
+        dedupeServicesByName(
+          withCompanyCustomServices(own.config as InspectorPricingConfig),
+        ),
       ),
       source: "override",
       hasOverride: true,
@@ -128,7 +134,7 @@ export async function GET() {
   // own custom services).
   if (companyConfig) {
     return NextResponse.json({
-      config: dedupeServicesByName(companyConfig),
+      config: ensureBuiltInServices(dedupeServicesByName(companyConfig)),
       source: "company",
       hasOverride: false,
       isDefault: false,
@@ -137,7 +143,7 @@ export async function GET() {
 
   // 4) Platform default.
   return NextResponse.json({
-    config: DEFAULT_PRICING_CONFIG,
+    config: ensureBuiltInServices(DEFAULT_PRICING_CONFIG),
     source: "default",
     hasOverride: false,
     isDefault: true,

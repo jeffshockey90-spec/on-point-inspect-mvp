@@ -11,7 +11,7 @@ import {
   type PricingServiceType,
 } from "../../../lib/inspectorPricing";
 
-const DEFAULT_SERVICE_IDS = new Set(["home", "radon", "mold"]);
+const DEFAULT_SERVICE_IDS = new Set(["home", "radon", "mold", "orientation"]);
 
 function NumberField({
   label,
@@ -228,6 +228,7 @@ export default function PricingEditor({
   const home = getService("home");
   const radon = getService("radon");
   const mold = getService("mold");
+  const orientation = getService("orientation");
   const customServices = (config?.services || []).filter(
     (service) => !DEFAULT_SERVICE_IDS.has(service.id),
   );
@@ -461,6 +462,29 @@ export default function PricingEditor({
           </div>
 
           <MoldPricePreview service={mold} />
+        </section>
+      )}
+
+      {orientation && (
+        <section className={`${CARD} flex flex-col`}>
+          <ServiceHeader
+            icon="🏠"
+            title="Home Orientation"
+            hint="A new-owner / possession walkthrough — an educational home orientation, not an inspection. A flat fee. Charge less when it's booked alongside a home inspection."
+          />
+
+          <div className="mt-5 grid gap-3">
+            <NumberField
+              label="Standalone Price"
+              value={orientation.flatPrice}
+              onChange={(value) => updateService("orientation", { flatPrice: value })}
+            />
+            <NumberField
+              label="Price When Paired With Home Inspection (Optional)"
+              value={orientation.pairedPrice}
+              onChange={(value) => updateService("orientation", { pairedPrice: value })}
+            />
+          </div>
         </section>
       )}
       </div>

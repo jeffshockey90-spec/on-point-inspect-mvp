@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { flowAlert, flowConfirm, flowPrompt } from "../../components/ConfirmProvider";
+import { HOME_ORIENTATION_AGREEMENT } from "../../lib/starterAgreements";
 
 const STATES = [
   { code: "AL", name: "Alabama" },
@@ -71,6 +72,7 @@ const BUILT_IN_SERVICE_TYPES = [
   "radon",
   "mold",
   "radon_mold",
+  "orientation",
   "sewer_scope",
   "water_quality",
   "termite_wdo",
@@ -302,6 +304,28 @@ export default function AgreementLibraryManager() {
     setIsDefault(false);
     setSelectedPlaceholder("");
     setCopied("");
+  }
+
+  // Load a built-in starter agreement into the editor (as a NEW template) so the
+  // inspector can review the wording and Save it to their library. Kept as a
+  // review-then-save step — not a silent insert — because it's a legal document.
+  async function loadStarter() {
+    const starter = HOME_ORIENTATION_AGREEMENT;
+    setSelected(null);
+    setState(starter.state);
+    setTitle(starter.title);
+    setVersion(starter.version);
+    setServiceType(starter.service_type);
+    setDisplayOrder(0);
+    setBody(starter.body);
+    setIsActive(true);
+    setIsDefault(true);
+    setSelectedPlaceholder("");
+    setCopied("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    await flowAlert(
+      'Loaded the Home Orientation starter agreement below. Review the wording, then press "Save Agreement" to add it to your library. Once saved, booking a Home Orientation attaches it automatically.',
+    );
   }
 
   function editTemplate(template: any) {
@@ -626,6 +650,14 @@ export default function AgreementLibraryManager() {
               className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               Export Selected
+            </button>
+
+            <button
+              type="button"
+              onClick={loadStarter}
+              className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-bold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
+            >
+              + Home Orientation starter
             </button>
 
             <button

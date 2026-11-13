@@ -4,6 +4,11 @@ import {
   calculateServiceFee,
   multiUnitSizeFee,
   hasMultiUnitPricing,
+  ensureBuiltInServices,
+  DEFAULT_PRICING_CONFIG,
+  ORIENTATION_SERVICE_ID,
+  ORIENTATION_SERVICE_NAME,
+  type InspectorPricingConfig,
   type PricingService,
 } from "./inspectorPricing";
 
@@ -63,6 +68,65 @@ describe("calculateServiceFee — flat_plus_per_unit with included samples", () 
 
   it("never goes negative when included exceeds the collected samples", () => {
     expect(calculateServiceFee({ ...mold, includedUnits: 5 }, { units: 2 })).toBe(300);
+  });
+});
+
+describe("Home Orientation built-in service", () => {
+  it("ships in the default config as a flat service", () => {
+    const orientation = DEFAULT_PRICING_CONFIG.services.find(
+      (s) => s.id === ORIENTATION_SERVICE_ID,
+    );
+    expect(orientation).toBeTruthy();
+    expect(orientation!.type).toBe("flat");
+    expect(orientation!.name).toBe(ORIENTATION_SERVICE_NAME);
+  });
+
+  it("prices as a plain flat fee (standalone and paired)", () => {
+    const orientation: PricingService = {
+      id: ORIENTATION_SERVICE_ID,
+      name: ORIENTATION_SERVICE_NAME,
+      type: "flat",
+      flatPrice: 200,
+      pairedPrice: 150,
+    };
+    expect(calculateServiceFee(orientation, {})).toBe(200);
+    expect(calculateServiceFee(orientation, { paired: true })).toBe(150);
+    // No paired price set -> standalone applies even when paired.
+    expect(
+      calculateServiceFee({ ...orientation, pairedPrice: undefined }, { paired: true }),
+    ).toBe(200);
+  });
+});
+
+describe("ensureBuiltInServices — inject built-ins missing from a saved config", () => {
+  it("adds Home Orientation when a saved config predates it", () => {
+    const saved: InspectorPricingConfig = {
+      services: [{ id: "home", name: "Home Inspection", type: "sqft_formula", basePrice: 500 }],
+    };
+    const result = ensureBuiltInServices(saved);
+    const orientation = result.services.find((s) => s.id === ORIENTATION_SERVICE_ID);
+    expect(orientation).toBeTruthy();
+    expect(orientation!.type).toBe("flat");
+    // Original service is preserved.
+    expect(result.services.find((s) => s.id === "home")).toBeTruthy();
+  });
+
+  it("preserves an already-set orientation price (never overwrites)", () => {
+    const saved: InspectorPricingConfig = {
+      services: [
+        { id: ORIENTATION_SERVICE_ID, name: ORIENTATION_SERVICE_NAME, type: "flat", flatPrice: 325 },
+      ],
+    };
+    const result = ensureBuiltInServices(saved);
+    const orientation = result.services.find((s) => s.id === ORIENTATION_SERVICE_ID);
+    expect(orientation!.flatPrice).toBe(325);
+    // No duplicate injected.
+    expect(result.services.filter((s) => s.id === ORIENTATION_SERVICE_ID)).toHaveLength(1);
+  });
+
+  it("is a no-op shape for a config that already has every built-in", () => {
+    const result = ensureBuiltInServices(DEFAULT_PRICING_CONFIG);
+    expect(result).toBe(DEFAULT_PRICING_CONFIG);
   });
 });
 

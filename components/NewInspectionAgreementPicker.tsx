@@ -46,6 +46,7 @@ function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?:
 export default function NewInspectionAgreementPicker({
   propertyState,
   services,
+  disableHomeFallback,
   onChange,
 }: {
   propertyState?: string | null;
@@ -56,6 +57,14 @@ export default function NewInspectionAgreementPicker({
    * + Mold" attaches all three agreements automatically.
    */
   services?: string[];
+  /**
+   * When true, suppress the "fall back to the Home Inspection agreement when
+   * nothing matched" behavior. Used for a non-inspection service (e.g. a Home
+   * Orientation) so that if its own agreement isn't in the library yet, NO
+   * agreement is auto-selected — the inspector sees the "no agreement" warning —
+   * rather than wrongly attaching a home-inspection agreement to it.
+   */
+  disableHomeFallback?: boolean;
   onChange: (state: string, templateIds: string[]) => void;
 }) {
   const defaultState = (propertyState || "MD").toUpperCase();
@@ -123,8 +132,10 @@ export default function NewInspectionAgreementPicker({
     }
 
     // Nothing matched any category -> fall back to a sensible single default,
-    // preferring a residential (home) agreement over anything else.
-    if (picks.length === 0) {
+    // preferring a residential (home) agreement over anything else. Skipped when
+    // disableHomeFallback is set (a non-inspection service like a Home Orientation
+    // must not silently attach a home-inspection agreement).
+    if (picks.length === 0 && !disableHomeFallback) {
       const residential = templates.filter((t) => templateMatchesService(t, "home"));
       const fallback =
         residential.find((t) => t.is_default) ||
