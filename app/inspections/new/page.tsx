@@ -13,6 +13,7 @@ import {
   calculateSqftFormulaPrice,
   calculateServiceFee,
   calculateMultiUnitPrice,
+  multiUnitSizeFee,
   hasMultiUnitPricing,
   getService,
   type InspectorPricingConfig,
@@ -298,7 +299,7 @@ function calculateFullInspectionPrice({
   const usingMultiUnitPrice =
     includesHome && multiUnit && hasMultiUnitPricing(homeService);
   const base = usingMultiUnitPrice
-    ? calculateMultiUnitPrice(homeService!, unitCount)
+    ? calculateMultiUnitPrice(homeService!, unitCount, getNumber(squareFeet))
     : includesHome && homeService
       ? calculateSqftFormulaPrice(homeService, getNumber(squareFeet))
       : includesHome
@@ -347,6 +348,7 @@ function calculateFullInspectionPrice({
     multiUnitCount: usingMultiUnitPrice ? Math.max(1, Math.floor(unitCount || 1)) : 0,
     multiUnitBaseFee: usingMultiUnitPrice ? Math.max(0, Number(homeService?.multiUnitBaseFee) || 0) : 0,
     multiUnitPerUnitFee: usingMultiUnitPrice ? Math.max(0, Number(homeService?.multiUnitPerUnitFee) || 0) : 0,
+    multiUnitSizeFee: usingMultiUnitPrice ? multiUnitSizeFee(homeService!, getNumber(squareFeet)) : 0,
     customFee,
     customServiceKey: customService ? String(serviceMode) : "",
     needsSqft,
@@ -2141,7 +2143,8 @@ function NewInspectionPageContent() {
                 Home Inspection: ${quote.base}
                 {quote.multiUnitApplied && (
                   <span className="text-[var(--fl-faint)]">
-                    {" "}(${quote.multiUnitBaseFee} base + ${quote.multiUnitPerUnitFee} × {quote.multiUnitCount} units)
+                    {" "}(${quote.multiUnitBaseFee} base + ${quote.multiUnitPerUnitFee} × {quote.multiUnitCount} units
+                    {quote.multiUnitSizeFee > 0 ? ` + $${quote.multiUnitSizeFee} size` : ""})
                   </span>
                 )}
               </p>

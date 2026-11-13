@@ -9,6 +9,7 @@ import {
   DEFAULT_PRICING_CONFIG,
   calculateServiceFee,
   calculateMultiUnitPrice,
+  multiUnitSizeFee,
   hasMultiUnitPricing,
   getBaseService,
   getService,
@@ -97,7 +98,7 @@ function calculateQuote({
       // marked multi-unit and a per-unit fee is configured.
       const useMultiUnit = isBase && multiUnit && hasMultiUnitPricing(service);
       const fee = useMultiUnit
-        ? calculateMultiUnitPrice(service, safeUnitCount)
+        ? calculateMultiUnitPrice(service, safeUnitCount, sqft)
         : calculateServiceFee(service, { sqft, units, paired });
 
       return {
@@ -265,6 +266,8 @@ export default function QuotePage() {
   const baseHasMultiUnit = hasMultiUnitPricing(baseService);
   const multiUnitBaseFee = Math.max(0, Number(baseService?.multiUnitBaseFee) || 0);
   const multiUnitPerUnitFee = Math.max(0, Number(baseService?.multiUnitPerUnitFee) || 0);
+  const quoteMultiUnitSizeFee =
+    multiUnit && baseService ? multiUnitSizeFee(baseService, sqft) : 0;
 
   const pricingRulesSummary = useMemo(() => {
     return pricingConfig.services
@@ -529,7 +532,9 @@ export default function QuotePage() {
                     key={item.id}
                     label={
                       item.multiUnitApplied
-                        ? `${item.name} ($${multiUnitBaseFee} base + $${multiUnitPerUnitFee} × ${quote.multiUnitCount} units)`
+                        ? `${item.name} ($${multiUnitBaseFee} base + $${multiUnitPerUnitFee} × ${quote.multiUnitCount} units${
+                            quoteMultiUnitSizeFee > 0 ? ` + $${quoteMultiUnitSizeFee} size` : ""
+                          })`
                         : item.name
                     }
                     value={item.fee}

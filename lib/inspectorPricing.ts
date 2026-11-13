@@ -39,6 +39,14 @@ export type PricingService = {
   // multi-unit job just falls back to the sqft formula (unchanged behavior).
   multiUnitBaseFee?: number;
   multiUnitPerUnitFee?: number;
+
+  // Optional size step on top of the per-door price, so a large building isn't
+  // priced the same as a small one: add multiUnitIncrementPrice for every
+  // multiUnitIncrementSqftBlock of TOTAL building sqft over multiUnitSqftLimit.
+  // Off unless both the increment price and block are set (> 0).
+  multiUnitSqftLimit?: number;
+  multiUnitIncrementPrice?: number;
+  multiUnitIncrementSqftBlock?: number;
 };
 
 export type InspectorPricingConfig = {
@@ -116,16 +124,31 @@ export function hasMultiUnitPricing(
   return !!service && Number(service.multiUnitPerUnitFee) > 0;
 }
 
-// Per-door price: base building fee + per-unit fee × units. Units is floored to
-// a sane minimum of 1 so a malformed count never zeroes the base building fee.
+// Optional size step for per-door pricing: add the increment price for every
+// block of TOTAL building sqft over the limit. Returns 0 (off) unless both the
+// increment price and block size are configured (> 0), so existing per-door
+// configs that never set these keep pricing purely by door.
+export function multiUnitSizeFee(service: PricingService, sqft: number): number {
+  const incrementPrice = Math.max(0, Number(service.multiUnitIncrementPrice) || 0);
+  const blockSize = Math.max(0, Number(service.multiUnitIncrementSqftBlock) || 0);
+  const limit = Math.max(0, Number(service.multiUnitSqftLimit) || 0);
+  const size = Math.max(0, Number(sqft) || 0);
+  if (incrementPrice <= 0 || blockSize <= 0 || size <= limit) return 0;
+  return Math.ceil((size - limit) / blockSize) * incrementPrice;
+}
+
+// Per-door price: base building fee + per-unit fee × units, plus an optional
+// size step for large buildings (see multiUnitSizeFee). Units is floored to a
+// sane minimum of 1 so a malformed count never zeroes the base building fee.
 export function calculateMultiUnitPrice(
   service: PricingService,
   units: number,
+  sqft = 0,
 ): number {
   const base = Math.max(0, Number(service.multiUnitBaseFee) || 0);
   const perUnit = Math.max(0, Number(service.multiUnitPerUnitFee) || 0);
   const safeUnits = Math.max(1, Math.floor(Number(units) || 1));
-  return base + perUnit * safeUnits;
+  return base + perUnit * safeUnits + multiUnitSizeFee(service, sqft);
 }
 
 export function getService(config: InspectorPricingConfig, id: string) {
