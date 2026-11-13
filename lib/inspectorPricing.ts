@@ -42,8 +42,11 @@ export type PricingService = {
 
   // Optional size step on top of the per-door price, so a large building isn't
   // priced the same as a small one: add multiUnitIncrementPrice for every
-  // multiUnitIncrementSqftBlock of TOTAL building sqft over multiUnitSqftLimit.
-  // Off unless both the increment price and block are set (> 0).
+  // multiUnitIncrementSqftBlock of TOTAL building sqft over the included
+  // allowance. multiUnitSqftLimit is PER UNIT, so the allowance scales with the
+  // building (limit × units) — a normal building of any unit count stays flat
+  // and only genuinely large units trigger the step. Off unless both the
+  // increment price and block are set (> 0).
   multiUnitSqftLimit?: number;
   multiUnitIncrementPrice?: number;
   multiUnitIncrementSqftBlock?: number;
@@ -125,16 +128,24 @@ export function hasMultiUnitPricing(
 }
 
 // Optional size step for per-door pricing: add the increment price for every
-// block of TOTAL building sqft over the limit. Returns 0 (off) unless both the
-// increment price and block size are configured (> 0), so existing per-door
-// configs that never set these keep pricing purely by door.
-export function multiUnitSizeFee(service: PricingService, sqft: number): number {
+// block of TOTAL building sqft over the included allowance, where the allowance
+// is multiUnitSqftLimit PER UNIT (× units) — so a normal building of any unit
+// count stays flat and only genuinely large units trigger it. Returns 0 (off)
+// unless both the increment price and block size are configured (> 0), so
+// existing per-door configs that never set these keep pricing purely by door.
+export function multiUnitSizeFee(
+  service: PricingService,
+  sqft: number,
+  units: number,
+): number {
   const incrementPrice = Math.max(0, Number(service.multiUnitIncrementPrice) || 0);
   const blockSize = Math.max(0, Number(service.multiUnitIncrementSqftBlock) || 0);
-  const limit = Math.max(0, Number(service.multiUnitSqftLimit) || 0);
+  const perUnitLimit = Math.max(0, Number(service.multiUnitSqftLimit) || 0);
+  const safeUnits = Math.max(1, Math.floor(Number(units) || 1));
+  const allowance = perUnitLimit * safeUnits;
   const size = Math.max(0, Number(sqft) || 0);
-  if (incrementPrice <= 0 || blockSize <= 0 || size <= limit) return 0;
-  return Math.ceil((size - limit) / blockSize) * incrementPrice;
+  if (incrementPrice <= 0 || blockSize <= 0 || size <= allowance) return 0;
+  return Math.ceil((size - allowance) / blockSize) * incrementPrice;
 }
 
 // Per-door price: base building fee + per-unit fee × units, plus an optional
@@ -148,7 +159,7 @@ export function calculateMultiUnitPrice(
   const base = Math.max(0, Number(service.multiUnitBaseFee) || 0);
   const perUnit = Math.max(0, Number(service.multiUnitPerUnitFee) || 0);
   const safeUnits = Math.max(1, Math.floor(Number(units) || 1));
-  return base + perUnit * safeUnits + multiUnitSizeFee(service, sqft);
+  return base + perUnit * safeUnits + multiUnitSizeFee(service, sqft, safeUnits);
 }
 
 export function getService(config: InspectorPricingConfig, id: string) {

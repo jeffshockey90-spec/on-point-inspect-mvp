@@ -348,7 +348,7 @@ function calculateFullInspectionPrice({
     multiUnitCount: usingMultiUnitPrice ? Math.max(1, Math.floor(unitCount || 1)) : 0,
     multiUnitBaseFee: usingMultiUnitPrice ? Math.max(0, Number(homeService?.multiUnitBaseFee) || 0) : 0,
     multiUnitPerUnitFee: usingMultiUnitPrice ? Math.max(0, Number(homeService?.multiUnitPerUnitFee) || 0) : 0,
-    multiUnitSizeFee: usingMultiUnitPrice ? multiUnitSizeFee(homeService!, getNumber(squareFeet)) : 0,
+    multiUnitSizeFee: usingMultiUnitPrice ? multiUnitSizeFee(homeService!, getNumber(squareFeet), unitCount) : 0,
     customFee,
     customServiceKey: customService ? String(serviceMode) : "",
     needsSqft,

@@ -304,15 +304,18 @@ export default function PricingEditor({
                   Size step for large buildings (optional)
                 </p>
                 <p className="mt-1 mb-3 text-xs leading-5 text-[var(--fl-muted)]">
-                  Add a fee for every block of total building square footage over a
-                  threshold, so a large building isn&apos;t priced like a small one.
-                  Leave &quot;Then Add&quot; at 0 to price purely per door.
+                  Add a fee for every block of total building square footage over an
+                  allowance, so a large building isn&apos;t priced like a small one. The
+                  allowance is <span className="font-semibold">per unit</span>, so it
+                  scales with the building — a normal duplex or fourplex stays flat and
+                  only genuinely large units trigger it. Leave &quot;Then Add&quot; at 0
+                  to price purely per door.
                 </p>
                 <div className="grid gap-3">
                   <NumberField
-                    label="Included Up To"
+                    label="Included Per Unit"
                     prefix=""
-                    suffix="sqft"
+                    suffix="sqft/unit"
                     value={home.multiUnitSqftLimit}
                     onChange={(value) => updateService("home", { multiUnitSqftLimit: value })}
                   />
@@ -342,7 +345,9 @@ export default function PricingEditor({
                   Number(home.multiUnitIncrementSqftBlock) > 0
                     ? `, then +$${Number(home.multiUnitIncrementPrice) || 0} per ${
                         Number(home.multiUnitIncrementSqftBlock) || 0
-                      } sqft over ${Number(home.multiUnitSqftLimit) || 0}.`
+                      } sqft over ${Number(home.multiUnitSqftLimit) || 0}/unit (${
+                        (Number(home.multiUnitSqftLimit) || 0) * 2
+                      } for a duplex).`
                     : "."}
                 </p>
               </>

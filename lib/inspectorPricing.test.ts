@@ -69,40 +69,43 @@ describe("calculateMultiUnitPrice — base building fee + per-unit × units", ()
   });
 });
 
-describe("multiUnitSizeFee — size step for large buildings", () => {
+describe("multiUnitSizeFee — per-unit size step for large buildings", () => {
   const sized: PricingService = {
     ...baseHome,
     multiUnitBaseFee: 350,
     multiUnitPerUnitFee: 200,
-    multiUnitSqftLimit: 2500,
+    multiUnitSqftLimit: 1500, // per unit
     multiUnitIncrementPrice: 50,
     multiUnitIncrementSqftBlock: 1000,
   };
 
   it("is 0 when the size step is not configured", () => {
-    expect(multiUnitSizeFee({ ...baseHome, multiUnitPerUnitFee: 200 }, 9000)).toBe(0);
+    expect(multiUnitSizeFee({ ...baseHome, multiUnitPerUnitFee: 200 }, 9000, 2)).toBe(0);
   });
 
-  it("is 0 at or under the included limit", () => {
-    expect(multiUnitSizeFee(sized, 2000)).toBe(0);
-    expect(multiUnitSizeFee(sized, 2500)).toBe(0);
+  it("scales the allowance by unit count (1500/unit)", () => {
+    // Duplex allowance = 3000; triplex = 4500.
+    expect(multiUnitSizeFee(sized, 3000, 2)).toBe(0);
+    expect(multiUnitSizeFee(sized, 4500, 3)).toBe(0);
+    // A normal fourplex (4 × ~900 = 3600) is well under its 6000 allowance.
+    expect(multiUnitSizeFee(sized, 3600, 4)).toBe(0);
   });
 
-  it("charges per block (rounded up) over the limit", () => {
-    expect(multiUnitSizeFee(sized, 3500)).toBe(50); // 1 block over
-    expect(multiUnitSizeFee(sized, 4500)).toBe(100); // 2 blocks over
-    expect(multiUnitSizeFee(sized, 2600)).toBe(50); // partial block rounds up
+  it("charges per block (rounded up) over the scaled allowance", () => {
+    expect(multiUnitSizeFee(sized, 4000, 2)).toBe(50); // duplex, 1000 over 3000
+    expect(multiUnitSizeFee(sized, 5000, 2)).toBe(100); // duplex, 2000 over
+    expect(multiUnitSizeFee(sized, 3100, 2)).toBe(50); // partial block rounds up
   });
 
   it("adds the size step on top of the per-door price", () => {
-    // Normal duplex (≤ limit) stays at base + per-unit.
-    expect(calculateMultiUnitPrice(sized, 2, 2400)).toBe(750);
-    // Large duplex: 4500 sqft total -> +$100.
-    expect(calculateMultiUnitPrice(sized, 2, 4500)).toBe(850);
+    // Normal duplex (≤ allowance) stays at base + per-unit.
+    expect(calculateMultiUnitPrice(sized, 2, 2800)).toBe(750);
+    // Large duplex: 5000 sqft total -> +$100.
+    expect(calculateMultiUnitPrice(sized, 2, 5000)).toBe(850);
   });
 
   it("requires both an increment price and a block size", () => {
-    expect(multiUnitSizeFee({ ...sized, multiUnitIncrementSqftBlock: 0 }, 5000)).toBe(0);
-    expect(multiUnitSizeFee({ ...sized, multiUnitIncrementPrice: 0 }, 5000)).toBe(0);
+    expect(multiUnitSizeFee({ ...sized, multiUnitIncrementSqftBlock: 0 }, 9000, 2)).toBe(0);
+    expect(multiUnitSizeFee({ ...sized, multiUnitIncrementPrice: 0 }, 9000, 2)).toBe(0);
   });
 });
