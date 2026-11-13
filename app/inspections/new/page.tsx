@@ -242,6 +242,59 @@ function getServiceLabel(serviceMode: ServiceMode) {
   );
 }
 
+// Mold sample plan captured at booking: how many samples and where. Air samples
+// (indoor + the two outdoor controls) and surface samples both count toward the
+// priced sample total. The IAC2 Mold Inspection Standard of Practice requires
+// two outdoor control samples (windward + leeward) plus at least one indoor air
+// sample — so the default plan is seeded compliant, and a live badge checks it.
+type MoldSampleType =
+  | "outdoor_windward"
+  | "outdoor_leeward"
+  | "indoor_air"
+  | "surface";
+
+type MoldSample = { type: MoldSampleType; location: string };
+
+const MOLD_SAMPLE_TYPES: {
+  value: MoldSampleType;
+  label: string;
+  isAir: boolean;
+  isOutdoorControl: boolean;
+}[] = [
+  { value: "outdoor_windward", label: "Outdoor Control — Windward", isAir: true, isOutdoorControl: true },
+  { value: "outdoor_leeward", label: "Outdoor Control — Leeward", isAir: true, isOutdoorControl: true },
+  { value: "indoor_air", label: "Indoor Air", isAir: true, isOutdoorControl: false },
+  { value: "surface", label: "Surface / Tape / Swab", isAir: false, isOutdoorControl: false },
+];
+
+function moldSampleMeta(type: MoldSampleType) {
+  return MOLD_SAMPLE_TYPES.find((t) => t.value === type) ?? MOLD_SAMPLE_TYPES[2];
+}
+
+// The IAC2-compliant minimum: 2 outdoor controls + 1 indoor air (3 air samples).
+function iac2DefaultPlan(): MoldSample[] {
+  return [
+    { type: "outdoor_windward", location: "" },
+    { type: "outdoor_leeward", location: "" },
+    { type: "indoor_air", location: "" },
+  ];
+}
+
+// Rebuild a reasonable IAC2-shaped plan from bare air/surface counts (e.g. when
+// a quote with sample counts is converted into a booking): the first two air
+// samples become the outdoor controls, the rest indoor air.
+function moldPlanFromCounts(airCount: number, surfaceCount: number): MoldSample[] {
+  const air = Math.max(0, Math.floor(airCount));
+  const surface = Math.max(0, Math.floor(surfaceCount));
+  if (air <= 0 && surface <= 0) return iac2DefaultPlan();
+  const plan: MoldSample[] = [];
+  if (air >= 1) plan.push({ type: "outdoor_windward", location: "" });
+  if (air >= 2) plan.push({ type: "outdoor_leeward", location: "" });
+  for (let i = 2; i < air; i++) plan.push({ type: "indoor_air", location: "" });
+  for (let i = 0; i < surface; i++) plan.push({ type: "surface", location: "" });
+  return plan.length > 0 ? plan : iac2DefaultPlan();
+}
+
 function calculateFullInspectionPrice({
   squareFeet,
   serviceMode,
@@ -472,12 +525,28 @@ function NewInspectionPageContent() {
   const [services, setServices] = useState("Home Inspection");
   const [notes, setNotes] = useState("");
 
-  const [moldAirSamples, setMoldAirSamples] = useState(
-    () => searchParams.get("moldAirSamples") || "0"
+  // Mold sample plan (how many samples and where). Seeded IAC2-compliant, or
+  // rebuilt from any air/surface counts carried over from a converted quote.
+  const [moldSamplePlan, setMoldSamplePlan] = useState<MoldSample[]>(() =>
+    moldPlanFromCounts(
+      Number(searchParams.get("moldAirSamples") || 0),
+      Number(searchParams.get("moldSurfaceSamples") || 0),
+    ),
   );
-  const [moldSurfaceSamples, setMoldSurfaceSamples] = useState(
-    () => searchParams.get("moldSurfaceSamples") || "0"
-  );
+  const moldAirSampleCount = moldSamplePlan.filter(
+    (s) => moldSampleMeta(s.type).isAir,
+  ).length;
+  const moldSurfaceSampleCount = moldSamplePlan.filter(
+    (s) => s.type === "surface",
+  ).length;
+  const moldOutdoorControlCount = moldSamplePlan.filter(
+    (s) => moldSampleMeta(s.type).isOutdoorControl,
+  ).length;
+  const moldIndoorAirCount = moldSamplePlan.filter(
+    (s) => s.type === "indoor_air",
+  ).length;
+  // IAC2 Mold SOP: two outdoor controls + at least one indoor air sample.
+  const iac2Compliant = moldOutdoorControlCount >= 2 && moldIndoorAirCount >= 1;
   const [travelFee, setTravelFee] = useState(
     () => searchParams.get("travelFee") || "0"
   );
@@ -533,8 +602,8 @@ function NewInspectionPageContent() {
       calculateFullInspectionPrice({
         squareFeet,
         serviceMode,
-        moldAirSamples,
-        moldSurfaceSamples,
+        moldAirSamples: moldAirSampleCount,
+        moldSurfaceSamples: moldSurfaceSampleCount,
         travelFee,
         discount,
         config: pricingConfig,
@@ -544,8 +613,8 @@ function NewInspectionPageContent() {
     [
       squareFeet,
       serviceMode,
-      moldAirSamples,
-      moldSurfaceSamples,
+      moldAirSampleCount,
+      moldSurfaceSampleCount,
       travelFee,
       discount,
       pricingConfig,
@@ -553,6 +622,17 @@ function NewInspectionPageContent() {
       unitCount,
     ]
   );
+
+  // Seed the IAC2-compliant default plan the first time mold is turned on for a
+  // booking that didn't already carry a plan, so the inspector starts compliant
+  // and can adjust. Emptying the plan later (inspection-only) is left alone.
+  const moldWasEnabled = useRef(quote.includesMold);
+  useEffect(() => {
+    if (quote.includesMold && !moldWasEnabled.current && moldSamplePlan.length === 0) {
+      setMoldSamplePlan(iac2DefaultPlan());
+    }
+    moldWasEnabled.current = quote.includesMold;
+  }, [quote.includesMold, moldSamplePlan.length]);
 
   // The price actually used (and saved): the inspector's custom price when
   // they've overridden (and left the field non-empty), otherwise the
@@ -1215,6 +1295,25 @@ function NewInspectionPageContent() {
           console.warn(
             "Could not save per-service fees (run supabase/inspection-service-fees.sql):",
             serviceFeesError.message,
+          );
+        }
+      }
+
+      // Best-effort: store the mold sample plan (how many samples and where).
+      // Separate update, tolerant of the column not existing yet, so a not-yet-run
+      // migration never blocks creating an inspection. The air/surface COUNTS are
+      // already written in the insert above (mold_air_samples/mold_surface_samples),
+      // so the existing mold report/lab flow is unaffected whether or not this runs.
+      if (data?.id && quote.includesMold && moldSamplePlan.length > 0) {
+        const { error: samplePlanError } = await supabase
+          .from("inspections")
+          .update({ mold_sample_plan: moldSamplePlan })
+          .eq("id", data.id);
+
+        if (samplePlanError) {
+          console.warn(
+            "Could not save mold sample plan (run supabase/add-mold-sample-plan.sql):",
+            samplePlanError.message,
           );
         }
       }
@@ -2102,21 +2201,133 @@ function NewInspectionPageContent() {
             />
 
             {quote.includesMold && (
-              <>
-                <LabeledInput
-                  label="Mold Air Samples"
-                  value={moldAirSamples}
-                  onChange={setMoldAirSamples}
-                  placeholder="Mold Air Samples"
-                />
+              <div className="md:col-span-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--fl-text)]">Mold Sample Plan</p>
+                    <p className="mt-0.5 text-xs leading-5 text-[var(--fl-muted)]">
+                      How many samples and where. Air (indoor + outdoor controls) and surface
+                      samples all count toward the price.
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                      iac2Compliant
+                        ? "border-teal-500/40 bg-teal-500/10 text-[var(--fl-accent-text)]"
+                        : "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]"
+                    }`}
+                  >
+                    {iac2Compliant ? "✓ IAC2-compliant" : "⚠ Not IAC2-compliant"}
+                  </span>
+                </div>
 
-                <LabeledInput
-                  label="Mold Surface/Tape/Swab Samples"
-                  value={moldSurfaceSamples}
-                  onChange={setMoldSurfaceSamples}
-                  placeholder="Mold Surface/Tape/Swab Samples"
-                />
-              </>
+                <div className="mt-3 flex flex-col gap-2">
+                  {moldSamplePlan.map((sample, index) => (
+                    <div
+                      key={index}
+                      className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto] sm:items-center"
+                    >
+                      <select
+                        value={sample.type}
+                        onChange={(e) =>
+                          setMoldSamplePlan((plan) =>
+                            plan.map((s, i) =>
+                              i === index ? { ...s, type: e.target.value as MoldSampleType } : s,
+                            ),
+                          )
+                        }
+                        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                      >
+                        {MOLD_SAMPLE_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={sample.location}
+                        onChange={(e) =>
+                          setMoldSamplePlan((plan) =>
+                            plan.map((s, i) =>
+                              i === index ? { ...s, location: e.target.value } : s,
+                            ),
+                          )
+                        }
+                        placeholder={
+                          moldSampleMeta(sample.type).isOutdoorControl
+                            ? "Location (e.g. North exterior)"
+                            : "Location (e.g. Master bedroom)"
+                        }
+                        className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMoldSamplePlan((plan) => plan.filter((_, i) => i !== index))
+                        }
+                        aria-label="Remove sample"
+                        className="justify-self-start rounded-lg border border-[var(--fl-line)] px-3 py-2 text-xs font-semibold text-[var(--fl-muted)] transition hover:text-[var(--fl-text)] [touch-action:manipulation] sm:justify-self-auto"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {moldSamplePlan.length === 0 && (
+                    <p className="text-xs text-[var(--fl-muted)]">
+                      Inspection only — no samples. Add samples below if testing.
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMoldSamplePlan((plan) => [...plan, { type: "indoor_air", location: "" }])
+                    }
+                    className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] transition hover:border-teal-400 [touch-action:manipulation]"
+                  >
+                    + Indoor air
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMoldSamplePlan((plan) => [
+                        ...plan,
+                        { type: "outdoor_windward", location: "" },
+                      ])
+                    }
+                    className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] transition hover:border-teal-400 [touch-action:manipulation]"
+                  >
+                    + Outdoor control
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMoldSamplePlan((plan) => [...plan, { type: "surface", location: "" }])
+                    }
+                    className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] transition hover:border-teal-400 [touch-action:manipulation]"
+                  >
+                    + Surface sample
+                  </button>
+                  {!iac2Compliant && (
+                    <button
+                      type="button"
+                      onClick={() => setMoldSamplePlan(iac2DefaultPlan())}
+                      className="rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 [touch-action:manipulation]"
+                    >
+                      Reset to IAC2 plan
+                    </button>
+                  )}
+                </div>
+
+                <p className="mt-3 text-xs leading-5 text-[var(--fl-faint)]">
+                  IAC2 standard: two outdoor controls (windward + leeward) plus at least one
+                  indoor air sample. {moldAirSampleCount} air + {moldSurfaceSampleCount} surface ={" "}
+                  {moldAirSampleCount + moldSurfaceSampleCount} total.
+                </p>
+              </div>
             )}
 
             <LabeledInput
