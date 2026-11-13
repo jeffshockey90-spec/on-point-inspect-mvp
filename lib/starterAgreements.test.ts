@@ -19,10 +19,13 @@ describe("Home Orientation starter agreement", () => {
     expect(service_type.includes("home")).toBe(false);
   });
 
-  it("explicitly scopes itself as NOT a home inspection", () => {
-    expect(body).toMatch(/NOT a home inspection/i);
+  it("explicitly scopes itself as NOT a home inspection (and not a reinspection)", () => {
+    expect(body).toMatch(/not a home inspection or reinspection/i);
     expect(body).toMatch(/Standard of Practice/i);
-    expect(body).toMatch(/does NOT produce a home-inspection report/i);
+    expect(body).toMatch(/does not include a formal home inspection report/i);
+    // Keeps an existing client's prior inspection + report untouched.
+    expect(body).toMatch(/verifying previously recommended repairs/i);
+    expect(body).toMatch(/any previous home inspection performed by the company remains subject to its original agreement/i);
   });
 
   it("carries the merge fields the agreement renderer fills", () => {
@@ -38,10 +41,8 @@ describe("Home Orientation starter agreement", () => {
     }
   });
 
-  it("follows the cautious-wording rule (frames service life, disclaims failure predictions)", () => {
-    expect(body).toMatch(/typical range together with ordinary maintenance/i);
-    // Any mention of failure must be a disclaimer of predicting it, never an
-    // assertion that a component WILL fail.
-    expect(body).toMatch(/not as a prediction that a component will fail/i);
+  it("follows the cautious-wording rule (frames service life, disclaims remaining-life predictions)", () => {
+    expect(body).toMatch(/not a prediction of actual remaining life/i);
+    expect(body).toMatch(/no warranty or guarantee/i);
   });
 });

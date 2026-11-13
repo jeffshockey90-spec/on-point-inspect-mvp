@@ -8,10 +8,11 @@ import { ORIENTATION_AGREEMENT_SERVICE_TYPE } from "./inspectorPricing";
 // The Home Orientation agreement is deliberately scoped as NOT a home inspection:
 // a new-owner / possession walkthrough is an educational familiarization visit,
 // not an inspection to any Standard of Practice, and this wording is the liability
-// firewall that keeps the two services in separate lanes. Wording follows the
-// platform's cautious-report rule — components are framed by typical service life
-// plus a maintenance caveat, never a prediction that something WILL fail or a hard
-// deadline.
+// firewall that keeps the two services in separate lanes. It also makes clear it
+// is NOT a reinspection and does not verify previously recommended repairs — so an
+// existing client's prior inspection + report stand untouched. Wording follows the
+// platform's cautious-report rule (service life framed as general information, not
+// a prediction of remaining life or a date a component will fail).
 
 export type StarterAgreement = {
   key: string;
@@ -24,31 +25,81 @@ export type StarterAgreement = {
 
 const HOME_ORIENTATION_BODY = `HOME ORIENTATION / NEW-OWNER WALKTHROUGH AGREEMENT
 
-This Agreement is between {{CLIENT_NAME}} ("Client") and {{INSPECTOR_COMPANY}} ("Company") for a Home Orientation at:
-
-Property: {{PROPERTY_ADDRESS}}
-Date: {{INSPECTION_DATE}}
-Fee: {{INSPECTION_FEE}}
-
-1. WHAT THIS SERVICE IS. The Home Orientation is an educational, familiarization walkthrough of a home the Client owns or is taking possession of. Its purpose is to help the Client locate and operate the home's major systems and shutoffs (water, gas, and electrical), understand routine maintenance, and identify general safety items such as smoke and carbon-monoxide alarms. It is a point-in-time, visual, and non-invasive walkthrough performed for the Client's general understanding of the home.
-
-2. WHAT THIS SERVICE IS NOT. This Home Orientation is NOT a home inspection. It is NOT performed to, and does NOT satisfy, any home-inspection Standard of Practice (such as InterNACHI, ASHI, or any state standard), and it does NOT satisfy any inspection contingency in a purchase contract. It does NOT produce a home-inspection report, does NOT identify or report defects, and is NOT a substitute for a professional home inspection. If the Client wants a home inspection, a separate inspection and inspection agreement are required.
-
-3. SCOPE AND LIMITATIONS. The walkthrough is limited to readily accessible areas and to systems the Company can safely operate by their normal controls as a demonstration. The Company does not move furniture or stored items, dismantle any system or component, operate shut-off or de-energized equipment, or test any component to or beyond its limits. Conditions hidden by finishes, storage, weather, utilities that are off, or occupancy are outside the scope. Because the orientation is a brief familiarization and not an inspection, it is not designed to and will not discover latent, concealed, or future conditions.
-
-4. CONDITION OF THE HOME; NO WARRANTY. Any discussion of a system or component is general and educational. Where service life is mentioned, it is described as a typical range together with ordinary maintenance, not as a prediction that a component will fail or a date by which it must be replaced. The Company makes NO warranty or guarantee, express or implied, regarding the home or any of its systems, components, or contents, and does not warrant their present or future condition, performance, or compliance with any code. The Client remains responsible for the condition of the property.
-
-5. MAINTENANCE MATERIALS. Any maintenance calendar, shut-off location photos, checklists, or notes the Company provides are educational aids offered as-is, for the Client's convenience, and do not change the scope or the disclaimers above.
-
-6. LIMITATION OF LIABILITY. The Company's liability arising out of or related to this Home Orientation, if any, is limited to the amount of the fee paid for the service. The Client agrees that this limitation is a fair allocation of risk given the educational, non-inspection nature of the service and its fee. Any claim must be brought within one year of the walkthrough date.
-
-7. PAYMENT. The fee stated above is due as agreed.
-
-8. ENTIRE AGREEMENT. This Agreement is the entire agreement between the parties regarding the Home Orientation and supersedes any prior understanding. If any provision is found unenforceable, the remaining provisions stay in effect.
-
+Inspection Company: {{INSPECTOR_COMPANY}}
 Client: {{CLIENT_NAME}}
-Company: {{INSPECTOR_COMPANY}}
-Dated: {{SIGNED_DATE}}`;
+Property Address: {{PROPERTY_ADDRESS}}
+Service Date: {{INSPECTION_DATE}}
+Service Fee: {{INSPECTION_FEE}}
+
+1. Purpose of Service
+The Company agrees to provide a Home Orientation / New-Owner Walkthrough intended to familiarize the Client with the home's major systems, equipment, shutoff locations, general operation, routine maintenance, and basic safety considerations.
+This service is educational and informational in nature. It consists of a limited, visual, non-invasive walkthrough of readily accessible portions of the property.
+
+2. Not a Home Inspection
+The Client acknowledges and agrees that this service:
+• Is not a home inspection or reinspection.
+• Is not performed under InterNACHI, ASHI, or any state home inspection Standard of Practice.
+• Does not constitute a comprehensive evaluation of the property's condition.
+• Does not include systematic defect identification, testing, or diagnosis.
+• Does not include a formal home inspection report.
+• Does not provide certification of the condition, safety, or proper operation of any component.
+The Company may discuss previously documented inspection findings for educational purposes. Such discussions do not constitute verification of repairs or an update to the original inspection report.
+Any previous home inspection performed by the Company remains subject to its original agreement, scope, limitations, and report.
+
+3. Scope of Orientation
+Depending on the property's systems and accessibility, the walkthrough may include:
+• Location of the main water shutoff and individual plumbing shutoffs.
+• Location and general operation of the electrical panel and disconnects.
+• General operation of heating and cooling equipment and thermostats.
+• Location and replacement of accessible HVAC filters.
+• Water heater controls and routine maintenance.
+• Basic operation of accessible sump pumps and other installed equipment.
+• General information regarding smoke and carbon monoxide alarms.
+• Exterior drainage, gutters, and seasonal maintenance considerations.
+• Responses to Client questions concerning general homeownership and maintenance.
+The Company determines which systems can be safely demonstrated.
+
+4. Limitations and Exclusions
+The orientation is limited to readily accessible areas and equipment.
+The Company will not dismantle equipment, move personal belongings, perform destructive testing, operate unsafe equipment, or conduct specialized inspections or testing.
+The service is not intended to discover concealed defects, latent conditions, code violations, or future failures.
+The Company may decline to operate any equipment when operation could present a safety risk or cause damage.
+
+5. Property Condition and No Warranty
+The Client understands that equipment and components may fail without warning, regardless of apparent condition or age.
+Any discussion of expected service life represents general educational information and is not a prediction of actual remaining life.
+The Company makes no warranty or guarantee, express or implied, regarding the condition, performance, safety, or remaining useful life of the property or its systems.
+The Client remains responsible for maintaining the property and obtaining qualified professional evaluations or repairs when necessary.
+
+6. Educational Materials
+The Company may provide photographs, maintenance schedules, shutoff locations, or general orientation notes.
+These materials are educational references only and do not constitute an inspection report, certification, or warranty.
+No formal written report is included unless separately agreed upon in writing.
+
+7. Limitation of Liability
+To the fullest extent permitted by applicable law, the Company's liability arising solely from the Home Orientation service shall not exceed the fee paid for this service.
+Any claim arising from this Agreement must be brought within one year of the service date, to the extent permitted by applicable law.
+These limitations do not apply where prohibited by law and do not modify the terms or obligations of any separate home inspection agreement.
+
+8. Payment
+The Client agrees to pay the service fee according to the Company's payment terms.
+Payment is due before the scheduled service unless otherwise agreed upon in writing.
+
+9. Entire Agreement
+This Agreement represents the entire understanding between the parties concerning the Home Orientation service.
+It does not replace, modify, or supersede any prior home inspection agreement.
+Any changes must be agreed upon in writing by both parties.
+
+10. Client Acknowledgment
+By signing below, the Client acknowledges that:
+• The service is an educational homeowner orientation, not a home inspection.
+• The Company is not conducting a reinspection or verifying previously recommended repairs.
+• The service has limitations and does not establish the condition or safety of the property.
+• The Client has read and understands the terms of this Agreement.
+Electronic signatures shall have the same effect as handwritten signatures to the extent permitted by applicable law.
+
+Client Signature: __________________________    Date: {{SIGNED_DATE}}
+Company Representative: __________________________    Date: __________________`;
 
 export const HOME_ORIENTATION_AGREEMENT: StarterAgreement = {
   key: "home_orientation",
