@@ -128,6 +128,22 @@ export async function fetchReviewsForStore(
     .filter((r) => r.google_review_name);
 }
 
+// Pick the genuinely newest review from a normalized set, by publish_time. The
+// New Places API returns reviews in "most relevant" order (reviews[0] is often
+// an OLD review), so a "new review" alert must not just take the first item --
+// it sorts by publish time and takes the most recent. Rows without a parseable
+// publish_time sort last, so a present timestamp always wins over a missing one.
+export function pickNewestReview<T extends { publish_time?: string | null }>(
+  reviews: T[],
+): T | undefined {
+  if (!reviews || reviews.length === 0) return undefined;
+  const time = (r: T) => {
+    const t = r?.publish_time ? Date.parse(r.publish_time) : NaN;
+    return Number.isNaN(t) ? -Infinity : t;
+  };
+  return [...reviews].sort((a, b) => time(b) - time(a))[0];
+}
+
 // Replace the company's stored review mirror with a fresh set. This keeps the
 // newest reviews on top, drops reviews deleted on Google, and avoids duplicate
 // rows from mixing the New-API and legacy id schemes. Never wipes on an empty

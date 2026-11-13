@@ -6,6 +6,7 @@ import {
   fetchPlaceCore,
   fetchReviewsForStore,
   replaceCompanyReviews,
+  pickNewestReview,
 } from "../../../../lib/googlePlaces";
 
 export const runtime = "nodejs";
@@ -100,6 +101,10 @@ async function processCompany(admin: any, company: any) {
     place.reviews || []
   );
   await replaceCompanyReviews(admin, company.id, reviews);
+  // Use these newest-sorted, normalized reviews for the alert body too -- NOT
+  // place.reviews, which the New Places API returns in "most relevant" order, so
+  // its [0] is often an old review and the alert names the wrong reviewer.
+  const newestReviews = reviews;
 
   // Only alert on a real increase. A first-ever run (prevCount 0) just sets the
   // baseline so we don't fire a bogus "N new reviews" burst.
@@ -108,9 +113,11 @@ async function processCompany(admin: any, company: any) {
     return { id: company.id, prevCount, newCount, alerted: false };
   }
 
-  // Newest review (if Google returned it) makes for a richer notification.
-  const newest = (place.reviews || [])[0];
-  const author = String(newest?.authorAttribution?.displayName || "").trim();
+  // The genuinely newest review (by publish time) makes for a richer, CORRECT
+  // notification. Fall back to a generic body when we have no real author name.
+  const newest = pickNewestReview(newestReviews);
+  const rawAuthor = String(newest?.author_name || "").trim();
+  const author = rawAuthor && rawAuthor !== "Google Reviewer" ? rawAuthor : "";
   const newestRating = Number(newest?.rating || 0) || 0;
   const stars = newestRating ? "★".repeat(Math.round(newestRating)) : "";
 
