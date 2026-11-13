@@ -138,6 +138,14 @@ function isReportPublished(inspection: any) {
   );
 }
 
+// A Home Orientation / new-owner walkthrough is a real paid job but NOT a report:
+// it never gets published. So it counts toward revenue + volume, but must be left
+// out of the report pipeline (publish rate, pending-publish, ready/delivered) or
+// it would sit as a permanent "unpublished report" and drag those numbers down.
+function isOrientation(inspection: any) {
+  return inspection?.is_orientation === true;
+}
+
 function getMonthKey(dateValue: any) {
   const date = new Date(dateValue);
 
@@ -288,6 +296,13 @@ export default async function AnalyticsPage() {
   const rows = inspections || [];
   const now = new Date();
 
+  // Report-producing jobs only (excludes Home Orientation walkthroughs). Used for
+  // every report-pipeline metric below so walkthroughs — which never publish —
+  // don't drag publish rate, pending-publish, or ready/delivered. Revenue, volume,
+  // fees, service-type, and referral metrics still use the full `rows`.
+  const reportableRows = rows.filter((inspection: any) => !isOrientation(inspection));
+  const reportableCount = reportableRows.length;
+
   const inspectionIds = rows.map((inspection: any) => Number(inspection.id)).filter(Boolean);
 
   // Kick off every independent read for this page at once. The heavy revenue /
@@ -387,19 +402,21 @@ export default async function AnalyticsPage() {
 
   const agreementsPending = rows.filter((inspection: any) => !isAgreementSigned(inspection));
 
-  const reportsPendingPublish = rows.filter(
+  const reportsPendingPublish = reportableRows.filter(
     (inspection: any) => !isReportPublished(inspection)
   );
 
-  const readyToDeliver = rows.filter(
+  const readyToDeliver = reportableRows.filter(
     (inspection: any) =>
       isAgreementSigned(inspection) &&
       isPaymentComplete(inspection) &&
       isReportPublished(inspection)
   );
 
-  const totalInspections = rows.length;
-  const signedAgreementCount = rows.filter(isAgreementSigned).length;
+  // The report-delivery funnel is scoped to report-producing jobs so walkthroughs
+  // don't make the publish/deliver steps look incomplete.
+  const totalInspections = reportableCount;
+  const signedAgreementCount = reportableRows.filter(isAgreementSigned).length;
 
   // "Finished the report in X minutes" — average ACTIVE report-editing time
   // (foreground heartbeat, excludes overnight gaps + the physical inspection).
@@ -412,8 +429,8 @@ export default async function AnalyticsPage() {
         0,
       ) / reportsWithEditTime.length
     : 0;
-  const paidInspectionCount = rows.filter(isPaymentComplete).length;
-  const publishedReportCount = rows.filter(isReportPublished).length;
+  const paidInspectionCount = reportableRows.filter(isPaymentComplete).length;
+  const publishedReportCount = reportableRows.filter(isReportPublished).length;
 
   const revenueAtRisk = paymentsPending.reduce(
     (sum: number, inspection: any) => sum + getBalanceDue(inspection),
@@ -985,7 +1002,7 @@ export default async function AnalyticsPage() {
                 label="Inspections Created"
                 value={totalInspections}
                 percent={100}
-                helper="All inspections in your account."
+                helper="Report-producing inspections (walkthroughs excluded)."
               />
               <FunnelStep
                 label="Agreements Signed"

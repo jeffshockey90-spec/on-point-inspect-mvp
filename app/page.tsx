@@ -500,7 +500,11 @@ function getInspectionAttentionItems({
     return getRepairShareStatus(share, responses.length) === "responded";
   });
 
-  if (!published) items.push({ key: "draft", label: "Draft report" });
+  // A Home Orientation walkthrough has no report to finish, so it never adds a
+  // "Draft report" follow-up (its agreement + payment items below still apply).
+  if (!published && inspection?.is_orientation !== true) {
+    items.push({ key: "draft", label: "Draft report" });
+  }
   if (agreementStats.unsignedCount > 0) {
     items.push({
       key: "agreement",
@@ -583,6 +587,10 @@ export default async function HomePage() {
     "invoice_amount",
     "amount_paid",
     "balance_due",
+    // Home Orientation walkthroughs produce no report; excluded from the draft /
+    // published report counts below. If the column isn't migrated yet the enhanced
+    // query falls back (see below) and everything just treats them as reports.
+    "is_orientation",
   ].join(", ");
 
   let inspectionsResult: any = await supabase
@@ -764,8 +772,14 @@ export default async function HomePage() {
       };
     });
 
-  const draftReports = inspections.filter((inspection: any) => !isPublished(inspection));
-  const publishedReports = inspections.filter(isPublished);
+  // Home Orientation walkthroughs are real jobs but produce no report, so they
+  // must not show as perpetual "Drafts" or drag the published ratio. Scope the
+  // report counts to report-producing jobs; revenue/scheduling still use all rows.
+  const reportableInspections = inspections.filter(
+    (inspection: any) => inspection?.is_orientation !== true,
+  );
+  const draftReports = reportableInspections.filter((inspection: any) => !isPublished(inspection));
+  const publishedReports = reportableInspections.filter(isPublished);
   const unpaidInspections = inspections.filter((inspection: any) => !isPaymentComplete(inspection));
 
   const agreementStats = inspections.reduce(
@@ -828,7 +842,7 @@ export default async function HomePage() {
 
   const nextInspection =
     todayInspections[0] ||
-    inspections.find((inspection: any) => !isPublished(inspection)) ||
+    reportableInspections.find((inspection: any) => !isPublished(inspection)) ||
     inspections[0] ||
     null;
 
@@ -1037,7 +1051,7 @@ export default async function HomePage() {
           <KpiTile label="Collected" value={money(collectedRevenue)} sub="Payments received" accent="teal" />
           <KpiTile label="Outstanding" value={money(totalBalanceDue)} sub={`${unpaidInspections.length} unpaid`} accent="amber" />
           <KpiTile label="Needs Attention" value={String(needsAttentionCount)} sub="Items to follow up" accent="rose" />
-          <KpiTile label="Published" value={`${publishedReports.length}/${inspections.length}`} sub="Reports delivered" accent="emerald" />
+          <KpiTile label="Published" value={`${publishedReports.length}/${reportableInspections.length}`} sub="Reports delivered" accent="emerald" />
         </section>
 
             ) },

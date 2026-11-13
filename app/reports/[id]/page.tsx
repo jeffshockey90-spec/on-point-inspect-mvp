@@ -86,6 +86,7 @@ import { normalizeCurrency } from "../../../lib/locale";
 import { recomputeDealPrevalence } from "../../../lib/dealInsights";
 import OpenCommandCenterToolButton from "../../../components/OpenCommandCenterToolButton";
 import PublishReportActionButton from "../../../components/PublishReportActionButton";
+import { ORIENTATION_SERVICE_KEY } from "../../../lib/inspectorPricing";
 import InspectorToolsDrawer, {
   type WorkspaceNotification,
 } from "../../../components/InspectorToolsDrawer";
@@ -1503,6 +1504,20 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
     const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
 
+    // A Home Orientation walkthrough produces no client report, so it must never
+    // be published/emailed — not even via a forged/stale request (the Publish
+    // button is already hidden for it in the UI). service_mode is always present,
+    // so this guard is migration-safe regardless of the is_orientation column.
+    const { data: orientationCheck } = await supabase
+      .from("inspections")
+      .select("service_mode")
+      .eq("id", inspectionId)
+      .eq(accessFilter.column, accessFilter.value)
+      .maybeSingle();
+    if (String(orientationCheck?.service_mode || "") === ORIENTATION_SERVICE_KEY) {
+      redirect(`/reports/${inspectionId}`);
+    }
+
     // The AI Publish Guard is ADVISORY ONLY. The inspector's decision always
     // wins, so publishing is never blocked here -- inspectors can review the
     // guard's findings in the AI Publish Guard panel, but the Publish button
@@ -2516,6 +2531,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     inspection.published === true ||
     String(inspection.report_status || "").toLowerCase() === "published";
 
+  // A Home Orientation / new-owner walkthrough is not an inspection and produces
+  // no client report, so there's nothing to publish. Hide the Publish control so
+  // an empty report can't be sent, and so it never shows as a pending publish.
+  const isOrientationJob = inspection.is_orientation === true;
+
   const publishGuardNeedsAttention =
     getSingleSearchParam(resolvedSearchParams, "publish_guard") === "blocked" ||
     getSingleSearchParam(resolvedSearchParams, "publish_guard_error") === "1" ||
@@ -2969,11 +2989,17 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   Realtor Summary
                 </FastLinkButton>
 
-                <PublishReportActionButton
-                  action={publishReport}
-                  inspectionId={String(inspection.id)}
-                  published={reportIsPublished}
-                />
+                {isOrientationJob ? (
+                  <span className="inline-flex min-w-[154px] items-center justify-center rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-5 py-3 text-center text-sm font-semibold text-[var(--fl-muted)]">
+                    Orientation — no report to publish
+                  </span>
+                ) : (
+                  <PublishReportActionButton
+                    action={publishReport}
+                    inspectionId={String(inspection.id)}
+                    published={reportIsPublished}
+                  />
+                )}
 
                 <FastLinkButton
                   href={shareHref}
