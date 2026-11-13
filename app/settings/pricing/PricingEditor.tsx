@@ -297,14 +297,55 @@ export default function PricingEditor({
                 onChange={(value) => updateService("home", { multiUnitPerUnitFee: value })}
               />
             </div>
+
             {Number(home.multiUnitPerUnitFee) > 0 && (
-              <p className="mt-3 rounded-lg bg-[var(--fl-ground)] px-3 py-2 text-xs leading-5 text-[var(--fl-faint)]">
-                Example: a duplex = $
-                {(Number(home.multiUnitBaseFee) || 0) + (Number(home.multiUnitPerUnitFee) || 0) * 2}{" "}
-                (${Number(home.multiUnitBaseFee) || 0} base + ${Number(home.multiUnitPerUnitFee) || 0}{" "}
-                × 2 units); a fourplex = $
-                {(Number(home.multiUnitBaseFee) || 0) + (Number(home.multiUnitPerUnitFee) || 0) * 4}.
-              </p>
+              <>
+                <p className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+                  Size step for large buildings (optional)
+                </p>
+                <p className="mt-1 mb-3 text-xs leading-5 text-[var(--fl-muted)]">
+                  Add a fee for every block of total building square footage over a
+                  threshold, so a large building isn&apos;t priced like a small one.
+                  Leave &quot;Then Add&quot; at 0 to price purely per door.
+                </p>
+                <div className="grid gap-3">
+                  <NumberField
+                    label="Included Up To"
+                    prefix=""
+                    suffix="sqft"
+                    value={home.multiUnitSqftLimit}
+                    onChange={(value) => updateService("home", { multiUnitSqftLimit: value })}
+                  />
+                  <NumberField
+                    label="Then Add"
+                    value={home.multiUnitIncrementPrice}
+                    onChange={(value) => updateService("home", { multiUnitIncrementPrice: value })}
+                  />
+                  <NumberField
+                    label="Per Every"
+                    prefix=""
+                    suffix="sqft"
+                    value={home.multiUnitIncrementSqftBlock}
+                    onChange={(value) =>
+                      updateService("home", { multiUnitIncrementSqftBlock: value })
+                    }
+                  />
+                </div>
+
+                <p className="mt-3 rounded-lg bg-[var(--fl-ground)] px-3 py-2 text-xs leading-5 text-[var(--fl-faint)]">
+                  Example: a duplex = $
+                  {(Number(home.multiUnitBaseFee) || 0) + (Number(home.multiUnitPerUnitFee) || 0) * 2}{" "}
+                  (${Number(home.multiUnitBaseFee) || 0} base + ${Number(home.multiUnitPerUnitFee) || 0}{" "}
+                  × 2 units); a fourplex = $
+                  {(Number(home.multiUnitBaseFee) || 0) + (Number(home.multiUnitPerUnitFee) || 0) * 4}
+                  {Number(home.multiUnitIncrementPrice) > 0 &&
+                  Number(home.multiUnitIncrementSqftBlock) > 0
+                    ? `, then +$${Number(home.multiUnitIncrementPrice) || 0} per ${
+                        Number(home.multiUnitIncrementSqftBlock) || 0
+                      } sqft over ${Number(home.multiUnitSqftLimit) || 0}.`
+                    : "."}
+                </p>
+              </>
             )}
           </div>
         </section>

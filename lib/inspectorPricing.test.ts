@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   calculateMultiUnitPrice,
+  multiUnitSizeFee,
   hasMultiUnitPricing,
   type PricingService,
 } from "./inspectorPricing";
@@ -62,8 +63,46 @@ describe("calculateMultiUnitPrice — base building fee + per-unit × units", ()
     expect(calculateMultiUnitPrice(svc, 2.9)).toBe(750);
   });
 
-  it("does not use the sqft formula fields", () => {
+  it("does not use the single-family sqft formula fields", () => {
     // basePrice/incrementPrice are ignored — only the multi-unit fields matter.
     expect(calculateMultiUnitPrice(svc, 2)).toBe(350 + 200 * 2);
+  });
+});
+
+describe("multiUnitSizeFee — size step for large buildings", () => {
+  const sized: PricingService = {
+    ...baseHome,
+    multiUnitBaseFee: 350,
+    multiUnitPerUnitFee: 200,
+    multiUnitSqftLimit: 2500,
+    multiUnitIncrementPrice: 50,
+    multiUnitIncrementSqftBlock: 1000,
+  };
+
+  it("is 0 when the size step is not configured", () => {
+    expect(multiUnitSizeFee({ ...baseHome, multiUnitPerUnitFee: 200 }, 9000)).toBe(0);
+  });
+
+  it("is 0 at or under the included limit", () => {
+    expect(multiUnitSizeFee(sized, 2000)).toBe(0);
+    expect(multiUnitSizeFee(sized, 2500)).toBe(0);
+  });
+
+  it("charges per block (rounded up) over the limit", () => {
+    expect(multiUnitSizeFee(sized, 3500)).toBe(50); // 1 block over
+    expect(multiUnitSizeFee(sized, 4500)).toBe(100); // 2 blocks over
+    expect(multiUnitSizeFee(sized, 2600)).toBe(50); // partial block rounds up
+  });
+
+  it("adds the size step on top of the per-door price", () => {
+    // Normal duplex (≤ limit) stays at base + per-unit.
+    expect(calculateMultiUnitPrice(sized, 2, 2400)).toBe(750);
+    // Large duplex: 4500 sqft total -> +$100.
+    expect(calculateMultiUnitPrice(sized, 2, 4500)).toBe(850);
+  });
+
+  it("requires both an increment price and a block size", () => {
+    expect(multiUnitSizeFee({ ...sized, multiUnitIncrementSqftBlock: 0 }, 5000)).toBe(0);
+    expect(multiUnitSizeFee({ ...sized, multiUnitIncrementPrice: 0 }, 5000)).toBe(0);
   });
 });
