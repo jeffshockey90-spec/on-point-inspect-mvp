@@ -2968,6 +2968,15 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   Download PDF
                 </ReportDownloadButton>
 
+                <ReportDownloadButton
+                  href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?summary=1`}
+                  filename={`findings-summary-${inspection.id}.pdf`}
+                  preparingText="Preparing PDF..."
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                >
+                  Findings Summary PDF
+                </ReportDownloadButton>
+
                 <PrintButton
                   label="Print / Save PDF"
                   className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"

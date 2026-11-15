@@ -2136,6 +2136,12 @@ function buildAgentReportHtml({
 // helpers, the same finding-card look, and the same photo handling, but lays the
 // findings out FLAT in the inspector's priority order (rank + "why it's a
 // priority" reason on each). Rendered through the same chromium engine.
+// Builds the two companion PDFs that sit beside the main report:
+//  - "priority": Priority Repairs, every finding in the inspector's ranked order.
+//  - "summary":  Findings Summary, the report's findings grouped by severity with
+//                an at-a-glance overview page (counts + per-unit table).
+// They share one cover / card / photo renderer so they look like a set; every
+// summary-only piece is gated on `isSummary`, so the priority output is unchanged.
 function buildPriorityReportHtml({
   inspection,
   findings,
@@ -2143,14 +2149,19 @@ function buildPriorityReportHtml({
   propertyPhotoUrl,
   units = [],
   sevColors = { safety: "#ef4444", repair: "#f97316", maintenance: "#0f9488", info: "#2563eb" },
+  mode = "priority",
+  qrCodeDataUrl = "",
 }: {
   inspection: any;
-  findings: any[]; // ordered; each carries __rank and __reason
+  findings: any[]; // priority: ordered, each carries __rank and __reason. summary: numbered report defects.
   branding: any;
   propertyPhotoUrl?: string;
   units?: InspectionUnit[];
   sevColors?: { safety: string; repair: string; maintenance: string; info: string };
+  mode?: "priority" | "summary";
+  qrCodeDataUrl?: string;
 }) {
+  const isSummary = mode === "summary";
   const property = getPropertyAddress(inspection);
   const clientName = inspection.client_name || inspection.client || "N/A";
   const inspectionDate = formatDate(inspection.inspection_date || inspection.scheduled_date || inspection.created_at);
@@ -2168,7 +2179,7 @@ function buildPriorityReportHtml({
     ? `<img class="cover-photo" src="${escapeHtml(propertyPhotoUrl)}" alt="Property photo" />`
     : `<div class="cover-photo no-photo">Property photo not available</div>`;
 
-  const cardsHtml = findings
+  const renderCards = (list: any[]) => list
     .map((finding: any) => {
       const photos = (Array.isArray(finding.photos) ? finding.photos : [])
         .filter((photo: any) => {
@@ -2209,7 +2220,7 @@ function buildPriorityReportHtml({
       return `
         <article class="finding">
           <div class="finding-head">
-            <span class="rank-badge">${escapeHtml(String(finding.__rank || ""))}</span>
+            ${isSummary ? "" : `<span class="rank-badge">${escapeHtml(String(finding.__rank || ""))}</span>`}
             <div class="finding-meta">
               <span class="finding-ref">${finding.report_item_number ? `Item #${escapeHtml(String(finding.report_item_number))} &middot; ` : ""}${escapeHtml(unitScopedSection(cleanText(finding.section), unitLabelFor(finding, units)))}</span>
               <h3 class="finding-title">${escapeHtml(getFindingTitle(finding))}</h3>
@@ -2220,19 +2231,101 @@ function buildPriorityReportHtml({
             ${reasonHtml}
             ${note("Observation", finding.observation)}
             ${note("Implication", finding.implication)}
-            ${note("Recommendation", finding.recommendation || getFindingText(finding), "note-rec")}
+            ${note("Recommendation", isSummary ? finding.recommendation : finding.recommendation || getFindingText(finding), "note-rec")}
           </div>
           ${photoHtml}
         </article>
       `;
     })
     .join("");
+  const cardsHtml = isSummary ? "" : renderCards(findings);
+
+  // ---- Findings Summary only ------------------------------------------------
+  const summaryBuckets: SeverityBucket[] = ["safety", "repair", "maintenance", "information"];
+  const bucketFindings = (bucket: SeverityBucket) =>
+    findings.filter((f: any) => severityBucket(f.severity) === bucket);
+  const summaryCircle = (bucket: SeverityBucket) => `
+    <div class="sum-circle ${SEVERITY_BUCKET_CLASS[bucket]}">
+      <div class="sum-num">${bucketFindings(bucket).length}</div>
+      <div class="sum-lbl">${escapeHtml(SEVERITY_BUCKET_LABEL[bucket])}</div>
+    </div>`;
+  const summaryUnitRows = isSummary
+    ? buildUnitSeverityBreakdown(findings, units, (f: any) => severityBucket(f.severity))
+    : [];
+  const summaryUnitTableHtml = summaryUnitRows.length
+    ? `
+      <table class="unit-breakdown">
+        <thead>
+          <tr>
+            <th>By Unit</th>
+            ${summaryBuckets.map((b) => `<th class="${SEVERITY_BUCKET_CLASS[b]}">${escapeHtml(SEVERITY_BUCKET_LABEL[b])}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${summaryUnitRows
+            .map(
+              (row) => `
+          <tr>
+            <th>${escapeHtml(row.label)}</th>
+            <td>${row.counts.safety}</td>
+            <td>${row.counts.repair}</td>
+            <td>${row.counts.maintenance}</td>
+            <td>${row.counts.information}</td>
+          </tr>`,
+            )
+            .join("")}
+        </tbody>
+      </table>`
+    : "";
+  const pageHeaderHtml = `
+      <header class="page-header">
+        <div class="mini-brand">${headerLogoHtml}</div>
+        <div class="header-address">${escapeHtml(property)}</div>
+      </header>`;
+  const summaryPagesHtml = isSummary
+    ? `
+    <section class="page report-page">
+      ${pageHeaderHtml}
+      <div class="section-head">
+        <p class="section-eyebrow">Findings Summary</p>
+        <h2 class="section-name">At A Glance</h2>
+      </div>
+      <p class="section-sub">${findings.length} documented finding${findings.length === 1 ? "" : "s"}, grouped by severity.</p>
+      <div class="sum-circles">${summaryBuckets.map(summaryCircle).join("")}</div>
+      ${summaryUnitTableHtml}
+      <p class="sum-note">Each item below includes the inspector's observation, why it matters, and the recommended next step. Item numbers match the full inspection report.</p>
+    </section>
+    ${summaryBuckets
+      .map((bucket) => {
+        const list = bucketFindings(bucket);
+        if (!list.length) return "";
+        return `
+    <section class="page report-page">
+      ${pageHeaderHtml}
+      <div class="section-head">
+        <p class="section-eyebrow">Findings Summary</p>
+        <h2 class="section-name"><span class="sev-dot ${SEVERITY_BUCKET_CLASS[bucket]}"></span>${escapeHtml(SEVERITY_BUCKET_LABEL[bucket])}</h2>
+      </div>
+      <p class="section-sub">${list.length} item${list.length === 1 ? "" : "s"}, in report order.</p>
+      ${renderCards(list)}
+    </section>`;
+      })
+      .join("")}`
+    : "";
+  const coverQrHtml =
+    isSummary && qrCodeDataUrl
+      ? `
+      <div class="cover-qr">
+        <img src="${escapeHtml(qrCodeDataUrl)}" alt="Scan to view the full interactive report" />
+        <span>Scan to open the full interactive report${onlineReportUrl ? ` &middot; <a href="${escapeHtml(onlineReportUrl)}">or tap here</a>` : ""}</span>
+      </div>`
+      : "";
 
   return `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Priority Repairs - ${escapeHtml(property)}</title>
+  <title>${isSummary ? "Findings Summary" : "Priority Repairs"} - ${escapeHtml(property)}</title>
   <style>
     * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     @page { size: letter; margin: 0.3in 0 0 0; }
@@ -2296,7 +2389,32 @@ function buildPriorityReportHtml({
     .video-play::before { content: ""; width: 0; height: 0; margin-left: 3px; border-style: solid; border-width: 9px 0 9px 15px; border-color: transparent transparent transparent #ffffff; }
     .video-label { font-size: 15px; font-weight: 800; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
     .video-sub { font-size: 11px; font-weight: 600; opacity: 0.95; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
-    h3 { margin: 0; font-weight: 600; color: #1f2937; }
+    h3 { margin: 0; font-weight: 600; color: #1f2937; }${isSummary ? `
+    .sum-circles { display: flex; justify-content: center; gap: 40px; margin: 18px 0 8px; flex-wrap: wrap; }
+    .sum-circle { text-align: center; }
+    .sum-num { width: 90px; height: 90px; border-radius: 999px; color: #fff; font-size: 34px; font-weight: 500; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+    .sum-lbl { margin-top: 12px; color: #64748b; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; }
+    .sum-circle.safety-major .sum-num { background: ${sevColors.safety}; }
+    .sum-circle.recommended-repair .sum-num { background: ${sevColors.repair}; }
+    .sum-circle.maintenance-monitor .sum-num { background: ${sevColors.maintenance}; }
+    .sum-circle.informational .sum-num { background: ${sevColors.info}; }
+    .sum-note { max-width: 560px; margin: 28px auto 0; text-align: center; color: #64748b; font-size: 12px; }
+    .unit-breakdown { width: 100%; max-width: 620px; margin: 26px auto 0; border-collapse: collapse; font-size: 11px; color: #374151; }
+    .unit-breakdown th, .unit-breakdown td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; text-align: center; }
+    .unit-breakdown thead th { color: #64748b; font-size: 9px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; border-bottom: 2px solid #e5e7eb; }
+    .unit-breakdown thead th.safety-major { color: ${sevColors.safety}; }
+    .unit-breakdown thead th.recommended-repair { color: ${sevColors.repair}; }
+    .unit-breakdown thead th.maintenance-monitor { color: ${sevColors.maintenance}; }
+    .unit-breakdown thead th.informational { color: ${sevColors.info}; }
+    .unit-breakdown th:first-child { text-align: left; }
+    .unit-breakdown tbody th { font-weight: 600; color: #1f2937; }
+    .sev-dot { display: inline-block; width: 14px; height: 14px; border-radius: 999px; margin-right: 10px; vertical-align: 2px; background: ${sevColors.repair}; }
+    .sev-dot.safety-major { background: ${sevColors.safety}; }
+    .sev-dot.maintenance-monitor { background: ${sevColors.maintenance}; }
+    .sev-dot.informational { background: ${sevColors.info}; }
+    .cover-qr { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 22px; color: #475569; font-size: 11px; text-align: left; }
+    .cover-qr img { width: 84px; height: 84px; display: block; }
+    .cover-qr a { color: #0f8f8f; font-weight: 700; }` : ""}
   </style>
 </head>
 <body>
@@ -2311,18 +2429,20 @@ function buildPriorityReportHtml({
         </div>
       </div>
       ${coverPhotoHtml}
-      <p class="cover-eyebrow">Priority Repairs</p>
-      <h1>What To Address First</h1>
+      <p class="cover-eyebrow">${isSummary ? "Findings Summary" : "Priority Repairs"}</p>
+      <h1>${isSummary ? "Key Findings At A Glance" : "What To Address First"}</h1>
       <p class="cover-address">${escapeHtml(property)}${cityStateZip ? ` &middot; ${escapeHtml(cityStateZip)}` : ""}</p>
       <hr class="cover-rule" />
-      <p class="cover-intro">The items below are ordered by priority — the most important first — to help you plan. This summary is a companion to the full inspection report, which remains the complete record of the inspection.</p>
+      <p class="cover-intro">${isSummary
+        ? "This summary gathers the report's documented findings in one place, grouped by severity, so you can review the important items quickly. It is a companion to the full inspection report, which remains the complete record of the inspection."
+        : "The items below are ordered by priority — the most important first — to help you plan. This summary is a companion to the full inspection report, which remains the complete record of the inspection."}</p>
       <div class="cover-details">
         <div class="detail-card"><span>Prepared For</span><strong>${escapeHtml(clientName)}</strong></div>
         <div class="detail-card"><span>Inspection Date</span><strong>${escapeHtml(inspectionDate)}</strong></div>
         <div class="detail-card"><span>Inspector</span><strong>${escapeHtml(inspectorName)}</strong></div>
-      </div>
+      </div>${coverQrHtml}
     </section>
-
+${isSummary ? summaryPagesHtml : `
     <section class="page report-page">
       <header class="page-header">
         <div class="mini-brand">${headerLogoHtml}</div>
@@ -2334,7 +2454,7 @@ function buildPriorityReportHtml({
       </div>
       <p class="section-sub">${findings.length} item${findings.length === 1 ? "" : "s"}, most important first.</p>
       ${cardsHtml || "<p>No priority items.</p>"}
-    </section>
+    </section>`}
   </div>
 </body>
 </html>`;
@@ -2564,6 +2684,15 @@ function getDownloadName(property: string, reportMode: "agent" | "full") {
   return `${slug || "inspection-report"}-${reportMode === "full" ? "full-report" : "agent-report"}.pdf`;
 }
 
+function getSummaryDownloadName(property: string) {
+  const slug = String(property || "inspection")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70);
+  return `${slug || "inspection"}-findings-summary.pdf`;
+}
+
 export async function GET(req: Request, { params }: RouteProps) {
   try {
     const { id } = await params;
@@ -2573,6 +2702,10 @@ export async function GET(req: Request, { params }: RouteProps) {
     // Separate "Priority Repairs" PDF — a distinct download that never changes
     // the main report PDF's output (gated entirely by this flag).
     const priorityMode = url.searchParams.get("priority") === "1";
+    // Separate "Findings Summary" PDF — same access rules, branding, language,
+    // severity colors and units as the main report, but only the findings,
+    // grouped by severity. Never changes the main report PDF's output.
+    const summaryMode = !priorityMode && url.searchParams.get("summary") === "1";
     // Language for the PDF (#23) — same cache/translation as the web report.
     const pdfLang = String(url.searchParams.get("lang") || "").trim().toLowerCase();
     // Apple surfaces open the PDF in a new tab and need it served inline so the
@@ -2751,7 +2884,7 @@ export async function GET(req: Request, { params }: RouteProps) {
     // the report has changed, serve the stored PDF instead of rebuilding — this
     // is how a pre-generated report (e.g. Spectora) feels instant. Best-effort:
     // any failure just falls through to a normal on-demand build.
-    const pdfVariant = `${reportMode}-${pdfLang || "en"}${priorityMode ? "-priority" : ""}`;
+    const pdfVariant = `${reportMode}-${pdfLang || "en"}${priorityMode ? "-priority" : ""}${summaryMode ? "-summary" : ""}`;
     const pdfCachePath = `_pdf-cache/${inspectionId}/${pdfVariant}.pdf`;
 
     // Hash the actual content of every table that feeds the PDF (these tables
@@ -2852,7 +2985,11 @@ export async function GET(req: Request, { params }: RouteProps) {
               status: 200,
               headers: {
                 "Content-Type": "application/pdf",
-                "Content-Disposition": `${disposition}; filename="${getDownloadName(getPropertyAddress(inspection), reportMode)}"`,
+                "Content-Disposition": `${disposition}; filename="${
+                  summaryMode
+                    ? getSummaryDownloadName(getPropertyAddress(inspection))
+                    : getDownloadName(getPropertyAddress(inspection), reportMode)
+                }"`,
                 "Cache-Control": allowedByShareToken
                   ? "public, max-age=120, s-maxage=600, stale-while-revalidate=86400"
                   : "private, max-age=20, stale-while-revalidate=120",
@@ -2874,7 +3011,7 @@ export async function GET(req: Request, { params }: RouteProps) {
       ? `${secureOnlineReportUrl}${secureOnlineReportUrl.includes("?") ? "&" : "?"}src=qr`
       : secureOnlineReportUrl;
     const qrCodePromise =
-      reportMode === "full" && secureOnlineReportUrl
+      (reportMode === "full" || summaryMode) && secureOnlineReportUrl
         ? QRCode.toDataURL(qrReportUrl, {
             errorCorrectionLevel: "H",
             margin: 1,
@@ -3362,6 +3499,56 @@ export async function GET(req: Request, { params }: RouteProps) {
           "Content-Type": "application/pdf",
           "Content-Disposition": `${disposition}; filename="${prioritySlug}-priority-repairs.pdf"`,
           "Cache-Control": "private, max-age=20",
+        },
+      });
+    }
+
+    if (summaryMode) {
+      // The report's defects in report order, numbered exactly like the full
+      // report so item numbers cross-reference.
+      const summaryFindings = addRepairItemNumbers(findings, activeSectionOrder).filter(isReportDefect);
+      if (summaryFindings.length === 0) {
+        return reportErrorResponse(req, "This report has no findings to summarize yet.", 400);
+      }
+      const summaryHtml = buildPriorityReportHtml({
+        mode: "summary",
+        inspection,
+        findings: summaryFindings,
+        branding,
+        propertyPhotoUrl,
+        units: pdfUnits,
+        sevColors,
+        qrCodeDataUrl,
+      });
+      const summaryPdf = await renderHtmlToPdf(summaryHtml);
+      // Cache like the main report (its own variant) so repeat downloads are instant.
+      if (pdfSignature) {
+        try {
+          await admin.storage
+            .from("inspection-photos")
+            .upload(pdfCachePath, summaryPdf, { contentType: "application/pdf", upsert: true });
+          await admin.from("report_pdf_cache").upsert(
+            {
+              inspection_id: String(inspectionId),
+              variant: pdfVariant,
+              signature: pdfSignature,
+              storage_path: pdfCachePath,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "inspection_id,variant" },
+          );
+        } catch (cacheStoreError) {
+          console.error("Summary PDF cache store failed:", cacheStoreError);
+        }
+      }
+      return new NextResponse(new Uint8Array(summaryPdf), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `${disposition}; filename="${getSummaryDownloadName(getPropertyAddress(inspection))}"`,
+          "Cache-Control": allowedByShareToken
+            ? "public, max-age=120, s-maxage=600, stale-while-revalidate=86400"
+            : "private, max-age=20, stale-while-revalidate=120",
         },
       });
     }
