@@ -5,13 +5,16 @@ import {
   loadSocialMediaReleaseForInspection,
 } from "../../../../lib/socialMediaRelease";
 import { notifySocialMediaConsent } from "../../../../lib/socialMediaConsentNotify";
+import { getCookieSessionUser, resolvePortalViewerRole } from "../../../../lib/portalViewer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Records a client's social-media consent decision (grant or decline) on the
-// inspection. No login — resolved strictly by share token, gated on the company
-// having the release enabled. Optional feature: declining is a valid, recorded
+// inspection. No login — resolved by share token, gated on the company having
+// the release enabled. A raw inspection id is accepted ONLY from a signed-in
+// client contact on that inspection (the portal opened by id withholds the
+// token on undelivered reports); staff can never consent for the client. Optional feature: declining is a valid, recorded
 // answer and blocks nothing.
 
 function admin() {
@@ -37,7 +40,14 @@ export async function POST(request: Request) {
     ? str(body?.source)
     : "portal";
 
-  const inspection = await resolveInspectionByToken(db, lookup);
+  let inspection = await resolveInspectionByToken(db, lookup);
+  if (!inspection?.id && /^\d+$/.test(lookup)) {
+    const { data: candidate } = await db.from("inspections").select("*").eq("id", lookup).maybeSingle();
+    if (candidate?.id) {
+      const role = await resolvePortalViewerRole(db, candidate, await getCookieSessionUser());
+      if (role === "client") inspection = candidate;
+    }
+  }
   if (!inspection?.id) return NextResponse.json({ error: "Report not found." }, { status: 404 });
 
   // The company must have the release enabled with text (falls back to the

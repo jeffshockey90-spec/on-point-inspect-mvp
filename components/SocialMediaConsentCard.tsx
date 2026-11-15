@@ -7,12 +7,27 @@ import { Clapperboard, CheckCircle2 } from "lucide-react";
 // when the inspector's company has the release enabled. The client can agree
 // (types their name = their signature) or skip — it never blocks anything. Used
 // on the client portal, the shared report, and the agreement-signing page.
+//
+// The portal passes `initialStatus` (resolved server-side, since a portal opened
+// by raw id has no share token to look the release up with). `preview` makes it
+// read-only — the inspector sees exactly what the client sees but can't consent
+// on the client's behalf.
+export type SocialReleaseStatus = {
+  enabled: boolean;
+  text?: string;
+  consent?: boolean | null;
+  consentName?: string;
+  preview?: boolean;
+};
+
 export default function SocialMediaConsentCard({
   shareToken,
   placement = "portal",
+  initialStatus,
 }: {
   shareToken: string;
   placement?: "portal" | "report" | "signing";
+  initialStatus?: SocialReleaseStatus | null;
 }) {
   const [visible, setVisible] = useState(false);
   const [text, setText] = useState("");
@@ -22,8 +37,19 @@ export default function SocialMediaConsentCard({
   const [status, setStatus] = useState<"idle" | "sending">("idle");
   const [error, setError] = useState("");
   const [declined, setDeclined] = useState(false);
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
+    if (initialStatus !== undefined) {
+      const enabled = initialStatus?.enabled === true;
+      setVisible(enabled);
+      if (!enabled) return;
+      setText(initialStatus?.text || "");
+      setConsent(initialStatus?.consent === true ? true : initialStatus?.consent === false ? false : null);
+      setConsentName(initialStatus?.consentName || "");
+      setPreview(initialStatus?.preview === true);
+      return;
+    }
     if (!shareToken) return;
     let active = true;
     fetch(`/api/social-media-consent/status?lookup=${encodeURIComponent(shareToken)}`, {
@@ -41,12 +67,12 @@ export default function SocialMediaConsentCard({
     return () => {
       active = false;
     };
-  }, [shareToken]);
+  }, [shareToken, initialStatus]);
 
   if (!visible || declined) return null;
 
   async function submit(grant: boolean) {
-    if (status === "sending") return;
+    if (preview || status === "sending") return;
     if (grant && !name.trim()) {
       setError("Please type your name to agree.");
       return;
@@ -135,6 +161,7 @@ export default function SocialMediaConsentCard({
               Type your name to agree
             </label>
             <input
+              disabled={preview}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your full name"
@@ -146,7 +173,7 @@ export default function SocialMediaConsentCard({
             <button
               type="button"
               onClick={() => submit(true)}
-              disabled={status === "sending" || !name.trim()}
+              disabled={preview || status === "sending" || !name.trim()}
               className="rounded-xl bg-teal-500 px-6 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-teal-500/20 transition enabled:hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-40 [touch-action:manipulation]"
             >
               {status === "sending" ? "Saving…" : "Yes — happy to help 🎬"}
@@ -154,12 +181,19 @@ export default function SocialMediaConsentCard({
             <button
               type="button"
               onClick={() => submit(false)}
-              disabled={status === "sending"}
+              disabled={preview || status === "sending"}
               className="text-sm font-semibold text-[var(--fl-faint)] hover:text-[var(--fl-muted)] hover:underline disabled:opacity-50 [touch-action:manipulation]"
             >
               No thanks
             </button>
           </div>
+
+          {preview && (
+            <p className="mt-3 text-sm font-semibold text-[var(--fl-warn-text)]">
+              Preview: this is what your client sees. Only the client can answer it, from their
+              own portal or report link.
+            </p>
+          )}
 
           {error && <p className="mt-3 text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>}
         </div>
