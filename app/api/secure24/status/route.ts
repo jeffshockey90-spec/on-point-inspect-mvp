@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import { resolveInspectionByToken } from "../../../../lib/secure24";
+import { resolveCardInspection, isStaffPreview } from "../../../../lib/portalViewer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,7 +9,9 @@ export const dynamic = "force-dynamic";
 // show itself. Given a report's share token it returns whether the OWNING
 // inspector enabled the referral and whether it was already requested. On any
 // miss it returns { enabled: false } -- it never reveals anything, so it's safe
-// to call from an unauthenticated portal.
+// to call from an unauthenticated portal. A raw inspection id also works for a
+// signed-in user tied to the inspection (portal opened by id); staff get
+// `preview: true` so the card is read-only for them.
 
 function admin() {
   return createServiceClient(
@@ -26,7 +28,8 @@ export async function GET(request: Request) {
   if (!lookup.trim()) return off;
 
   const db = admin();
-  const inspection = await resolveInspectionByToken(db, lookup);
+  const resolved = await resolveCardInspection(db, lookup);
+  const inspection = resolved.inspection;
   if (!inspection?.id || !inspection.inspector_id) return off;
 
   const { data: setting } = await db
@@ -47,5 +50,6 @@ export async function GET(request: Request) {
   return NextResponse.json({
     enabled: true,
     alreadyRequested: Boolean(prior?.id),
+    preview: isStaffPreview(resolved),
   });
 }

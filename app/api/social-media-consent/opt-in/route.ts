@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import {
-  resolveInspectionByToken,
-  loadSocialMediaReleaseForInspection,
-} from "../../../../lib/socialMediaRelease";
+import { loadSocialMediaReleaseForInspection } from "../../../../lib/socialMediaRelease";
 import { notifySocialMediaConsent } from "../../../../lib/socialMediaConsentNotify";
-import { getCookieSessionUser, resolvePortalViewerRole } from "../../../../lib/portalViewer";
+import { resolveCardInspection, canActOnCard } from "../../../../lib/portalViewer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,14 +37,8 @@ export async function POST(request: Request) {
     ? str(body?.source)
     : "portal";
 
-  let inspection = await resolveInspectionByToken(db, lookup);
-  if (!inspection?.id && /^\d+$/.test(lookup)) {
-    const { data: candidate } = await db.from("inspections").select("*").eq("id", lookup).maybeSingle();
-    if (candidate?.id) {
-      const role = await resolvePortalViewerRole(db, candidate, await getCookieSessionUser());
-      if (role === "client") inspection = candidate;
-    }
-  }
+  const resolved = await resolveCardInspection(db, lookup);
+  const inspection = canActOnCard(resolved) ? resolved.inspection : null;
   if (!inspection?.id) return NextResponse.json({ error: "Report not found." }, { status: 404 });
 
   // The company must have the release enabled with text (falls back to the

@@ -61,3 +61,49 @@ export async function getCookieSessionUser(): Promise<SessionUser | null> {
     return null;
   }
 }
+
+export type CardInspection = {
+  inspection: any | null;
+  viewerRole: PortalViewerRole;
+  /** True when found by raw inspection id (portal opened by id), not a share token. */
+  viaRawId: boolean;
+};
+
+/**
+ * Resolve the inspection behind an optional client card (social release,
+ * Secure24, insurance referral). A share token always works (no login). A raw
+ * numeric id works ONLY for a signed-in user tied to the inspection: the portal
+ * opened by id withholds the token on undelivered reports, so without this the
+ * cards silently never showed there. Anonymous raw-id lookups get nothing, so
+ * ids still can't be enumerated.
+ */
+export async function resolveCardInspection(
+  db: { from: (t: string) => any },
+  lookup: string,
+  getUser: () => Promise<SessionUser | null> = getCookieSessionUser,
+): Promise<CardInspection> {
+  const none: CardInspection = { inspection: null, viewerRole: null, viaRawId: false };
+  const value = String(lookup || "").trim();
+  if (!value) return none;
+
+  for (const col of ["public_share_token", "share_token", "report_share_token"]) {
+    const { data } = await db.from("inspections").select("*").eq(col, value).maybeSingle();
+    if (data?.id) return { inspection: data, viewerRole: null, viaRawId: false };
+  }
+
+  if (!/^\d+$/.test(value)) return none;
+  const { data: candidate } = await db.from("inspections").select("*").eq("id", value).maybeSingle();
+  if (!candidate?.id) return none;
+  const viewerRole = await resolvePortalViewerRole(db, candidate, await getUser());
+  return viewerRole ? { inspection: candidate, viewerRole, viaRawId: true } : none;
+}
+
+/** Staff opening a client card by raw id see it read-only (never act for the client). */
+export function isStaffPreview(r: CardInspection): boolean {
+  return r.viaRawId && r.viewerRole === "staff";
+}
+
+/** Only a signed-in client may act on a client card reached by raw id. */
+export function canActOnCard(r: CardInspection): boolean {
+  return Boolean(r.inspection?.id) && (!r.viaRawId || r.viewerRole === "client");
+}

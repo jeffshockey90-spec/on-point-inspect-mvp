@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import { resolveInspectionByToken } from "../../../../lib/insuranceReferral";
+import { resolveCardInspection, isStaffPreview } from "../../../../lib/portalViewer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Called by the no-login client portal to decide whether to show the insurance
-// referral card. Resolves the report strictly by its share token, then reads
+// referral card. Resolves the report by its share token (or, for a signed-in
+// user tied to the inspection, its raw id — staff get a read-only preview), then reads
 // the OWNING inspector's per-inspector settings. Returns only display-safe
 // fields (never the agent's raw email). Behaves as "off" on any miss.
 
@@ -32,7 +33,8 @@ export async function GET(request: Request) {
     const isRealtor =
       role.includes("realtor") || role.includes("agent") || role.includes("coordinator");
 
-    const inspection = await resolveInspectionByToken(db, lookup);
+    const resolved = await resolveCardInspection(db, lookup);
+    const inspection = resolved.inspection;
     if (!inspection?.id || !inspection.inspector_id) {
       return NextResponse.json({ enabled: false });
     }
@@ -82,6 +84,7 @@ export async function GET(request: Request) {
       // The referral link is meant to be clicked by the client, so it's safe to
       // return here — lets the card open it directly (no popup-blocker issues).
       agentLink: setting?.agent_link || "",
+      preview: isStaffPreview(resolved),
     });
   } catch {
     return NextResponse.json({ enabled: false });
