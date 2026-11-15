@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import { useSeverityConfig } from "../../../../lib/severity/useSeverityConfig";
-import { severityBadgeStyle } from "../../../../lib/severity/severityConfig";
+import { severityBadgeStyle, severityTagStyle } from "../../../../lib/severity/severityConfig";
+import SectionPhotoTag from "../../../../components/SectionPhotoTag";
 import {
   loadInspectionUnits,
   unitLabelForFinding,
@@ -448,6 +449,7 @@ function SummaryFindingCard({
   const photoUrl = getPhotoUrl(finding);
   const title = cleanText(finding.title) || "Untitled Finding";
   const summary = getFindingSummary(finding);
+  const sectionLabel = unitScopedSection(finding.section || "Report", unitLabel);
 
   return (
     <Link
@@ -456,7 +458,10 @@ function SummaryFindingCard({
         .replace(/[^a-z0-9]+/g, "-")}`}
       className="group overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] transition hover:-translate-y-0.5 hover:border-teal-400"
     >
-      <div className="h-44 overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
+      <div className="relative h-44 overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
+        {photoUrl && (
+          <SectionPhotoTag label={sectionLabel} style={severityTagStyle(severityConfig, finding.severity)} />
+        )}
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -479,9 +484,12 @@ function SummaryFindingCard({
           >
             {finding.severity || "Recommended Repair"}
           </span>
-          <span className="rounded-full border border-[var(--fl-line)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
-            {unitScopedSection(finding.section || "Report", unitLabel)}
-          </span>
+          {/* With a photo, the section rides on the photo's corner tag. */}
+          {!photoUrl && (
+            <span className="rounded-full border border-[var(--fl-line)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+              {sectionLabel}
+            </span>
+          )}
         </div>
 
         <h4 className="line-clamp-2 text-lg font-semibold leading-tight text-[var(--fl-text)]">

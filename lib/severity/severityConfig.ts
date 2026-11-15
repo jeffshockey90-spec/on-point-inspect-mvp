@@ -125,3 +125,19 @@ export function severityBadgeStyle(config: SeverityConfig, value: unknown): { co
   const hex = severityColor(config, value);
   return { color: hex, background: `${hex}1f`, border: `${hex}66` };
 }
+
+// Solid fill for the section tag on summary photos: the level's own hex as the
+// background, with black or white text — whichever reads better on that color —
+// so a light custom color (e.g. a yellow) never gets unreadable white text.
+export function severityTagStyle(config: SeverityConfig, value: unknown): { background: string; color: string } {
+  const hex = severityColor(config, value);
+  const n = HEX_RE.test(hex) ? parseInt(hex.slice(1), 16) : 0x475569;
+  const lin = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  const lum = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  // Contrast vs white = 1.05/(L+0.05); vs black = (L+0.05)/0.05. Pick the higher.
+  const useWhite = 1.05 / (lum + 0.05) >= (lum + 0.05) / 0.05;
+  return { background: HEX_RE.test(hex) ? hex : "#475569", color: useWhite ? "#ffffff" : "#000000" };
+}

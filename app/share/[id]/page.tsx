@@ -2630,7 +2630,7 @@ export default async function PublicSharePage({
                 </div>
               </div>
 
-              <ClientSummaryAccordion groups={clientSummaryGroups} />
+              <ClientSummaryAccordion groups={clientSummaryGroups} severityConfig={severityConfig} />
             </section>
           )}
 
