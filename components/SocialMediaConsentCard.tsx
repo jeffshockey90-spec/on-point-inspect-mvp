@@ -87,7 +87,7 @@ export default function SocialMediaConsentCard({
             <p className="mt-1 text-sm text-[var(--fl-muted)]">
               {consentName ? `Signed by ${consentName}. ` : ""}Your inspector may use photos/video
               from this inspection on social media, with no personal or identifying information
-              shown. You can ask them to remove specific content anytime.
+              shown. You can ask them to remove a specific post; once content is shared, it may not be fully removable.
             </p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function SocialMediaConsentCard({
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {["✓ No address", "✓ No names", "✓ Remove anytime", "✓ Doesn't affect your report"].map((chip) => (
+            {["✓ No address", "✓ No names", "✓ Doesn't affect your report"].map((chip) => (
               <span
                 key={chip}
                 className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)]"
