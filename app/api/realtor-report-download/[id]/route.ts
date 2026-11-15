@@ -20,7 +20,13 @@ import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import { normalizeSection } from "../../../../lib/report/normalizeSection";
 import { checklistRowDisplay } from "../../../../lib/report/checklist";
-import { normalizeUnits, type InspectionUnit } from "../../../../lib/report/units";
+import {
+  normalizeUnits,
+  buildUnitSeverityBreakdown,
+  unitLabelForFinding as unitLabelFor,
+  unitScopedSection,
+  type InspectionUnit,
+} from "../../../../lib/report/units";
 import sharp from "sharp";
 import { existsSync } from "fs";
 import { recompressPdfImages } from "../../../../lib/pdfRecompress";
@@ -1368,6 +1374,40 @@ function buildAgentReportHtml({
     </div>
   `;
 
+  // Multi-Unit: a per-unit count table under the combined circles. Rows add up
+  // to the circles (same defects list + bucketing). Empty on single-family.
+  const unitBreakdownRows = buildUnitSeverityBreakdown(defects, unitsForPdf, (finding: any) =>
+    severityBucket(finding.severity),
+  );
+  const unitBreakdownHtml = unitBreakdownRows.length
+    ? `
+    <table class="unit-breakdown">
+      <thead>
+        <tr>
+          <th>By Unit</th>
+          <th class="safety-major">Safety / Major</th>
+          <th class="recommended-repair">Recommended Repair</th>
+          <th class="maintenance-monitor">Maintenance / Monitor</th>
+          <th class="informational">Informational</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${unitBreakdownRows
+          .map(
+            (row) => `
+        <tr>
+          <th>${escapeHtml(row.label)}</th>
+          <td>${row.counts.safety}</td>
+          <td>${row.counts.repair}</td>
+          <td>${row.counts.maintenance}</td>
+          <td>${row.counts.information}</td>
+        </tr>`,
+          )
+          .join("")}
+      </tbody>
+    </table>`
+    : "";
+
   const renderSectionPage = (group: { section: string; findings: any[] }, unitId: number | null) => {
     const sectionNumber = getSectionNumber(group.section, activeSectionOrder);
 
@@ -1766,6 +1806,15 @@ function buildAgentReportHtml({
     .sum-circle.maintenance-monitor .sum-num { background: ${sevColors.maintenance}; }
     .sum-circle.informational .sum-num { background: ${sevColors.info}; }
     .sum-divider { border: 0; border-top: 1px solid #e5e7eb; margin: 26px 0 20px; }
+    .unit-breakdown { width: 100%; max-width: 620px; margin: 18px auto 0; border-collapse: collapse; font-size: 11px; color: #374151; }
+    .unit-breakdown th, .unit-breakdown td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; text-align: center; }
+    .unit-breakdown thead th { color: #64748b; font-size: 9px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; border-bottom: 2px solid #e5e7eb; }
+    .unit-breakdown thead th.safety-major { color: ${sevColors.safety}; }
+    .unit-breakdown thead th.recommended-repair { color: ${sevColors.repair}; }
+    .unit-breakdown thead th.maintenance-monitor { color: ${sevColors.maintenance}; }
+    .unit-breakdown thead th.informational { color: ${sevColors.info}; }
+    .unit-breakdown th:first-child { text-align: left; }
+    .unit-breakdown tbody th { font-weight: 600; color: #1f2937; }
 
     .key-findings { margin: 0; padding: 0; list-style: none; }
     .key-findings li { border-bottom: 1px solid #f1f5f9; }
@@ -2020,6 +2069,7 @@ function buildAgentReportHtml({
 
       <h2 class="summary-title">Summary</h2>
       ${summaryCards}
+      ${unitBreakdownHtml}
 
       <hr class="sum-divider" />
 
@@ -2091,12 +2141,14 @@ function buildPriorityReportHtml({
   findings,
   branding,
   propertyPhotoUrl,
+  units = [],
   sevColors = { safety: "#ef4444", repair: "#f97316", maintenance: "#0f9488", info: "#2563eb" },
 }: {
   inspection: any;
   findings: any[]; // ordered; each carries __rank and __reason
   branding: any;
   propertyPhotoUrl?: string;
+  units?: InspectionUnit[];
   sevColors?: { safety: string; repair: string; maintenance: string; info: string };
 }) {
   const property = getPropertyAddress(inspection);
@@ -2159,7 +2211,7 @@ function buildPriorityReportHtml({
           <div class="finding-head">
             <span class="rank-badge">${escapeHtml(String(finding.__rank || ""))}</span>
             <div class="finding-meta">
-              <span class="finding-ref">${finding.report_item_number ? `Item #${escapeHtml(String(finding.report_item_number))} &middot; ` : ""}${escapeHtml(cleanText(finding.section))}</span>
+              <span class="finding-ref">${finding.report_item_number ? `Item #${escapeHtml(String(finding.report_item_number))} &middot; ` : ""}${escapeHtml(unitScopedSection(cleanText(finding.section), unitLabelFor(finding, units)))}</span>
               <h3 class="finding-title">${escapeHtml(getFindingTitle(finding))}</h3>
             </div>
             <span class="sev-pill ${severityKey(finding.severity)}">${escapeHtml(getSeverityBucket(finding.severity))}</span>
@@ -3293,6 +3345,7 @@ export async function GET(req: Request, { params }: RouteProps) {
         findings: ordered as any[],
         branding,
         propertyPhotoUrl,
+        units: pdfUnits,
         sevColors,
       });
       const priorityPdf = await renderHtmlToPdf(priorityHtml);

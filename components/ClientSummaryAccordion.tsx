@@ -458,7 +458,9 @@ function CompactSummaryCard({
             {title}
           </h4>
           <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
-            {finding.section || "Report"}
+            {finding.unit_label
+              ? `${finding.unit_label} · ${finding.section || "Report"}`
+              : finding.section || "Report"}
           </p>
           <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--fl-muted)]">
             {summary}

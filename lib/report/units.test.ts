@@ -3,6 +3,11 @@ import {
   unitLabel,
   buildDefaultUnitRows,
   normalizeUnits,
+  unitLabelForFinding,
+  unitScopedSection,
+  buildUnitSeverityBreakdown,
+  loadInspectionUnits,
+  describeUnitsForPrompt,
   groupByUnitThenSection,
   hasUnits,
   type InspectionUnit,
@@ -102,5 +107,84 @@ describe("hasUnits", () => {
     expect(hasUnits([])).toBe(false);
     expect(hasUnits(null)).toBe(false);
     expect(hasUnits([{ id: 1, label: "Unit 1", sortOrder: 0, isCommonArea: false }])).toBe(true);
+  });
+});
+
+describe("multi-unit summary helpers", () => {
+  const units = [
+    { id: 10, label: "Common Areas", sortOrder: 0, isCommonArea: true },
+    { id: 11, label: "Unit 1", sortOrder: 1, isCommonArea: false },
+    { id: 12, label: "Unit 2", sortOrder: 2, isCommonArea: false },
+  ];
+
+  it("unitLabelForFinding is empty for single-family jobs", () => {
+    expect(unitLabelForFinding({ unit_id: 11 }, [])).toBe("");
+    expect(unitLabelForFinding({ unit_id: null }, null)).toBe("");
+  });
+
+  it("unitLabelForFinding names the unit, or General when unassigned/unknown", () => {
+    expect(unitLabelForFinding({ unit_id: 11 }, units)).toBe("Unit 1");
+    expect(unitLabelForFinding({ unit_id: "12" }, units)).toBe("Unit 2");
+    expect(unitLabelForFinding({ unit_id: null }, units)).toBe("General");
+    expect(unitLabelForFinding({ unit_id: 999 }, units)).toBe("General");
+  });
+
+  it("unitScopedSection prefixes only when a label is given", () => {
+    expect(unitScopedSection("Roof", "Unit 2")).toBe("Unit 2 · Roof");
+    expect(unitScopedSection("Roof", "")).toBe("Roof");
+  });
+
+  it("buildUnitSeverityBreakdown is empty without units", () => {
+    expect(buildUnitSeverityBreakdown([{ unit_id: null }], [], () => "repair")).toEqual([]);
+  });
+
+  it("buildUnitSeverityBreakdown counts per unit, keeps zero rows, and adds General only when needed", () => {
+    type F = { unit_id: number | null; sev: string };
+    const findings: F[] = [
+      { unit_id: 11, sev: "safety" },
+      { unit_id: 11, sev: "repair" },
+      { unit_id: 10, sev: "maintenance" },
+      { unit_id: 11, sev: "skip" },
+    ];
+    const bucketOf = (f: F) => (f.sev === "skip" ? null : (f.sev as any));
+    const rows = buildUnitSeverityBreakdown(findings, units, bucketOf);
+    expect(rows.map((r) => r.label)).toEqual(["Common Areas", "Unit 1", "Unit 2"]);
+    expect(rows[1].counts).toEqual({ safety: 1, repair: 1, maintenance: 0, information: 0 });
+    expect(rows[2].counts).toEqual({ safety: 0, repair: 0, maintenance: 0, information: 0 });
+
+    const withStray = buildUnitSeverityBreakdown(
+      [...findings, { unit_id: null, sev: "information" }, { unit_id: 999, sev: "repair" }],
+      units,
+      bucketOf,
+    );
+    expect(withStray[0].label).toBe("General");
+    expect(withStray[0].unitId).toBeNull();
+    expect(withStray[0].counts).toEqual({ safety: 0, repair: 1, maintenance: 0, information: 1 });
+    // Rows always add up to the combined total.
+    const sum = withStray.reduce((n, r) => n + r.counts.safety + r.counts.repair + r.counts.maintenance + r.counts.information, 0);
+    expect(sum).toBe(5);
+  });
+
+  it("loadInspectionUnits normalizes rows and tolerates a failing client", async () => {
+    const chain: any = {
+      from: () => chain,
+      select: () => chain,
+      eq: () => chain,
+      order: async () => ({ data: [{ id: 2, label: "Unit 2", sort_order: 2 }, { id: 1, label: "Unit 1", sort_order: 1 }] }),
+    };
+    expect((await loadInspectionUnits(chain, 5)).map((u) => u.label)).toEqual(["Unit 1", "Unit 2"]);
+    const broken = { from: () => { throw new Error("no table"); } };
+    expect(await loadInspectionUnits(broken, 5)).toEqual([]);
+  });
+});
+
+describe("describeUnitsForPrompt", () => {
+  it("is empty for single-family and lists units otherwise", () => {
+    expect(describeUnitsForPrompt([])).toBe("");
+    const text = describeUnitsForPrompt([
+      { id: 1, label: "Common Areas", sortOrder: 0, isCommonArea: true },
+      { id: 2, label: "Unit A", sortOrder: 1, isCommonArea: false },
+    ]);
+    expect(text).toContain("Common Areas, Unit A");
   });
 });
