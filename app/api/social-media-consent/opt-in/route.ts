@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import { resolveInspectionByToken } from "../../../../lib/socialMediaRelease";
+import {
+  resolveInspectionByToken,
+  loadSocialMediaReleaseForInspection,
+} from "../../../../lib/socialMediaRelease";
 import { notifySocialMediaConsent } from "../../../../lib/socialMediaConsentNotify";
 
 export const runtime = "nodejs";
@@ -37,18 +40,9 @@ export async function POST(request: Request) {
   const inspection = await resolveInspectionByToken(db, lookup);
   if (!inspection?.id) return NextResponse.json({ error: "Report not found." }, { status: 404 });
 
-  // The company must have the release enabled with text.
-  let enabled = false;
-  if (inspection.company_id) {
-    const { data: company } = await db
-      .from("companies")
-      .select("social_media_release_enabled, social_media_release_text")
-      .eq("id", inspection.company_id)
-      .maybeSingle();
-    enabled =
-      company?.social_media_release_enabled === true &&
-      Boolean(String(company?.social_media_release_text || ""));
-  }
+  // The company must have the release enabled with text (falls back to the
+  // inspector's company when the inspection has no company_id).
+  const { enabled } = await loadSocialMediaReleaseForInspection(db, inspection);
   if (!enabled) return NextResponse.json({ error: "Not available." }, { status: 404 });
 
   // A grant should carry a typed name (their signature); a decline doesn't need one.
