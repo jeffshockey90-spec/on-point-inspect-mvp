@@ -28,6 +28,9 @@ export default function InsuranceReferralCard({
   const [agentCompany, setAgentCompany] = useState("");
   const [blurb, setBlurb] = useState("");
   const [agentLink, setAgentLink] = useState("");
+  // Staff opening the portal by id see the card read-only (they must never
+  // refer on the client's behalf).
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     if (!shareToken) return;
@@ -43,6 +46,7 @@ export default function InsuranceReferralCard({
         setAgentCompany(d.agentCompany || "");
         setBlurb(d.blurb || "");
         setAgentLink(d.agentLink || "");
+        setPreview(d.preview === true);
         if (d.alreadyRequested) setStatus("done");
       })
       .catch(() => {});
@@ -72,14 +76,14 @@ export default function InsuranceReferralCard({
   // Link referral: the anchor opens the link on the user's click (reliable, no
   // popup blocker), and we record the opt-in in the background.
   function onLinkClick() {
-    if (!consent) return;
+    if (preview || !consent) return;
     setStatus("done");
     void optIn().catch(() => {});
   }
 
   // Email-only referral: send the lead, then confirm.
   async function onSendClick() {
-    if (!consent || status === "sending") return;
+    if (preview || !consent || status === "sending") return;
     setStatus("sending");
     setError("");
     try {
@@ -138,6 +142,7 @@ export default function InsuranceReferralCard({
             <input
               type="checkbox"
               checked={consent}
+              disabled={preview}
               onChange={(e) => setConsent(e.target.checked)}
               className="mt-1 h-4 w-4 shrink-0 rounded border-[var(--fl-faint)] bg-[var(--fl-raised)] accent-teal-500"
             />
@@ -174,6 +179,13 @@ export default function InsuranceReferralCard({
               Not interested? Just ignore this — nothing is sent unless you ask.
             </span>
           </div>
+
+          {preview && (
+            <p className="mt-3 text-sm font-semibold text-[var(--fl-warn-text)]">
+              Preview: this is what your client sees. Only the client can request this, from their
+              own portal or report link.
+            </p>
+          )}
 
           {status === "error" && (
             <p className="mt-3 text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>

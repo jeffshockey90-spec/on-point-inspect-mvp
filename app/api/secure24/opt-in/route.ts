@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
+import { resolveCardInspection, canActOnCard } from "../../../../lib/portalViewer";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import {
   submitSecure24Lead,
   isSecure24Configured,
-  resolveInspectionByToken,
 } from "../../../../lib/secure24";
 import { SECURE24_CONSENT_TEXT } from "../../../../lib/secure24Brand";
 import { notifyReferralRequested } from "../../../../lib/referralNotify";
@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 // Called by the CLIENT report portal when a homeowner opts in to a Secure 24
 // referral. This is the ONLY place a lead is ever sent, and it enforces the
 // whole opt-in chain:
-//   1. the report is resolved by its unguessable share token (never a raw id),
+//   1. the report is resolved by its unguessable share token (a raw id only for
+//      a signed-in client contact on the inspection — never anonymous),
 //   2. the OWNING inspector must have the referral turned on,
 //   3. the client must have actively consented (consent === true),
 //   4. we never submit the same inspection twice.
@@ -42,9 +43,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing report reference." }, { status: 400 });
   }
 
-  // 1. Resolve strictly by share token. 404 (not 403) on miss so a raw id
-  //    can't be distinguished from a valid-but-wrong token.
-  const inspection = await resolveInspectionByToken(db, lookup);
+  // 1. Resolve by share token. A raw id only resolves for a signed-in client on
+  //    the inspection (staff can't request on the client's behalf). 404 (not
+  //    403) on miss so a raw id can't be distinguished from a wrong token.
+  const resolved = await resolveCardInspection(db, lookup);
+  const inspection = canActOnCard(resolved) ? resolved.inspection : null;
 
   if (!inspection?.id) {
     return NextResponse.json({ error: "Report not found." }, { status: 404 });

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
+import { resolveCardInspection, canActOnCard } from "../../../../lib/portalViewer";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import {
-  resolveInspectionByToken,
   INSURANCE_CONSENT_TEXT,
 } from "../../../../lib/insuranceReferral";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../../lib/companyBranding";
@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 // The CLIENT portal calls this when a homeowner opts in to their inspector's
 // insurance-agent referral. This is the ONLY place a lead is sent, and it
 // enforces the whole opt-in chain:
-//   1. report resolved by its unguessable share token (never a raw id),
+//   1. report resolved by its unguessable share token (a raw id only for a
+//      signed-in client contact on the inspection — never anonymous),
 //   2. the OWNING inspector must have their referral turned on,
 //   3. the client must have actively consented (consent === true),
 //   4. we never notify the agent twice for the same inspection.
@@ -44,8 +45,10 @@ export async function POST(request: Request) {
 
   if (!lookup) return NextResponse.json({ error: "Missing report reference." }, { status: 400 });
 
-  // 1. Resolve strictly by share token (404, not 403, on miss).
-  const inspection = await resolveInspectionByToken(db, lookup);
+  // 1. Resolve by share token; a raw id only for a signed-in client on the
+  //    inspection (staff can't refer on the client's behalf). 404 on miss.
+  const resolved = await resolveCardInspection(db, lookup);
+  const inspection = canActOnCard(resolved) ? resolved.inspection : null;
   if (!inspection?.id) return NextResponse.json({ error: "Report not found." }, { status: 404 });
 
   // 2. The owning inspector's referral must be on and reachable.

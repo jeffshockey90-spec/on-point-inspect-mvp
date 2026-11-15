@@ -31,6 +31,9 @@ export default function Secure24ReferralCard({
   const [error, setError] = useState("");
   // In autoCheck mode we start hidden until the status endpoint confirms it's on.
   const [visible, setVisible] = useState(!autoCheck);
+  // Staff opening the portal by id see the card read-only (they must never
+  // request on the client's behalf).
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     if (!autoCheck || !shareToken) return;
@@ -40,6 +43,7 @@ export default function Secure24ReferralCard({
       .then((d) => {
         if (!active || !d?.enabled) return;
         setVisible(true);
+        setPreview(d.preview === true);
         if (d.alreadyRequested) setStatus("done");
       })
       .catch(() => {});
@@ -51,7 +55,7 @@ export default function Secure24ReferralCard({
   if (!visible) return null;
 
   async function submit() {
-    if (!consent || status === "sending") return;
+    if (preview || !consent || status === "sending") return;
     setStatus("sending");
     setError("");
     try {
@@ -101,6 +105,7 @@ export default function Secure24ReferralCard({
             <input
               type="checkbox"
               checked={consent}
+              disabled={preview}
               onChange={(e) => setConsent(e.target.checked)}
               className="mt-1 h-4 w-4 shrink-0 rounded border-[var(--fl-faint)] bg-[var(--fl-raised)] accent-teal-500"
             />
@@ -120,6 +125,13 @@ export default function Secure24ReferralCard({
               Not interested? Just ignore this — nothing is sent unless you ask.
             </span>
           </div>
+
+          {preview && (
+            <p className="mt-3 text-sm font-semibold text-[var(--fl-warn-text)]">
+              Preview: this is what your client sees. Only the client can request this, from their
+              own portal or report link.
+            </p>
+          )}
 
           {status === "error" && (
             <p className="mt-3 text-sm font-bold text-[var(--fl-crit-text)]">{error}</p>
