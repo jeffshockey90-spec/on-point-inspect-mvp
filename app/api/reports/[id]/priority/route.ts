@@ -4,6 +4,11 @@ import OpenAI from "openai";
 import { getSessionUser, authorizeInspection } from "../../../../../lib/apiAuth";
 import { getAIModel } from "../../../../../lib/openai";
 import { logAIEvent } from "../../../../../lib/logging";
+import {
+  loadInspectionUnits,
+  unitLabelForFinding,
+  describeUnitsForPrompt,
+} from "../../../../../lib/report/units";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -116,9 +121,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: findings } = await admin
     .from("findings")
-    .select("id, title, section, severity, observation, implication, recommendation")
+    .select("id, title, section, unit_id, severity, observation, implication, recommendation")
     .eq("inspection_id", id)
     .order("created_at", { ascending: true });
+
+  // Multi-Unit: each finding tells the model which unit it is in.
+  const units = await loadInspectionUnits(admin, id);
+  const unitsContext = describeUnitsForPrompt(units);
 
   const list = (findings || []).filter((f: any) => clean(f.title) || clean(f.observation));
   if (list.length === 0)
@@ -128,6 +137,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const forModel = list.map((f: any) => ({
     id: String(f.id),
     title: clean(f.title),
+    ...(units.length ? { unit: unitLabelForFinding(f, units) } : {}),
     section: clean(f.section),
     severity: clean(f.severity),
     observation: clean(f.observation).slice(0, 500),
@@ -153,7 +163,7 @@ Liability rules for the reason — these are absolute:
 
 Return ONLY JSON: {"order":[{"id":"<finding id>","reason":"<one line>"}]}. Include EVERY finding id exactly once. No text outside JSON.`;
 
-  const userPrompt = `Findings (JSON):\n${JSON.stringify(forModel)}`;
+  const userPrompt = `${unitsContext ? `${unitsContext}\n\n` : ""}Findings (JSON):\n${JSON.stringify(forModel)}`;
 
   let parsed: any = {};
   try {

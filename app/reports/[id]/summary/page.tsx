@@ -6,7 +6,14 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import { useSeverityConfig } from "../../../../lib/severity/useSeverityConfig";
-import { severityBadgeStyle } from "../../../../lib/severity/severityConfig";
+import { severityBadgeStyle, severityTagStyle } from "../../../../lib/severity/severityConfig";
+import SectionPhotoTag from "../../../../components/SectionPhotoTag";
+import {
+  loadInspectionUnits,
+  unitLabelForFinding,
+  unitScopedSection,
+  type InspectionUnit,
+} from "../../../../lib/report/units";
 
 const SEVERITY_ORDER = [
   "Major Concern",
@@ -21,6 +28,7 @@ type Finding = {
   id: string | number;
   title?: string | null;
   section?: string | null;
+  unit_id?: number | null;
   severity?: string | null;
   observation?: string | null;
   implication?: string | null;
@@ -160,6 +168,8 @@ export default function ReportSummaryPage() {
   const [message, setMessage] = useState("");
   const [findings, setFindings] = useState<Finding[]>([]);
   const [findingsLoading, setFindingsLoading] = useState(true);
+  // Multi-Unit: the cards mix every unit, so each one names its unit.
+  const [units, setUnits] = useState<InspectionUnit[]>([]);
 
   const groupedFindings = useMemo(() => groupFindings(findings), [findings]);
   const defectCount = useMemo(() => findings.filter(isReportDefect).length, [findings]);
@@ -181,6 +191,8 @@ export default function ReportSummaryPage() {
           .order("created_at", { ascending: true });
 
         if (findingsError) throw findingsError;
+
+        setUnits(await loadInspectionUnits(supabase, reportId));
 
         const findingIds = (findingsData || []).map((finding: any) => finding.id);
 
@@ -406,7 +418,12 @@ export default function ReportSummaryPage() {
 
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {group.findings.map((finding) => (
-                      <SummaryFindingCard key={finding.id} finding={finding} reportId={reportId} />
+                      <SummaryFindingCard
+                        key={finding.id}
+                        finding={finding}
+                        reportId={reportId}
+                        unitLabel={unitLabelForFinding(finding, units)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -419,11 +436,20 @@ export default function ReportSummaryPage() {
   );
 }
 
-function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId: string }) {
+function SummaryFindingCard({
+  finding,
+  reportId,
+  unitLabel,
+}: {
+  finding: Finding;
+  reportId: string;
+  unitLabel: string;
+}) {
   const severityConfig = useSeverityConfig();
   const photoUrl = getPhotoUrl(finding);
   const title = cleanText(finding.title) || "Untitled Finding";
   const summary = getFindingSummary(finding);
+  const sectionLabel = unitScopedSection(finding.section || "Report", unitLabel);
 
   return (
     <Link
@@ -432,7 +458,10 @@ function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId:
         .replace(/[^a-z0-9]+/g, "-")}`}
       className="group overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] transition hover:-translate-y-0.5 hover:border-teal-400"
     >
-      <div className="h-44 overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
+      <div className="relative h-44 overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-surface-2)]">
+        {photoUrl && (
+          <SectionPhotoTag label={sectionLabel} style={severityTagStyle(severityConfig, finding.severity)} />
+        )}
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -455,9 +484,12 @@ function SummaryFindingCard({ finding, reportId }: { finding: Finding; reportId:
           >
             {finding.severity || "Recommended Repair"}
           </span>
-          <span className="rounded-full border border-[var(--fl-line)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
-            {finding.section || "Report"}
-          </span>
+          {/* With a photo, the section rides on the photo's corner tag. */}
+          {!photoUrl && (
+            <span className="rounded-full border border-[var(--fl-line)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+              {sectionLabel}
+            </span>
+          )}
         </div>
 
         <h4 className="line-clamp-2 text-lg font-semibold leading-tight text-[var(--fl-text)]">

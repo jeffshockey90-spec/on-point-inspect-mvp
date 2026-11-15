@@ -101,3 +101,100 @@ export function groupByUnitThenSection<T extends { section: string; unit_id?: nu
 export function hasUnits(units: InspectionUnit[] | null | undefined): boolean {
   return Array.isArray(units) && units.length > 0;
 }
+
+/**
+ * The unit a finding belongs to, for summary rows that list findings from every
+ * unit together. "" when the job has no units (single-family summaries render
+ * unchanged). An unassigned finding, or one whose unit was since deleted, reads
+ * "General" — the same scope the PDF groups stray findings under.
+ */
+export function unitLabelForFinding(
+  finding: { unit_id?: unknown } | null | undefined,
+  units: InspectionUnit[] | null | undefined,
+): string {
+  if (!hasUnits(units)) return "";
+  const raw = finding?.unit_id;
+  if (raw == null || raw === "") return "General";
+  const unit = units!.find((u) => u.id === Number(raw));
+  return unit ? unit.label : "General";
+}
+
+/** "Unit 2 · Roof" when a unit label is present, otherwise just the section. */
+export function unitScopedSection(section: string, unitLabel: string): string {
+  return unitLabel ? `${unitLabel} · ${section}` : section;
+}
+
+export type UnitSummaryBucket = "safety" | "repair" | "maintenance" | "information";
+export type UnitBreakdownRow = {
+  unitId: number | null;
+  label: string;
+  isCommonArea: boolean;
+  counts: Record<UnitSummaryBucket, number>;
+};
+
+/**
+ * Per-unit severity counts for the summary's unit breakdown. Returns [] when
+ * the job has no units. `bucketOf` returns null to leave a finding out (e.g.
+ * non-defect rows). Every unit gets a row — a zero row tells the reader that
+ * unit had nothing of that kind — and a leading "General" row appears only
+ * when something counted is unassigned, so the rows always add up to the
+ * combined totals.
+ */
+export function buildUnitSeverityBreakdown<T extends { unit_id?: unknown }>(
+  findings: T[],
+  units: InspectionUnit[] | null | undefined,
+  bucketOf: (finding: T) => UnitSummaryBucket | null,
+): UnitBreakdownRow[] {
+  if (!hasUnits(units)) return [];
+  const empty = () => ({ safety: 0, repair: 0, maintenance: 0, information: 0 });
+  const general: UnitBreakdownRow = { unitId: null, label: "General", isCommonArea: false, counts: empty() };
+  const rows: UnitBreakdownRow[] = units!.map((u) => ({
+    unitId: u.id,
+    label: u.label,
+    isCommonArea: u.isCommonArea,
+    counts: empty(),
+  }));
+  let generalUsed = false;
+  for (const finding of findings || []) {
+    const bucket = bucketOf(finding);
+    if (!bucket) continue;
+    const raw = finding?.unit_id;
+    const row = raw == null || raw === "" ? undefined : rows.find((r) => r.unitId === Number(raw));
+    if (row) {
+      row.counts[bucket] += 1;
+    } else {
+      general.counts[bucket] += 1;
+      generalUsed = true;
+    }
+  }
+  return generalUsed ? [general, ...rows] : rows;
+}
+
+/**
+ * Load an inspection's units with whichever Supabase client the caller has.
+ * Tolerant like the report surfaces: a failed query yields [] so the caller
+ * falls back to single-family output instead of erroring.
+ */
+export async function loadInspectionUnits(client: any, inspectionId: string | number): Promise<InspectionUnit[]> {
+  try {
+    const { data } = await client
+      .from("inspection_units")
+      .select("id,label,sort_order,is_common_area")
+      .eq("inspection_id", inspectionId)
+      .order("sort_order", { ascending: true });
+    return normalizeUnits(data || []);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Context line for AI summary prompts on multi-unit jobs, so the model knows
+ * the findings span several units and can name them. "" on single-family jobs
+ * (prompts stay exactly as before).
+ */
+export function describeUnitsForPrompt(units: InspectionUnit[] | null | undefined): string {
+  if (!hasUnits(units)) return "";
+  const labels = units!.map((u) => u.label).join(", ");
+  return `This is a multi-unit property inspected as: ${labels}. Each finding lists the unit it was found in ("General" means it was not assigned to a unit). When an item is specific to a unit, name that unit; do not imply an item found in one unit applies to the others.`;
+}

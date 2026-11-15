@@ -4,6 +4,11 @@ import { createServerClient } from "@supabase/ssr";
 import { getAIModel } from "../../../lib/openai";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { loadFlowStyle } from "../../../lib/ai/flowWriter";
+import {
+  loadInspectionUnits,
+  unitLabelForFinding,
+  describeUnitsForPrompt,
+} from "../../../lib/report/units";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -109,10 +114,14 @@ export async function GET(req: Request) {
       });
     }
 
+    // Multi-Unit: tell the model which unit each finding is in.
+    const units = await loadInspectionUnits(supabase, inspection.id);
+    const unitsContext = describeUnitsForPrompt(units);
+
     const findingText = findings
       .map((finding: any, index: number) => {
         return `
-Finding ${index + 1}
+Finding ${index + 1}${units.length ? `\nUnit: ${unitLabelForFinding(finding, units)}` : ""}
 Section: ${cleanText(finding.section) || "Not specified"}
 Title: ${cleanText(finding.title) || "Untitled finding"}
 Observation: ${cleanText(finding.observation) || "Not provided"}
@@ -165,13 +174,13 @@ Create a defect-focused Report Summary using ONLY the information below.
 PROPERTY / INSPECTION DETAILS:
 ${propertyDetails}
 
-ACTUAL REPORT FINDINGS:
+${unitsContext ? `MULTI-UNIT PROPERTY:\n${unitsContext}\n\n` : ""}ACTUAL REPORT FINDINGS:
 ${findingText}
 
 FORMAT:
 - Title it exactly: Report Summary
 - Start with a short overview focused on notable defects only.
-- Group defects by section.
+- ${units.length ? "Group defects by unit, then by section within each unit." : "Group defects by section."}
 - Include why the item matters and the recommended next step.
 - Skip sections with no defects.
 - Do not include placeholders, signatures, or thank-you language.

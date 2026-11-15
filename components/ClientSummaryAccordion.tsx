@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ExpandableReportImage from "./ExpandableReportImage";
+import SectionPhotoTag from "./SectionPhotoTag";
+import {
+  DEFAULT_SEVERITY_CONFIG,
+  severityTagStyle,
+  type SeverityConfig,
+} from "../lib/severity/severityConfig";
 
 type SummaryTone = "red" | "teal" | "yellow" | "blue";
 
@@ -307,9 +313,11 @@ function CompactSummaryCard({
   onToggle,
   eager,
   cardId,
+  severityConfig,
 }: {
   finding: any;
   tone: SummaryTone;
+  severityConfig: SeverityConfig;
   open: boolean;
   onToggle: () => void;
   eager: boolean;
@@ -347,6 +355,9 @@ function CompactSummaryCard({
   const showMedia = !imageFailed && Boolean(fullUrl || previewUrl);
   const [videoOpen, setVideoOpen] = useState(false);
   const toneStyle = toneClasses(tone);
+  const sectionLabel = finding.unit_label
+    ? `${finding.unit_label} · ${finding.section || "Report"}`
+    : finding.section || "Report";
 
   useEffect(() => {
     if (!videoOpen) return;
@@ -380,6 +391,7 @@ function CompactSummaryCard({
       <div className={`w-full gap-4 p-4 ${showMedia ? "grid grid-cols-[116px_minmax(0,1fr)] sm:grid-cols-[132px_minmax(0,1fr)]" : "block"}`}>
         {showMedia && (
         <div className="relative h-[116px] w-[116px] overflow-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] sm:h-[132px] sm:w-[132px]">
+          <SectionPhotoTag label={sectionLabel} style={severityTagStyle(severityConfig, finding.severity)} />
           {!imageFailed && previewUrl && !isVideo ? (
             <ExpandableReportImage
               src={previewUrl}
@@ -457,9 +469,12 @@ function CompactSummaryCard({
           <h4 className="mt-3 line-clamp-2 text-lg font-semibold leading-tight text-[var(--fl-text)]">
             {title}
           </h4>
-          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
-            {finding.section || "Report"}
-          </p>
+          {/* With a photo, the section rides on the photo's corner tag. */}
+          {!showMedia && (
+            <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)]">
+              {sectionLabel}
+            </p>
+          )}
           <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--fl-muted)]">
             {summary}
           </p>
@@ -623,8 +638,10 @@ function ShowMoreButton({
 
 export default function ClientSummaryAccordion({
   groups,
+  severityConfig = DEFAULT_SEVERITY_CONFIG,
 }: {
   groups: SummaryGroup[];
+  severityConfig?: SeverityConfig;
 }) {
   const [openId, setOpenId] = useState<string | number | null>(null);
   const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({});
@@ -700,6 +717,7 @@ export default function ClientSummaryAccordion({
                     onToggle={() => setOpenId(openId === cardId ? null : cardId)}
                     eager={index < 2 && group.key === normalizedGroups[0]?.key}
                     cardId={cardId}
+                    severityConfig={severityConfig}
                   />
                 );
               })}

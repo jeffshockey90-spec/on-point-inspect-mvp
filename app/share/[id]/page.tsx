@@ -17,7 +17,14 @@ import { headers } from "next/headers";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { resolveReportSections } from "../../../lib/reportSections";
-import { normalizeUnits, hasUnits, type InspectionUnit } from "../../../lib/report/units";
+import {
+  normalizeUnits,
+  hasUnits,
+  unitLabelForFinding,
+  unitScopedSection,
+  buildUnitSeverityBreakdown,
+  type InspectionUnit,
+} from "../../../lib/report/units";
 import { matchStandards } from "../../../lib/ai/standardsReference";
 import { estimatePrognosis, deriveAgeYears } from "../../../lib/ai/serviceLife";
 import { formatClockTime } from "../../../lib/app-time";
@@ -1877,13 +1884,27 @@ export default async function PublicSharePage({
 
   const defectTotals = buildDefectTotals(numberedFindings);
 
+  // Multi-Unit: the summary lists every unit's findings together, so each row
+  // carries its unit label ("Unit 2 · Roof"), and the overview adds a per-unit
+  // count table that adds up to the combined totals. Both are no-ops (no label,
+  // no table) on single-family jobs.
+  const summaryFindings = multiUnit
+    ? numberedFindings.map((finding: any) => ({
+        ...finding,
+        unit_label: unitLabelForFinding(finding, units),
+      }))
+    : numberedFindings;
+  const unitBreakdown = buildUnitSeverityBreakdown(numberedFindings, units, (finding: any) =>
+    isReportDefect(finding) ? severityBucket(finding.severity) : null,
+  );
+
   const clientSummaryGroups = [
     {
       key: "safety",
       title: "Safety / Major Concerns",
       description: "Items that may involve safety, injury, fire, shock, fall, structural, or major system concerns.",
       tone: "red" as const,
-      findings: numberedFindings.filter(
+      findings: summaryFindings.filter(
         (finding: any) =>
           isReportDefect(finding) && severityBucket(finding.severity) === "safety"
       ),
@@ -1893,7 +1914,7 @@ export default async function PublicSharePage({
       title: "Recommended Repairs",
       description: "Defects or damaged components where correction, repair, or further evaluation is recommended.",
       tone: "teal" as const,
-      findings: numberedFindings.filter(
+      findings: summaryFindings.filter(
         (finding: any) =>
           isReportDefect(finding) && severityBucket(finding.severity) === "repair"
       ),
@@ -1903,7 +1924,7 @@ export default async function PublicSharePage({
       title: "Maintenance / Monitor",
       description: "Routine maintenance items, minor concerns, or conditions that should be watched over time.",
       tone: "yellow" as const,
-      findings: numberedFindings.filter(
+      findings: summaryFindings.filter(
         (finding: any) =>
           isReportDefect(finding) && severityBucket(finding.severity) === "maintenance"
       ),
@@ -1913,7 +1934,7 @@ export default async function PublicSharePage({
       title: "Informational",
       description: "Client awareness items that are documented but not counted as report defects.",
       tone: "blue" as const,
-      findings: numberedFindings.filter(
+      findings: summaryFindings.filter(
         (finding: any) =>
           isReportDefect(finding) && severityBucket(finding.severity) === "information"
       ),
@@ -2373,6 +2394,36 @@ export default async function PublicSharePage({
               </div>
             )}
 
+            {unitBreakdown.length > 0 && (
+              <div className="mt-5 overflow-x-auto rounded-xl border border-[var(--fl-line)]">
+                <table className="w-full min-w-[28rem] text-sm">
+                  <caption className="sr-only">Findings by unit</caption>
+                  <thead>
+                    <tr className="bg-[var(--fl-surface)] text-left text-[11px] font-bold uppercase tracking-wide text-[var(--fl-faint)]">
+                      <th scope="col" className="px-3 py-2">By Unit</th>
+                      <th scope="col" className="px-3 py-2 text-center">Safety</th>
+                      <th scope="col" className="px-3 py-2 text-center">Repair</th>
+                      <th scope="col" className="px-3 py-2 text-center">Maint.</th>
+                      <th scope="col" className="px-3 py-2 text-center">Info</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {unitBreakdown.map((row) => (
+                      <tr key={row.unitId ?? "general"} className="border-t border-[var(--fl-line)]">
+                        <th scope="row" className="px-3 py-2 text-left font-semibold text-[var(--fl-text)]">
+                          {row.label}
+                        </th>
+                        <td className="px-3 py-2 text-center font-semibold text-[var(--fl-crit-text)]">{row.counts.safety}</td>
+                        <td className="px-3 py-2 text-center font-semibold text-[var(--fl-accent-text)]">{row.counts.repair}</td>
+                        <td className="px-3 py-2 text-center font-semibold text-[var(--fl-warn-text)]">{row.counts.maintenance}</td>
+                        <td className="px-3 py-2 text-center font-semibold text-[var(--fl-info-text)]">{row.counts.information}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--fl-muted)]">
               <span>Click a defect type above to filter the findings list.</span>
               {activeDefectFilter !== "all" && (
@@ -2579,7 +2630,7 @@ export default async function PublicSharePage({
                 </div>
               </div>
 
-              <ClientSummaryAccordion groups={clientSummaryGroups} />
+              <ClientSummaryAccordion groups={clientSummaryGroups} severityConfig={severityConfig} />
             </section>
           )}
 
@@ -2649,7 +2700,9 @@ export default async function PublicSharePage({
                             <span className="rounded-full border border-[var(--fl-line)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--fl-muted)]">
                               {row.finding.severity}
                             </span>
-                            <span className="text-xs text-[var(--fl-faint)]">{row.finding.section}</span>
+                            <span className="text-xs text-[var(--fl-faint)]">
+                              {unitScopedSection(row.finding.section, unitLabelForFinding(row.finding, units))}
+                            </span>
                           </div>
                           {row.reason && (
                             <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">{row.reason}</p>

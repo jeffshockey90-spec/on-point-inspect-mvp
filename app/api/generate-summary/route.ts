@@ -9,6 +9,11 @@ import {
   authorizeInspection,
 } from "../../../lib/apiAuth";
 import { loadFlowStyle } from "../../../lib/ai/flowWriter";
+import {
+  loadInspectionUnits,
+  unitLabelForFinding,
+  describeUnitsForPrompt,
+} from "../../../lib/report/units";
 
 export const runtime = "nodejs";
 
@@ -74,7 +79,7 @@ export async function POST(req: Request) {
     const { data: findings, error: findingsError } = await supabaseAdmin
       .from("findings")
       .select(
-        "id, title, section, severity, observation, implication, recommendation"
+        "id, title, section, unit_id, severity, observation, implication, recommendation"
       )
       .eq("inspection_id", numericInspectionId)
       .order("created_at", { ascending: true });
@@ -117,10 +122,14 @@ export async function POST(req: Request) {
     const findingsForSummary =
       reportFindings.length > 0 ? reportFindings : findings;
 
+    // Multi-Unit: tell the model which unit each finding is in.
+    const units = await loadInspectionUnits(supabaseAdmin, numericInspectionId);
+    const unitsContext = describeUnitsForPrompt(units);
+
     const findingsText = findingsForSummary
       .map(
         (finding: any, index: number) => `
-Finding ${index + 1}
+Finding ${index + 1}${units.length ? `\nUnit: ${unitLabelForFinding(finding, units)}` : ""}
 Section: ${finding.section || "N/A"}
 Severity: ${finding.severity || "N/A"}
 Title: ${finding.title || "Untitled Finding"}
@@ -167,7 +176,7 @@ Tone:
 - do not use excessive bullet spam
 
 Return clean formatted text.
-
+${unitsContext ? `\n${unitsContext}\n` : ""}
 Inspection Findings:
 ${findingsText}
 `;
