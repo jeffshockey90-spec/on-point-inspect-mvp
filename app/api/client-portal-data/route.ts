@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
-import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
 import { reportSecurityEvent } from "../../../lib/securityAlerts";
 import { listReinspectionsOf } from "../../../lib/reinspection";
+import { getCookieSessionUser, resolvePortalViewerRole } from "../../../lib/portalViewer";
+import { loadSocialMediaReleaseForInspection } from "../../../lib/socialMediaRelease";
 
 // Resolves whether the currently signed-in user (if any) is allowed to open a
 // portal by raw inspection id: the owning inspector, a member of the owning
@@ -14,54 +14,11 @@ import { listReinspectionsOf } from "../../../lib/reinspection";
 // re-opening anonymous id enumeration.
 async function authedUserOwnsInspection(admin: any, inspection: any) {
   try {
-    const cookieStore = await cookies();
-    const authClient = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll() {},
-        },
-      }
-    );
-
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-
-    if (!user) return false;
-
-    if (String(inspection.inspector_id || "") === user.id) return true;
-
-    if (inspection.company_id) {
-      const { data: membership } = await admin
-        .from("company_users")
-        .select("company_id")
-        .eq("user_id", user.id)
-        .eq("company_id", inspection.company_id)
-        .maybeSingle();
-      if (membership) return true;
-    }
-
-    const email = String(user.email || "").trim().toLowerCase();
-    if (email) {
-      const { data: contact } = await admin
-        .from("inspection_contacts")
-        .select("id")
-        .eq("inspection_id", inspection.id)
-        .ilike("email", email)
-        .limit(1)
-        .maybeSingle();
-      if (contact) return true;
-    }
+    const user = await getCookieSessionUser();
+    return (await resolvePortalViewerRole(admin, inspection, user)) !== null;
   } catch {
-    // fall through to no-access
+    return false;
   }
-
-  return false;
 }
 
 const SHARE_TOKEN_FIELDS = [
@@ -322,6 +279,34 @@ export async function GET(req: Request) {
       for (const field of SHARE_TOKEN_FIELDS) {
         delete pickedInspection[field];
       }
+    }
+
+    // Optional social-media release, resolved here because the portal may be
+    // opened by raw id (inspector's "Client Portal" button, signed-in client)
+    // with the share token withheld above — the card can't look itself up by
+    // token then. Staff see it as a read-only preview so they never consent on
+    // the client's behalf.
+    try {
+      const release = await loadSocialMediaReleaseForInspection(supabase, inspection as any);
+      if (release.enabled) {
+        const viewerRole = await resolvePortalViewerRole(
+          supabase,
+          inspection as any,
+          await getCookieSessionUser(),
+        );
+        const consent = (inspection as any).social_media_consent;
+        pickedInspection.social_media_release = {
+          enabled: true,
+          text: release.text,
+          consent: consent === true ? true : consent === false ? false : null,
+          consentName: String((inspection as any).social_media_consent_name || ""),
+          preview: viewerRole === "staff",
+        };
+      } else {
+        pickedInspection.social_media_release = { enabled: false };
+      }
+    } catch {
+      pickedInspection.social_media_release = { enabled: false };
     }
 
     // Attach the company's online-payment-fee config so the portal quotes the

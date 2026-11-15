@@ -799,6 +799,7 @@ export default function ClientPortalPage() {
           <SocialMediaConsentCard
             shareToken={getInspectionShareToken(inspection) || shareLookup}
             placement="portal"
+            initialStatus={inspection.social_media_release ?? null}
           />
         )}
 
