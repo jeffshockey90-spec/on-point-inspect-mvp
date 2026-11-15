@@ -1174,6 +1174,18 @@ export default function ClientPortalPage() {
                   </span>
                 </a>
 
+                <ReportDownloadButton
+                  href={`/api/realtor-report-download/${shareLookup}?summary=1`}
+                  filename={`findings-summary-${inspectionId}.pdf`}
+                  preparingText="Preparing PDF…"
+                  className="w-full rounded-xl border border-teal-500 bg-[var(--fl-surface-2)] px-6 py-4 text-left font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10 [touch-action:manipulation]"
+                >
+                  <span className="block text-lg">Findings Summary PDF</span>
+                  <span className="mt-1 block text-sm font-medium text-[var(--fl-muted)]">
+                    Just the findings, grouped by severity.
+                  </span>
+                </ReportDownloadButton>
+
                 {inspection?.priority_summary_visible && (
                   <ReportDownloadButton
                     href={`/api/realtor-report-download/${shareLookup}?priority=1`}

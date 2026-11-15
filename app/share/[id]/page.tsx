@@ -2255,6 +2255,18 @@ export default async function PublicSharePage({
               </ReportDownloadButton>
             )}
 
+            {/* Findings-only companion PDF (same token access + language). */}
+            {!isDemo && (
+              <ReportDownloadButton
+                href={`/api/realtor-report-download/${encodeURIComponent(sharePathId)}?summary=1${isTranslated ? `&lang=${encodeURIComponent(requestedLang)}` : ""}`}
+                filename={`findings-summary-${inspectionId}.pdf`}
+                preparingText="Preparing PDF..."
+                className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-teal-500 bg-teal-500/10 px-5 py-3 font-bold text-[var(--fl-accent-text)] transition active:scale-[0.98] active:opacity-80 [touch-action:manipulation] hover:bg-teal-500 hover:text-black"
+              >
+                <><span aria-hidden="true">⬇</span> Findings Summary</>
+              </ReportDownloadButton>
+            )}
+
             {!isDemo && (
               <a
                 href={`/my-home/${encodeURIComponent(sharePathId)}`}

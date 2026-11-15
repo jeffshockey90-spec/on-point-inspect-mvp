@@ -609,6 +609,15 @@ export default async function RealtorPortalPage({
                           <>Agent Report Download</>
                         </ReportDownloadButton>
 
+                        <ReportDownloadButton
+                          href={`/api/realtor-report-download/${encodeURIComponent(downloadId)}?summary=1`}
+                          filename={`findings-summary-${id}.pdf`}
+                          preparingText="Preparing Findings Summary..."
+                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-teal-500 px-4 py-3 text-center font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10 active:scale-[0.98]"
+                        >
+                          <>Findings Summary Download</>
+                        </ReportDownloadButton>
+
                         <FastLinkButton
                           href={`/repair-request?inspection_id=${encodeURIComponent(id)}&role=realtor&email=${encodeURIComponent(lookupEmail)}`}
                           loadingText="Opening Builder..."
