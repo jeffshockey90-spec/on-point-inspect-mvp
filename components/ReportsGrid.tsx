@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import FastLinkButton from "./FastLinkButton";
 import DeleteInspectionButton from "./DeleteInspectionButton";
+import { currentLocalDate } from "../lib/app-time";
+import { orientationStatus } from "../lib/report/orientationStatus";
 
 export type PreparedReport = {
   id: number | string;
@@ -14,6 +16,8 @@ export type PreparedReport = {
   realtorName: string;
   inspectionDate: string;
   propertyPhoto: string;
+  // Home Orientation walkthrough (no report is ever published).
+  isOrientation?: boolean;
   isInspectorOwner: boolean;
   createdAtMs: number;
   published: boolean;
@@ -72,8 +76,9 @@ function matchesSearch(report: PreparedReport, query: string) {
 
 function matchesStatus(report: PreparedReport, status: StatusFilter) {
   if (status === "all") return true;
-  if (status === "draft") return !report.published;
-  if (status === "published") return report.published;
+  // Walkthroughs have no report, so they're neither drafts nor published.
+  if (status === "draft") return !report.published && !report.isOrientation;
+  if (status === "published") return report.published && !report.isOrientation;
   if (status === "unpaid") return !report.paymentComplete;
   if (status === "client-viewed") return report.activity.clientViewed;
   if (status === "not-viewed") return report.activity.totalViews === 0;
@@ -105,8 +110,8 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
     const searched = reports.filter((report) => matchesSearch(report, search));
     return {
       all: searched.length,
-      draft: searched.filter((report) => !report.published).length,
-      published: searched.filter((report) => report.published).length,
+      draft: searched.filter((report) => matchesStatus(report, "draft")).length,
+      published: searched.filter((report) => matchesStatus(report, "published")).length,
       unpaid: searched.filter((report) => !report.paymentComplete).length,
       "client-viewed": searched.filter((report) => report.activity.clientViewed)
         .length,
@@ -233,7 +238,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                   (the share-page delivery gate). Decorative overlay; the card
                   stays clickable (pointer-events-none, above the stretched link). */}
               <div className="pointer-events-none absolute right-3 top-3 z-20">
-                {report.deliverable ? (
+                {report.isOrientation ? null : report.deliverable ? (
                   <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-1 text-xs font-bold text-[var(--fl-good-text)] shadow-lg backdrop-blur-sm">
                     🔓 Unlocked
                   </span>
@@ -252,11 +257,15 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                 <p className="mt-3 text-[var(--fl-muted)]">{report.cityStateZip}</p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <StatusBadge
-                    good={report.published}
-                    goodLabel="✅ Published"
-                    badLabel="📝 Draft"
-                  />
+                  {report.isOrientation ? (
+                    <OrientationBadge inspectionDate={report.inspectionDate} />
+                  ) : (
+                    <StatusBadge
+                      good={report.published}
+                      goodLabel="✅ Published"
+                      badLabel="📝 Draft"
+                    />
+                  )}
 
                   <StatusBadge
                     good={report.paymentComplete}
@@ -374,6 +383,22 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
         </div>
       )}
     </div>
+  );
+}
+
+function OrientationBadge({ inspectionDate }: { inspectionDate: string }) {
+  const status = orientationStatus(inspectionDate, currentLocalDate());
+  if (status === "completed") {
+    return (
+      <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]">
+        ✅ Completed
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-info-text)]">
+      {status === "scheduled" ? "📅 Scheduled" : "🏠 Walkthrough"}
+    </span>
   );
 }
 

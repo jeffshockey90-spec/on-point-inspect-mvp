@@ -445,6 +445,9 @@ export default async function ReportsPage() {
 
     return {
       id: inspection.id,
+      // Home Orientation walkthrough: no report, so the card shows a
+      // Completed/Scheduled status instead of Draft/Published + the lock chip.
+      isOrientation: inspection.is_orientation === true,
       published: isPublished(inspection),
       paymentComplete: isPaymentComplete(inspection),
       // Can the CLIENT view the report yet? (the share-page delivery gate):
