@@ -30,3 +30,41 @@ I understand and agree that:
 7. This release is governed by the laws of the state in which the inspection is performed (Maryland, Pennsylvania, or West Virginia, as applicable).
 
 I have read and understand this release and agree to its terms.`;
+
+/**
+ * The company's release setting for an inspection: { enabled, text }. Uses the
+ * inspection's company_id, and when that's empty (older or imported jobs) falls
+ * back to the inspector's company — the same resolution Stripe checkout uses.
+ * Without the fallback the consent card silently never showed on those jobs.
+ * Enabled only when the owner turned it on AND release text is saved.
+ */
+export async function loadSocialMediaReleaseForInspection(
+  db: { from: (t: string) => any },
+  inspection: { company_id?: unknown; inspector_id?: unknown } | null | undefined,
+): Promise<{ enabled: boolean; text: string }> {
+  const off = { enabled: false, text: "" };
+  if (!inspection) return off;
+
+  const readCompany = async (companyId: unknown) => {
+    if (!companyId) return null;
+    const { data } = await db
+      .from("companies")
+      .select("social_media_release_enabled, social_media_release_text")
+      .eq("id", companyId)
+      .maybeSingle();
+    return data || null;
+  };
+
+  let company = await readCompany(inspection.company_id);
+  if (!company && inspection.inspector_id) {
+    const { data: member } = await db
+      .from("company_users")
+      .select("company_id")
+      .eq("user_id", inspection.inspector_id)
+      .maybeSingle();
+    company = await readCompany(member?.company_id);
+  }
+
+  const text = String(company?.social_media_release_text || "").trim();
+  return company?.social_media_release_enabled === true && text ? { enabled: true, text } : off;
+}

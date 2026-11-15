@@ -39,6 +39,7 @@ import ClientMaintenanceTips from "../../../components/ClientMaintenanceTips";
 import { maintenanceForSections } from "../../../lib/maintenanceTips";
 import Secure24ReferralCard from "../../../components/Secure24ReferralCard";
 import InsuranceReferralCard from "../../../components/InsuranceReferralCard";
+import SocialMediaConsentCard from "../../../components/SocialMediaConsentCard";
 import { normalizeCompanyBranding } from "../../../lib/companyBranding";
 import { sendPushNotification } from "../../../lib/push";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
@@ -3758,6 +3759,13 @@ export default async function PublicSharePage({
               placement="report"
               viewerRole={resolvedSearchParams?.role || ""}
             />
+          )}
+
+          {/* Optional social-media release. Only the client can consent, so it
+              is hidden on demos and when a realtor opens the link. Shows only
+              when the company turned the release on (checked by the card). */}
+          {secure24Token && !isDemo && resolvedSearchParams?.role !== "realtor" && (
+            <SocialMediaConsentCard shareToken={secure24Token} placement="report" />
           )}
 
 

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import { resolveInspectionByToken } from "../../../../lib/socialMediaRelease";
+import {
+  resolveInspectionByToken,
+  loadSocialMediaReleaseForInspection,
+} from "../../../../lib/socialMediaRelease";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,17 +30,8 @@ export async function GET(request: Request) {
     const inspection = await resolveInspectionByToken(db, lookup);
     if (!inspection?.id) return NextResponse.json({ enabled: false });
 
-    let enabled = false;
-    let text = "";
-    if (inspection.company_id) {
-      const { data: company } = await db
-        .from("companies")
-        .select("social_media_release_enabled, social_media_release_text")
-        .eq("id", inspection.company_id)
-        .maybeSingle();
-      enabled = company?.social_media_release_enabled === true;
-      text = String(company?.social_media_release_text || "");
-    }
+    // Falls back to the inspector's company when the inspection has no company_id.
+    const { enabled, text } = await loadSocialMediaReleaseForInspection(db, inspection);
     if (!enabled || !text) return NextResponse.json({ enabled: false });
 
     return NextResponse.json({
