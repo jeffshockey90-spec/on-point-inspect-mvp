@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createClient } from "../../../utils/supabase/server";
 import { loadFlowStyle } from "../../../lib/ai/flowWriter";
+import { guardAiRequest } from "../../../lib/aiGuard";
 
 export const runtime = "nodejs";
 
@@ -21,7 +22,17 @@ export async function POST(req: Request) {
       );
     }
 
-    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
+    const requestedInspectionId = body.inspectionId ?? body.inspection_id ?? null;
+
+    // Signed-in callers only; the inspection id is kept only if they can access it
+
+    // (it feeds service-role loaders into the AI prompt). See lib/aiGuard.
+
+    const guard = await guardAiRequest({ inspectionId: requestedInspectionId });
+
+    if (!guard.ok) return guard.response;
+
+    const inspectionId = guard.inspectionId;
 
     // Identify the inspector so the photo comment matches THEIR voice.
     let userId: string | null = null;

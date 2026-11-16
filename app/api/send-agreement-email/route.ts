@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { listUnsubscribeHeaders } from "../../../lib/emailUnsubscribe";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
-import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
 import { describeSmsOutcome } from "../../../lib/smsOutcome";
@@ -494,6 +494,7 @@ export async function POST(req: Request) {
       try {
         const result = await resend.emails.send({
           from: fromEmail,
+          replyTo: brandedReplyTo(branding),
           to: email,
           headers: listUnsubscribeHeaders(email),
           subject,
@@ -637,6 +638,7 @@ ${branding.name}`,
       if (wantEmail) try {
         const result = await resend.emails.send({
           from: fromEmail,
+          replyTo: brandedReplyTo(branding),
           to: email,
           headers: listUnsubscribeHeaders(email),
           subject,

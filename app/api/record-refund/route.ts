@@ -9,8 +9,7 @@ import {
 } from "../../../lib/apiAuth";
 import {
   getCompanyBrandingById,
-  buildBrandedFromHeader,
-} from "../../../lib/companyBranding";
+  buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 import { buildRefundHtml, buildRefundNumber } from "../../../lib/refundEmail";
 
 export const runtime = "nodejs";
@@ -270,6 +269,7 @@ export async function POST(req: Request) {
         const resend = new Resend(process.env.RESEND_API_KEY);
         const { data, error } = await resend.emails.send({
           from,
+          replyTo: brandedReplyTo(branding),
           to,
           subject: built.subject,
           html: built.html,

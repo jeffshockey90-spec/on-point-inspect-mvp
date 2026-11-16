@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import { getAIModel } from "../../../../lib/openai";
+import { guardAiRequest } from "../../../../lib/aiGuard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,10 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
+    // Paid AI call: signed-in users, or the client's share-token link (the
+    // repair-request page is a no-login client page). See lib/aiGuard.
+    const guard = await guardAiRequest({ lookup: body?.token });
+    if (!guard.ok) return guard.response;
     const region = String(body?.region || "").trim();
     const items = Array.isArray(body?.findings) ? body.findings.slice(0, 40) : [];
 

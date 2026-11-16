@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { getAIModel } from "../../../lib/openai";
 import { createClient } from "../../../utils/supabase/server";
 import { loadFlowWriter, FLOW_SECTIONS, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
+import { guardAiRequest } from "../../../lib/aiGuard";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -42,7 +43,12 @@ export async function POST(req: Request) {
 
     const note = cleanText(body.note);
     const requestedSection = cleanText(body.section);
-    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
+    const requestedInspectionId = body.inspectionId ?? body.inspection_id ?? null;
+    // Signed-in callers only; the inspection id is kept only if they can access it
+    // (it feeds service-role loaders into the AI prompt). See lib/aiGuard.
+    const guard = await guardAiRequest({ inspectionId: requestedInspectionId });
+    if (!guard.ok) return guard.response;
+    const inspectionId = guard.inspectionId;
 
     if (!note) {
       return NextResponse.json(

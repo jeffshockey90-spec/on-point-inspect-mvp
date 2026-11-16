@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding, brandedReplyTo } from "../../../lib/companyBranding";
 import { authorizeInspection, notFound } from "../../../lib/apiAuth";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 
@@ -716,6 +716,8 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           from,
+          // Client replies go to the company's own email, not the platform inbox.
+          reply_to: brandedReplyTo(branding),
           to: recipient.email,
           subject,
           html,

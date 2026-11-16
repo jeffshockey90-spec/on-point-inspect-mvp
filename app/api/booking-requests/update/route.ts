@@ -6,7 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../../lib/shareToken";
-import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo } from "../../../../lib/companyBranding";
 import { loadEffectivePricing, priceBooking } from "../../../../lib/bookingPrice";
 import type { InspectorPricingConfig } from "../../../../lib/inspectorPricing";
 
@@ -664,6 +664,7 @@ ${branding.name}`;
     try {
       const result = await resend.emails.send({
         from: fromEmail,
+        replyTo: brandedReplyTo(branding),
         to: recipient.email,
         subject,
         html,

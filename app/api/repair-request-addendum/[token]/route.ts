@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { existsSync } from "fs";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
-import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding, brandedReplyTo } from "../../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -1009,6 +1009,8 @@ export async function POST(req: Request, { params }: RouteProps) {
       },
       body: JSON.stringify({
         from,
+        // Client replies go to the company's own email, not the platform inbox.
+        reply_to: brandedReplyTo(data.branding),
         to: recipients,
         subject,
         html,

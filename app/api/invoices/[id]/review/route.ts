@@ -10,8 +10,7 @@ import {
 } from "../../../../../lib/apiAuth";
 import {
   getCompanyBrandingById,
-  buildBrandedFromHeader,
-} from "../../../../../lib/companyBranding";
+  buildBrandedFromHeader, brandedReplyTo } from "../../../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -138,6 +137,7 @@ export async function POST(_req: Request, { params }: RouteProps) {
     try {
       const result = await resend.emails.send({
         from,
+        replyTo: brandedReplyTo(branding),
         to: email,
         headers: listUnsubscribeHeaders(email),
         subject,

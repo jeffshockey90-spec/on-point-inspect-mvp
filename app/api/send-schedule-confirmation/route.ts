@@ -5,7 +5,7 @@ import { Resend } from "resend";
 import { listUnsubscribeHeaders } from "../../../lib/emailUnsubscribe";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import { formatAppValue, formatClockTime } from "../../../lib/app-time";
-import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
 import { getNotificationPrefs } from "../../../lib/notificationPrefs";
@@ -291,6 +291,7 @@ ${branding.name}`;
       try {
         const result = await resend.emails.send({
           from: fromEmail,
+          replyTo: brandedReplyTo(branding),
           to: recipient.email,
           headers: listUnsubscribeHeaders(recipient.email),
           subject,
