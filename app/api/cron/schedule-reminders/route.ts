@@ -5,6 +5,7 @@ import crypto from "crypto";
 import http2 from "http2";
 import { isSmsConfigured, sendSms } from "../../../../lib/sms";
 import { smsReminder } from "../../../../lib/smsTemplates";
+import { reminderEmailsFor, sendAppointmentReminderEmails } from "../../../../lib/appointmentReminderEmail";
 import { getNotificationPrefs } from "../../../../lib/notificationPrefs";
 import { reminderDateWindow } from "../../../../lib/reminderWindow";
 import { isCronAuthorized } from "../../../../lib/cronAuth";
@@ -999,12 +1000,16 @@ export async function GET(req: Request) {
         results.push(result);
       }
 
-      // Client & agent SMS reminders, per window (24h / 2h / 30m), each gated by
+      // Client & agent reminders, per window (24h / 2h / 30m), each gated by
       // its own toggle (company default or per-inspector override). These are
       // separate from the inspector push above. Client 24h defaults on (legacy);
-      // the rest are opt-in. Deduped via schedule_reminder_logs (client_sms_24h
-      // keeps its original key so prior sends stay deduped).
-      if (isSmsConfigured() && (row.client_phone || row.realtor_phone || row.agent_phone)) {
+      // the rest are opt-in. A TEXT goes out when SMS is set up and the person
+      // has a phone; otherwise the reminder falls back to EMAIL (before, those
+      // clients got no reminder at all). Deduped via schedule_reminder_logs
+      // (client_sms_24h keeps its original key so prior sends stay deduped;
+      // emails use <who>_email_<window>).
+      {
+        const smsReady = isSmsConfigured();
         const prefs = await getNotificationPrefs(admin, {
           inspectorId: row.inspector_id,
           companyId: row.company_id,
@@ -1035,8 +1040,8 @@ export async function GET(req: Request) {
           },
         ];
 
-        const anyDue = reminderTargets.some(
-          (t) => t.phone && t.windows.some((w) => w.on && inReminderWindow(start, now, w.kind)),
+        const anyDue = reminderTargets.some((t) =>
+          t.windows.some((w) => w.on && inReminderWindow(start, now, w.kind)),
         );
 
         if (anyDue) {
@@ -1047,45 +1052,94 @@ export async function GET(req: Request) {
             .maybeSingle();
           const companyName = company?.name || "Your inspector";
 
+          const whenStr = new Intl.DateTimeFormat("en-US", {
+            timeZone,
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          }).format(start);
+
+          let contactsCache: any[] | null = null;
+          const loadContacts = async () => {
+            if (contactsCache) return contactsCache;
+            const { data } = await admin
+              .from("inspection_contacts")
+              .select("email, role, portal_access")
+              .eq("inspection_id", row.id);
+            contactsCache = data || [];
+            return contactsCache;
+          };
+
           for (const target of reminderTargets) {
-            if (!target.phone) continue;
+            const useSms = smsReady && Boolean(target.phone);
             for (const win of target.windows) {
               if (!win.on || !inReminderWindow(start, now, win.kind)) continue;
-              const smsKind = `${target.who}_sms_${win.kind}`;
-              if (await alreadySent(admin, String(row.id), smsKind)) continue;
 
-              const whenStr = new Intl.DateTimeFormat("en-US", {
-                timeZone,
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              }).format(start);
+              if (useSms) {
+                const smsKind = `${target.who}_sms_${win.kind}`;
+                if (await alreadySent(admin, String(row.id), smsKind)) continue;
 
-              const smsResult = await sendSms({
-                to: target.phone,
-                body: smsReminder({ company: companyName, address: getAddress(row), date: whenStr }),
+                const smsResult = await sendSms({
+                  to: target.phone as string,
+                  body: smsReminder({ company: companyName, address: getAddress(row), date: whenStr }),
+                });
+
+                await admin.from("schedule_reminder_logs").insert({
+                  inspection_id: String(row.id),
+                  reminder_type: smsKind,
+                  scheduled_for: start.toISOString(),
+                  sent_at: new Date().toISOString(),
+                  sent_count: smsResult.ok ? 1 : 0,
+                  failed_count: smsResult.ok ? 0 : 1,
+                  metadata: {
+                    channel: "sms",
+                    recipient: target.who,
+                    window: win.kind,
+                    to: smsResult.to || null,
+                    error: smsResult.error || null,
+                    address: getAddress(row),
+                  },
+                });
+
+                results.push({ inspectionId: row.id, kind: smsKind, smsSent: smsResult.ok });
+                continue;
+              }
+
+              // Email fallback (never for demo/sample jobs).
+              if (row.is_demo === true) continue;
+              const emailKind = `${target.who}_email_${win.kind}`;
+              if (await alreadySent(admin, String(row.id), emailKind)) continue;
+              const recipients = reminderEmailsFor(target.who, row, await loadContacts());
+              if (!recipients.length) continue;
+
+              const emailResult = await sendAppointmentReminderEmails(admin, row, {
+                who: target.who,
+                recipients,
+                when: whenStr,
+                address: getAddress(row),
+                noun: getInspectionNoun(row),
+                kind: emailKind,
               });
 
               await admin.from("schedule_reminder_logs").insert({
                 inspection_id: String(row.id),
-                reminder_type: smsKind,
+                reminder_type: emailKind,
                 scheduled_for: start.toISOString(),
                 sent_at: new Date().toISOString(),
-                sent_count: smsResult.ok ? 1 : 0,
-                failed_count: smsResult.ok ? 0 : 1,
+                sent_count: emailResult.sent,
+                failed_count: emailResult.failed,
                 metadata: {
-                  channel: "sms",
+                  channel: "email",
                   recipient: target.who,
                   window: win.kind,
-                  to: smsResult.to || null,
-                  error: smsResult.error || null,
+                  to: emailResult.to,
                   address: getAddress(row),
                 },
               });
 
-              results.push({ inspectionId: row.id, kind: smsKind, smsSent: smsResult.ok });
+              results.push({ inspectionId: row.id, kind: emailKind, emailSent: emailResult.sent });
             }
           }
         }
