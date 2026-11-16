@@ -24,8 +24,11 @@ type Props = {
   // When the identified component's section has system-info material fields,
   // offer a one-tap "add to section info" that ticks the matching checkboxes.
   canFillChecklist?: boolean;
+  /** Starting section for the fill ("" = none matched; the inspector picks). */
   fillSectionLabel?: string;
-  onFillChecklist?: () => Promise<{ written: number; values: string[] }>;
+  /** Every section a photo can fill, for the picker. */
+  fillSections?: string[];
+  onFillChecklist?: (section: string) => Promise<{ written: number; values: string[] }>;
   onSend: (severity: string, context: string) => void;
   onDismiss: () => void;
 };
@@ -37,6 +40,7 @@ export default function IdentifyPeekCard({
   error,
   canFillChecklist,
   fillSectionLabel,
+  fillSections,
   onFillChecklist,
   onSend,
   onDismiss,
@@ -55,15 +59,16 @@ export default function IdentifyPeekCard({
     values: [],
   });
   const [fillError, setFillError] = useState("");
+  const [fillSection, setFillSection] = useState(fillSectionLabel || "");
   // A short, friendly name for the section ("Attic, Insulation & Ventilation" -> "Attic").
-  const shortSection = (fillSectionLabel || "").split(/[,&]/)[0].trim() || "section";
+  const shortSection = (fillSection || "").split(/[,&]/)[0].trim() || "section";
 
-  async function handleFill() {
-    if (!onFillChecklist || fillState === "busy") return;
+  async function handleFill(target = fillSection) {
+    if (!onFillChecklist || fillState === "busy" || !target) return;
     setFillState("busy");
     setFillError("");
     try {
-      const summary = await onFillChecklist();
+      const summary = await onFillChecklist(target);
       setFillSummary(summary);
       setFillState("done");
     } catch (err: any) {
@@ -78,7 +83,7 @@ export default function IdentifyPeekCard({
   // stays as a retry. Still fills only EMPTY fields.
   const autoFilledRef = useRef(false);
   useEffect(() => {
-    if (autoFilledRef.current || !canFillChecklist || !onFillChecklist) return;
+    if (autoFilledRef.current || !canFillChecklist || !onFillChecklist || !fillSection) return;
     autoFilledRef.current = true;
     void handleFill();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,15 +141,39 @@ export default function IdentifyPeekCard({
 
         {canFillChecklist && onFillChecklist && (
           <div className="mt-3 rounded-xl border border-white/12 bg-white/[0.03] p-3">
+            {(fillSections || []).length > 0 && (
+              <label className="mb-2 flex items-center gap-2 text-[11px] text-white/60">
+                <span className="shrink-0 font-semibold uppercase tracking-wide">Fill boxes in</span>
+                <select
+                  value={fillSection}
+                  onChange={(event) => {
+                    setFillSection(event.target.value);
+                    setFillState("idle");
+                    setFillError("");
+                  }}
+                  disabled={busy || fillState === "busy"}
+                  className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/40 px-2 py-1.5 text-xs text-white"
+                >
+                  {!fillSection && <option value="">Choose a section…</option>}
+                  {(fillSections || []).map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {fillState !== "done" ? (
               <>
                 <button
                   type="button"
                   onClick={() => void handleFill()}
-                  disabled={busy || fillState === "busy"}
+                  disabled={busy || fillState === "busy" || !fillSection}
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-400/40 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition active:scale-[0.99] disabled:opacity-50 [touch-action:manipulation]"
                 >
-                  {fillState === "busy"
+                  {!fillSection
+                    ? "Pick a section above to fill its boxes"
+                    : fillState === "busy"
                     ? `Reading ${shortSection} system info…`
                     : fillState === "error"
                       ? `Try again: add ${shortSection} system info`
