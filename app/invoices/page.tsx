@@ -107,20 +107,25 @@ export default async function InvoicesPage() {
 
   const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
 
-  const { data: inspections, error } = await supabase
-    .from("inspections")
-    .select("*")
-    .eq(accessFilter.column, accessFilter.value)
-    .order("created_at", { ascending: false });
-
   // Custom line-item invoices live in a separate `invoices` table. It may not
   // exist yet (migration not run), and RLS scopes rows to the creator, so read
   // defensively: any error (incl. missing table) just yields an empty list.
-  const { data: customInvoiceRows, error: customInvoicesError } = await supabase
-    .from("invoices")
-    .select("*")
-    .eq("inspector_id", user.id)
-    .order("created_at", { ascending: false });
+  // Both reads are independent, so run them together instead of back to back.
+  const [
+    { data: inspections, error },
+    { data: customInvoiceRows, error: customInvoicesError },
+  ] = await Promise.all([
+    supabase
+      .from("inspections")
+      .select("*")
+      .eq(accessFilter.column, accessFilter.value)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("invoices")
+      .select("*")
+      .eq("inspector_id", user.id)
+      .order("created_at", { ascending: false }),
+  ]);
   const customInvoices = customInvoicesError ? [] : customInvoiceRows || [];
 
   if (error) {

@@ -246,6 +246,16 @@ export default async function SchedulePage({
     ? baseInspectionsQuery.eq("company_id", access.value)
     : baseInspectionsQuery.eq("inspector_id", user.id);
 
+  // Only PENDING booking requests are shown here — fetch just those (it loaded
+  // every request ever) and start it now so it runs alongside the jobs query.
+  const bookingRequestsQuery = Promise.resolve(
+    supabase
+      .from("booking_requests")
+      .select("*")
+      .or("status.is.null,status.ilike.pending")
+      .order("created_at", { ascending: false }),
+  );
+
   const { data: inspections, error } = await scopedInspectionsQuery.order(
     "created_at",
     { ascending: false },
@@ -285,12 +295,7 @@ export default async function SchedulePage({
     }
   }
 
-  const { data: bookingRequestsRaw, error: bookingRequestsError } = await supabase
-    .from("booking_requests")
-    .select("*")
-    .order("created_at", {
-      ascending: false,
-    });
+  const { data: bookingRequestsRaw, error: bookingRequestsError } = await bookingRequestsQuery;
 
   const rows = inspections ?? [];
   const bookingRequests = bookingRequestsRaw ?? [];

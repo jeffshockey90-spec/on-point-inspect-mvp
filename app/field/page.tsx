@@ -117,6 +117,8 @@ import {
   buildEquipmentSavePayload,
 } from "../../lib/equipment/equipmentSave";
 
+const FIELD_REPORT_LIMIT = 300;
+
 const SECTIONS = [
   "Exterior",
   "Roof",
@@ -879,7 +881,10 @@ function FieldPageContent() {
       // reports (they clutter the picker and can't be captured against),
       // matching how the main Reports list filters them out.
       .or("is_demo.is.null,is_demo.eq.false")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      // Field capture only needs recent jobs — loading every inspection ever
+      // (full rows) made the field tool slow to start for busy accounts.
+      .limit(FIELD_REPORT_LIMIT);
 
     if (error) {
       const cachedReports = getCachedReportsForOffline();
@@ -896,6 +901,17 @@ function FieldPageContent() {
     }
 
     const nextReports = data || [];
+    // A deep link to an older inspection (?report=…) must still resolve even
+    // when it falls outside the recent window.
+    const linkedId = String(reportFromUrl || "");
+    if (linkedId && !nextReports.some((report: any) => String(report.id) === linkedId)) {
+      const { data: linked } = await supabase
+        .from("inspections")
+        .select("*")
+        .eq("id", linkedId)
+        .maybeSingle();
+      if (linked) nextReports.push(linked);
+    }
     setReports(nextReports);
     cacheReportsForOffline(nextReports);
 
@@ -987,11 +1003,19 @@ function FieldPageContent() {
     };
   }, [selectedReport, queueTick]);
 
+  // Which finding the media grid currently shows. A queue/sync tick (queueTick
+  // changes constantly while capturing) only REFRESHES the same finding's media
+  // — it used to blank the grid to "Loading…" and back on every capture.
+  const existingMediaKeyRef = useRef("");
+
   useEffect(() => {
     let cancelled = false;
 
     async function loadExistingFindingMedia() {
-      setExistingFindingMedia([]);
+      const key = `${photoType}|${selectedReport}|${existingFindingId}`;
+      const sameFinding = existingMediaKeyRef.current === key;
+      existingMediaKeyRef.current = key;
+      if (!sameFinding) setExistingFindingMedia([]);
 
       if (
         photoType !== "existing_finding" ||
@@ -999,10 +1023,12 @@ function FieldPageContent() {
         !existingFindingId ||
         !isOnline()
       ) {
+        if (sameFinding) setExistingFindingMedia([]);
         return;
       }
 
-      setLoadingExistingFindingMedia(true);
+      // Only show the blocking loading state for a newly selected finding.
+      if (!sameFinding) setLoadingExistingFindingMedia(true);
 
       const { data, error } = await supabase
         .from("photos")

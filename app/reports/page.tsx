@@ -12,6 +12,7 @@ import {
   getSignedAgreementKey,
   getAgreementStatsForInspection,
 } from "../../lib/inspectionStatus";
+import { fetchViewEvents } from "../../lib/viewEvents";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -315,12 +316,9 @@ export default async function ReportsPage() {
         // SELECT policy, so the user client silently returns nothing (all reports
         // show 0 views). Scoped to this owner's own inspectionIds, so it's safe —
         // same pattern the owner dashboard / analytics / "who viewed" already use.
-        storageSupabase
-          .from("inspection_view_events")
-          .select("*")
-          .in("inspection_id_bigint", inspectionIds)
-          .order("created_at", { ascending: false })
-          .limit(500)
+        // All of each report's events (paged, minimal columns) — a global
+        // .limit(500) left older reports showing "0 views" (lib/viewEvents).
+        fetchViewEvents(storageSupabase, inspectionIds)
       : Promise.resolve(emptyResult),
     inspectionIds.length > 0
       ? supabase.from("inspection_contacts").select("*").in("inspection_id", inspectionIds)
