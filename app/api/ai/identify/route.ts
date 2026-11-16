@@ -4,6 +4,7 @@ import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import {
   normalizeIdentifyResult,
+  sanitizeSectionList,
   IDENTIFY_SECTIONS,
   IDENTIFY_SEVERITIES,
 } from "../../../../lib/ai/identifyResult";
@@ -28,6 +29,10 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({} as any));
     const imageDataUrl: string = typeof body?.imageDataUrl === "string" ? body.imageDataUrl : "";
     const fallbackSection: string = typeof body?.section === "string" ? body.section : "Exterior";
+    // The report's ACTIVE sections (custom ones like "Shed" included), sent by the
+    // camera. Empty → the built-in list.
+    const reportSections = sanitizeSectionList(body?.availableSections);
+    const sectionChoices: readonly string[] = reportSections.length ? reportSections : IDENTIFY_SECTIONS;
 
     if (!imageDataUrl || !imageDataUrl.startsWith("data:image/")) {
       return NextResponse.json(
@@ -48,7 +53,7 @@ Rules:
 - HVAC unit type — decide from the unit's visible FORM, never by assuming "heat pump":
   - An OUTDOOR unit sitting on a pad or wall bracket with a fan, a refrigerant line set, and a compressor is the CONDENSING UNIT. A heat pump and an air-conditioner condenser look nearly identical from outside — do NOT guess between them. Read the data plate (a heat pump is labeled as such and rates both heating and cooling); if the plate is not legible, label it "outdoor condensing unit" rather than committing to heat pump vs. AC.
   - An INDOOR cabinet connected to ductwork that holds a blower and coil is the AIR HANDLER (electric / heat-pump systems) — it is NOT a "heat pump". If that indoor cabinet instead has gas or oil burners and a flue/vent pipe, it is a FURNACE. The indoor unit of a heat-pump system is an air handler; never label an indoor unit "heat pump".
-- "section": the single best report section from this list, character-for-character: ${IDENTIFY_SECTIONS.join(", ")}.
+- "section": the single best report section from this list, character-for-character: ${sectionChoices.join(", ")}. Some sections may be specific to this report (e.g. "Shed", "Pool", "Detached Garage") — when the component clearly belongs to one of those, choose it over a broader section.
 - "hazard": true ONLY for a WELL-KNOWN, widely-recognized inspection hazard that is identifiable from the component itself — e.g. a Federal Pacific Stab-Lok or Zinsco/Sylvania panel, a TPR valve with no discharge pipe, knob-and-tube wiring, a missing garage fire separation. Otherwise false. Never guess a hazard.
 - "hazardNote": one short clause on why it matters (general, cautious wording). Empty when hazard is false.
 - "severity": one of ${IDENTIFY_SEVERITIES.join(", ")}. Choose a CONSERVATIVE severity ONLY when a defect or hazard is visibly supported. If it's just a normal component with no visible problem, use "Informational".
@@ -87,7 +92,7 @@ Return exactly:
       parsed = {};
     }
 
-    return NextResponse.json(normalizeIdentifyResult(parsed, fallbackSection));
+    return NextResponse.json(normalizeIdentifyResult(parsed, fallbackSection, reportSections));
   } catch (error: any) {
     console.error("AI identify error", error);
     const serviceError = classifyAIServiceError(error);

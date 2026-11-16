@@ -1094,6 +1094,9 @@ export default function AILiveInspectionCamera({
           imageDataUrl: frame,
           inspectionId: selectedReport,
           section: currentSection,
+          // The report's own sections (custom ones included) so identify can
+          // route to e.g. a "Shed" section instead of only the built-in list.
+          availableSections: sections,
         }),
       });
       const data = await res.json().catch(() => ({}));
