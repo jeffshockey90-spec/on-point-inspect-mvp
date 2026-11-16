@@ -53,6 +53,7 @@ const PhotoMarkupEditor = dynamic(() => import("./PhotoMarkupEditor"), {
 });
 import FieldFindingLinker from "./FieldFindingLinker";
 import { useCompassHeading } from "./useCompassHeading";
+import { allowRecovery, MUTED_GRACE_MS, BLACK_FRAME_CHECK_MS, CALL_INTERRUPTED_MESSAGE } from "../lib/cameraRecovery";
 
 type Stage =
   | "idle"
@@ -184,6 +185,11 @@ export default function AILiveInspectionCamera({
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // Set once a phone call (or another app) has taken the mic: the camera then
+  // opens video-only for the rest of this session so the call can't black out
+  // the preview again. Plus recent recovery attempts (lib/cameraRecovery).
+  const audioBlockedRef = useRef(false);
+  const recoveryAttemptsRef = useRef<number[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const hardwareZoomSupportedRef = useRef(false);
@@ -616,6 +622,7 @@ export default function AILiveInspectionCamera({
 
       let stream: MediaStream;
       try {
+        if (audioBlockedRef.current) throw new Error("audio blocked earlier this session");
         stream = await navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
           audio: {
@@ -670,6 +677,29 @@ export default function AILiveInspectionCamera({
         await videoRef.current.play().catch(() => undefined);
       }
 
+      // Phone-call interruption: iOS mutes (or ends) the video track while the
+      // app stays on screen — black preview, no visibility change. Re-open
+      // video-only when that happens, and check the preview actually shows
+      // frames shortly after starting.
+      if (videoTrack) {
+        const onInterrupted = (reason: string) => {
+          window.setTimeout(() => {
+            if (streamRef.current !== stream) return; // already replaced/stopped
+            if (reason === "mute" && !videoTrack.muted) return; // came back by itself
+            if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+            void recoverInterruptedCamera(reason);
+          }, MUTED_GRACE_MS);
+        };
+        videoTrack.addEventListener("mute", () => onInterrupted("mute"));
+        videoTrack.addEventListener("ended", () => onInterrupted("ended"));
+      }
+      window.setTimeout(() => {
+        const video = videoRef.current;
+        if (streamRef.current !== stream || !video) return;
+        if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+        if (video.videoWidth === 0 || videoTrack?.muted) void recoverInterruptedCamera("black-frames");
+      }, BLACK_FRAME_CHECK_MS);
+
       // Detect a separate ultra-wide back camera so we can offer a REAL .5x by
       // switching lenses. Only runs on the default (facingMode) path for the back
       // camera; it's read-only device discovery and never alters the live stream,
@@ -707,6 +737,37 @@ export default function AILiveInspectionCamera({
     } finally {
       setStarting(false);
     }
+  }
+
+  // Re-open the camera VIDEO-ONLY after a phone call (or another app) took the
+  // mic and iOS interrupted the capture session. Rate-limited; after too many
+  // tries it stops and shows a Retry button instead of looping.
+  async function recoverInterruptedCamera(reason: string) {
+    const gate = allowRecovery(recoveryAttemptsRef.current, Date.now());
+    recoveryAttemptsRef.current = gate.attempts;
+    logCam("camera:interrupted", { reason, allowed: gate.allowed });
+    if (!gate.allowed) {
+      setCameraError(CALL_INTERRUPTED_MESSAGE);
+      return;
+    }
+    audioBlockedRef.current = true;
+    try {
+      streamRef.current?.getTracks?.().forEach((t) => t.stop());
+    } catch {}
+    streamRef.current = null;
+    await startCamera(facingMode);
+  }
+
+  // Manual retry from the error card (also tries the mic again — the call may
+  // have ended).
+  async function retryCamera() {
+    recoveryAttemptsRef.current = [];
+    audioBlockedRef.current = false;
+    try {
+      streamRef.current?.getTracks?.().forEach((t) => t.stop());
+    } catch {}
+    streamRef.current = null;
+    await startCamera(facingMode);
   }
 
   // Switch between the main (wide) and ultra-wide (.5x) back cameras. Additive:
@@ -1206,8 +1267,9 @@ export default function AILiveInspectionCamera({
   async function fillSectionInfoFromIdentify(targetSection: string): Promise<{
     written: number;
     values: string[];
+    found: { group: string; value: string }[];
   }> {
-    if (!identify || !selectedReport || !targetSection) return { written: 0, values: [] };
+    if (!identify || !selectedReport || !targetSection) return { written: 0, values: [], found: [] };
     const res = await fetch("/api/ai/section-materials", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1216,22 +1278,44 @@ export default function AILiveInspectionCamera({
         inspectionId: selectedReport,
         section: targetSection,
         imageDataUrl: identify.frame,
+        // Read only — nothing is ticked until the inspector approves.
+        preview: true,
       }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data?.error || "Couldn't read that — try again.");
     const info =
       data?.sectionInfo && typeof data.sectionInfo === "object" ? data.sectionInfo : {};
-    const values = Object.entries(info)
+    const found = Object.entries(info)
       .map(([group, value]) => ({ group, value: String(value || "").trim() }))
-      .filter(({ value }) => value && value.toLowerCase() !== "unknown")
-      .map(({ group, value }) => `${group} · ${value}`);
+      .filter(({ value }) => value && value.toLowerCase() !== "unknown");
+    const values = found.map(({ group, value }) => `${group} · ${value}`);
     logCam("identify:fill", {
       section: targetSection,
       written: Number(data?.written || 0),
       count: values.length,
     });
-    return { written: Number(data?.written || 0), values };
+    return { written: 0, values, found };
+  }
+
+  // Write ONLY the values the inspector approved on the Identify card.
+  async function applyIdentifyFills(
+    targetSection: string,
+    approved: { group: string; value: string }[],
+  ): Promise<number> {
+    if (!selectedReport || !targetSection || !approved.length) return 0;
+    const sectionInfo: Record<string, string> = {};
+    for (const { group, value } of approved) sectionInfo[group] = value;
+    const res = await fetch("/api/ai/section-materials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({ inspectionId: selectedReport, section: targetSection, approve: true, sectionInfo }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || "Couldn't add those — try again.");
+    logCam("identify:apply", { section: targetSection, count: approved.length, written: Number(data?.written || 0) });
+    return Number(data?.written || 0);
   }
 
   // --- Async draft helpers ---------------------------------------------------
@@ -3158,6 +3242,14 @@ export default function AILiveInspectionCamera({
       {cameraError && (
         <div className="absolute left-1/2 top-1/2 z-20 w-[90%] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/50 bg-red-500/10 p-4 text-center text-sm font-bold text-red-300">
           {cameraError}
+          <button
+            type="button"
+            onClick={() => void retryCamera()}
+            disabled={starting}
+            className="mt-3 block w-full rounded-lg border border-red-400/50 bg-black/40 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50 [touch-action:manipulation]"
+          >
+            {starting ? "Starting…" : "Retry camera"}
+          </button>
         </div>
       )}
 
@@ -3756,6 +3848,7 @@ export default function AILiveInspectionCamera({
           fillSectionLabel={identifyFillSection}
           fillSections={fillableSections}
           onFillChecklist={fillSectionInfoFromIdentify}
+          onApplyFills={applyIdentifyFills}
           onSend={(severity, context) => void sendIdentifyToDraft(severity, context)}
           onDismiss={dismissIdentify}
         />
