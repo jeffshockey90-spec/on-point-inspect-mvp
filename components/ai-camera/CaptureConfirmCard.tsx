@@ -144,7 +144,7 @@ export default function CaptureConfirmCard({
 
   const sectionFills = useMemo<ChecklistFill[]>(() => {
     if (edited.kind === "equipment") return buildEquipmentFills(edited as Record<string, any>);
-    if (edited.kind === "finding") return buildMaterialFills(edited.section, edited.sectionInfo);
+    if (edited.kind === "finding") return buildMaterialFills(edited.section, edited.sectionInfo, edited.sectionFieldMap);
     return [];
   }, [edited]);
   const enabledFills = useMemo(

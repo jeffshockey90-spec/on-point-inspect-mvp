@@ -1912,6 +1912,9 @@ function FieldPageContent() {
       formData.append("note", note);
       formData.append("section", section);
       formData.append("severity", severity);
+      // The report's own sections (custom ones like "Shed" included) so the AI
+      // can keep / choose them instead of only the built-in list.
+      formData.append("availableSections", JSON.stringify(activeSections));
 
       const res = await fetch("/api/ai/defect-recognition", {
         method: "POST",
@@ -1952,7 +1955,7 @@ function FieldPageContent() {
       // fills only empty fields, never overwrites the inspector's picks.
       let filledNote = "";
       try {
-        const fills = buildMaterialFills(data.section || section, data.sectionInfo);
+        const fills = buildMaterialFills(data.section || section, data.sectionInfo, data.sectionFieldMap);
         if (fills.length && selectedReport) {
           const written = await writeChecklistFills(supabase, selectedReport, fills);
           if (written > 0) {

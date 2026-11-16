@@ -12,6 +12,7 @@ import {
   buildMaterialFills,
   writeChecklistFills,
 } from "../../../../lib/ai/checklistAutofill";
+import { loadChecklistOptionRows, materialFieldsFor } from "../../../../lib/customChecklist";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,7 +46,13 @@ export async function POST(req: Request) {
         ? [String(body.imageDataUrl)]
         : [];
 
-    const groups = MATERIAL_FIELDS[section];
+    // Built-in photo-readable fields (+ the inspector's own added options), or a
+    // custom section's inspector-defined fields (e.g. "Shed" > "Siding").
+    const optionRows = section && images.length
+      ? await loadChecklistOptionRows(getAdminClient(), user.id)
+      : [];
+    const groups = section ? materialFieldsFor(section, optionRows) : [];
+    const isCustomSection = Boolean(section) && !MATERIAL_FIELDS[section];
     if (!section || !groups || !groups.length || !images.length) {
       // Nothing this section can auto-identify, or no image — no-op.
       return NextResponse.json({ sectionInfo: {} }, { headers: NO_STORE });
@@ -63,6 +70,13 @@ export async function POST(req: Request) {
         // engine checks an existing brand or adds a new one). Material fields
         // stay constrained to their option list.
         const isBrand = /brand|manufacturer/i.test(g.groupTitle);
+        // Inspector-defined fields on a custom section: prefer their options,
+        // but they may be short or empty, so allow a short plain value.
+        if (isCustomSection) {
+          return g.options.length
+            ? `- "${g.groupTitle}": one of [${g.options.join(", ")}], or a short specific value if it is clearly something else, or "Unknown"`
+            : `- "${g.groupTitle}": a short specific value describing what is clearly visible for this field, or "Unknown"`;
+        }
         return isBrand
           ? `- "${g.groupTitle}": the exact brand name read from the logo/badge/nameplate (e.g. Bosch, Samsung, LG, Whirlpool, KitchenAid, Frigidaire, GE, Maytag; for an electrical panel: Square D, Siemens, Federal Pacific, Zinsco, etc.), or "Unknown" if no brand is visible`
           : `- "${g.groupTitle}": one of [${g.options.join(", ")}] or "Unknown"`;
@@ -121,7 +135,7 @@ Return ONLY valid JSON: { "sectionInfo": { <field>: <value>, ... } } — include
         const admin = getAdminClient();
         const authorized = await authorizeInspection(admin, user.id, inspectionId, "id");
         if (authorized) {
-          const fills = buildMaterialFills(section, sectionInfo);
+          const fills = buildMaterialFills(section, sectionInfo, { [section]: groups });
           // Stamp inspector_id = the acting inspector: this is a service-role
           // client, so otherwise the rows save with inspector_id = null and the
           // RLS'd builder read (keyed on inspector_id) can't see them.

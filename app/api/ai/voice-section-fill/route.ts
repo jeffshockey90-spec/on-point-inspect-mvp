@@ -9,7 +9,9 @@ import {
 import { openai, getFastAIModel, getAIVersion, requireOpenAIKey } from "../../../../lib/openai";
 import { logAIEvent } from "../../../../lib/logging";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
-import { CHECKLIST_LIBRARY } from "../../../../lib/checklistLibrary";
+import { type ChecklistGroup } from "../../../../lib/checklistLibrary";
+import { checklistLibraryWithCustom, loadChecklistOptionRows } from "../../../../lib/customChecklist";
+import { loadActiveReportSections } from "../../../../lib/reportSections";
 import { writeChecklistFills, type ChecklistFill } from "../../../../lib/ai/checklistAutofill";
 
 export const runtime = "nodejs";
@@ -27,8 +29,12 @@ function normKey(value: string) {
 // The allowed option list for a (section, group), so the camera can offer a
 // quick-correct dropdown on each voice-filled box if the recognizer misheard.
 // Returns [] for free-text groups (no fixed options).
-function getGroupOptions(section: string, groupTitle: string): string[] {
-  const groups = (CHECKLIST_LIBRARY as any)[section];
+function getGroupOptions(
+  library: Record<string, ChecklistGroup[]>,
+  section: string,
+  groupTitle: string,
+): string[] {
+  const groups = (library as any)[section];
   if (!groups) return [];
   const group = groups.find((g: any) => normKey(g.title) === normKey(groupTitle));
   if (!group || group.type === "text") return [];
@@ -136,9 +142,11 @@ function fuzzyMatchOption(value: string, options: string[]): string | null {
 
 // Compact vocabulary of every section-info field + its allowed options, so the
 // model knows exactly which checkboxes exist and what they can be set to.
-function buildVocab() {
+// `library` = the built-in checklist + the inspector's added options + this
+// report's custom sections' inspector-defined fields (e.g. "Shed" > "Siding").
+function buildVocab(library: Record<string, ChecklistGroup[]>) {
   const lines: string[] = [];
-  for (const [section, groups] of Object.entries(CHECKLIST_LIBRARY)) {
+  for (const [section, groups] of Object.entries(library)) {
     // Include EVERY section — all checkboxes are voice-fillable, including
     // Inspection Details (Style, Type of Building, weather, attendance).
     for (const g of groups as any[]) {
@@ -146,6 +154,10 @@ function buildVocab() {
         lines.push(`${section} > ${g.title}: <number or short text>`);
       } else if (Array.isArray(g.options) && g.options.length) {
         lines.push(`${section} > ${g.title}: [${g.options.join(", ")}]`);
+      } else {
+        // A custom field with no options yet: any short spoken value becomes a
+        // new checkbox option for it.
+        lines.push(`${section} > ${g.title}: <short value>`);
       }
     }
   }
@@ -175,6 +187,14 @@ export async function POST(req: Request) {
 
     const inspection = await authorizeInspection(supabaseAdmin, user.id, inspectionId, "id");
     if (!inspection) return notFound("Inspection not found.");
+
+    // The checklist as THIS inspector sees it on THIS report: built-in fields,
+    // their own added options, and custom sections' own fields.
+    const [reportSections, optionRows] = await Promise.all([
+      loadActiveReportSections(supabaseAdmin, inspectionId),
+      loadChecklistOptionRows(supabaseAdmin, user.id),
+    ]);
+    const library = checklistLibraryWithCustom(reportSections, optionRows);
 
     const systemPrompt = `You convert a home inspector's SPOKEN notes into section-info checklist selections.
 
@@ -206,7 +226,7 @@ Rules:
 - Return ONLY valid JSON: { "fills": [ { "section": "", "field": "", "value": "", "op": "add" } ] }. Omit "op" or use "add" for a normal selection; use "remove" to uncheck.`;
 
     const userPrompt = `Checklist (Section > Field: options):
-${buildVocab()}
+${buildVocab(library)}
 
 Inspector said:
 """
@@ -216,7 +236,7 @@ ${transcript}
 Return the JSON fills now.`;
 
     // Fast model: this is constrained slot-filling (map spoken words to a fixed
-    // checklist option list), re-validated server-side against CHECKLIST_LIBRARY
+    // checklist option list), re-validated server-side against the checklist
     // below — not prose generation — so the fast model is equivalent here and
     // noticeably quicker. (Writer wording lives in ai-capture, left untouched.)
     const model = getFastAIModel();
@@ -261,7 +281,7 @@ Return the JSON fills now.`;
     // any fill whose section name didn't match verbatim → lots of "didn't catch".)
     const sectionByNorm: Record<string, string> = {};
     const fieldIndex: Record<string, { section: string; group: any }> = {};
-    for (const [sec, groups] of Object.entries(CHECKLIST_LIBRARY)) {
+    for (const [sec, groups] of Object.entries(library)) {
       sectionByNorm[normKey(sec)] = sec;
       for (const g of groups as any[]) {
         const k = normKey((g as any).title);
@@ -284,11 +304,11 @@ Return the JSON fills now.`;
       // field's own home section so a mislabeled section still resolves.
       let section = "";
       let group: any = null;
-      const canonSection = (CHECKLIST_LIBRARY as any)[sectionRaw]
+      const canonSection = (library as any)[sectionRaw]
         ? sectionRaw
         : sectionByNorm[normKey(sectionRaw)] || "";
       if (canonSection) {
-        const g = ((CHECKLIST_LIBRARY as any)[canonSection] || []).find(
+        const g = ((library as any)[canonSection] || []).find(
           (x: any) => normKey(x.title) === normKey(field),
         );
         if (g) {
@@ -403,7 +423,7 @@ Return the JSON fills now.`;
         group: fill.groupTitle,
         value: fill.value,
         // Options for the camera's quick-correct dropdown (empty for text fields).
-        options: fill.kind === "text" ? [] : getGroupOptions(fill.section, fill.groupTitle),
+        options: fill.kind === "text" ? [] : getGroupOptions(library, fill.section, fill.groupTitle),
       });
     }
 
