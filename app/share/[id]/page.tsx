@@ -62,6 +62,7 @@ import {
 } from "../../../lib/translate";
 import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
 import { sectionsWithContent } from "../../../lib/report/sectionsWithContent";
+import { getCachedSignedUrls } from "../../../lib/signedUrlCache";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -637,113 +638,50 @@ function isVideoMedia(media: any, urlValue?: string) {
   );
 }
 
-const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
-const SIGNED_URL_CACHE_TTL_MS = 1000 * 60 * 45;
-
-async function createSignedUrlMap(paths: string[]) {
-  const uniquePaths = Array.from(
-    new Set(paths.filter((path) => Boolean(path)))
-  );
-
+// Signed photo URLs go through the persistent cache shared with the report
+// builder (lib/signedUrlCache, same variants and transform). The old per-server
+// in-memory cache was lost on every cold start / after 45 minutes, so most
+// opens re-signed every photo: new URLs → the browser re-downloaded every
+// image. Legacy previews were also signed one request at a time.
+async function signShareBatch(paths: string[], options?: Record<string, any>) {
   const signedMap: Record<string, string> = {};
-
-  if (uniquePaths.length === 0) return signedMap;
-
-  const now = Date.now();
-  const missingPaths: string[] = [];
-
-  uniquePaths.forEach((path) => {
-    const cached = signedUrlCache.get(path);
-
-    if (cached && cached.expiresAt > now) {
-      signedMap[path] = cached.url;
-      return;
-    }
-
-    missingPaths.push(path);
-  });
-
-  if (missingPaths.length === 0) return signedMap;
-
   const chunkSize = 50;
-
   await Promise.all(
-    Array.from({ length: Math.ceil(missingPaths.length / chunkSize) }).map(
-      async (_, chunkIndex) => {
-        const chunk = missingPaths.slice(
-          chunkIndex * chunkSize,
-          chunkIndex * chunkSize + chunkSize
-        );
-
-        const { data, error } = await supabase.storage
-          .from("inspection-photos")
-          .createSignedUrls(chunk, 60 * 60 * 24 * 7);
-
-        if (error) {
-          console.error("Share batch signed photo error:", error);
-          return;
-        }
-
-        (data || []).forEach((item: any, index: number) => {
-          const path = item?.path || chunk[index];
-          if (path && item?.signedUrl) {
-            signedMap[path] = item.signedUrl;
-            signedUrlCache.set(path, {
-              url: item.signedUrl,
-              expiresAt: now + SIGNED_URL_CACHE_TTL_MS,
-            });
-          }
-        });
+    Array.from({ length: Math.ceil(paths.length / chunkSize) }).map(async (_, chunkIndex) => {
+      const chunk = paths.slice(chunkIndex * chunkSize, chunkIndex * chunkSize + chunkSize);
+      const { data, error } = await supabase.storage
+        .from("inspection-photos")
+        .createSignedUrls(chunk, 60 * 60 * 24 * 7, options);
+      if (error) {
+        console.error("Share batch signed photo error:", error);
+        return;
       }
-    )
+      (data || []).forEach((item: any, index: number) => {
+        const path = item?.path || chunk[index];
+        if (path && item?.signedUrl) signedMap[path] = item.signedUrl;
+      });
+    }),
   );
-
   return signedMap;
 }
 
+async function createSignedUrlMap(paths: string[]) {
+  return getCachedSignedUrls({
+    paths,
+    variant: "raw",
+    ttlSeconds: 60 * 60 * 24 * 7,
+    sign: (missing) => signShareBatch(missing),
+  });
+}
 
 async function createSignedImagePreviewUrlMap(paths: string[]) {
-  const uniquePaths = Array.from(
-    new Set(paths.filter((path) => Boolean(path))),
-  );
-
-  const signedMap: Record<string, string> = {};
-
-  if (uniquePaths.length === 0) return signedMap;
-
-  const chunkSize = 12;
-
-  for (let index = 0; index < uniquePaths.length; index += chunkSize) {
-    const chunk = uniquePaths.slice(index, index + chunkSize);
-
-    await Promise.all(
-      chunk.map(async (path) => {
-        const { data, error } = await supabase.storage
-          .from("inspection-photos")
-          .createSignedUrl(path, 60 * 60 * 24 * 7, {
-            transform: {
-              width: 640,
-              quality: 72,
-              resize: "contain",
-            },
-          });
-
-        if (error) {
-          console.error("Share preview signed photo error:", {
-            path,
-            error,
-          });
-          return;
-        }
-
-        if (data?.signedUrl) {
-          signedMap[path] = data.signedUrl;
-        }
-      }),
-    );
-  }
-
-  return signedMap;
+  return getCachedSignedUrls({
+    paths,
+    variant: "preview640q72",
+    ttlSeconds: 60 * 60 * 24 * 7,
+    sign: (missing) =>
+      signShareBatch(missing, { transform: { width: 640, quality: 72, resize: "contain" } }),
+  });
 }
 
 function isVideoPathOrPhoto(photo: any, pathValue: any = "") {
@@ -1289,6 +1227,44 @@ export default async function PublicSharePage({
     }).catch(() => {});
   }
 
+  // Start the later, independent reads NOW so they run alongside the findings
+  // wave below instead of one after another further down the page (each used to
+  // be its own serial round-trip on every report open). Supabase queries only
+  // execute when awaited, so Promise.resolve kicks them off here; each is still
+  // awaited exactly where it was before, with the same result.
+  const referencePhotosQuery = Promise.resolve(
+    supabase
+      .from("section_reference_photos")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true }),
+  );
+  const disclaimersQuery = Promise.resolve(
+    supabase
+      .from("report_disclaimers")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      .order("created_at", { ascending: true }),
+  );
+  const companyQuery = inspection?.company_id
+    ? Promise.resolve(
+        supabase.from("companies").select("*").eq("id", inspection.company_id).maybeSingle(),
+      )
+    : Promise.resolve({ data: null as any });
+  const equipmentQuery = Promise.resolve(
+    supabase
+      .from("equipment_inventory")
+      .select("*")
+      .eq("inspection_id", inspectionId)
+      // Hide equipment still awaiting inspector review (async background drafts).
+      .not("needs_review", "is", true)
+      .order("created_at", { ascending: true }),
+  );
+  const environmentalQuery = Promise.all([
+    supabase.from("mold_tests").select("*").eq("inspection_id", inspectionId).maybeSingle(),
+    supabase.from("radon_tests").select("*").eq("inspection_id", inspectionId).maybeSingle(),
+  ]);
+
   // These three reads only depend on inspectionId and are independent of each
   // other — run them in one parallel wave instead of three serial round-trips.
   const [
@@ -1485,11 +1461,8 @@ export default async function PublicSharePage({
   let companyDefaultLang = "en";
   try {
     if (inspection.company_id) {
-      const { data: co } = await supabase
-        .from("companies")
-        .select("preferred_language")
-        .eq("id", inspection.company_id)
-        .maybeSingle();
+      // Same company row as companyQuery (select *), loaded once.
+      const { data: co } = await companyQuery;
       companyDefaultLang = String((co as any)?.preferred_language || "en").toLowerCase();
     }
   } catch {
@@ -1567,11 +1540,8 @@ export default async function PublicSharePage({
   let showCommonGroundCosts = false;
   if (inspection.company_id) {
     try {
-      const { data: cgSettings } = await supabase
-        .from("companies")
-        .select("show_common_ground, show_common_ground_costs")
-        .eq("id", inspection.company_id)
-        .maybeSingle();
+      // Same company row as companyQuery (select *), loaded once.
+      const { data: cgSettings } = await companyQuery;
       const cgOn = (cgSettings as any)?.show_common_ground !== false; // default on
       showCommonGroundCosts = Boolean((cgSettings as any)?.show_common_ground_costs);
       if (cgOn) {
@@ -1678,11 +1648,7 @@ export default async function PublicSharePage({
     photosByLimitationId
   );
 
-  const { data: sectionReferencePhotosRaw } = await supabase
-    .from("section_reference_photos")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .order("created_at", { ascending: true });
+  const { data: sectionReferencePhotosRaw } = await referencePhotosQuery;
 
   const referencePhotoPaths = (sectionReferencePhotosRaw || [])
     .map((photo: any) => photo.file_path)
@@ -1726,11 +1692,7 @@ export default async function PublicSharePage({
     {}
   );
 
-  const { data: reportDisclaimers } = await supabase
-    .from("report_disclaimers")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    .order("created_at", { ascending: true });
+  const { data: reportDisclaimers } = await disclaimersQuery;
 
   // Realtor co-branding: if the report's agent set up a profile (photo/name/
   // brokerage in the Realtor Portal), surface it on the report. Best-effort.
@@ -1751,13 +1713,7 @@ export default async function PublicSharePage({
     if (rp && (rp.photo_url || rp.name)) realtorBranding = rp as any;
   }
 
-  const { data: standardsCompany } = inspection?.company_id
-    ? await supabase
-        .from("companies")
-        .select("*")
-        .eq("id", inspection.company_id)
-        .maybeSingle()
-    : { data: null };
+  const { data: standardsCompany } = await companyQuery;
 
   const standardsOfPractice = getCompanyStandards(standardsCompany);
   const showStandardsInShare = shouldShowStandardsInShare(standardsCompany);
@@ -1788,13 +1744,7 @@ export default async function PublicSharePage({
     }
   }
 
-  const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
-    .from("equipment_inventory")
-    .select("*")
-    .eq("inspection_id", inspectionId)
-    // Hide equipment still awaiting inspector review (async background drafts).
-    .not("needs_review", "is", true)
-    .order("created_at", { ascending: true });
+  const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await equipmentQuery;
 
   if (equipmentInventoryError) {
     console.error("Share equipment inventory load error:", equipmentInventoryError);
@@ -1831,10 +1781,7 @@ export default async function PublicSharePage({
       "",
   }));
 
-  const [{ data: moldTest }, { data: radonTest }] = await Promise.all([
-    supabase.from("mold_tests").select("*").eq("inspection_id", inspectionId).maybeSingle(),
-    supabase.from("radon_tests").select("*").eq("inspection_id", inspectionId).maybeSingle(),
-  ]);
+  const [{ data: moldTest }, { data: radonTest }] = await environmentalQuery;
 
   const moldReportUrl = moldTest?.lab_report_url || "";
   const radonReportUrl = radonTest?.report_url || "";

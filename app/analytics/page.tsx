@@ -6,6 +6,7 @@ import { createClient } from "../../utils/supabase/server";
 import { resolveInspectionAccessFilter, resolveTeamInspectorIds } from "../../lib/inspectionAccess";
 import { hasRadonService, hasMoldService } from "../../lib/environmental/service";
 import { isPaymentSettled, isPaymentWaived } from "../../lib/paymentSettled";
+import { fetchViewEvents } from "../../lib/viewEvents";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -318,11 +319,9 @@ export default async function AnalyticsPage() {
   const emptyRes = { data: [] as any[], error: null } as any;
   const [viewEventsResult, ownCompany, emailLogRows, secure24Bundle] = await Promise.all([
     inspectionIds.length > 0
-      ? supabase
-          .from("inspection_view_events")
-          .select("*")
-          .in("inspection_id_bigint", inspectionIds)
-          .order("created_at", { ascending: false })
+      ? // Paged + chunked (one giant .in() over every inspection could exceed
+        // the request URL limit). All columns: reading-time metrics use them.
+        fetchViewEvents(supabase, inspectionIds, { columns: "*" })
       : Promise.resolve(emptyRes),
     // Inspector's own company (for their Google review count) — a two-step chain.
     (async () => {

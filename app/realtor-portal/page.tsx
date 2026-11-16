@@ -260,22 +260,39 @@ export default async function RealtorPortalPage({
 
   // Realtor's own profile (headshot/logo + name + brokerage). Graceful if the
   // realtor_profiles table isn't set up yet — falls back to an empty profile.
-  const { data: realtorProfileRow } = await admin
-    .from("realtor_profiles")
-    .select("email,name,brokerage,photo_url")
-    .ilike("email", lookupEmail)
-    .maybeSingle();
+  // The profile, contact-link and agent-field lookups are independent — run
+  // them together instead of one after another.
+  const inspectionsFromFieldsQuery = Promise.resolve(
+    admin
+      .from("inspections")
+      .select("*")
+      .or(
+        [
+          `realtor_email.ilike.${lookupEmail}`,
+          `agent_email.ilike.${lookupEmail}`,
+          `buyer_agent_email.ilike.${lookupEmail}`,
+          `buyers_agent_email.ilike.${lookupEmail}`,
+          `transaction_coordinator_email.ilike.${lookupEmail}`,
+        ].join(",")
+      ),
+  );
+  const [{ data: realtorProfileRow }, { data: contactMatchesRaw }] = await Promise.all([
+    admin
+      .from("realtor_profiles")
+      .select("email,name,brokerage,photo_url")
+      .ilike("email", lookupEmail)
+      .maybeSingle(),
+    admin
+      .from("inspection_contacts")
+      .select("*")
+      .ilike("email", lookupEmail),
+  ]);
   const realtorProfile = realtorProfileRow || {
     email: lookupEmail,
     name: "",
     brokerage: "",
     photo_url: "",
   };
-
-  const { data: contactMatchesRaw } = await admin
-    .from("inspection_contacts")
-    .select("*")
-    .ilike("email", lookupEmail);
 
   const contactMatches = (contactMatchesRaw || []).filter((contact: any) => {
     if (contact?.portal_access === false) return false;
@@ -297,18 +314,7 @@ export default async function RealtorPortalPage({
     inspectionsFromContacts = data || [];
   }
 
-  const { data: inspectionsFromFieldsRaw } = await admin
-    .from("inspections")
-    .select("*")
-    .or(
-      [
-        `realtor_email.ilike.${lookupEmail}`,
-        `agent_email.ilike.${lookupEmail}`,
-        `buyer_agent_email.ilike.${lookupEmail}`,
-        `buyers_agent_email.ilike.${lookupEmail}`,
-        `transaction_coordinator_email.ilike.${lookupEmail}`,
-      ].join(",")
-    );
+  const { data: inspectionsFromFieldsRaw } = await inspectionsFromFieldsQuery;
 
   // A re-inspection is created the instant the inspector taps the button and
   // carries the agent's email over from the original, so an unpublished one --
