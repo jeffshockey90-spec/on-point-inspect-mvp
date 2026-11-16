@@ -94,6 +94,7 @@ import PendingSubmitButton from "../../../components/PendingSubmitButton";
 import FieldReviewQueue from "../../../components/FieldReviewQueue";
 import LimitationEquipmentReview from "../../../components/LimitationEquipmentReview";
 import SaveAgentButton from "../../../components/SaveAgentButton";
+import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1918,17 +1919,16 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     // error and silently rendered zero photos).
     const ID_CHUNK = 300;
     let out: any[] = [];
+    // Manual photo order (photos.sort_order) when the column exists, else
+    // created_at — never an error that drops every photo (lib/photoOrder).
+    const photoSortOk = findingIds.length ? await photosHaveSortOrder(supabase) : false;
     for (let i = 0; i < findingIds.length; i += ID_CHUNK) {
       const idSlice = findingIds.slice(i, i + ID_CHUNK);
       for (let from = 0; ; from += PAGE) {
-        const { data, error } = await supabase
-          .from("photos")
-          .select("*")
-          .in("finding_id", idSlice)
-          // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
-          .order("sort_order", { ascending: true, nullsFirst: false })
-          .order("created_at", { ascending: true })
-          .range(from, from + PAGE - 1);
+        const { data, error } = await orderPhotos(
+          supabase.from("photos").select("*").in("finding_id", idSlice),
+          photoSortOk,
+        ).range(from, from + PAGE - 1);
         if (error) return { photos: out, error };
         out = out.concat(data || []);
         if (!data || data.length < PAGE) break;

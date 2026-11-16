@@ -5,6 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
 import { reportSecurityEvent } from "../../../lib/securityAlerts";
 import { getReportDeliveryState } from "../../../lib/reportDelivery";
+import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -457,14 +458,13 @@ export async function GET(req: Request) {
     const filteredFindings = numberedFindings.filter(isRepairFinding);
     const findingIds = filteredFindings.map((finding: any) => finding.id).filter(Boolean);
 
+    const photoSortOk = includePhotos && findingIds.length > 0 ? await photosHaveSortOrder(admin) : false;
     const { data: photosRaw, error: photosError } =
       includePhotos && findingIds.length > 0
-        ? await admin
-            .from("photos")
-            .select("*")
-            .in("finding_id", findingIds)
-            .order("sort_order", { ascending: true, nullsFirst: false })
-            .order("created_at", { ascending: true })
+        ? await orderPhotos(
+            admin.from("photos").select("*").in("finding_id", findingIds),
+            photoSortOk,
+          )
         : { data: [] as any[], error: null };
 
     if (photosError) {

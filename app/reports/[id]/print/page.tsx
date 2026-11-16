@@ -20,6 +20,7 @@ import { getCachedSignedUrls } from "../../../../lib/signedUrlCache";
 import { severityBucket } from "../../../../lib/report/severityBucket";
 
 import PrintControls from "./PrintControls";
+import { orderPhotos, photosHaveSortOrder } from "../../../../lib/photoOrder";
 
 type PageProps = {
   params: Promise<{
@@ -539,15 +540,14 @@ export default async function PrintableReportPage({ params }: PageProps) {
   let photosRaw: any[] = [];
   if (findingIds.length > 0) {
     const PAGE = 1000;
+    // Manual photo order (photos.sort_order) when the column exists, else
+    // created_at — never an error that drops every photo (lib/photoOrder).
+    const photoSortOk = await photosHaveSortOrder(supabase);
     for (let from = 0; ; from += PAGE) {
-      const { data } = await supabase
-        .from("photos")
-        .select("*")
-        .in("finding_id", findingIds)
-        // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
-        .order("sort_order", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: true })
-        .range(from, from + PAGE - 1);
+      const { data } = await orderPhotos(
+        supabase.from("photos").select("*").in("finding_id", findingIds),
+        photoSortOk,
+      ).range(from, from + PAGE - 1);
       photosRaw = photosRaw.concat(data || []);
       if (!data || data.length < PAGE) break;
     }

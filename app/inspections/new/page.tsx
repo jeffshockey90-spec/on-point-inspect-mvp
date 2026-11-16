@@ -28,6 +28,7 @@ import { buildPropertyFills, writeChecklistFills } from "../../../lib/ai/checkli
 import { buildDefaultUnitRows, type UnitNaming } from "../../../lib/report/units";
 import { isAppleActive } from "../../../lib/entitlements";
 import { toPhoneDigits } from "../../../lib/phone";
+import { findingInsertRows } from "../../../lib/findingRows";
 
 declare global {
   interface Window {
@@ -1440,13 +1441,12 @@ function NewInspectionPageContent() {
         }
       }
 
-      const defaultFindings = DEFAULT_INSPECTION_DETAILS_FINDINGS.map(
-        (finding) => ({
-          inspection_id: data.id,
-          inspector_id: user.id,
-          company_id: companyId,
-          ...finding,
-        })
+      // findings has NO inspector_id column (CLAUDE.md): including it 400'd this
+      // whole insert, so no new inspection ever got these default rows.
+      const defaultFindings = findingInsertRows(
+        data.id,
+        companyId,
+        DEFAULT_INSPECTION_DETAILS_FINDINGS,
       );
 
       // Auto-fill the report's Inspection Details "Style" / "Type of Building"
