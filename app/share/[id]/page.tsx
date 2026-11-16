@@ -1471,6 +1471,10 @@ export default async function PublicSharePage({
   const requestedLang = explicitLang || companyDefaultLang || "en";
   const isTranslated =
     Boolean(requestedLang) && requestedLang !== "en" && isSupportedLanguage(requestedLang);
+  // Carry the reader's language to the home hub / client portal links (an
+  // explicit pick — even English — wins over the company default there too).
+  const langQuery =
+    explicitLang || isTranslated ? `?lang=${encodeURIComponent(requestedLang)}` : "";
   let uiTranslationMap: Record<string, string> = {};
   if (isTranslated) {
     const sources: string[] = [];
@@ -2215,7 +2219,7 @@ export default async function PublicSharePage({
 
             {!isDemo && (
               <a
-                href={`/my-home/${encodeURIComponent(sharePathId)}`}
+                href={`/my-home/${encodeURIComponent(sharePathId)}${langQuery}`}
                 className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-emerald-500 bg-emerald-500/10 px-5 py-3 font-bold text-[var(--fl-good-text)] transition active:scale-[0.98] [touch-action:manipulation] hover:bg-emerald-500 hover:text-black"
               >
                 <span aria-hidden="true">🏠</span> Home Maintenance Hub
@@ -2232,7 +2236,7 @@ export default async function PublicSharePage({
                 </a>
 
                 <Link
-                  href={`/client-portal/${inspectionId}`}
+                  href={`/client-portal/${inspectionId}${langQuery}`}
                   className="rounded-xl border border-emerald-500 px-5 py-3 font-bold text-[var(--fl-good-text)] transition hover:bg-emerald-500/10"
                 >
                   Client Portal
