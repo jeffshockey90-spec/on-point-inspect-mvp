@@ -48,11 +48,36 @@ export async function POST(req: Request) {
 
     // Built-in photo-readable fields (+ the inspector's own added options), or a
     // custom section's inspector-defined fields (e.g. "Shed" > "Siding").
-    const optionRows = section && images.length
+    // preview: read the photo but DON'T write — the inspector approves first
+    // (Identify). approve: write the values the inspector checked, no AI.
+    const preview = body?.preview === true;
+    const approved =
+      body?.approve === true && body?.sectionInfo && typeof body.sectionInfo === "object"
+        ? (body.sectionInfo as Record<string, any>)
+        : null;
+
+    const optionRows = section && (images.length || approved)
       ? await loadChecklistOptionRows(getAdminClient(), user.id)
       : [];
     const groups = section ? materialFieldsFor(section, optionRows) : [];
     const isCustomSection = Boolean(section) && !MATERIAL_FIELDS[section];
+
+    if (approved) {
+      if (!section || !groups.length || !inspectionId) {
+        return NextResponse.json({ written: 0 }, { headers: NO_STORE });
+      }
+      const admin = getAdminClient();
+      const authorized = await authorizeInspection(admin, user.id, inspectionId, "id");
+      if (!authorized) return NextResponse.json({ error: "Inspection not found." }, { status: 404, headers: NO_STORE });
+      // Only the section's real fields are accepted (buildMaterialFills ignores
+      // anything else), and only empty fields are filled.
+      const fills = buildMaterialFills(section, approved, { [section]: groups });
+      const written = fills.length
+        ? await writeChecklistFills(admin, inspectionId, fills, { inspectorId: user.id })
+        : 0;
+      return NextResponse.json({ written }, { headers: NO_STORE });
+    }
+
     if (!section || !groups || !groups.length || !images.length) {
       // Nothing this section can auto-identify, or no image — no-op.
       return NextResponse.json({ sectionInfo: {} }, { headers: NO_STORE });
@@ -130,7 +155,7 @@ Return ONLY valid JSON: { "sectionInfo": { <field>: <value>, ... } } — include
     // groups, snap-to-option, add-as-NEW) — same behavior as finding-photo
     // material autofill. Best-effort; requires an authorized inspection.
     let written = 0;
-    if (inspectionId) {
+    if (inspectionId && !preview) {
       try {
         const admin = getAdminClient();
         const authorized = await authorizeInspection(admin, user.id, inspectionId, "id");
