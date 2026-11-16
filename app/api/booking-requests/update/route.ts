@@ -9,6 +9,7 @@ import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo } from "../../../../lib/companyBranding";
 import { loadEffectivePricing, priceBooking } from "../../../../lib/bookingPrice";
+import { findQuoteForBooking } from "../../../../lib/savedQuotes";
 import type { InspectorPricingConfig } from "../../../../lib/inspectorPricing";
 
 export const runtime = "nodejs";
@@ -161,6 +162,7 @@ function getInspectionPayload(
   userId: string,
   companyId: string | number | null,
   pricing: InspectorPricingConfig,
+  quotedTotal?: number | null,
 ) {
   const serviceType = requestedServices(request);
   const {
@@ -184,7 +186,9 @@ function getInspectionPayload(
   const booked = bookedServices(request);
   const includesRadon = booked.radon;
   const includesMold = booked.mold;
-  const calculatedPrice = priceBooking(pricing, booked).total;
+  // Booked from a saved quote: invoice exactly what was quoted.
+  const calculatedPrice =
+    quotedTotal && quotedTotal > 0 ? quotedTotal : priceBooking(pricing, booked).total;
   const propertyPhotoUrl =
     getPropertyPhotoUrl(request.notes) ||
     cleanText(request.property_image_url) ||
@@ -904,11 +908,13 @@ export async function POST(request: Request) {
     }
 
     if (!inspectionId) {
+      const savedQuote = await findQuoteForBooking(admin, requestId);
       const payload = getInspectionPayload(
         bookingRequest,
         user.id,
         inspectionCompanyId,
         await loadEffectivePricing(admin, user.id),
+        savedQuote ? Number(savedQuote.total) || null : null,
       );
       confirmedPrice = (payload as any)?.price ?? null;
 

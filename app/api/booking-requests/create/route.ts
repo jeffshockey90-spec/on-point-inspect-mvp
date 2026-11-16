@@ -6,6 +6,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import crypto from "crypto";
 import http2 from "http2";
+import { loadOpenQuote } from "../../../../lib/savedQuotes";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -650,6 +651,18 @@ export async function POST(request: Request) {
       companyId = company?.id || null;
     }
 
+    // Booked from a saved-quote link: the quote (looked up by its unguessable
+    // token, never trusted from the form) fixes the company and price.
+    const savedQuote = cleanText(body.quote_token)
+      ? await loadOpenQuote(admin, cleanText(body.quote_token))
+      : null;
+    const quoteApplies =
+      Boolean(savedQuote) && (!companyId || String(savedQuote.company_id || "") === String(companyId));
+    if (quoteApplies && savedQuote.company_id) companyId = savedQuote.company_id;
+    const quoteNote = quoteApplies
+      ? `Booked from a saved quote: $${Number(savedQuote.total).toLocaleString("en-US", { maximumFractionDigits: 2 })} (${(savedQuote.line_items || []).map((item: any) => item?.name).filter(Boolean).join(" + ")})`
+      : "";
+
     // Enforce the company's availability on the server, not just in the form's
     // date/time dropdowns (audit M2): reject a request on a disabled booking
     // page, a blocked date, or a day the inspector doesn't work.
@@ -735,7 +748,13 @@ export async function POST(request: Request) {
         preferred_time: preferredTime,
         alternate_date: cleanText(body.alternate_date) || null,
         alternate_time: body.alternate_time ? cleanTime(body.alternate_time, "14:00") : null,
-        notes: withPropertyPhotoMarker(withAdditionalClientsMarker(body.notes, additionalClients), propertyImageUrl),
+        notes: withPropertyPhotoMarker(
+          withAdditionalClientsMarker(
+            [quoteNote, cleanText(body.notes)].filter(Boolean).join("\n\n"),
+            additionalClients,
+          ),
+          propertyImageUrl,
+        ),
         source: "public_booking_page",
       })
       .select("*")
@@ -743,6 +762,15 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Link the quote to this request (once) so confirming it invoices the quote.
+    if (quoteApplies && data?.id) {
+      await admin
+        .from("saved_quotes")
+        .update({ status: "booked", booking_request_id: data.id, updated_at: new Date().toISOString() })
+        .eq("id", savedQuote.id)
+        .eq("status", "open");
     }
 
     const bookingForNotifications = {

@@ -183,12 +183,28 @@ export default function BookingRequestForm({
   availableDays,
   availableTimes,
   blockedDates,
+  quote,
 }: {
   companySlug?: string;
   bookingEnabled?: boolean;
   availableDays?: string[];
   availableTimes?: string[];
   blockedDates?: string[];
+  // A saved quote this booking link was sent with: pre-fills the form and
+  // shows the quoted price (the server re-reads the quote by token).
+  quote?: {
+    token: string;
+    total: number;
+    services: string[];
+    serviceNames: string[];
+    clientName?: string | null;
+    clientEmail?: string | null;
+    propertyAddress?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zip?: string | null;
+    squareFeet?: number | null;
+  } | null;
 }) {
   const dateOptions = useMemo(
     () => buildDateOptions(45, availableDays, blockedDates),
@@ -201,20 +217,24 @@ export default function BookingRequestForm({
   const [smsConsent, setSmsConsent] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState("");
-  const [services, setServices] = useState<string[]>(["Buyer Home Inspection"]);
+  const [services, setServices] = useState<string[]>(
+    quote?.services?.length ? quote.services : ["Buyer Home Inspection"],
+  );
+  const [quoteUsed, setQuoteUsed] = useState(false);
+  const activeQuote = quote && !quoteUsed ? quote : null;
   const [additionalClients, setAdditionalClients] = useState<AdditionalClient[]>([]);
   const [form, setForm] = useState({
     realtor_name: "",
     realtor_email: "",
     realtor_phone: "",
-    client_name: "",
-    client_email: "",
+    client_name: quote?.clientName || "",
+    client_email: quote?.clientEmail || "",
     client_phone: "",
-    property_address: "",
-    city: "",
-    state: "",
-    zip: "",
-    square_feet: "",
+    property_address: quote?.propertyAddress || "",
+    city: quote?.city || "",
+    state: quote?.state || "",
+    zip: quote?.zip || "",
+    square_feet: quote?.squareFeet ? String(quote.squareFeet) : "",
     preferred_date: "",
     preferred_time: "",
     alternate_date: "",
@@ -375,6 +395,7 @@ export default function BookingRequestForm({
           services_requested: services,
           additional_clients: cleanAdditionalClients(),
           company_slug: companySlug || "",
+          quote_token: activeQuote?.token || "",
           sms_consent: smsConsent,
         }),
       });
@@ -386,6 +407,8 @@ export default function BookingRequestForm({
       }
 
       setSuccess(true);
+      // A quote books once; the form goes back to a normal request after.
+      setQuoteUsed(true);
       setServices(["Buyer Home Inspection"]);
       setAdditionalClients([]);
       setForm((current) => ({
@@ -445,6 +468,21 @@ export default function BookingRequestForm({
           Send the client, realtor, property, services, and preferred times. The inspector will confirm after reviewing availability.
         </p>
       </div>
+
+      {activeQuote ? (
+        <div className="mt-5 rounded-2xl border border-teal-500/40 bg-teal-500/10 p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--fl-accent-text)]">Your quote</p>
+          <p className="mt-1 text-3xl font-semibold text-[var(--fl-text)]">
+            ${activeQuote.total.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+          </p>
+          {activeQuote.serviceNames.length > 0 && (
+            <p className="mt-1 text-sm text-[var(--fl-muted)]">{activeQuote.serviceNames.join(" + ")}</p>
+          )}
+          <p className="mt-2 text-xs text-[var(--fl-muted)]">
+            We filled in what we know — add your preferred date and time and send the request.
+          </p>
+        </div>
+      ) : null}
 
       {success ? (
         <div className="mt-5 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-sm font-bold text-[var(--fl-good-text)]">

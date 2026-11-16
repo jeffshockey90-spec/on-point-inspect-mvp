@@ -21,6 +21,16 @@ export async function getBookingCompanyBySlug(slug: string) {
   return data;
 }
 
+export async function getBookingCompanyById(id: number | string) {
+  if (!id) return null;
+  const { data } = await admin()
+    .from("companies")
+    .select("id, name, display_name, profile_slug")
+    .eq("id", id)
+    .maybeSingle();
+  return data;
+}
+
 export async function getBookingAvailability(companyId: number | null) {
   if (!companyId) return null;
   const db = admin();
