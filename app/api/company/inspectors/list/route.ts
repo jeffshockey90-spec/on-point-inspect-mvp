@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "../../../../../utils/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { inviteStatusFor } from "../../../../../lib/inspectorInvite";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +61,22 @@ export async function GET() {
 
   const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
 
+  // Invite status: has each member signed in yet? (Owners only — it reads
+  // auth users. Small teams, so one lookup per member in parallel.)
+  const authById = new Map<string, any>();
+  if (callerMembership.role === "owner") {
+    await Promise.all(
+      userIds.map(async (id: string) => {
+        try {
+          const { data } = await admin.auth.admin.getUserById(id);
+          if (data?.user) authById.set(id, data.user);
+        } catch {
+          /* status is best-effort */
+        }
+      }),
+    );
+  }
+
   const team = (members || []).map((m: any) => ({
     id: m.id,
     userId: m.user_id,
@@ -67,6 +84,8 @@ export async function GET() {
     name: profileById.get(m.user_id)?.full_name || profileById.get(m.user_id)?.email || "Inspector",
     email: profileById.get(m.user_id)?.email || null,
     createdAt: m.created_at,
+    inviteStatus: authById.has(m.user_id) ? inviteStatusFor(authById.get(m.user_id)) : null,
+    lastSignInAt: authById.get(m.user_id)?.last_sign_in_at || null,
   }));
 
   return NextResponse.json({

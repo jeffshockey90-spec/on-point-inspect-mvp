@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import { sendPushNotification } from "../../../../../lib/push";
 import { OWNER_EMAILS } from "../../../../../lib/ownerEmails";
 import { removeAutoProvisionedCompanies } from "../../../../../lib/companyInvite";
+import { buildInspectorInviteEmail } from "../../../../../lib/inspectorInvite";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -145,23 +146,13 @@ export async function POST(req: Request) {
       const companyName = company?.name || "your team";
 
       try {
+        const inviteEmail = buildInspectorInviteEmail({ name, companyName, actionLink });
         await resend.emails.send({
           from: "FLOW <notifications@flowinspect.app>",
           to: email,
-          subject: `You've been added to ${companyName} on FLOW`,
-          html: `
-            <div style="font-family:sans-serif;max-width:520px;margin:0 auto;">
-              <p>Hi ${name},</p>
-              <p>${companyName} added you as an inspector on FLOW. Set your password to get started:</p>
-              <p style="margin:24px 0;">
-                <a href="${actionLink}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
-                  Set Your Password
-                </a>
-              </p>
-              <p style="font-size:12px;color:#64748b;">FLOW</p>
-            </div>
-          `,
-          text: `Hi ${name},\n\n${companyName} added you as an inspector on FLOW. Set your password to get started:\n${actionLink}\n\nFLOW`,
+          subject: inviteEmail.subject,
+          html: inviteEmail.html,
+          text: inviteEmail.text,
         });
       } catch (emailError) {
         console.error("Inspector invite email failed:", emailError);

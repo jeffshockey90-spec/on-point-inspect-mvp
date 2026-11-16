@@ -3,6 +3,7 @@ import { formatAppValue } from "../../../lib/app-time";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import PdfExportButton from "../../../components/PdfExportButton";
+import PortalAutoTranslate from "../../../components/PortalAutoTranslate";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
 import { isPaymentComplete, hasDeliveryOverride, isPublished } from "../../../lib/reportDelivery";
@@ -296,6 +297,7 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
+        <PortalAutoTranslate inspectionId={inspection.id} />
         <div className="max-w-md rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center">
           <h1 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
             Results available after payment
@@ -374,6 +376,8 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
 
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] md:p-8">
+      {/* Same language as the report (?lang= or the company default). */}
+      <PortalAutoTranslate inspectionId={inspection.id} />
       <div className="mx-auto max-w-[80rem] overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] shadow-2xl">
         <section className="relative overflow-hidden border-b border-[var(--fl-raised)] bg-[var(--fl-ground)]">
           {propertyPhoto ? (

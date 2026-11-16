@@ -10,6 +10,9 @@ type TeamMember = {
   name: string;
   email: string | null;
   createdAt: string;
+  // Owner view only: "pending" until the invited inspector first signs in.
+  inviteStatus?: "active" | "pending" | null;
+  lastSignInAt?: string | null;
 };
 
 export default function TeamManagement() {
@@ -25,6 +28,7 @@ export default function TeamManagement() {
   const [inviteError, setInviteError] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState("");
   const [removingId, setRemovingId] = useState("");
+  const [resendingId, setResendingId] = useState("");
 
   useEffect(() => {
     load();
@@ -43,6 +47,27 @@ export default function TeamManagement() {
       setError(err?.message || "Could not load team.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function resendInvite(member: TeamMember) {
+    if (resendingId) return;
+    try {
+      setResendingId(member.userId);
+      setInviteError("");
+      setInviteSuccess("");
+      const res = await fetch("/api/company/inspectors/resend-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: member.userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not resend invite.");
+      setInviteSuccess(`Invite re-sent to ${data.email || member.email || member.name}.`);
+    } catch (err: any) {
+      setInviteError(err?.message || "Could not resend invite.");
+    } finally {
+      setResendingId("");
     }
   }
 
@@ -182,6 +207,16 @@ export default function TeamManagement() {
                   )}
                 </p>
                 <p className="truncate text-xs text-[var(--fl-muted)]">{member.email || "No email"}</p>
+                {member.role !== "owner" && member.inviteStatus === "pending" && (
+                  <p className="mt-0.5 text-xs font-semibold text-[var(--fl-warn-text)]">
+                    Invite pending — hasn&apos;t signed in yet
+                  </p>
+                )}
+                {member.role !== "owner" && member.inviteStatus === "active" && member.lastSignInAt && (
+                  <p className="mt-0.5 text-xs text-[var(--fl-faint)]">
+                    Active · last signed in {new Date(member.lastSignInAt).toLocaleDateString()}
+                  </p>
+                )}
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
@@ -194,6 +229,17 @@ export default function TeamManagement() {
                 >
                   {member.role}
                 </span>
+
+                {isOwner && member.role !== "owner" && member.inviteStatus === "pending" && (
+                  <button
+                    type="button"
+                    onClick={() => resendInvite(member)}
+                    disabled={Boolean(resendingId)}
+                    className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-bold text-[var(--fl-accent-text)] hover:bg-[var(--fl-surface-2)] disabled:opacity-50"
+                  >
+                    {resendingId === member.userId ? "Sending..." : "Resend invite"}
+                  </button>
+                )}
 
                 {isOwner && member.role !== "owner" && (
                   <button

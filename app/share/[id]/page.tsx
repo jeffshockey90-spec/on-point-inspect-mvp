@@ -2895,7 +2895,7 @@ export default async function PublicSharePage({
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 {moldReportReady && (
                   <a
-                    href={`/environmental-share/${sharePathId}`}
+                    href={`/environmental-share/${sharePathId}${langQuery}`}
                     className="rounded-xl border border-purple-500 bg-[var(--fl-surface)] p-5 font-bold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10"
                   >
                     <span className="block text-lg">
@@ -2909,7 +2909,7 @@ export default async function PublicSharePage({
 
                 {radonReportReady && (
                   <a
-                    href={`/environmental-share/${sharePathId}`}
+                    href={`/environmental-share/${sharePathId}${langQuery}`}
                     className="rounded-xl border border-purple-500 bg-[var(--fl-surface)] p-5 font-bold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10"
                   >
                     <span className="block text-lg">
