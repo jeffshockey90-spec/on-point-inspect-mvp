@@ -505,7 +505,7 @@ function NewInspectionPageContent() {
   );
   const [city, setCity] = useState(() => searchParams.get("city") || "");
   const [stateValue, setStateValue] = useState(
-    () => searchParams.get("state") || "MD"
+    () => searchParams.get("state") || ""
   );
   const [zip, setZip] = useState(() => searchParams.get("zip") || "");
 
@@ -582,7 +582,7 @@ function NewInspectionPageContent() {
   const [loadingProperty, setLoadingProperty] = useState(false);
   const [propertyLookupStatus, setPropertyLookupStatus] = useState("");
 
-  const [agreementState, setAgreementState] = useState("MD");
+  const [agreementState, setAgreementState] = useState("");
   const [agreementTemplateIds, setAgreementTemplateIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [showBillingPopup, setShowBillingPopup] = useState(false);
@@ -965,7 +965,7 @@ function NewInspectionPageContent() {
     await autofillPropertyDetails(
       propertyAddress,
       city,
-      stateValue || "MD",
+      stateValue,
       zip
     );
   }
@@ -1533,7 +1533,8 @@ function NewInspectionPageContent() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 inspectionId: data.id,
-                agreementState,
+                // The picker's state, else the property's own state.
+                agreementState: agreementState || stateValue,
                 agreementTemplateIds,
               }),
             })

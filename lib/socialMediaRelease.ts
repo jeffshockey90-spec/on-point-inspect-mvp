@@ -6,7 +6,7 @@
 export { resolveInspectionByToken } from "./insuranceReferral";
 
 // A robust plain-English default the inspector can edit in Settings. NOT legal
-// advice — the Settings panel tells the owner to have a MD/PA/WV attorney review
+// advice — the Settings panel tells the owner to have a local attorney review
 // it. Written for property condition videos posted to social media with no
 // personal/identifying info intentionally shown.
 export const DEFAULT_SOCIAL_MEDIA_RELEASE = `Social Media & Content Release (Optional)
@@ -27,7 +27,7 @@ I understand and agree that:
 
 6. This release is voluntary and optional. Declining does not affect my home inspection, my report, or any services I receive in any way.
 
-7. This release is governed by the laws of the state in which the inspection is performed (Maryland, Pennsylvania, or West Virginia, as applicable).
+7. This release is governed by the laws of the state in which the inspection is performed.
 
 I have read and understand this release and agree to its terms.`;
 

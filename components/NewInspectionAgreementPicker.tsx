@@ -67,7 +67,7 @@ export default function NewInspectionAgreementPicker({
   disableHomeFallback?: boolean;
   onChange: (state: string, templateIds: string[]) => void;
 }) {
-  const defaultState = (propertyState || "MD").toUpperCase();
+  const defaultState = (propertyState || "").toUpperCase();
 
   const [agreementState, setAgreementState] = useState(defaultState);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);

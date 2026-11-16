@@ -104,7 +104,7 @@ export default function SocialMediaReleaseSettings() {
       <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
         <p className="text-xs leading-5 text-[var(--fl-warn-text)]">
           ⚠️ This is a strong starting template, not legal advice. Because you&apos;re publishing
-          content publicly, have an attorney licensed in your states (MD / PA / WV) review this
+          content publicly, have an attorney licensed in the states you work in review this
           wording before relying on it. Edit the text above to add your company name and anything
           your attorney recommends.
         </p>

@@ -1,32 +1,32 @@
 
 import { formatAppValue } from "./app-time";
 import { createClient } from "@supabase/supabase-js";
+import { normalizeStateCode } from "./usStates";
 
-export type AgreementState = "MD" | "WV" | "PA";
+// Any US state's 2-letter code, or "" when unknown. (This used to be limited to
+// MD/WV/PA and silently turned every other state — and blanks — into "MD".)
+export type AgreementState = string;
 
-export function normalizeAgreementState(
-  state?: string | null
-): AgreementState {
-  const clean = String(state || "MD").trim().toUpperCase();
-
-  if (clean === "WV" || clean === "WEST VIRGINIA") return "WV";
-  if (clean === "PA" || clean === "PENNSYLVANIA") return "PA";
-
-  return "MD";
+export function normalizeAgreementState(state?: string | null): AgreementState {
+  return normalizeStateCode(state);
 }
 
 export function getAgreementVersion(state?: string | null) {
   const normalized = normalizeAgreementState(state);
 
+  // Fallback label only — a selected template's own version wins.
   if (normalized === "MD") return "MD SOP Contract - V6";
   if (normalized === "WV") return "WV SOP Contract - V5";
+  if (normalized === "PA") return "PA InterNACHI Contract - V5";
 
-  return "PA InterNACHI Contract - V5";
+  return normalized ? `${normalized} Inspection Agreement` : "Inspection Agreement";
 }
 
 export function getAgreementTitle(state?: string | null) {
   const normalized = normalizeAgreementState(state);
-  return `${normalized} Residential Inspection Agreement`;
+  return normalized
+    ? `${normalized} Residential Inspection Agreement`
+    : "Residential Inspection Agreement";
 }
 
 function formatFee(fee?: string | number | null) {
@@ -665,25 +665,45 @@ export async function getAgreementTemplatesForInspection({
     inspection.agreement_state || inspection.state
   );
 
+  // No template chosen on the job: use THIS company's (or inspector's) active
+  // template for the property's state, or a "General / Any State" one. This
+  // used to search every company's templates (no company filter) and only knew
+  // MD/WV/PA, so a job could get another company's agreement.
+  // Matches templates saved with either the company or the job's inspector, so
+  // older templates saved without a company_id still count.
+  const ownerFilters = [
+    inspection.company_id ? `company_id.eq.${inspection.company_id}` : "",
+    inspection.inspector_id ? `inspector_id.eq.${inspection.inspector_id}` : "",
+  ].filter(Boolean);
+  if (!ownerFilters.length) return [];
+  const states = state ? [state, "GENERAL"] : ["GENERAL"];
+
   const { data } = await supabase
     .from("agreement_templates")
     .select("*")
-    .eq("state", state)
+    .or(ownerFilters.join(","))
+    .in("state", states)
     .eq("is_active", true)
     .eq("is_default", true)
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: false });
 
-  if (data && data.length > 0) return data;
+  if (data && data.length > 0) {
+    // Prefer the state-specific default(s) over General when both exist.
+    const specific = state ? data.filter((t: any) => t.state === state) : [];
+    return specific.length ? specific : data;
+  }
 
   const fallback = await supabase
     .from("agreement_templates")
     .select("*")
-    .eq("state", state)
+    .or(ownerFilters.join(","))
+    .in("state", states)
     .eq("is_active", true)
     .order("display_order", { ascending: true })
-    .order("created_at", { ascending: false })
-    .limit(1);
+    .order("created_at", { ascending: false });
 
-  return fallback.data || [];
+  const rows = fallback.data || [];
+  const specific = state ? rows.filter((t: any) => t.state === state) : [];
+  return (specific.length ? specific : rows).slice(0, 1);
 }

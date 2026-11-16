@@ -3,6 +3,7 @@
 
 import { formatAppValue } from "../lib/app-time";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { US_STATES, normalizeStateCode } from "../lib/usStates";
 
 const SERVICE_OPTIONS = [
   "Buyer Home Inspection",
@@ -39,7 +40,12 @@ const TIME_OPTIONS = [
   { label: "Flexible / Call Me", value: "Flexible" },
 ];
 
-const STATE_OPTIONS = ["MD", "WV", "PA"];
+// Every US state + DC (was limited to MD/WV/PA). Blank first so a client has
+// to pick their property's state.
+const STATE_OPTIONS: Option[] = [
+  { label: "Select state", value: "" },
+  ...US_STATES.map((s) => ({ label: `${s.code} - ${s.name}`, value: s.code })),
+];
 
 type Option = string | { label: string; value: string };
 
@@ -206,7 +212,7 @@ export default function BookingRequestForm({
     client_phone: "",
     property_address: "",
     city: "",
-    state: "MD",
+    state: "",
     zip: "",
     square_feet: "",
     preferred_date: "",
@@ -249,7 +255,7 @@ export default function BookingRequestForm({
             ...current,
             property_address: streetAddress || current.property_address,
             city: city || current.city,
-            state: STATE_OPTIONS.includes(state) ? state : current.state,
+            state: normalizeStateCode(state) || current.state,
             zip: zip || current.zip,
           }));
         });
@@ -604,7 +610,7 @@ export default function BookingRequestForm({
           </div>
 
           <Field label="City" value={form.city} onChange={(v) => update("city", v)} required />
-          <Select label="State" value={form.state} onChange={(v) => update("state", v)} options={STATE_OPTIONS} />
+          <Select label="State" value={form.state} onChange={(v) => update("state", v)} options={STATE_OPTIONS} required />
           <Field label="Zip" value={form.zip} onChange={(v) => update("zip", v)} />
           <Field label="Estimated Square Feet" value={form.square_feet} onChange={(v) => update("square_feet", v)} />
         </Section>
