@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
@@ -179,7 +180,7 @@ export async function POST(req: Request) {
         replyTo: brandedReplyTo(branding),
         to: email,
         subject,
-        html,
+        html: brandEmailHtml(html, branding),
         text,
         attachments: [
           {

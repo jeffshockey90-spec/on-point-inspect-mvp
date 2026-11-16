@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -720,7 +721,7 @@ export async function POST(req: Request) {
           reply_to: brandedReplyTo(branding),
           to: recipient.email,
           subject,
-          html,
+          html: brandEmailHtml(html, branding),
           text,
         }),
       });

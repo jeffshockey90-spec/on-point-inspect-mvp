@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { logError } from "../../../lib/jarvis/logError";
 import { cookies } from "next/headers";
@@ -255,7 +256,7 @@ async function sendReportEmail({
       reply_to: brandedReplyTo(branding),
       to: finalRecipient,
       subject,
-      html,
+      html: brandEmailHtml(html, branding),
     }),
   });
 

@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -435,7 +436,7 @@ export async function POST(req: Request) {
             "Content-Type": "application/json",
           },
           // Client replies go to the company's own email, not the platform inbox.
-          body: JSON.stringify({ from, reply_to: brandedReplyTo(branding), to: emails, subject, html }),
+          body: JSON.stringify({ from, reply_to: brandedReplyTo(branding), to: emails, subject, html: brandEmailHtml(html, branding) }),
         });
 
         const resendData = await resendRes.json();

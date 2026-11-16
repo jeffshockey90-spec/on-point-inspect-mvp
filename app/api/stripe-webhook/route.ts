@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { logError } from "../../../lib/jarvis/logError";
 import Stripe from "stripe";
@@ -653,7 +654,7 @@ async function sendReceiptEmail({
     replyTo: brandedReplyTo(branding),
     to,
     subject,
-    html,
+    html: brandEmailHtml(html, branding),
   });
 
   if (error) {

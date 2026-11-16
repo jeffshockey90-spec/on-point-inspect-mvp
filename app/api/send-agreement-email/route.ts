@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
@@ -498,7 +499,7 @@ export async function POST(req: Request) {
           to: email,
           headers: listUnsubscribeHeaders(email),
           subject,
-          html: realtorHtml,
+          html: brandEmailHtml(realtorHtml, branding),
           text: `Hi ${realtor.name || "there"},
 
 Please forward the link below to the client so they can review and sign their inspection agreement for ${property}.
@@ -642,7 +643,7 @@ ${branding.name}`,
           to: email,
           headers: listUnsubscribeHeaders(email),
           subject,
-          html: clientHtml,
+          html: brandEmailHtml(clientHtml, branding),
           text: `Hi ${contact.name || "there"},
 
 Please review and sign your inspection agreement for ${property}.

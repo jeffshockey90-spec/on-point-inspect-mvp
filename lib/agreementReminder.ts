@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "./emailBrand";
 // Sends the "please sign your inspection agreement" reminder (email + best-effort
 // SMS) to an inspection's unsigned required client/co-client signers. Shared by
 // the manual "Send reminder" button (/api/send-agreement-reminder) and the
@@ -156,7 +157,7 @@ ${branding.name}`;
       to: email,
       headers: listUnsubscribeHeaders(email),
       subject,
-      html,
+      html: brandEmailHtml(html, branding),
       text,
     });
 
