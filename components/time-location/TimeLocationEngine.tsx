@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { detectDeviceTimeZone, inspectionLocalToUtc, writeStoredTimePreferences } from "../../lib/app-time";
 import { flowConfirm } from "../ConfirmProvider";
+import { decideTimeZoneSync } from "../../lib/timeZoneSync";
 
 type Inspection = { id: string; property_address?: string; property_latitude?: number | null; property_longitude?: number | null; scheduled_start_at?: string | null; inspection_date?: string | null; inspection_time?: string | null; scheduled_date?: string | null; scheduled_time?: string | null; status?: string | null };
 type ActiveTrip = { id: string; inspection_id?: string | null; total_miles?: number } | null;
@@ -43,10 +44,12 @@ export default function TimeLocationEngine() {
     try {
       const current = await fetch("/api/settings/time-preferences", { cache: "no-store" }).then(r => r.ok ? r.json() : null);
       if (!current) return;
-      if (current.deviceTimeZone !== deviceTimeZone || current.timeZone !== deviceTimeZone) {
-        await fetch("/api/settings/time-preferences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ timeZone: deviceTimeZone, deviceTimeZone, timeFormat: current.timeFormat || "24h" }) });
+      // Never revert a zone the user chose in Settings (lib/timeZoneSync).
+      const next = decideTimeZoneSync(current, deviceTimeZone);
+      if (next.changed) {
+        await fetch("/api/settings/time-preferences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ timeZone: next.timeZone, deviceTimeZone: next.deviceTimeZone, timeFormat: current.timeFormat || "24h" }) });
       }
-      writeStoredTimePreferences({ timeZone: deviceTimeZone, timeFormat: current.timeFormat || "24h" });
+      writeStoredTimePreferences({ timeZone: next.timeZone, timeFormat: current.timeFormat || "24h" });
     } catch {}
   }, []);
 

@@ -10,6 +10,7 @@ import InvoiceReviewButton from "../../components/InvoiceReviewButton";
 import InspectionReviewButton from "../../components/InspectionReviewButton";
 import { formatUsd } from "../../lib/currency";
 import { resolveInspectionAccessFilter } from "../../lib/inspectionAccess";
+import { isInvoiceClosed, invoiceStatusLabel } from "../../lib/invoiceStatus";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -248,6 +249,8 @@ export default async function InvoicesPage() {
                 const statusTone =
                   status === "paid"
                     ? "bg-emerald-500/15 text-[var(--fl-good-text)]"
+                    : status === "refunded" || status === "partially_refunded" || status === "disputed"
+                      ? "bg-amber-500/15 text-[var(--fl-warn-text)]"
                     : status === "sent"
                       ? "bg-cyan-500/15 text-[var(--fl-info-text)]"
                       : "bg-slate-600/20 text-[var(--fl-muted)]";
@@ -267,7 +270,7 @@ export default async function InvoicesPage() {
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase ${statusTone}`}>
-                        {status}
+                        {invoiceStatusLabel(status)}
                       </span>
                       <span className="font-semibold text-[var(--fl-text)] [font-variant-numeric:tabular-nums]">
                         {money(inv.total)}
@@ -282,7 +285,7 @@ export default async function InvoicesPage() {
                         href={`/invoices/${inv.id}/edit`}
                         className="whitespace-nowrap rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
                       >
-                        {status === "paid" ? "View" : "Edit / Send"}
+                        {isInvoiceClosed(status) ? "View" : "Edit / Send"}
                       </Link>
                     </div>
                   </div>

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import FastLinkButton from "../../components/FastLinkButton";
 import { useSearchParams } from "next/navigation";
+import { saveOrShareFile } from "../../lib/saveFile";
 
 type Finding = Record<string, any>;
 type Inspection = Record<string, any>;
@@ -1093,17 +1094,10 @@ function RepairRequestContent() {
       const blob = new Blob([printableHtml], {
         type: "text/html;charset=utf-8",
       });
-      const url = URL.createObjectURL(blob);
-      const downloadLink = document.createElement("a");
-
-      downloadLink.href = url;
-      downloadLink.download = `${property || "repair-request"}-repair-request.html`;
-      downloadLink.rel = "noopener";
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      downloadLink.remove();
-
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      // Share sheet in the iOS/Android app (a plain download does nothing there).
+      await saveOrShareFile(blob, `${property || "repair-request"}-repair-request.html`, {
+        title: "Repair request",
+      });
       setPdfMessage(
         "Repair request file downloaded. Open the file to view, print, or save as PDF.",
       );

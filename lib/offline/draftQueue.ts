@@ -371,8 +371,10 @@ async function flushLimitationItem(item: OfflineQueueItem): Promise<boolean> {
   const d = item.draft || {};
   const note = String(p.note || "");
   const images = filesFromItem(item, true);
-  // The server limitation sync needs at least one photo; without one it 400s.
-  if (images.length === 0) return false;
+  // A limitation can sync as text alone (the server accepts it). Only a draft
+  // with no photo AND no text has nothing to send — leave it for the inspector.
+  const hasText = Boolean(note.trim() || String(d.limitation || "").trim() || String(d.title || "").trim());
+  if (images.length === 0 && !hasText) return false;
   await addOfflineQueueItem({
     type: "limitation",
     status: "queued",

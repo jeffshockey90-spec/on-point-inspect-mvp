@@ -1601,7 +1601,8 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         const reportEmailRes = await fetch(`${appUrl}/api/send-report-email`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Cookie: cookieHeader },
-          body: JSON.stringify({ inspectionId, recipientType: "all" }),
+          // trigger:"publish" → honors the "Report ready" notification settings.
+          body: JSON.stringify({ inspectionId, recipientType: "all", trigger: "publish" }),
           cache: "no-store",
         });
         if (!reportEmailRes.ok) {

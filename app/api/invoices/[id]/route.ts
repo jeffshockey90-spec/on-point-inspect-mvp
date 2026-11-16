@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser, getAdminClient, unauthorized, notFound } from "../../../../lib/apiAuth";
 import { computeInvoiceTotals } from "../../../../lib/invoiceTotals";
 import { toPhoneDigits } from "../../../../lib/phone";
+import { isInvoiceClosed } from "../../../../lib/invoiceStatus";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ export async function PATCH(req: Request, { params }: RouteProps) {
   const invoice = await authorizeInvoice(admin, user.id, id);
   if (!invoice) return notFound("Invoice not found.");
 
-  if (invoice.status === "paid") {
+  if (isInvoiceClosed(invoice.status)) {
     return NextResponse.json(
       { error: "This invoice has been paid and can no longer be edited." },
       { status: 409 }
@@ -112,7 +113,7 @@ export async function DELETE(_req: Request, { params }: RouteProps) {
   const invoice = await authorizeInvoice(admin, user.id, id);
   if (!invoice) return notFound("Invoice not found.");
 
-  if (invoice.status === "paid") {
+  if (isInvoiceClosed(invoice.status)) {
     return NextResponse.json(
       { error: "A paid invoice cannot be deleted." },
       { status: 409 }

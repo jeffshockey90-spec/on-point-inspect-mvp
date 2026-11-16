@@ -5,6 +5,7 @@ import {
   createDirectChargeCheckoutSession,
   getStripeConnectBlocker,
 } from "../../../../../lib/stripeCheckout";
+import { isInvoiceClosed } from "../../../../../lib/invoiceStatus";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +48,8 @@ export async function GET(req: Request, { params }: RouteProps) {
       return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
     }
 
-    if (String(invoice.status).toLowerCase() === "paid") {
+    // Paid, refunded or disputed invoices can't be paid again.
+    if (isInvoiceClosed(invoice.status)) {
       return NextResponse.redirect(
         `${appUrl}/invoices/payment-success?invoice=${encodeURIComponent(token)}&already=1`,
         303

@@ -26,6 +26,7 @@ import { createVideoThumbnailForUpload } from "../../../lib/videoThumbnail";
 import { useSeverityConfig } from "../../../lib/severity/useSeverityConfig";
 import { severityOptions, severityLabel, severityBadgeStyle, resolveSeverity } from "../../../lib/severity/severityConfig";
 import { normalizeUnits, type InspectionUnit } from "../../../lib/report/units";
+import { throwIfAnyError } from "../../../lib/supabaseResults";
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -429,7 +430,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         (f: any, i: number) => list[i]?.sort_order !== i,
       );
       if (changed.length > 0) {
-        await Promise.all(
+        const results = await Promise.all(
           changed.map((f: any) =>
             supabase
               .from("findings")
@@ -438,6 +439,9 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
               .eq("inspection_id", inspectionId),
           ),
         );
+        // Supabase returns errors instead of throwing — surface them so the
+        // catch below re-syncs instead of showing an order that never saved.
+        throwIfAnyError(results);
       }
     } catch {
       // Re-sync from the server if the persist failed.
@@ -3752,11 +3756,11 @@ function FindingCardBase({
     setMovingPhotoId(String(photos[fromIndex]?.id || ""));
 
     try {
-      await Promise.all(
+      const photoResults = await Promise.all(
         reordered.map((entry, position) => {
           const photoId = String(entry?.id || "");
           if (!photoId || entry?.isLegacyImage || photoId.startsWith("legacy-")) {
-            return Promise.resolve();
+            return Promise.resolve(null);
           }
           return supabase
             .from("photos")
@@ -3765,6 +3769,8 @@ function FindingCardBase({
             .eq("inspection_id", inspectionId);
         }),
       );
+      // Don't show a new order that never saved (Supabase returns, not throws).
+      throwIfAnyError(photoResults);
       // Reflect the new order INSTANTLY instead of a full server refresh — the
       // sort_order writes above already persisted it. getFindingPhotos sorts by
       // sort_order, so updating it on the local rows re-orders the grid in place.
