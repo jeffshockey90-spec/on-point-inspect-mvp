@@ -108,6 +108,15 @@ function isPaymentComplete(inspection: any) {
   return false;
 }
 
+// Collected revenue for a paid job, net of refunds. Refunds leave amount_paid
+// untouched (they're tracked in amount_refunded), so without subtracting them a
+// refunded job still counted as full revenue.
+function getNetRevenue(inspection: any) {
+  const collected = getPaidAmount(inspection) || getInspectionPrice(inspection);
+  const refunded = getNumber(inspection?.amount_refunded);
+  return Math.max(0, collected - refunded);
+}
+
 function isAgreementSigned(inspection: any) {
   const status = String(
     inspection?.agreement_status || inspection?.agreement_state || ""
@@ -205,7 +214,7 @@ function getServiceType(inspection: any) {
 
 function getRevenueValue(inspection: any) {
   if (isPaymentComplete(inspection)) {
-    return getPaidAmount(inspection) || getInspectionPrice(inspection);
+    return getNetRevenue(inspection);
   }
 
   return 0;
@@ -372,14 +381,12 @@ export default async function AnalyticsPage() {
   const paidThisMonth = inspectionsThisMonth.filter(isPaymentComplete);
 
   const revenueAllTime = paidRows.reduce(
-    (sum: number, inspection: any) =>
-      sum + (getPaidAmount(inspection) || getInspectionPrice(inspection)),
+    (sum: number, inspection: any) => sum + getNetRevenue(inspection),
     0
   );
 
   const revenueThisMonth = paidThisMonth.reduce(
-    (sum: number, inspection: any) =>
-      sum + (getPaidAmount(inspection) || getInspectionPrice(inspection)),
+    (sum: number, inspection: any) => sum + getNetRevenue(inspection),
     0
   );
 
@@ -636,8 +643,7 @@ export default async function AnalyticsPage() {
     monthMap[key].count += 1;
 
     if (isPaymentComplete(inspection)) {
-      monthMap[key].revenue +=
-        getPaidAmount(inspection) || getInspectionPrice(inspection);
+      monthMap[key].revenue += getNetRevenue(inspection);
     }
   });
 
@@ -688,8 +694,7 @@ export default async function AnalyticsPage() {
     realtorMap[key].count += 1;
 
     if (isPaymentComplete(inspection)) {
-      realtorMap[key].revenue +=
-        getPaidAmount(inspection) || getInspectionPrice(inspection);
+      realtorMap[key].revenue += getNetRevenue(inspection);
     }
   });
 

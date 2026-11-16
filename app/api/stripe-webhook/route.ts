@@ -9,6 +9,7 @@ import { formatUsd, formatUsdExact } from "../../../lib/currency";
 import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 import { sendPushNotification } from "../../../lib/push";
+import { decidePaymentRecord } from "../../../lib/paymentRecord";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -826,7 +827,9 @@ export async function POST(req: Request) {
             Number(invoiceRow.total) ||
             (session.amount_total ? session.amount_total / 100 : 0);
 
-          await supabaseInv
+          // Check the write: returning 500 makes Stripe redeliver instead of the
+          // payment silently never being recorded.
+          const { error: invoicePaidError } = await supabaseInv
             .from("invoices")
             .update({
               status: "paid",
@@ -839,6 +842,11 @@ export async function POST(req: Request) {
                 : invoiceRow.stripe_payment_intent_id || null,
             })
             .eq("id", invoiceId);
+
+          if (invoicePaidError) {
+            console.error("Invoice payment update error:", invoicePaidError);
+            return NextResponse.json({ error: "Failed to update invoice payment." }, { status: 500 });
+          }
 
           // Atomic once-only claim: flip receipt_sent_at null -> now. Only the
           // first delivery of this event wins, so the owner push fires exactly
@@ -910,53 +918,42 @@ export async function POST(req: Request) {
                     ""
                 ).toLowerCase() === "paid" || Boolean(existingInspection?.paid_at);
 
-              const priorPaid =
-                Number(
-                  String(existingInspection?.amount_paid ?? "").replace(/[^0-9.-]/g, "")
-                ) || 0;
-              const invoiceAmountForPay =
-                Number(
-                  String(
-                    existingInspection?.invoice_amount ??
-                      existingInspection?.total_price ??
-                      existingInspection?.total ??
-                      existingInspection?.price ??
-                      ""
-                  ).replace(/[^0-9.-]/g, "")
-                ) || 0;
-              // Marking Paid means the full invoice is now collected. Record the
-              // invoice total (idempotent, and preserves any earlier offline
-              // partial payment) instead of overwriting amount_paid with only
-              // the amount charged online (audit finding H9).
-              const paidTotal =
-                invoiceAmountForPay > 0
-                  ? invoiceAmountForPay
-                  : priorPaid + amountPaid;
+              // lib/paymentRecord: never re-apply a session the success page
+              // already recorded, never undo a refund/dispute, and add only what
+              // this session collected — "Paid" only when nothing is left owing.
+              const decision = decidePaymentRecord({
+                existing: existingInspection,
+                sessionId: session.id,
+                balancePaid: amountPaid,
+                now: paidAt,
+              });
 
-              const { error } = await supabase
-                .from("inspections")
-                .update({
-                  payment_status: "Paid",
-                  invoice_status: "Paid",
-                  amount_paid: paidTotal,
-                  balance_due: 0,
-                  payment_method: "Stripe",
-                  payment_notes: `Stripe payment completed. Inspection balance paid: ${money(
-                    amountPaid
-                  )}. Online payment fee: ${money(
-                    portalProcessingFee
-                  )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
-                  invoice_notes: `Stripe payment completed. Inspection balance paid: ${money(
-                    amountPaid
-                  )}. Online payment fee: ${money(
-                    portalProcessingFee
-                  )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
-                  stripe_payment_intent_id:
-                    typeof session.payment_intent === "string" ? session.payment_intent : null,
-                  stripe_checkout_session_id: session.id,
-                  paid_at: paidAt,
-                })
-                .eq("id", inspectionId);
+              const { error } = decision.apply
+                ? await supabase
+                    .from("inspections")
+                    .update({
+                      payment_status: decision.status,
+                      invoice_status: decision.status,
+                      amount_paid: decision.amountPaid,
+                      balance_due: decision.balanceDue,
+                      payment_method: "Stripe",
+                      payment_notes: `Stripe payment completed. Inspection balance paid: ${money(
+                        amountPaid
+                      )}. Online payment fee: ${money(
+                        portalProcessingFee
+                      )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
+                      invoice_notes: `Stripe payment completed. Inspection balance paid: ${money(
+                        amountPaid
+                      )}. Online payment fee: ${money(
+                        portalProcessingFee
+                      )}. Total charged online: ${money(totalCharged)}. Session: ${session.id}`,
+                      stripe_payment_intent_id:
+                        typeof session.payment_intent === "string" ? session.payment_intent : null,
+                      stripe_checkout_session_id: session.id,
+                      paid_at: decision.paidAt,
+                    })
+                    .eq("id", inspectionId)
+                : { error: null };
         
               if (error) {
                 console.error("Supabase payment update error:", error);
@@ -1124,7 +1121,7 @@ export async function POST(req: Request) {
             refundedDollars
           )} refunded (charge ${charge.id}).`;
 
-          await supabase
+          const { error: refundUpdateError } = await supabase
             .from("inspections")
             .update({
               payment_status: newStatus,
@@ -1139,6 +1136,11 @@ export async function POST(req: Request) {
               invoice_notes: note,
             })
             .eq("id", inspection.id);
+
+          if (refundUpdateError) {
+            console.error("Refund update error:", refundUpdateError);
+            return NextResponse.json({ error: "Failed to record refund." }, { status: 500 });
+          }
 
           // Notify the inspector once (skip on redelivery of the same state).
           if (!alreadyRecorded) {
@@ -1201,7 +1203,7 @@ export async function POST(req: Request) {
           dispute.reason ? ` (reason: ${dispute.reason})` : ""
         }. Respond in your Stripe dashboard.`;
 
-        await supabase
+        const { error: disputeUpdateError } = await supabase
           .from("inspections")
           .update({
             payment_status: "Disputed",
@@ -1210,6 +1212,11 @@ export async function POST(req: Request) {
             invoice_notes: note,
           })
           .eq("id", inspection.id);
+
+        if (disputeUpdateError) {
+          console.error("Dispute update error:", disputeUpdateError);
+          return NextResponse.json({ error: "Failed to record dispute." }, { status: 500 });
+        }
 
         if (!alreadyDisputed) {
           await logAuditEvent(supabase, {
