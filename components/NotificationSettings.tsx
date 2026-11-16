@@ -245,14 +245,14 @@ export default function NotificationSettings() {
   if (state) {
     reminderRows.push({
       who: "Client",
-      sub: "Text to the client",
+      sub: "Text, or email if no text can be sent",
       get: (w) => state.effective[`client_reminder_${w}` as Key],
       set: (w, next) => togglePref(`client_reminder_${w}` as Key, next),
       overridden: (w) => !state.isOwner && (`client_reminder_${w}` as Key) in state.overrides,
     });
     reminderRows.push({
       who: "Agent",
-      sub: "Text to the agent",
+      sub: "Text, or email if no text can be sent",
       get: (w) => state.effective[`agent_reminder_${w}` as Key],
       set: (w, next) => togglePref(`agent_reminder_${w}` as Key, next),
       overridden: (w) => !state.isOwner && (`agent_reminder_${w}` as Key) in state.overrides,
