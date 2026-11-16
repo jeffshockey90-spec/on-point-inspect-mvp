@@ -34,6 +34,18 @@ function createAdminClient() {
   );
 }
 
+// Booking fields come from a PUBLIC no-login form — escape them before they
+// go into the alert email's HTML, or anyone could inject links/markup into an
+// email sent from the FLOW domain.
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function cleanText(value: any) {
   return String(value || "").trim();
 }
@@ -480,19 +492,19 @@ function buildEmailHtml(booking: any, request: Request) {
       <h2 style="margin:0 0 12px;color:#0f766e">New Booking Request</h2>
       <p>A new inspection request was submitted through FLOW.</p>
       <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:680px">
-        <tr><td><strong>Client</strong></td><td>${booking.client_name || ""}</td></tr>
-        <tr><td><strong>Client Phone</strong></td><td>${booking.client_phone || ""}</td></tr>
-        <tr><td><strong>Client Email</strong></td><td>${booking.client_email || ""}</td></tr>
-        <tr><td><strong>Co-Buyers</strong></td><td>${normalizeAdditionalClients(booking.additional_clients).map((client) => [client.name, client.email, client.phone].filter(Boolean).join(" / ")).join("<br />")}</td></tr>
-        <tr><td><strong>Realtor</strong></td><td>${booking.realtor_name || ""}</td></tr>
-        <tr><td><strong>Realtor Phone</strong></td><td>${booking.realtor_phone || ""}</td></tr>
-        <tr><td><strong>Realtor Email</strong></td><td>${booking.realtor_email || ""}</td></tr>
-        <tr><td><strong>Property</strong></td><td>${address}</td></tr>
-        <tr><td><strong>Square Feet</strong></td><td>${booking.square_feet || ""}</td></tr>
-        <tr><td><strong>Services</strong></td><td>${services}</td></tr>
-        <tr><td><strong>Preferred Time</strong></td><td>${formatDate(booking.preferred_date)} at ${formatTime(booking.preferred_time)}</td></tr>
-        <tr><td><strong>Alternate Time</strong></td><td>${booking.alternate_date ? `${formatDate(booking.alternate_date)} at ${formatTime(booking.alternate_time)}` : ""}</td></tr>
-        <tr><td><strong>Notes</strong></td><td>${stripPropertyPhotoMarker(booking.notes) || ""}</td></tr>
+        <tr><td><strong>Client</strong></td><td>${escapeHtml(booking.client_name || "")}</td></tr>
+        <tr><td><strong>Client Phone</strong></td><td>${escapeHtml(booking.client_phone || "")}</td></tr>
+        <tr><td><strong>Client Email</strong></td><td>${escapeHtml(booking.client_email || "")}</td></tr>
+        <tr><td><strong>Co-Buyers</strong></td><td>${normalizeAdditionalClients(booking.additional_clients).map((client) => escapeHtml([client.name, client.email, client.phone].filter(Boolean).join(" / "))).join("<br />")}</td></tr>
+        <tr><td><strong>Realtor</strong></td><td>${escapeHtml(booking.realtor_name || "")}</td></tr>
+        <tr><td><strong>Realtor Phone</strong></td><td>${escapeHtml(booking.realtor_phone || "")}</td></tr>
+        <tr><td><strong>Realtor Email</strong></td><td>${escapeHtml(booking.realtor_email || "")}</td></tr>
+        <tr><td><strong>Property</strong></td><td>${escapeHtml(address)}</td></tr>
+        <tr><td><strong>Square Feet</strong></td><td>${escapeHtml(booking.square_feet || "")}</td></tr>
+        <tr><td><strong>Services</strong></td><td>${escapeHtml(services)}</td></tr>
+        <tr><td><strong>Preferred Time</strong></td><td>${escapeHtml(formatDate(booking.preferred_date))} at ${escapeHtml(formatTime(booking.preferred_time))}</td></tr>
+        <tr><td><strong>Alternate Time</strong></td><td>${escapeHtml(booking.alternate_date ? `${formatDate(booking.alternate_date)} at ${formatTime(booking.alternate_time)}` : "")}</td></tr>
+        <tr><td><strong>Notes</strong></td><td>${escapeHtml(stripPropertyPhotoMarker(booking.notes) || "")}</td></tr>
       </table>
       <p style="margin-top:18px">
         <a href="${scheduleUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;text-decoration:none;padding:12px 18px;border-radius:10px">Open Schedule</a>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -176,6 +176,7 @@ export async function POST(req: Request) {
     try {
       const result = await resend.emails.send({
         from: fromEmail,
+        replyTo: brandedReplyTo(branding),
         to: email,
         subject,
         html,

@@ -6,6 +6,7 @@ import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import { loadFlowStyle } from "../../../../lib/ai/flowWriter";
 import { loadChecklistOptionRows, materialFieldMap } from "../../../../lib/customChecklist";
 import { sanitizeSectionList } from "../../../../lib/ai/identifyResult";
+import { guardAiRequest } from "../../../../lib/aiGuard";
 
 export const runtime = "nodejs";
 
@@ -207,10 +208,16 @@ export async function POST(req: Request) {
       .filter((image) => image && image.type?.startsWith("image/"))
       .slice(0, 6);
     const note = cleanText(formData.get("note"));
-    const inspectionId =
+    const requestedInspectionId =
       cleanText(formData.get("inspectionId")) ||
       cleanText(formData.get("inspection_id")) ||
       null;
+    // Keep the inspection id only if this user can access it — it feeds
+    // service-role loaders into the AI prompt (any logged-in user could pull
+    // another company's report text). See lib/aiGuard.
+    const guard = await guardAiRequest({ inspectionId: requestedInspectionId });
+    if (!guard.ok) return guard.response;
+    const inspectionId = guard.inspectionId;
     // The report's ACTIVE sections (custom ones included), sent by the field tool
     // as JSON. Without them a custom section (e.g. "Shed") was coerced to
     // Exterior before the AI even ran.

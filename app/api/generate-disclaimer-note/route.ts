@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAIModel } from "../../../lib/openai";
+import { guardAiRequest } from "../../../lib/aiGuard";
 
 export async function POST(req: Request) {
+  // Paid API call (OpenAI / Google / RentCast): signed-in users only — it was
+  // callable by anyone, so a script could drain the budget. See lib/aiGuard.
+  const guard = await guardAiRequest();
+  if (!guard.ok) return guard.response;
   try {
     const { topic, notes } = await req.json();
 

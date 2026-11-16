@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "../../../lib/supabaseClient";
+import { guardAiRequest } from "../../../lib/aiGuard";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceRoleKey =
@@ -1406,6 +1407,10 @@ async function lookupWestVirginiaPublicRecords({
 }
 
 export async function POST(req: Request) {
+  // Paid API call (OpenAI / Google / RentCast): signed-in users only — it was
+  // callable by anyone, so a script could drain the budget. See lib/aiGuard.
+  const guard = await guardAiRequest();
+  if (!guard.ok) return guard.response;
   try {
     const body = (await req.json()) as PropertyLookupBody;
 

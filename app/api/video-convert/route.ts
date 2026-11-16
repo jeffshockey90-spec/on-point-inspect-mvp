@@ -4,6 +4,7 @@ import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
 import ffmpegStaticPath from "ffmpeg-static";
+import { guardAiRequest } from "../../../lib/aiGuard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -135,6 +136,10 @@ async function convertVideo(inputPath: string, outputPath: string) {
 }
 
 export async function POST(request: NextRequest) {
+  // ffmpeg on uploads up to 250 MB is expensive: signed-in users only (it was
+  // open to anyone). See lib/aiGuard.
+  const guard = await guardAiRequest();
+  if (!guard.ok) return guard.response;
   let tempDir = "";
 
   try {

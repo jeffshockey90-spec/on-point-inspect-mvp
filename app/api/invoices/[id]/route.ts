@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getAdminClient, unauthorized, notFound } from "../../../../lib/apiAuth";
+import { getSessionUser, getAdminClient, unauthorized, notFound, authorizeInspection } from "../../../../lib/apiAuth";
 import { computeInvoiceTotals } from "../../../../lib/invoiceTotals";
 import { toPhoneDigits } from "../../../../lib/phone";
 import { isInvoiceClosed } from "../../../../lib/invoiceStatus";
@@ -79,7 +79,13 @@ export async function PATCH(req: Request, { params }: RouteProps) {
   if (body?.invoice_number !== undefined) update.invoice_number = String(body.invoice_number || "").slice(0, 60);
   if (body?.due_date !== undefined) update.due_date = body.due_date || null;
   if (body?.notes !== undefined) update.notes = String(body.notes || "").slice(0, 2000);
-  if (body?.inspection_id !== undefined) update.inspection_id = body.inspection_id ? Number(body.inspection_id) : null;
+  if (body?.inspection_id !== undefined) {
+    // Only link an inspection the caller can access (see POST /api/invoices).
+    if (body.inspection_id && !(await authorizeInspection(admin, user.id, body.inspection_id))) {
+      return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
+    }
+    update.inspection_id = body.inspection_id ? Number(body.inspection_id) : null;
+  }
 
   const { data, error } = await admin
     .from("invoices")

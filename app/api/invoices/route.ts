@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getAdminClient, unauthorized } from "../../../lib/apiAuth";
+import { getSessionUser, getAdminClient, unauthorized, authorizeInspection } from "../../../lib/apiAuth";
 import { computeInvoiceTotals } from "../../../lib/invoiceTotals";
 import { toPhoneDigits } from "../../../lib/phone";
 
@@ -54,6 +54,13 @@ export async function POST(req: Request) {
 
   const { normalized, subtotal } = computeInvoiceTotals(body?.line_items);
   const companyId = await resolveOwnedCompanyId(admin, user.id);
+
+  // Only link an inspection the caller can access — the send route emails that
+  // inspection's client contacts, so any id used to let one company invoice
+  // and email another company's clients.
+  if (body?.inspection_id && !(await authorizeInspection(admin, user.id, body.inspection_id))) {
+    return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
+  }
 
   const insert = {
     inspector_id: user.id,

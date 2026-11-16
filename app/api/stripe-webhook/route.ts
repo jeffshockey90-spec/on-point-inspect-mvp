@@ -6,7 +6,7 @@ import { Resend } from "resend";
 import crypto from "crypto";
 import http2 from "http2";
 import { formatUsd, formatUsdExact } from "../../../lib/currency";
-import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding, brandedReplyTo } from "../../../lib/companyBranding";
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 import { sendPushNotification } from "../../../lib/push";
 import { decidePaymentRecord } from "../../../lib/paymentRecord";
@@ -650,6 +650,7 @@ async function sendReceiptEmail({
 
   const { data, error } = await resend.emails.send({
     from,
+    replyTo: brandedReplyTo(branding),
     to,
     subject,
     html,

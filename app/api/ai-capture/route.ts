@@ -14,6 +14,7 @@ import {
   formatExamplesForPrompt,
 } from "../../../lib/ai/findingRetrieval";
 import { loadChecklistOptionRows, materialFieldMap } from "../../../lib/customChecklist";
+import { guardAiRequest } from "../../../lib/aiGuard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -152,7 +153,12 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
 
     note = cleanText(body.note || body.transcript);
-    inspectionId = body.inspectionId || body.inspection_id || null;
+    // Signed-in callers only (it accepted anonymous requests), and the
+    // inspection id — which feeds service-role loaders into the AI prompt — is
+    // kept only if the caller can access it. See lib/aiGuard.
+    const guard = await guardAiRequest({ inspectionId: body.inspectionId || body.inspection_id || null });
+    if (!guard.ok) return guard.response;
+    inspectionId = guard.inspectionId;
 
     const requestedSection = cleanText(body.section);
     const requestedSeverity = cleanText(body.severity);

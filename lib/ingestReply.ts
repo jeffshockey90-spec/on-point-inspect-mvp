@@ -120,6 +120,28 @@ export async function ingestReply(admin: any, m: InboundMessage) {
     throw new Error(error.message);
   }
 
+  // A reply about a specific inspection goes to THAT inspection's inspector
+  // (multi-tenant: another company's client reply must not land only on the
+  // platform owner's devices). Unmatched mail still goes to the platform owner.
+  if (inspection?.inspector_id) {
+    const who = m.fromName || m.fromEmail || "Someone";
+    let pushes: any[] = [];
+    try {
+      const r = await sendPushNotification({
+        title: `💬 Reply from ${who}`,
+        body: buildReplyPushBody({ subject: m.subject, snippet: m.snippet, address }),
+        url: `/reports/${inspection.id}`,
+        eventType: "inbound_reply",
+        target: "user",
+        targetUserId: String(inspection.inspector_id),
+      });
+      pushes = [{ inspectorId: inspection.inspector_id, sent: r.sent }];
+    } catch (e: any) {
+      pushes = [{ inspectorId: inspection.inspector_id, error: e?.message || "push failed" }];
+    }
+    return { inserted: true, inspectionId, pushes };
+  }
+
   const pushes = await notifyOwners({
     fromName: m.fromName,
     fromEmail: m.fromEmail,

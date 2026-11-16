@@ -11,8 +11,7 @@ import {
 import { getOrCreateShareToken } from "../../../lib/shareToken";
 import {
   getCompanyBrandingById,
-  buildBrandedFromHeader,
-} from "../../../lib/companyBranding";
+  buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 
 export const runtime = "nodejs";
 
@@ -128,6 +127,7 @@ export async function POST(req: Request) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const sendResult = await resend.emails.send({
       from,
+      replyTo: brandedReplyTo(branding),
       to,
       headers: listUnsubscribeHeaders(to),
       subject: signedSubject,

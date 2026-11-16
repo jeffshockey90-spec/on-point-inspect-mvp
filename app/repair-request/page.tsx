@@ -840,6 +840,8 @@ function RepairRequestContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          // Proof of access for no-login clients (signed-in users pass anyway).
+          token: initialUrlParams.token || undefined,
           region,
           findings: selectedFindings.map((finding) => ({
             id: String(finding.id),

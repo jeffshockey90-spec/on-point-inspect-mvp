@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAIModel } from "../../../lib/openai";
 import { createClient } from "../../../utils/supabase/server";
 import { loadFlowStyle } from "../../../lib/ai/flowWriter";
+import { guardAiRequest } from "../../../lib/aiGuard";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,7 +17,12 @@ export async function POST(req: Request) {
       implication,
       recommendation,
     } = body;
-    const inspectionId = body.inspectionId ?? body.inspection_id ?? null;
+    const requestedInspectionId = body.inspectionId ?? body.inspection_id ?? null;
+    // Signed-in callers only; the inspection id is kept only if they can access it
+    // (it feeds service-role loaders into the AI prompt). See lib/aiGuard.
+    const guard = await guardAiRequest({ inspectionId: requestedInspectionId });
+    if (!guard.ok) return guard.response;
+    const inspectionId = guard.inspectionId;
 
     // Identify the inspector so the rewrite matches THEIR voice + learned edits.
     let userId: string | null = null;

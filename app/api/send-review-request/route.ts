@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
-import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { isSmsConfigured, sendSms, normalizePhone } from "../../../lib/sms";
 import { sendPushNotification } from "../../../lib/push";
@@ -434,7 +434,8 @@ export async function POST(req: Request) {
             Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ from, to: emails, subject, html }),
+          // Client replies go to the company's own email, not the platform inbox.
+          body: JSON.stringify({ from, reply_to: brandedReplyTo(branding), to: emails, subject, html }),
         });
 
         const resendData = await resendRes.json();

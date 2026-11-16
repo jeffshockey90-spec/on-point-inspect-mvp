@@ -5,7 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { emitWebhook } from "../../../lib/webhooks";
 import { getOrCreateShareToken } from "../../../lib/shareToken";
-import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding, brandedReplyTo } from "../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
 import { smsReportReadyClient, smsReportReadyAgent } from "../../../lib/smsTemplates";
@@ -251,6 +251,8 @@ async function sendReportEmail({
     },
     body: JSON.stringify({
       from,
+      // Client replies go to the company's own email, not the platform inbox.
+      reply_to: brandedReplyTo(branding),
       to: finalRecipient,
       subject,
       html,

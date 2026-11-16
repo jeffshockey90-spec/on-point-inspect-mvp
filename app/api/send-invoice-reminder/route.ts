@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { createInspectionCheckoutSession } from "../../../lib/stripeCheckout";
 import { listUnsubscribeHeaders, isEmailUnsubscribed } from "../../../lib/emailUnsubscribe";
-import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
+import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
 
 export const runtime = "nodejs";
@@ -294,6 +294,7 @@ export async function POST(req: Request) {
 
       const { error: emailError } = await resend.emails.send({
         from,
+        replyTo: brandedReplyTo(branding),
         to: recipient,
         headers: listUnsubscribeHeaders(recipient),
         subject: invoiceSubject,
