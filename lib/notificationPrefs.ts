@@ -16,7 +16,9 @@ export type NotificationPrefKey =
   | "client_reminder_30m"
   | "agent_reminder_24h"
   | "agent_reminder_2h"
-  | "agent_reminder_30m";
+  | "agent_reminder_30m"
+  | "auto_agreement_reminder"
+  | "auto_balance_reminder";
 
 export const NOTIFICATION_PREF_KEYS: NotificationPrefKey[] = [
   "client_confirmation",
@@ -29,6 +31,8 @@ export const NOTIFICATION_PREF_KEYS: NotificationPrefKey[] = [
   "agent_reminder_24h",
   "agent_reminder_2h",
   "agent_reminder_30m",
+  "auto_agreement_reminder",
+  "auto_balance_reminder",
 ];
 
 export const COMPANY_PREF_COLUMN: Record<NotificationPrefKey, string> = {
@@ -42,6 +46,8 @@ export const COMPANY_PREF_COLUMN: Record<NotificationPrefKey, string> = {
   agent_reminder_24h: "agent_reminder_24h_enabled",
   agent_reminder_2h: "agent_reminder_2h_enabled",
   agent_reminder_30m: "agent_reminder_30m_enabled",
+  auto_agreement_reminder: "auto_agreement_reminder_enabled",
+  auto_balance_reminder: "auto_balance_reminder_enabled",
 };
 
 // Built-in defaults: existing sends stay ON; the newly-added reminder windows
@@ -57,6 +63,10 @@ export const PREF_DEFAULTS: Record<NotificationPrefKey, boolean> = {
   agent_reminder_24h: false,
   agent_reminder_2h: false,
   agent_reminder_30m: false,
+  // Automatic client reminders (unsigned agreement / unpaid balance) are
+  // opt-in: nothing new is emailed to clients until a company turns them on.
+  auto_agreement_reminder: false,
+  auto_balance_reminder: false,
 };
 
 export type EffectivePrefs = Record<NotificationPrefKey, boolean>;
@@ -69,8 +79,9 @@ export async function getNotificationPrefs(
   try {
     let company: any = null;
     if (opts.companyId) {
-      const cols = NOTIFICATION_PREF_KEYS.map((k) => COMPANY_PREF_COLUMN[k]).join(", ");
-      const { data } = await admin.from("companies").select(cols).eq("id", opts.companyId).maybeSingle();
+      // select("*"), not a named column list: a toggle whose migration hasn't
+      // been run yet must not error the whole read and reset every other toggle.
+      const { data } = await admin.from("companies").select("*").eq("id", opts.companyId).maybeSingle();
       company = data || null;
     }
     let overrides: Record<string, any> = {};
