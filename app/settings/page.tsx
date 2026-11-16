@@ -108,14 +108,22 @@ async function getCompanyForUser(supabase: any, userId: string) {
   return company;
 }
 
+// Error codes the settings actions redirect with → readable text (they used to
+// show raw, e.g. "owner_only").
+const SETTINGS_ERROR_MESSAGES: Record<string, string> = {
+  owner_only: "Only the company owner can change company settings.",
+};
+
 function getReadableMessage(value: string | undefined) {
   if (!value) return "";
 
+  let decoded = value;
   try {
-    return decodeURIComponent(value);
+    decoded = decodeURIComponent(value);
   } catch {
-    return value;
+    decoded = value;
   }
+  return SETTINGS_ERROR_MESSAGES[decoded] || decoded;
 }
 
 function StripeStatusCard({ company }: { company: any }) {
@@ -1501,12 +1509,22 @@ export default async function SettingsPage({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-teal-500 px-8 py-4 font-semibold text-slate-950 hover:bg-teal-400 sm:w-auto"
-            >
-              Save Settings
-            </button>
+            {isCompanyOwner || isOnPointOwner ? (
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-teal-500 px-8 py-4 font-semibold text-slate-950 hover:bg-teal-400 sm:w-auto"
+              >
+                Save Settings
+              </button>
+            ) : (
+              // Team members: the company fields above save only for the owner
+              // (the action rejects others), so don't offer a Save that fails.
+              // Personal settings in this form (notifications, time) save on
+              // their own.
+              <p className="text-sm font-semibold text-[var(--fl-muted)]">
+                Company settings can only be changed by the company owner.
+              </p>
+            )}
           </div>
         </form>
 

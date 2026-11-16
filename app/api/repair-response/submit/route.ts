@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPushNotification } from "../../../../lib/push";
 
 export const runtime = "nodejs";
 
@@ -101,69 +102,41 @@ function getSignaturePayload(value: any, submittedAt: string, req: Request) {
   };
 }
 
+// Push the OWNING inspector only. This used to send to every enabled push
+// subscription on the platform — every company's inspectors got this job's
+// property address and its live repair-response link.
 async function sendOwnerPushNotification({
   title,
   body,
   url,
   eventType,
-  metadata = {},
+  inspectionId,
 }: {
   title: string;
   body: string;
   url: string;
   eventType: string;
+  inspectionId?: string | number | null;
   metadata?: Record<string, any>;
 }) {
   try {
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    const privateKey = process.env.VAPID_PRIVATE_KEY;
-    const subject = process.env.VAPID_SUBJECT || "https://app.flowinspect.app";
-
-    if (!publicKey || !privateKey) return;
-
-    const supabase = createAdminClient();
-    const { data: subscriptions } = await supabase
-      .from("app_push_subscriptions")
-      .select("*")
-      .eq("enabled", true);
-
-    if (!subscriptions?.length) return;
-
-    const webpush = await import("web-push");
-    webpush.default.setVapidDetails(subject, publicKey, privateKey);
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const row of subscriptions || []) {
-      try {
-        await webpush.default.sendNotification(
-          row.subscription,
-          JSON.stringify({ title, body, url, eventType })
-        );
-        sent += 1;
-      } catch (error: any) {
-        failed += 1;
-        if (error?.statusCode === 404 || error?.statusCode === 410) {
-          await supabase
-            .from("app_push_subscriptions")
-            .update({ enabled: false, updated_at: new Date().toISOString() })
-            .eq("endpoint", row.endpoint);
-        }
-      }
-    }
-
-    await supabase.from("app_notification_logs").insert({
+    if (!inspectionId) return;
+    const { data: inspection } = await createAdminClient()
+      .from("inspections")
+      .select("inspector_id")
+      .eq("id", inspectionId)
+      .maybeSingle();
+    if (!inspection?.inspector_id) return;
+    await sendPushNotification({
       title,
       body,
-      event_type: eventType,
-      target_url: url,
-      sent_count: sent,
-      failed_count: failed,
-      metadata,
+      url,
+      eventType,
+      target: "user",
+      targetUserId: inspection.inspector_id,
     });
   } catch (error) {
-    console.error("Repair response owner push failed:", error);
+    console.error("Repair response push failed:", error);
   }
 }
 
@@ -350,6 +323,7 @@ export async function POST(req: Request) {
       body: `${property}: ${baseRows.length} item${baseRows.length === 1 ? "" : "s"} answered. Seller credit: ${formatMoney(sellerCreditTotal)}.`,
       url: `/repair-response/${token}`,
       eventType: "repair_request_response_submitted",
+      inspectionId: share.inspection_id,
       metadata: {
         inspection_id: share.inspection_id,
         repair_request_share_id: share.id,

@@ -8,7 +8,7 @@ import SendRealtorReportDropdown from "../../../components/SendRealtorReportDrop
 import ConfirmSubmitButton from "../../../components/ConfirmSubmitButton";
 import { resolveTeamInspectorIds } from "../../../lib/inspectionAccess";
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams?: Promise<{ error?: string }> };
 
 function formatDate(value: any) {
   if (!value) return "N/A";
@@ -108,8 +108,10 @@ function getInspectionLabel(inspection: any) {
   return `${address} — ${client} — ${date}`;
 }
 
-export default async function RealtorDetailPage({ params }: PageProps) {
+export default async function RealtorDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  // A failed save redirects back with ?error= (it used to fail silently).
+  const saveError = String((searchParams ? await searchParams : {})?.error || "").slice(0, 300);
   const supabase = await createClient();
 
   const {
@@ -139,7 +141,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
     const teamIds = await resolveTeamInspectorIds(supabase, user.id);
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("realtors")
       .update({
         name,
@@ -150,6 +152,7 @@ export default async function RealtorDetailPage({ params }: PageProps) {
       })
       .eq("id", realtorId)
       .in("inspector_id", teamIds);
+    if (updateError) redirect(`/realtors/${realtorId}?error=${encodeURIComponent(updateError.message)}`);
 
     revalidatePath(`/realtors/${realtorId}`);
     revalidatePath("/realtors");
@@ -175,13 +178,14 @@ export default async function RealtorDetailPage({ params }: PageProps) {
 
     if (!realtorId) return;
 
-    await supabase.from("realtor_contact_logs").insert({
+    const { error: logError } = await supabase.from("realtor_contact_logs").insert({
       inspector_id: user.id,
       realtor_id: realtorId,
       contact_date: contactDate,
       contact_type: contactType || "General",
       notes: notes || null,
     });
+    if (logError) redirect(`/realtors/${realtorId}?error=${encodeURIComponent(logError.message)}`);
 
     const teamIds = await resolveTeamInspectorIds(supabase, user.id);
 
@@ -307,6 +311,11 @@ export default async function RealtorDetailPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-7xl">
+        {saveError && (
+          <div role="alert" className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
+            Couldn&apos;t save: {saveError}
+          </div>
+        )}
         <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>

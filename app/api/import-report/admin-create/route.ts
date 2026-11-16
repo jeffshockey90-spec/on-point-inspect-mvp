@@ -188,8 +188,18 @@ export async function POST(req: Request) {
       });
     }
   });
+  // These errors used to be ignored, so an import could finish "ok" with no
+  // photos / custom sections. Retry photos without company_id (not every
+  // database has that column on photos) and report anything still failing.
+  const warnings: string[] = [];
   if (photoRows.length > 0) {
-    await admin.from("photos").insert(photoRows);
+    const { error: photoError } = await admin.from("photos").insert(photoRows);
+    if (photoError) {
+      const { error: retryError } = await admin
+        .from("photos")
+        .insert(photoRows.map(({ company_id: _c, ...row }) => row));
+      if (retryError) warnings.push(`Photos were not imported: ${retryError.message}`);
+    }
   }
 
   // Custom sections (non-standard names) so they render under their own name.
@@ -198,7 +208,7 @@ export async function POST(req: Request) {
     .filter((s) => s && !STANDARD_SECTIONS.has(s.toLowerCase()));
   const uniqueCustom = Array.from(new Map(custom.map((s) => [s.toLowerCase(), s])).values());
   if (uniqueCustom.length > 0) {
-    await admin.from("report_section_overrides").insert(
+    const { error: sectionError } = await admin.from("report_section_overrides").insert(
       uniqueCustom.map((name, i) => ({
         inspection_id: inspection.id,
         section_name: name,
@@ -206,7 +216,12 @@ export async function POST(req: Request) {
         sort_order: 100 + i,
       })),
     );
+    if (sectionError) warnings.push(`Custom sections were not added: ${sectionError.message}`);
   }
 
-  return NextResponse.json({ ok: true, inspectionId: inspection.id });
+  return NextResponse.json({
+    ok: true,
+    inspectionId: inspection.id,
+    ...(warnings.length ? { warnings } : {}),
+  });
 }

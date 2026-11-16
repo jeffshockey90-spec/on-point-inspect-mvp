@@ -5,6 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../lib/companyBranding";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { isSmsConfigured, sendSms, normalizePhone } from "../../../lib/sms";
+import { sendPushNotification } from "../../../lib/push";
 
 export const runtime = "nodejs";
 
@@ -62,78 +63,28 @@ function getPropertyLabel(inspection: any) {
   );
 }
 
+// Push the inspection's OWN inspector only. This used to send to every enabled
+// push subscription on the platform, so every company's inspectors received
+// this client's email address and property.
 async function sendOwnerPushNotification({
   title,
   body,
   url,
   eventType,
-  metadata = {},
+  inspectorId,
 }: {
   title: string;
   body: string;
   url: string;
   eventType: string;
+  inspectorId?: string | null;
   metadata?: Record<string, any>;
 }) {
+  if (!inspectorId) return;
   try {
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    const privateKey = process.env.VAPID_PRIVATE_KEY;
-    const subject =
-      process.env.VAPID_SUBJECT || "https://app.flowinspect.app";
-
-    if (!publicKey || !privateKey) {
-      console.warn("Owner push skipped: missing VAPID keys.");
-      return;
-    }
-
-    const admin = createAdminClient();
-    const { data: subscriptions, error } = await admin
-      .from("app_push_subscriptions")
-      .select("*")
-      .eq("enabled", true);
-
-    if (error) {
-      console.error("Owner push subscription load error:", error);
-      return;
-    }
-
-    const webpush = await import("web-push");
-    webpush.default.setVapidDetails(subject, publicKey, privateKey);
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const row of subscriptions || []) {
-      try {
-        await webpush.default.sendNotification(
-          row.subscription,
-          JSON.stringify({ title, body, url, eventType })
-        );
-        sent += 1;
-      } catch (error: any) {
-        failed += 1;
-        console.error("Owner push send error:", error);
-
-        if (error?.statusCode === 404 || error?.statusCode === 410) {
-          await admin
-            .from("app_push_subscriptions")
-            .update({ enabled: false, updated_at: new Date().toISOString() })
-            .eq("endpoint", row.endpoint);
-        }
-      }
-    }
-
-    await admin.from("app_notification_logs").insert({
-      title,
-      body,
-      event_type: eventType,
-      target_url: url,
-      sent_count: sent,
-      failed_count: failed,
-      metadata,
-    });
+    await sendPushNotification({ title, body, url, eventType, target: "user", targetUserId: inspectorId });
   } catch (error) {
-    console.error("Owner push notification error:", error);
+    console.error("Review request push failed:", error);
   }
 }
 
@@ -574,6 +525,7 @@ export async function POST(req: Request) {
       )}.`,
       url: `/reports/${inspectionId}`,
       eventType: "review_request_sent",
+      inspectorId: (inspection as any)?.inspector_id || null,
       metadata: {
         inspection_id: inspectionId,
         recipient: sentCsv,

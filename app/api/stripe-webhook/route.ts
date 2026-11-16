@@ -863,14 +863,18 @@ export async function POST(req: Request) {
           if (claimed) {
             const payer =
               invoiceRow.client_name || invoiceRow.client_email || "A client";
-            await sendOwnerPushNotification(supabaseInv, {
+            // Notify the invoice's OWN inspector. This went to the platform
+            // owner's devices for every company's invoices (and never to the
+            // inspector who was actually paid).
+            if (invoiceRow.inspector_id) await sendPushNotification({
               title: "💵 Invoice Paid",
               body: `${payer} paid $${Number(paidAmount).toFixed(2)}${
                 invoiceRow.invoice_number ? ` — invoice ${invoiceRow.invoice_number}` : ""
               }.`,
               url: "/invoices",
               eventType: "invoice_paid",
-              metadata: { invoice_id: invoiceId, amount: paidAmount },
+              target: "user",
+              targetUserId: invoiceRow.inspector_id,
             });
           }
         }

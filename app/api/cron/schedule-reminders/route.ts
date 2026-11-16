@@ -8,6 +8,7 @@ import { smsReminder } from "../../../../lib/smsTemplates";
 import { getNotificationPrefs } from "../../../../lib/notificationPrefs";
 import { reminderDateWindow } from "../../../../lib/reminderWindow";
 import { isCronAuthorized } from "../../../../lib/cronAuth";
+import { isOrientationJob } from "../../../../lib/orientation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -408,6 +409,8 @@ function isEnvironmentalOnly(row: InspectionRow) {
 
 // Title-cased noun for push titles; lower-cased for inline body text.
 function getInspectionNoun(row: InspectionRow) {
+  // A walkthrough isn't an inspection (no report) — say what it is.
+  if (isOrientationJob(row as any)) return "Home Orientation";
   if (!isEnvironmentalOnly(row)) return "Inspection";
 
   const radon = includesRadonService(row);
@@ -801,7 +804,10 @@ async function processRadonReminders(admin: any, now: Date) {
   for (const test of tests) {
     const inspection = inspectionMap.get(String(test.inspection_id));
 
-    if (!inspection || isCancelledOrComplete(inspection)) {
+    // Only a CANCELLED job stops radon reminders: the home inspection is often
+    // marked complete before the monitor's 48h pickup, and that pickup
+    // reminder must still go out.
+    if (!inspection || getStatus(inspection).includes("cancel")) {
       continue;
     }
 

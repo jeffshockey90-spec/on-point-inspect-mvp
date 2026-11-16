@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getInspectionShareToken } from "../../../lib/shareToken";
 
 export const runtime = "nodejs";
 
@@ -45,24 +44,6 @@ function getSafeTarget(target: string, appUrl: string, fallback: string) {
   return fallback;
 }
 
-async function fallbackReportUrl(appUrl: string, inspectionId: string) {
-  const id = Number(inspectionId);
-  if (Number.isFinite(id) && id > 0) {
-    try {
-      const { data } = await supabaseAdmin
-        .from("inspections")
-        .select("public_share_token, share_token, report_share_token")
-        .eq("id", id)
-        .maybeSingle();
-      const token = getInspectionShareToken(data);
-      if (token) return `${appUrl}/share/${encodeURIComponent(token)}`;
-    } catch {
-      /* fall through */
-    }
-  }
-  return `${appUrl}/`;
-}
-
 export async function GET(req: Request) {
   const url = new URL(req.url);
 
@@ -97,10 +78,19 @@ export async function GET(req: Request) {
     } catch {
       /* best-effort */
     }
+    // Only redirect to hosts our own campaign emails link to — any other
+    // target made this an open redirect (phishing links on the FLOW domain).
     let dest = "https://app.flowinspect.app";
     try {
       const parsed = new URL(target);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      const host = parsed.hostname.toLowerCase();
+      const allowedHost =
+        host === "flowinspect.app" ||
+        host.endsWith(".flowinspect.app") ||
+        host === "apps.apple.com" ||
+        host === "testflight.apple.com" ||
+        host === "play.google.com";
+      if (parsed.protocol === "https:" && allowedHost) {
         dest = parsed.toString();
       }
     } catch {
@@ -115,11 +105,10 @@ export async function GET(req: Request) {
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000");
 
-  const safeTarget = getSafeTarget(
-    target,
-    appUrl,
-    target ? `${appUrl}/` : await fallbackReportUrl(appUrl, inspectionId || ""),
-  );
+  // No/invalid target → the app's home page. Never resolve the inspection's
+  // share token from the raw id here: this route needs no login, so that would
+  // hand out every report's private link to anyone stepping through ids.
+  const safeTarget = getSafeTarget(target, appUrl, `${appUrl}/`);
 
   try {
     const numericInspectionId = Number(inspectionId);
