@@ -176,3 +176,37 @@ export function resolveReportSections(opts: {
 
   return template ? resolved : filterSectionsForServiceMode(resolved, opts.serviceMode);
 }
+
+/**
+ * Server-side: load an inspection's ACTIVE report sections (base or template
+ * list + the inspector's custom sections, deletions and order) with whatever
+ * Supabase client the caller has. Same resolution as /api/inspection-sections.
+ * Returns [] on any miss so callers can fall back to their built-in list.
+ */
+export async function loadActiveReportSections(
+  db: { from: (t: string) => any },
+  inspectionId: string | number,
+): Promise<string[]> {
+  try {
+    const [{ data: inspection }, { data: overrides }] = await Promise.all([
+      db
+        .from("inspections")
+        .select("service_mode, report_section_order, template_sections")
+        .eq("id", inspectionId)
+        .maybeSingle(),
+      db
+        .from("report_section_overrides")
+        .select("*")
+        .eq("inspection_id", inspectionId)
+        .order("sort_order", { ascending: true }),
+    ]);
+    return resolveReportSections({
+      overrides: overrides || [],
+      customOrder: inspection?.report_section_order,
+      serviceMode: inspection?.service_mode,
+      templateSections: inspection?.template_sections,
+    });
+  } catch {
+    return [];
+  }
+}

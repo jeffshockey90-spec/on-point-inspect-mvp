@@ -7,8 +7,9 @@
 // client-facing prose. The eventual finding write-up is drafted later by the
 // shared FLOW Writer background path, which seeds off this label.
 
-// The report sections the model may route a component to. Must match the finding
-// pipeline's sections so the handed-off draft lands in the right place.
+// The built-in report sections. Used when the camera doesn't send the report's
+// own section list; otherwise identify routes to THAT list (custom sections like
+// "Shed" included) so the handed-off draft lands where the report expects it.
 export const IDENTIFY_SECTIONS = [
   "Exterior",
   "Roof",
@@ -41,7 +42,7 @@ export type IdentifyResult = {
   label: string;
   /** Generic component type, e.g. "electrical panel". */
   componentType: string;
-  /** Best-matching report section (always one of IDENTIFY_SECTIONS). */
+  /** Best-matching report section (one of the report's sections, else IDENTIFY_SECTIONS). */
   section: string;
   /** Canonical severity label (always one of IDENTIFY_SEVERITIES). */
   severity: string;
@@ -74,9 +75,25 @@ function clampConfidence(value: unknown, fallback = 70): number {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-function normalizeSection(value: unknown, fallback: string): string {
+// The report's own section list as sent by the camera: trimmed, de-duplicated
+// (case-insensitive), capped. Empty when nothing usable was sent.
+export function sanitizeSectionList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of value) {
+    const s = cleanText(item);
+    if (s && !seen.has(s.toLowerCase())) {
+      seen.add(s.toLowerCase());
+      out.push(s);
+    }
+  }
+  return out.slice(0, 60);
+}
+
+function normalizeSection(value: unknown, fallback: string, valid: readonly string[]): string {
   const clean = cleanText(value);
-  return (IDENTIFY_SECTIONS as readonly string[]).includes(clean) ? clean : fallback;
+  return valid.includes(clean) ? clean : fallback;
 }
 
 function normalizeSeverity(value: unknown): string {
@@ -96,16 +113,25 @@ function normalizeSeverity(value: unknown): string {
 
 // Coerce the model's raw JSON into a safe IdentifyResult. `fallbackSection` is the
 // section the camera was on, used when the model doesn't give a valid one.
+// `validSections` is the report's own section list (custom sections included);
+// omitted/empty → the built-in IDENTIFY_SECTIONS.
 export function normalizeIdentifyResult(
   raw: any,
   fallbackSection = "Exterior",
+  validSections: readonly string[] = [],
 ): IdentifyResult {
+  const valid: readonly string[] = validSections.length ? validSections : IDENTIFY_SECTIONS;
   const r = raw && typeof raw === "object" ? raw : {};
   const componentType = cleanText(r.componentType ?? r.component_type ?? r.type);
   const label = cleanText(r.label ?? r.name ?? r.title) || componentType || "Unidentified component";
   const hazard = cleanBool(r.hazard ?? r.isHazard ?? r.is_hazard);
   const severityRaw = r.severity ?? (hazard ? "Safety Concern" : "");
-  const safeSection = normalizeSection(r.section, (IDENTIFY_SECTIONS as readonly string[]).includes(fallbackSection) ? fallbackSection : "Exterior");
+  const safeFallback = valid.includes(fallbackSection)
+    ? fallbackSection
+    : valid.includes("Exterior")
+      ? "Exterior"
+      : valid[0] || "Exterior";
+  const safeSection = normalizeSection(r.section, safeFallback, valid);
 
   return {
     label,

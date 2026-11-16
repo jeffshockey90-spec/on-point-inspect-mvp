@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeIdentifyResult,
+  sanitizeSectionList,
   IDENTIFY_SECTIONS,
   IDENTIFY_SEVERITIES,
 } from "./identifyResult";
@@ -82,5 +83,26 @@ describe("normalizeIdentifyResult", () => {
 
   it("falls back the label to the component type when no label is given", () => {
     expect(normalizeIdentifyResult({ componentType: "furnace" }).label).toBe("furnace");
+  });
+});
+
+describe("identify with the report's own sections", () => {
+  const reportSections = ["Exterior", "Roof", "Shed"];
+
+  it("accepts a custom section from the report's list", () => {
+    expect(normalizeIdentifyResult({ label: "Shed door", section: "Shed" }, "Exterior", reportSections).section).toBe("Shed");
+  });
+
+  it("rejects a custom section when the report doesn't have it (built-in list)", () => {
+    expect(normalizeIdentifyResult({ label: "Shed door", section: "Shed" }, "Exterior").section).toBe("Exterior");
+  });
+
+  it("falls back to the current section when it's in the report's list", () => {
+    expect(normalizeIdentifyResult({ label: "Thing", section: "Nope" }, "Shed", reportSections).section).toBe("Shed");
+  });
+
+  it("sanitizes the caller's list", () => {
+    expect(sanitizeSectionList([" Shed ", "shed", "", 5, "Roof"])).toEqual(["Shed", "Roof"]);
+    expect(sanitizeSectionList("nope")).toEqual([]);
   });
 });

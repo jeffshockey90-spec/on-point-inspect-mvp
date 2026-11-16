@@ -10,6 +10,7 @@ import {
   authorizeInspection,
 } from "../../../lib/apiAuth";
 import { loadFlowWriter, FLOW_SECTIONS, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
+import { loadActiveReportSections } from "../../../lib/reportSections";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,9 +82,13 @@ function cleanText(value: any) {
   return String(value || "").trim();
 }
 
-function safeSectionValue(value: any, fallback = "Exterior") {
+// `reportSections` is the inspection's ACTIVE section list (custom sections like
+// "Shed" included). Built-in names stay valid too, so nothing that synced before
+// is rejected. Without it, a finding captured offline in a custom section was
+// filed under "Exterior".
+function safeSectionValue(value: any, fallback = "Exterior", reportSections: string[] = []) {
   const clean = cleanText(value);
-  return VALID_SECTIONS.includes(clean) ? clean : fallback;
+  return VALID_SECTIONS.includes(clean) || reportSections.includes(clean) ? clean : fallback;
 }
 
 function safeSeverityValue(value: any, fallback = "Recommended Repair") {
@@ -225,6 +230,7 @@ async function generateAiFindingAfterSync({
   photoInputs,
   offlineCreatedAt,
   userId,
+  reportSections = [],
 }: {
   payload: any;
   inspectionId: string;
@@ -232,6 +238,7 @@ async function generateAiFindingAfterSync({
   photoInputs: any[];
   offlineCreatedAt?: string;
   userId?: string | null;
+  reportSections?: string[];
 }) {
   const inspectorNote = cleanText(payload?.inspector_note || payload?.note);
   const existingTitle = cleanText(payload?.title);
@@ -275,7 +282,10 @@ Finding ID: ${findingId}
 
 Selected section:
 ${cleanText(payload?.section) || "Exterior"}
-
+${reportSections.length ? `
+Allowed sections for this report (choose one, character-for-character; prefer the most specific match, e.g. a "Shed" section for a shed component):
+${reportSections.join(", ")}
+` : ""}
 Selected severity:
 ${cleanText(payload?.severity) || "Recommended Repair"}
 
@@ -325,7 +335,11 @@ Preserve the inspector's intent. Improve the report language, but do not drift a
   }
 
   const nextTitle = cleanText(parsed.title) || existingTitle || fallbackTitle(payload);
-  const nextSection = safeSectionValue(parsed.section, safeSectionValue(payload.section));
+  const nextSection = safeSectionValue(
+    parsed.section,
+    safeSectionValue(payload.section, "Exterior", reportSections),
+    reportSections,
+  );
   const nextSeverity = safeSeverityValue(parsed.severity, safeSeverityValue(payload.severity));
   const nextObservation =
     cleanText(parsed.observation) ||
@@ -545,12 +559,16 @@ export async function POST(req: Request) {
         cleanText(payload.observation) ||
         (inspectorNote ? `Inspector field note: ${inspectorNote}` : "");
 
+      // The report's own sections (custom ones included) so a finding captured
+      // offline in e.g. "Shed" stays there instead of falling back to Exterior.
+      const reportSections = await loadActiveReportSections(supabase, inspectionId);
+
       const { data: finding, error } = await supabase
         .from("findings")
         .insert({
           inspection_id: inspectionId,
           title,
-          section: safeSectionValue(payload.section),
+          section: safeSectionValue(payload.section, "Exterior", reportSections),
           severity: safeSeverityValue(payload.severity),
           observation,
           implication: cleanText(payload.implication),
@@ -687,6 +705,7 @@ export async function POST(req: Request) {
           photoInputs: uploadedPhotoInputs,
           offlineCreatedAt,
           userId: user.id,
+          reportSections,
         });
       } catch (aiError: any) {
         console.error("Offline AI after sync failed:", aiError);
