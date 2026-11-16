@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { syncUserUpcomingInspections } from "../../../../lib/googleCalendar";
+import { isCronAuthorized } from "../../../../lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const maxDuration = 300;
 // anyone tapping "Sync". Vercel calls this with the CRON_SECRET.
 function authorized(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true; // if no secret configured, don't hard-block the cron
+  if (!secret) return isCronAuthorized(req); // no secret: only Vercel's scheduler (lib/cronAuth)
   const authHeader = req.headers.get("authorization") || "";
   const cronHeader = req.headers.get("x-cron-secret") || "";
   return authHeader === `Bearer ${secret}` || cronHeader === secret;

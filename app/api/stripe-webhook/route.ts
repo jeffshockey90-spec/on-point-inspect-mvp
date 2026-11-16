@@ -363,7 +363,7 @@ async function sendOwnerPushNotification(
 
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     const privateKey = process.env.VAPID_PRIVATE_KEY;
-    const subject = process.env.VAPID_SUBJECT || "mailto:jeff@onpointhomeinspect.com";
+    const subject = process.env.VAPID_SUBJECT || "https://app.flowinspect.app";
 
     if (publicKey && privateKey) {
       const webpush = await import("web-push");

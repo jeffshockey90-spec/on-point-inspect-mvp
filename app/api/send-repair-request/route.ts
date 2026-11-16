@@ -580,7 +580,7 @@ export async function POST(req: Request) {
     // Include the unguessable share token so the recipient's link passes the
     // repair-request access gate without exposing the raw enumerable id as the
     // only key.
-    const repairShareToken = await getOrCreateShareToken(db, inspection);
+    const repairShareToken = await getOrCreateShareToken(db, inspection, { required: true });
     const baseRepairRequestUrl = `${appUrl}/repair-request?inspection_id=${encodeURIComponent(String(inspectionId))}${
       selectedParam ? `&selected=${encodeURIComponent(selectedParam)}` : ""
     }${repairShareToken ? `&token=${encodeURIComponent(String(repairShareToken))}` : ""}`;

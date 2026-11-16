@@ -427,6 +427,8 @@ export default function ClientPortalPage() {
           },
           body: JSON.stringify({
             inspection_id: inspectionId,
+            // Proof of access (the tracker requires it).
+            lookup: shareLookup,
             view_type: "client_portal",
             viewer_role: "client",
             path: `/client-portal/${shareLookup}`,

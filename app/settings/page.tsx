@@ -867,7 +867,7 @@ export default async function SettingsPage({
             </p>
           </FastLinkButton>
 
-          {isOnPointOwner && (
+          {(isCompanyOwner || isOnPointOwner) && (
             <FastLinkButton
               href="/settings/marketing-images"
               className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"

@@ -113,7 +113,7 @@ export async function POST(req: Request) {
     }
 
     const baseUrl = getBaseUrl(req);
-    const portalShareToken = await getOrCreateShareToken(supabase, inspection);
+    const portalShareToken = await getOrCreateShareToken(supabase, inspection, { required: true });
 
     const propertyAddress =
       inspection.address ||

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getInspectionShareToken } from "../../../lib/shareToken";
 
 export const runtime = "nodejs";
 
@@ -22,8 +23,11 @@ function getClientIp(req: Request) {
   );
 }
 
-function getSafeTarget(target: string, appUrl: string, inspectionId: string) {
-  if (!target) return `${appUrl}/share/${inspectionId}`;
+// `fallback` is used when the link's target is missing or off-site. It's the
+// report's share-token link, never a raw numeric id (those don't open for an
+// anonymous client).
+function getSafeTarget(target: string, appUrl: string, fallback: string) {
+  if (!target) return fallback;
 
   try {
     const parsedTarget = new URL(target);
@@ -38,7 +42,25 @@ function getSafeTarget(target: string, appUrl: string, inspectionId: string) {
     }
   }
 
-  return `${appUrl}/share/${inspectionId}`;
+  return fallback;
+}
+
+async function fallbackReportUrl(appUrl: string, inspectionId: string) {
+  const id = Number(inspectionId);
+  if (Number.isFinite(id) && id > 0) {
+    try {
+      const { data } = await supabaseAdmin
+        .from("inspections")
+        .select("public_share_token, share_token, report_share_token")
+        .eq("id", id)
+        .maybeSingle();
+      const token = getInspectionShareToken(data);
+      if (token) return `${appUrl}/share/${encodeURIComponent(token)}`;
+    } catch {
+      /* fall through */
+    }
+  }
+  return `${appUrl}/`;
 }
 
 export async function GET(req: Request) {
@@ -93,7 +115,11 @@ export async function GET(req: Request) {
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000");
 
-  const safeTarget = getSafeTarget(target, appUrl, inspectionId || "");
+  const safeTarget = getSafeTarget(
+    target,
+    appUrl,
+    target ? `${appUrl}/` : await fallbackReportUrl(appUrl, inspectionId || ""),
+  );
 
   try {
     const numericInspectionId = Number(inspectionId);
@@ -126,14 +152,6 @@ export async function GET(req: Request) {
         .eq("recipient_email", recipientEmail)
         .in("email_type", ["inspection_report", "environmental_report"]);
 
-      await supabaseAdmin
-        .from("email_logs")
-        .update({
-          clicked_at: new Date().toISOString(),
-        })
-        .eq("inspection_id", numericInspectionId)
-        .eq("recipient_email", recipientEmail)
-        .in("email_type", ["inspection_report", "environmental_report"]);
     }
   } catch (error) {
     console.error("Email click tracking error:", error);

@@ -88,6 +88,8 @@ export default function AgreementSignatureForm({
           },
           body: JSON.stringify({
             inspection_id: inspectionId,
+            // Proof of access (the tracker requires it).
+            lookup: shareToken || "",
             view_type: "agreement_viewed",
             contact_id: contactId || null,
             viewer_role: "client",

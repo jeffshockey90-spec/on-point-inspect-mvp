@@ -79,7 +79,7 @@ async function sendOwnerPushNotification({
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     const privateKey = process.env.VAPID_PRIVATE_KEY;
     const subject =
-      process.env.VAPID_SUBJECT || "mailto:jeff@onpointhomeinspect.com";
+      process.env.VAPID_SUBJECT || "https://app.flowinspect.app";
 
     if (!publicKey || !privateKey) {
       console.warn("Owner push skipped: missing VAPID keys.");
@@ -269,8 +269,8 @@ export async function POST(req: Request) {
       (reviewCompany?.google_place_id
         ? `https://search.google.com/local/writereview?placeid=${reviewCompany.google_place_id}`
         : "") ||
-      process.env.GOOGLE_REVIEW_URL ||
-      process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL ||
+      // No platform-wide env fallback: that sent every company's clients to ONE
+      // company's Google review page. Each company connects its own (Settings).
       "";
 
     if (!googleReviewUrl) {

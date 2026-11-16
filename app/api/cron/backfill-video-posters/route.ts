@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { extractVideoPosterJpeg } from "../../../../lib/videoPoster";
+import { isCronAuthorized } from "../../../../lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ const BUCKET = "inspection-photos";
 // PDF/print/portal all show a real still. Runs nightly; safe to hit manually.
 function authorized(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
+  if (!secret) return isCronAuthorized(req); // no secret: only Vercel's scheduler (lib/cronAuth)
   const authHeader = req.headers.get("authorization") || "";
   const cronHeader = req.headers.get("x-cron-secret") || "";
   return authHeader === `Bearer ${secret}` || cronHeader === secret;

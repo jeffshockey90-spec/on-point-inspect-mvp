@@ -73,7 +73,7 @@ export async function GET(req: Request, { params }: RouteProps) {
     const companyName = company?.display_name || company?.name || "Invoice";
 
     const lineItems = Array.isArray(invoice.line_items) ? invoice.line_items : [];
-    const stripeLineItems = lineItems
+    let stripeLineItems = lineItems
       .filter((li: any) => Number(li?.unitPrice) > 0 && Number(li?.quantity) > 0)
       .map((li: any) => ({
         quantity: Math.max(1, Math.round(Number(li.quantity) || 1)),
@@ -101,6 +101,28 @@ export async function GET(req: Request, { params }: RouteProps) {
       Number(invoice.balance_due) > 0
         ? Number(invoice.balance_due)
         : Number(invoice.total) || 0;
+    // A partly-paid invoice: charge the remaining balance, not the full line
+    // items again (the client used to be charged the whole invoice twice over).
+    const lineItemsTotal =
+      Math.round(
+        stripeLineItems.reduce(
+          (sum: number, li: any) => sum + li.quantity * li.price_data.unit_amount,
+          0,
+        ),
+      ) / 100;
+    if (balanceDue > 0 && Math.abs(balanceDue - lineItemsTotal) > 0.005) {
+      const firstDescription = String(lineItems[0]?.description || "Invoice").slice(0, 200);
+      stripeLineItems = [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: Math.round(balanceDue * 100),
+            product_data: { name: `Balance due — ${firstDescription}`.slice(0, 250) },
+          },
+        },
+      ];
+    }
     const processingFee = getOnlineProcessingFee(balanceDue, company);
     const totalOnlinePayment = Math.round((balanceDue + processingFee) * 100) / 100;
 

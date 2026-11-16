@@ -3,6 +3,7 @@ import { getAdminClient } from "../../../../lib/apiAuth";
 import { johnny5Respond } from "../../../../lib/jarvis/agent";
 import { addMessage, createThread } from "../../../../lib/jarvis/threads";
 import { logError } from "../../../../lib/jarvis/logError";
+import { isCronAuthorized } from "../../../../lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export const maxDuration = 120;
 // notifyOwner). So Jeff gets a daily recon update in the @team workspace.
 function authorized(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
+  if (!secret) return isCronAuthorized(req); // no secret: only Vercel's scheduler (lib/cronAuth)
   const authHeader = req.headers.get("authorization") || "";
   const cronHeader = req.headers.get("x-cron-secret") || "";
   return authHeader === `Bearer ${secret}` || cronHeader === secret;

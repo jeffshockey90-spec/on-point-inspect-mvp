@@ -7,6 +7,7 @@ import { isSmsConfigured, sendSms } from "../../../../lib/sms";
 import { smsReminder } from "../../../../lib/smsTemplates";
 import { getNotificationPrefs } from "../../../../lib/notificationPrefs";
 import { reminderDateWindow } from "../../../../lib/reminderWindow";
+import { isCronAuthorized } from "../../../../lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -190,7 +191,7 @@ async function sendWebPush(subscription: any, payload: PushPayload) {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject =
-    process.env.VAPID_SUBJECT || "mailto:jeff@onpointhomeinspect.com";
+    process.env.VAPID_SUBJECT || "https://app.flowinspect.app";
 
   if (!publicKey || !privateKey) {
     throw new Error(
@@ -870,7 +871,7 @@ function isAuthorized(req: Request) {
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
-    return true;
+    return isCronAuthorized(req); // no secret: only Vercel's scheduler (lib/cronAuth)
   }
 
   const authHeader = req.headers.get("authorization") || "";
