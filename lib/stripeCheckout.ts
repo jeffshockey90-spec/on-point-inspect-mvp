@@ -27,13 +27,9 @@ function getNumber(value: any) {
   return 0;
 }
 
-function calculatePriceFromSqft(squareFeet: any) {
-  const sqft = getNumber(squareFeet);
-  if (!sqft || sqft <= 0) return 0;
-  if (sqft <= 2000) return 500;
-  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
-}
-
+// The stored price only. There used to be a hardcoded sqft formula fallback
+// ($500 + $50/1000 sqft — one company's rates) that billed a made-up balance for
+// any job without a saved price; "no price" now means no balance to collect.
 function getInvoiceAmount(inspection: any) {
   return (
     getNumber(inspection?.invoice_amount) ||
@@ -42,7 +38,6 @@ function getInvoiceAmount(inspection: any) {
     getNumber(inspection?.price) ||
     getNumber(inspection?.inspection_price) ||
     getNumber(inspection?.inspection_fee) ||
-    calculatePriceFromSqft(inspection?.square_feet || inspection?.sqft) ||
     0
   );
 }

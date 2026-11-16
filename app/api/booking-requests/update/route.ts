@@ -7,6 +7,8 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getOrCreateShareToken } from "../../../../lib/shareToken";
 import { getCompanyBrandingById, buildBrandedFromHeader } from "../../../../lib/companyBranding";
+import { loadEffectivePricing, priceBooking } from "../../../../lib/bookingPrice";
+import type { InspectorPricingConfig } from "../../../../lib/inspectorPricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,13 +90,20 @@ function getNumber(value: any) {
   return 0;
 }
 
-function calculatePriceFromSqft(squareFeet: any) {
-  const sqft = getNumber(squareFeet);
-
-  if (!sqft || sqft <= 0) return 0;
-  if (sqft <= 2000) return 500;
-
-  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
+// Which services a booking asked for (home / radon / mold), from its text.
+function bookedServices(request: AnyRow) {
+  const servicesText = requestedServices(request).toLowerCase();
+  const sqft = getNumber(cleanText(request.square_feet));
+  return {
+    sqft,
+    home:
+      sqft > 0 ||
+      servicesText.includes("home") ||
+      servicesText.includes("buyer") ||
+      servicesText.includes("full"),
+    radon: servicesText.includes("radon"),
+    mold: servicesText.includes("mold"),
+  };
 }
 
 function requestedServices(request: AnyRow) {
@@ -149,7 +158,8 @@ function getContactValues(request: AnyRow) {
 function getInspectionPayload(
   request: AnyRow,
   userId: string,
-  companyId: string | number | null
+  companyId: string | number | null,
+  pricing: InspectorPricingConfig,
 ) {
   const serviceType = requestedServices(request);
   const {
@@ -167,20 +177,13 @@ function getInspectionPayload(
 
   // Price the requested add-ons, not just the home base, so a radon/mold
   // booking isn't saved at $0 and the mold/radon flags are set (audit M1).
-  // Sample counts aren't known at booking time; the inspector adjusts later.
-  const servicesText = serviceType.toLowerCase();
-  const includesRadon = servicesText.includes("radon");
-  const includesMold = servicesText.includes("mold");
-  const includesHome =
-    getNumber(squareFeet) > 0 ||
-    servicesText.includes("home") ||
-    servicesText.includes("buyer") ||
-    servicesText.includes("full");
-
-  const homeFee = includesHome ? calculatePriceFromSqft(squareFeet) : 0;
-  const radonFee = includesRadon ? (includesHome ? 175 : 225) : 0;
-  const moldFee = includesMold ? (includesHome ? 175 : 225) : 0;
-  const calculatedPrice = homeFee + radonFee + moldFee;
+  // Prices come from THIS inspector's/company's own pricing (lib/bookingPrice),
+  // not hardcoded platform numbers. Sample counts aren't known at booking time;
+  // the inspector adjusts later.
+  const booked = bookedServices(request);
+  const includesRadon = booked.radon;
+  const includesMold = booked.mold;
+  const calculatedPrice = priceBooking(pricing, booked).total;
   const propertyPhotoUrl =
     getPropertyPhotoUrl(request.notes) ||
     cleanText(request.property_image_url) ||
@@ -902,7 +905,8 @@ export async function POST(request: Request) {
       const payload = getInspectionPayload(
         bookingRequest,
         user.id,
-        inspectionCompanyId
+        inspectionCompanyId,
+        await loadEffectivePricing(admin, user.id),
       );
       confirmedPrice = (payload as any)?.price ?? null;
 
@@ -990,7 +994,7 @@ export async function POST(request: Request) {
       calculatedPrice:
         confirmedPrice != null
           ? confirmedPrice
-          : calculatePriceFromSqft(bookingRequest.square_feet),
+          : priceBooking(await loadEffectivePricing(admin, user.id), bookedServices(bookingRequest)).total,
     });
   } catch (error: any) {
     return NextResponse.json(

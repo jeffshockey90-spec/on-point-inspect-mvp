@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { decidePaymentRecord } from "../../lib/paymentRecord";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -182,7 +183,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
       const { data: existingForPay } = await supabase
         .from("inspections")
         .select(
-          "amount_paid, invoice_amount, total_price, total, price, payment_status, invoice_status, paid_at"
+          "amount_paid, invoice_amount, total_price, total, price, payment_status, invoice_status, paid_at, stripe_checkout_session_id"
         )
         .eq("id", inspectionId)
         .maybeSingle();
@@ -196,26 +197,22 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
           existingForPay?.payment_status || existingForPay?.invoice_status || ""
         ).toLowerCase() === "paid" || Boolean(existingForPay?.paid_at);
 
-      const priorPaid = getNumber(existingForPay?.amount_paid);
-      const invoiceAmountForPay = getNumber(
-        existingForPay?.invoice_amount ??
-          existingForPay?.total_price ??
-          existingForPay?.total ??
-          existingForPay?.price
-      );
-      // The full invoice is now collected; record the total (idempotent, and
-      // preserves any earlier offline partial payment) instead of overwriting
-      // amount_paid with only the online balance (audit finding H9).
-      const paidTotal =
-        invoiceAmountForPay > 0 ? invoiceAmountForPay : priorPaid + balancePaid;
+      // lib/paymentRecord: never re-apply this session (revisits), never undo a
+      // refund/dispute, and add only what this session collected — "Paid" only
+      // when nothing is left owing, otherwise "Partial" with the real balance.
+      const decision = decidePaymentRecord({
+        existing: existingForPay,
+        sessionId: session.id,
+        balancePaid,
+      });
 
-      await supabase
+      if (decision.apply) await supabase
         .from("inspections")
         .update({
-          invoice_status: "Paid",
-          payment_status: "Paid",
-          amount_paid: paidTotal,
-          balance_due: 0,
+          invoice_status: decision.status,
+          payment_status: decision.status,
+          amount_paid: decision.amountPaid,
+          balance_due: decision.balanceDue,
           payment_method: "Stripe",
           payment_notes: `Stripe payment completed. Inspection balance paid: ${money(
             balancePaid
@@ -241,7 +238,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
           }`,
           stripe_checkout_session_id: session.id,
           stripe_payment_intent_id: paymentIntentId,
-          paid_at: new Date().toISOString(),
+          paid_at: decision.paidAt,
         })
         .eq("id", inspectionId);
 
