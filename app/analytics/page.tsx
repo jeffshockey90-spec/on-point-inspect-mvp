@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../utils/supabase/server";
 import { resolveInspectionAccessFilter, resolveTeamInspectorIds } from "../../lib/inspectionAccess";
 import { hasRadonService, hasMoldService } from "../../lib/environmental/service";
+import { isPaymentSettled, isPaymentWaived } from "../../lib/paymentSettled";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -19,14 +20,6 @@ function getNumber(value: any) {
   return 0;
 }
 
-function calculatePriceFromSqft(squareFeet: any) {
-  const sqft = getNumber(squareFeet);
-
-  if (!sqft || sqft <= 0) return 0;
-  if (sqft <= 2000) return 500;
-
-  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
-}
 
 function getInspectionPrice(inspection: any) {
   return (
@@ -36,7 +29,6 @@ function getInspectionPrice(inspection: any) {
     getNumber(inspection?.total) ||
     getNumber(inspection?.inspection_price) ||
     getNumber(inspection?.inspection_fee) ||
-    calculatePriceFromSqft(inspection?.square_feet || inspection?.sqft) ||
     0
   );
 }
@@ -46,6 +38,9 @@ function getPaidAmount(inspection: any) {
 }
 
 function getBalanceDue(inspection: any) {
+  // Nothing outstanding on paid / waived / refunded or cancelled jobs.
+  if (isPaymentSettled(inspection)) return 0;
+  if (String(inspection?.status || "").toLowerCase().includes("cancel")) return 0;
   if (
     inspection?.balance_due !== null &&
     inspection?.balance_due !== undefined
@@ -112,7 +107,10 @@ function isPaymentComplete(inspection: any) {
 // untouched (they're tracked in amount_refunded), so without subtracting them a
 // refunded job still counted as full revenue.
 function getNetRevenue(inspection: any) {
-  const collected = getPaidAmount(inspection) || getInspectionPrice(inspection);
+  // A waived job brought in only what was actually paid (often $0) — not its price.
+  const collected = isPaymentWaived(inspection)
+    ? getPaidAmount(inspection)
+    : getPaidAmount(inspection) || getInspectionPrice(inspection);
   const refunded = getNumber(inspection?.amount_refunded);
   return Math.max(0, collected - refunded);
 }

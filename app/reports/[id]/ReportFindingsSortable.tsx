@@ -2079,6 +2079,7 @@ function AddSectionFindingForm({
       };
 
       const hadPendingFiles = pendingFiles.length > 0;
+      let failedUploads = 0;
 
       // Attach any photos/videos chosen while creating the defect.
       if (newFinding?.id && hadPendingFiles) {
@@ -2087,8 +2088,15 @@ function AddSectionFindingForm({
             ? "Saving defect and uploading media…"
             : `Saving defect and uploading ${pendingFiles.length} files…`,
         );
+        // The defect row already exists: a failed upload must NOT throw out of
+        // here (the form stayed filled and saving again created a duplicate
+        // defect). Upload what we can and say what didn't make it.
         for (const file of pendingFiles) {
-          await uploadFindingMediaFile(inspectionId, String(newFinding.id), file);
+          try {
+            await uploadFindingMediaFile(inspectionId, String(newFinding.id), file);
+          } catch {
+            failedUploads += 1;
+          }
         }
       }
 
@@ -2101,6 +2109,13 @@ function AddSectionFindingForm({
       setSeverity("Recommended Repair");
       setPendingFiles([]);
       setOpen(false);
+      if (failedUploads > 0) {
+        setMessage(
+          `Defect saved, but ${failedUploads} photo${failedUploads === 1 ? "" : "s"} didn't upload — add ${
+            failedUploads === 1 ? "it" : "them"
+          } from the defect card.`,
+        );
+      }
 
       if (hadPendingFiles || !optimisticFinding.id) {
         // Media was uploaded separately — refresh so the photos show on the card.

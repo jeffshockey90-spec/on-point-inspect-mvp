@@ -9,7 +9,7 @@ export default async function PaymentCancelledPage({ searchParams }: PageProps) 
   const inspectionId = params.inspection_id || "";
   // Prefer the unguessable share token so the anonymous client returns to a
   // token portal link (raw-id portal access now requires a session).
-  const portalTarget = params.portal_token || inspectionId;
+  const portalTarget = params.portal_token || "";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
@@ -37,12 +37,6 @@ export default async function PaymentCancelledPage({ searchParams }: PageProps) 
             </Link>
           )}
 
-          <Link
-            href="/dashboard"
-            className="rounded-xl border border-[var(--fl-line)] px-6 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]"
-          >
-            Dashboard
-          </Link>
         </div>
       </section>
     </main>

@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { getOnlineProcessingFee } from "./onlinePaymentFee";
+import { isPaymentSettled } from "./paymentSettled";
 
 // Single source of truth for creating an inspection payment checkout. BOTH the
 // client portal "Pay Now" and the invoice payment reminder go through here so a
@@ -47,6 +48,8 @@ function getAmountPaid(inspection: any) {
 }
 
 export function getBalanceDue(inspection: any) {
+  // Paid / waived / refunded: nothing to collect, whatever balance_due says.
+  if (isPaymentSettled(inspection)) return 0;
   if (inspection?.balance_due !== null && inspection?.balance_due !== undefined) {
     const stored = getNumber(inspection.balance_due);
     // The portal treats any non-null balance_due as authoritative; the reminder

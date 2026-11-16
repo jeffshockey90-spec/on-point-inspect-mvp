@@ -94,13 +94,61 @@ export function buildReinspectionRow(parent: any, today: string): Record<string,
 export function buildReinspectionFindingRows(
   parentFindings: any[],
   reinspectionId: any,
+  // Multi-Unit: original unit id → the re-inspection's copy of that unit. A
+  // finding keeps its unit so the client can tell which unit was repaired.
+  unitIdMap?: Map<string, number | string> | null,
 ): Record<string, any>[] {
-  return (parentFindings || []).map((finding: any) => ({
-    ...pick(finding, CARRY_FINDING_FIELDS),
-    inspection_id: reinspectionId,
-    source_finding_id: finding.id,
-    reinspection_status: "not_evaluated",
-  }));
+  return (parentFindings || []).map((finding: any) => {
+    const mappedUnit =
+      finding?.unit_id != null && unitIdMap ? unitIdMap.get(String(finding.unit_id)) : undefined;
+    return {
+      ...pick(finding, CARRY_FINDING_FIELDS),
+      inspection_id: reinspectionId,
+      source_finding_id: finding.id,
+      reinspection_status: "not_evaluated",
+      ...(mappedUnit != null ? { unit_id: mappedUnit } : {}),
+    };
+  });
+}
+
+/**
+ * Copy the original's units that the carried findings use onto the
+ * re-inspection, returning original id → new id. Re-inspections of multi-unit
+ * jobs used to drop units entirely. Best-effort: no units (single-family) or a
+ * database without the units table → empty map.
+ */
+export async function copyReinspectionUnits(
+  db: any,
+  opts: { parentId: any; reinspectionId: any; findings: any[] },
+): Promise<Map<string, number | string>> {
+  const map = new Map<string, number | string>();
+  const used = Array.from(
+    new Set((opts.findings || []).map((f: any) => f?.unit_id).filter((v: any) => v != null).map(String)),
+  );
+  if (!used.length) return map;
+  try {
+    const { data: units } = await db
+      .from("inspection_units")
+      .select("id, label, sort_order, is_common_area")
+      .eq("inspection_id", opts.parentId);
+    const toCopy = (units || []).filter((u: any) => used.includes(String(u.id)));
+    for (const unit of toCopy) {
+      const { data: created } = await db
+        .from("inspection_units")
+        .insert({
+          inspection_id: opts.reinspectionId,
+          label: unit.label,
+          sort_order: unit.sort_order ?? 0,
+          is_common_area: Boolean(unit.is_common_area),
+        })
+        .select("id")
+        .single();
+      if (created?.id != null) map.set(String(unit.id), created.id);
+    }
+  } catch {
+    /* units are optional — carry the findings without them */
+  }
+  return map;
 }
 
 /**
@@ -217,7 +265,12 @@ export async function createReinspection(
     throw new Error(createError?.message || "Could not create re-inspection.");
   }
 
-  const rows = buildReinspectionFindingRows(selected, created.id);
+  const unitIdMap = await copyReinspectionUnits(db, {
+    parentId: parent.id,
+    reinspectionId: created.id,
+    findings: selected,
+  });
+  const rows = buildReinspectionFindingRows(selected, created.id, unitIdMap);
   if (rows.length) {
     const { error: insertError } = await db.from("findings").insert(rows);
     if (insertError) throw new Error(insertError.message);

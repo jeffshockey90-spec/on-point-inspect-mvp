@@ -95,14 +95,6 @@ function money(value: any) {
   }).format(amount || 0);
 }
 
-function calculatePriceFromSqft(squareFeet: any) {
-  const sqft = getNumber(squareFeet);
-
-  if (!sqft || sqft <= 0) return 0;
-  if (sqft <= 2000) return 500;
-
-  return 500 + Math.ceil((sqft - 2000) / 1000) * 50;
-}
 
 function getInspectionPrice(inspection: any) {
   return (
@@ -113,7 +105,6 @@ function getInspectionPrice(inspection: any) {
     getNumber(inspection?.inspection_price) ||
     getNumber(inspection?.inspection_fee) ||
     getNumber(inspection?.amount_due) ||
-    calculatePriceFromSqft(inspection?.square_feet || inspection?.sqft) ||
     0
   );
 }

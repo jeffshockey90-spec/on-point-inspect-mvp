@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type ShareTab = "summary" | "full" | "disclaimers" | "standards" | "equipment" | "priority" | "maintenance";
+import { resolveInitialTab, tabForHash, type ShareTab } from "../lib/shareTabs";
 
 type Props = {
   initialTab?: ShareTab;
@@ -44,7 +44,9 @@ export default function ShareReportTabs({
   showPriority = false,
   showMaintenance = true,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<ShareTab>(initialTab);
+  // A clean report (no defects) has no Summary panel — open Full Report then.
+  const startTab = resolveInitialTab(initialTab, showSummary);
+  const [activeTab, setActiveTab] = useState<ShareTab>(startTab);
   const navRef = useRef<HTMLDivElement | null>(null);
 
   const applyTab = useCallback((nextTab: ShareTab, scrollToTabs = false) => {
@@ -67,9 +69,54 @@ export default function ShareReportTabs({
     }
   }, []);
 
+  // Bring a hash target into view: switch to its tab, clear a severity filter
+  // that would hide the finding (display:none has no scroll position), open the
+  // phone's collapsed card, then scroll.
+  const goToHash = useCallback(
+    (hash: string, updateUrl: boolean) => {
+      const targetTab = tabForHash(hash);
+      if (!targetTab) return false;
+      applyTab(targetTab, true);
+
+      const targetId = hash.replace(/^#/, "");
+      if (hash.startsWith("#finding-")) {
+        const findings = document.getElementById("inspection-findings");
+        if (findings && findings.getAttribute("data-filter") && findings.getAttribute("data-filter") !== "all") {
+          findings.setAttribute("data-filter", "all");
+          window.dispatchEvent(new Event("flow:findings-filter-reset"));
+        }
+      }
+
+      // A double-rAF used to gate this (to let the newly-unhidden panel finish
+      // its layout pass first), but requestAnimationFrame can stall when the
+      // tab isn't compositing frames; a setTimeout tick is enough for the
+      // unhide to have taken effect.
+      window.setTimeout(() => {
+        const destination = document.getElementById(targetId);
+        if (!destination) return;
+        const card = destination.querySelector("details");
+        if (card && !card.open) card.open = true;
+
+        // scrollIntoView / smooth scroll are unreliable right after a large
+        // panel is unhidden — compute the position and jump instead. The offset
+        // matches the scroll-margin-top used for [id] elements on this page.
+        const headerOffset = window.innerWidth >= 768 ? 220 : 180;
+        const destinationTop =
+          destination.getBoundingClientRect().top + window.scrollY - headerOffset;
+        window.scrollTo(0, Math.max(0, destinationTop));
+        if (updateUrl) window.history.replaceState(null, "", hash);
+      }, 0);
+      return true;
+    },
+    [applyTab],
+  );
+
   useEffect(() => {
-    applyTab(initialTab, false);
-  }, [applyTab, initialTab]);
+    // First load: honor a hash in the URL (emailed / bookmarked deep links).
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    if (hash && goToHash(hash, false)) return;
+    applyTab(startTab, false);
+  }, [applyTab, goToHash, startTab]);
 
   useEffect(() => {
     const nav = navRef.current;
@@ -82,62 +129,15 @@ export default function ShareReportTabs({
       if (!anchor) return;
 
       const hash = anchor.getAttribute("href") || "";
-      const targetTab: ShareTab | null =
-        hash === "#client-summary"
-          ? "summary"
-          : hash === "#priority-repairs"
-            ? "priority"
-            : hash === "#maintenance-tips"
-              ? "maintenance"
-            : hash === "#report-disclaimers"
-              ? "disclaimers"
-              : hash === "#standards-of-practice"
-                ? "standards"
-                : hash === "#equipment-inventory"
-                  ? "equipment"
-                  : hash === "#inspection-findings" ||
-                      hash === "#report-limitations" ||
-                      hash.startsWith("#section-") ||
-                      hash.startsWith("#finding-")
-                    ? "full"
-                    : null;
-
-      if (!targetTab) return;
+      if (!tabForHash(hash)) return;
 
       event.preventDefault();
-      applyTab(targetTab, true);
-
-      const targetId = hash.replace(/^#/, "");
-
-      // A double-rAF used to gate this (to let the newly-unhidden panel
-      // finish its layout pass first), but requestAnimationFrame can stall
-      // indefinitely when the tab isn't actively compositing frames -
-      // setTimeout fires reliably regardless and a task-queue tick is
-      // already enough time for the unhide to have taken effect.
-      window.setTimeout(() => {
-        const destination = document.getElementById(targetId);
-
-        if (destination) {
-          // scrollIntoView (and smooth window.scrollTo) are unreliable here
-          // (this section was just unhidden and the resulting huge layout
-          // shift seems to abort the browser's own scroll animation) -
-          // compute the target position manually and jump instantly
-          // instead. Offset matches the scroll-margin-top set globally for
-          // [id] elements on this page.
-          const headerOffset = window.innerWidth >= 768 ? 220 : 180;
-          const destinationTop =
-            destination.getBoundingClientRect().top + window.scrollY - headerOffset;
-
-          window.scrollTo(0, Math.max(0, destinationTop));
-
-          window.history.replaceState(null, "", hash);
-        }
-      }, 0);
+      goToHash(hash, true);
     }
 
     parent.addEventListener("click", handleClick);
     return () => parent.removeEventListener("click", handleClick);
-  }, [applyTab]);
+  }, [goToHash]);
 
   const visibleTabs = TAB_LABELS.filter(({ key }) => {
     if (key === "summary") return showSummary;

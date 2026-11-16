@@ -12,6 +12,7 @@ import {
   saveReinspectionDraft,
   setReinspectionVerdict,
 } from "../../../../lib/reinspection";
+import { currentLocalDate } from "../../../../lib/app-time";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -127,7 +128,8 @@ export async function POST(request: Request) {
   try {
     const result = await createReinspection(db, {
       parent,
-      today: new Date().toISOString().slice(0, 10),
+      // The app-time-zone date (UTC dated evening re-inspections tomorrow).
+      today: currentLocalDate(),
       findingIds: Array.isArray(body?.findingIds) ? body.findingIds : [],
     });
     return NextResponse.json({ ok: true, id: result.id, carriedFindings: result.carriedFindings });

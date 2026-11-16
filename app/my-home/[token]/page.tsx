@@ -399,7 +399,7 @@ export default async function HomeownerPortal({
                         </p>
                       </div>
                       <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${s.chip}`}>
-                        {life.status === "unknown" ? tc("Info") : `${life.pctUsed}% used`}
+                        {life.status === "unknown" ? tc("Info") : `${life.pctUsed}% of typical life`}
                       </span>
                     </div>
 
@@ -417,8 +417,10 @@ export default async function HomeownerPortal({
                             {life.ageYears != null ? `~${life.ageYears} yrs old` : "Age n/a"}
                             {life.serviceLifeYears != null ? ` of ~${life.serviceLifeYears} yr life` : ""}
                           </span>
-                          {life.remainingYears != null && (
-                            <span className={s.text}>~{life.remainingYears} yrs left</span>
+                          {/* Liability wording: never a countdown / deadline — typical
+                              service life plus a maintenance caveat. */}
+                          {life.serviceLifeYears != null && (
+                            <span className={s.text}>Actual life varies with maintenance</span>
                           )}
                         </div>
                       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Instant, client-side severity filter for the web report's findings list.
 // It flips a data-filter attribute on the #inspection-findings container; the
@@ -23,6 +23,14 @@ export default function FindingsSeverityFilter({
   counts: Record<string, number>;
 }) {
   const [active, setActive] = useState(initial);
+
+  // A "View finding" link clears the filter so its target is visible; keep the
+  // chips in sync with that.
+  useEffect(() => {
+    const onReset = () => setActive("all");
+    window.addEventListener("flow:findings-filter-reset", onReset);
+    return () => window.removeEventListener("flow:findings-filter-reset", onReset);
+  }, []);
 
   function apply(key: string) {
     setActive(key);
