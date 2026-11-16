@@ -388,6 +388,22 @@ export const MATERIAL_FIELDS: Record<string, MaterialField[]> = {
     { groupTitle: "Range/Oven Energy Source", options: ["Coal", "Gas", "Electric", "Wood"] },
     { groupTitle: "Exhaust Hood Type", options: ["None", "Vented", "Re-circulate"] },
   ],
+  // Heating / Cooling: what a photo of the furnace, boiler, heat pump or
+  // condenser can show — the brand (read off the badge), fuel/type, and
+  // configuration. Thermostat location / "responds to controls" are left to
+  // the inspector. These were missing, so Identify on a furnace or AC unit
+  // could never tick a box. Option lists mirror CHECKLIST_LIBRARY.
+  "Heating": [
+    { groupTitle: "Brand", options: ["Rheem", "American Standard", "York", "Trane", "Payne", "Coleman", "Carrier", "Bryant", "Lennox", "Goodman", "Amana"] },
+    { groupTitle: "Energy Source", options: ["Coal", "Gas", "Oil", "Solar", "Natural Gas", "Corn", "Kerosene", "Propane", "Electric", "Wood"] },
+    { groupTitle: "Heat Type", options: ["Radiant Heat", "Electric Baseboard", "Space Heater", "Forced Air", "Hydronic", "Electric Wall Heater", "Steam Boiler", "Heat Pump", "Gas-Fired Heat"] },
+    { groupTitle: "Ductwork", options: ["Insulated", "Non-insulated"] },
+  ],
+  "Cooling": [
+    { groupTitle: "Brand", options: ["Amana", "Frigidaire", "Carrier", "Coleman", "Goodman", "Lennox", "Rheem", "York", "Trane", "Bryant", "Maytag", "General Electric", "Luxaire", "Armstrong"] },
+    { groupTitle: "Energy Source/Type", options: ["Ceiling Fan", "Whole House Fan", "Window AC", "Heat Pump", "Oil", "Gas", "Electric", "Central Air Conditioner", "Swamp Cooler", "Attic Fan"] },
+    { groupTitle: "Configuration", options: ["Central", "Window Unit", "Split"] },
+  ],
   "Garage": [
     { groupTitle: "Garage Door Material", options: ["Aluminum", "Wood Composite", "Vinyl", "Insulated", "Steel", "Wood", "Fiberglass", "Glass"] },
     { groupTitle: "Garage Door Type", options: ["Sliding", "Up-and-Over", "Automatic", "Folding", "Roll-Up", "Sectional"] },
