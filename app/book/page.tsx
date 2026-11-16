@@ -1,17 +1,47 @@
 import Link from "next/link";
 import BookingRequestForm from "../../components/BookingRequestForm";
-import { getBookingCompanyBySlug, getBookingAvailability } from "../../lib/booking";
+import { getBookingCompanyBySlug, getBookingAvailability, getBookingCompanyById } from "../../lib/booking";
+import { loadOpenQuote, bookingServicesForQuote } from "../../lib/savedQuotes";
+import { getAdminClient } from "../../lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 
 export default async function BookInspectionPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ inspector?: string }>;
+  searchParams?: Promise<{ inspector?: string; quote?: string }>;
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
-  const companySlug = String(resolvedSearchParams?.inspector || "").trim();
-  const company = companySlug ? await getBookingCompanyBySlug(companySlug) : null;
+  let companySlug = String(resolvedSearchParams?.inspector || "").trim();
+  let company = companySlug ? await getBookingCompanyBySlug(companySlug) : null;
+
+  // A saved-quote link (/book?quote=<token>): the quote decides the company and
+  // pre-fills the form. An expired / already-booked quote just shows the
+  // normal form with a note.
+  const quoteToken = String(resolvedSearchParams?.quote || "").trim();
+  const savedQuote = quoteToken ? await loadOpenQuote(getAdminClient(), quoteToken) : null;
+  if (savedQuote?.company_id && String(savedQuote.company_id) !== String(company?.id || "")) {
+    const quoteCompany = await getBookingCompanyById(savedQuote.company_id);
+    if (quoteCompany) {
+      company = quoteCompany;
+      companySlug = quoteCompany.profile_slug || "";
+    }
+  }
+  const quoteProp = savedQuote
+    ? {
+        token: savedQuote.token,
+        total: Number(savedQuote.total) || 0,
+        services: bookingServicesForQuote(savedQuote.service_ids, savedQuote.line_items),
+        serviceNames: (savedQuote.line_items || []).map((item: any) => String(item?.name || "")).filter(Boolean),
+        clientName: savedQuote.client_name,
+        clientEmail: savedQuote.client_email,
+        propertyAddress: savedQuote.property_address,
+        city: savedQuote.city,
+        state: savedQuote.state,
+        zip: savedQuote.zip,
+        squareFeet: savedQuote.square_feet,
+      }
+    : null;
   const companyName = company?.display_name || company?.name || "FLOW";
   const availability = await getBookingAvailability(company?.id || null);
 
@@ -53,13 +83,21 @@ export default async function BookInspectionPage({
           </Link>
         </section>
 
+        <div className="space-y-4">
+        {quoteToken && !savedQuote && (
+          <div className="mx-auto w-full max-w-2xl rounded-2xl border border-amber-400/40 bg-amber-500/10 p-4 text-sm font-semibold text-[var(--fl-warn-text)]">
+            This quote link has expired or was already used to book. You can still send a request below — the inspector will confirm the price.
+          </div>
+        )}
         <BookingRequestForm
+          quote={quoteProp}
           companySlug={companySlug}
           bookingEnabled={availability?.booking_enabled !== false}
           availableDays={availability?.available_days || undefined}
           availableTimes={availability?.default_times || undefined}
           blockedDates={availability?.blocked_dates || undefined}
         />
+        </div>
       </div>
     </main>
   );

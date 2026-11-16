@@ -150,6 +150,13 @@ export default function QuotePage() {
   const [discount, setDiscount] = useState(0);
   const [multiUnit, setMultiUnit] = useState(false);
   const [unitCount, setUnitCount] = useState(2);
+  // Saved quotes (a client booking link that books at this price).
+  const [quoteClientName, setQuoteClientName] = useState("");
+  const [quoteClientEmail, setQuoteClientEmail] = useState("");
+  const [savingQuote, setSavingQuote] = useState(false);
+  const [savedLink, setSavedLink] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [savedQuotes, setSavedQuotes] = useState<SavedQuoteRow[]>([]);
   const [pricingConfig, setPricingConfig] = useState<InspectorPricingConfig>(
     DEFAULT_PRICING_CONFIG,
   );
@@ -314,6 +321,69 @@ export default function QuotePage() {
   const message = `Hi, for this property the quote is $${quote.total}. Services selected: ${
     quote.serviceLabel
   }. This includes a clear digital report for the selected service(s).`;
+
+  async function loadSavedQuotes() {
+    try {
+      const res = await fetch("/api/quotes", { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok) setSavedQuotes(Array.isArray(data?.quotes) ? data.quotes : []);
+    } catch {
+      /* list is optional */
+    }
+  }
+
+  useEffect(() => {
+    void loadSavedQuotes();
+  }, []);
+
+  async function saveQuote() {
+    if (savingQuote) return;
+    setSavingQuote(true);
+    setSaveError("");
+    setSavedLink("");
+    try {
+      const res = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: quoteClientName,
+          clientEmail: quoteClientEmail,
+          propertyAddress,
+          city,
+          state: stateValue,
+          zip,
+          squareFeet: quote.includesBase ? sqft : null,
+          serviceIds: selectedServiceIds,
+          lineItems: quote.lineItems.map((item) => ({ id: item.id, name: item.name, fee: item.fee, units: item.units })),
+          travelFee: quote.travelFee,
+          discount: quote.discount,
+          total: quote.total,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not save the quote.");
+      setSavedLink(data.link || "");
+      void loadSavedQuotes();
+    } catch (error: any) {
+      setSaveError(error?.message || "Could not save the quote.");
+    } finally {
+      setSavingQuote(false);
+    }
+  }
+
+  async function copyLink(link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+      await flowAlert("Booking link copied");
+    } catch {
+      await flowAlert("Couldn't copy automatically. Select and copy the link manually.");
+    }
+  }
+
+  async function deleteSavedQuote(id: string) {
+    const res = await fetch(`/api/quotes/${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (res.ok) setSavedQuotes((current) => current.filter((q) => q.id !== id));
+  }
 
   async function copyQuote() {
     try {
@@ -613,10 +683,125 @@ export default function QuotePage() {
             </button>
           </div>
         </Card>
+
+        <Card title="Save & Send a Booking Link">
+          <p className="text-sm leading-6 text-[var(--fl-muted)]">
+            Save this quote and send the client a link. It opens your booking form already filled in
+            with the address and services and shows this price — when you confirm the booking, the
+            job is invoiced at the quoted ${quote.total}. Links stay open for 30 days and book once.
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-sm font-bold text-[var(--fl-text)]">Client Name (optional)</span>
+              <input
+                type="text"
+                value={quoteClientName}
+                onChange={(e) => setQuoteClientName(e.target.value)}
+                className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-bold text-[var(--fl-text)]">Client Email (optional)</span>
+              <input
+                type="email"
+                value={quoteClientEmail}
+                onChange={(e) => setQuoteClientEmail(e.target.value)}
+                className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
+              />
+            </label>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={saveQuote}
+              disabled={savingQuote || quote.lineItems.length === 0 || quote.total <= 0}
+              className="rounded-2xl bg-[var(--fl-accent)] px-6 py-4 font-bold text-[var(--fl-accent-text)] transition disabled:opacity-50"
+            >
+              {savingQuote ? "Saving..." : "Save Quote & Get Link"}
+            </button>
+            {saveError && <span className="text-sm font-semibold text-[var(--fl-crit-text)]">{saveError}</span>}
+          </div>
+          {savedLink && (
+            <div className="mt-4 rounded-2xl border border-teal-500/40 bg-teal-500/10 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--fl-accent-text)]">Booking link</p>
+              <p className="mt-1 break-all text-sm text-[var(--fl-text)]">{savedLink}</p>
+              <button
+                type="button"
+                onClick={() => copyLink(savedLink)}
+                className="mt-3 rounded-xl border border-teal-500 px-4 py-2 text-sm font-bold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
+              >
+                Copy Link
+              </button>
+            </div>
+          )}
+
+          {savedQuotes.length > 0 && (
+            <div className="mt-6 space-y-2">
+              <p className="text-sm font-bold text-[var(--fl-text)]">Saved quotes</p>
+              {savedQuotes.map((q) => (
+                <div
+                  key={q.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[var(--fl-text)]">
+                      ${q.total} · {q.clientName || q.propertyAddress || "No client name"}
+                    </p>
+                    <p className="truncate text-xs text-[var(--fl-muted)]">
+                      {q.services.join(" + ")}
+                      {q.propertyAddress && q.clientName ? ` · ${q.propertyAddress}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase ${
+                        q.status === "booked"
+                          ? "border-emerald-400/40 text-[var(--fl-good-text)]"
+                          : q.status === "expired"
+                            ? "border-[var(--fl-line)] text-[var(--fl-faint)]"
+                            : "border-teal-500/40 text-[var(--fl-accent-text)]"
+                      }`}
+                    >
+                      {q.status}
+                    </span>
+                    {q.status === "open" && (
+                      <button
+                        type="button"
+                        onClick={() => copyLink(q.link)}
+                        className="rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-bold text-[var(--fl-accent-text)]"
+                      >
+                        Copy Link
+                      </button>
+                    )}
+                    {q.status !== "booked" && (
+                      <button
+                        type="button"
+                        onClick={() => deleteSavedQuote(q.id)}
+                        className="rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-bold text-[var(--fl-crit-text)]"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
     </main>
   );
 }
+
+type SavedQuoteRow = {
+  id: string;
+  clientName: string | null;
+  propertyAddress: string | null;
+  total: number;
+  services: string[];
+  status: "open" | "booked" | "expired";
+  link: string;
+};
 
 function Input({
   label,
