@@ -12,6 +12,7 @@ import CaptureConfirmCard from "./ai-camera/CaptureConfirmCard";
 import IdentifyPeekCard from "./ai-camera/IdentifyPeekCard";
 import type { IdentifyResult } from "../lib/ai/identifyResult";
 import { MATERIAL_FIELDS } from "../lib/ai/checklistAutofill";
+import { hasBuiltInChecklist } from "../lib/customChecklist";
 import { shrinkForAi, dataUrlToFile } from "../lib/aiFrame";
 import { generateLiveDraft, type LiveDraftCategory } from "../lib/ai/liveDraftGen";
 import {
@@ -1184,7 +1185,13 @@ export default function AILiveInspectionCamera({
       : currentSection;
   // True when that section has recognizable system-info material fields (e.g.
   // Attic → Insulation Type / Ventilation Type), so "Add to section info" applies.
-  const identifyCanFill = Boolean(identify) && Boolean(MATERIAL_FIELDS[identifyFillSection]);
+  // Custom sections (e.g. "Shed") count too: the server reads their
+  // inspector-defined fields. This used to check only the built-in list, so a
+  // custom section never offered "Add system info".
+  const identifyCanFill =
+    Boolean(identify) &&
+    Boolean(identifyFillSection) &&
+    (Boolean(MATERIAL_FIELDS[identifyFillSection]) || !hasBuiltInChecklist(identifyFillSection));
 
   // Point-and-identify companion to the finding hand-off: read the frame for the
   // section's system-info materials and tick the matching checklist boxes. Reuses

@@ -3,10 +3,11 @@
 // Point-and-identify peek card. Shown over the live view after the inspector
 // taps Identify. It LABELS what the camera is pointing at and proposes a
 // severity, then lets the inspector adjust the severity, add context, and hand
-// it off to the background draft — or dismiss it. It never writes to the report
-// itself; "Send to draft" queues the same background pipeline every capture uses.
+// it off to the background draft — or dismiss it. The only thing it writes on
+// its own is the section's system-info checkboxes (empty ones only); "Send to
+// draft" queues the same background pipeline every capture uses.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { IdentifyResult } from "../../lib/ai/identifyResult";
 import { useSeverityConfig } from "../../lib/severity/useSeverityConfig";
 import {
@@ -71,6 +72,18 @@ export default function IdentifyPeekCard({
     }
   }
 
+  // Identify ticks the section's system-info boxes on its own as soon as the
+  // card opens (once) — it used to wait for a separate tap that was easy to
+  // miss, so Identify looked like it never filled anything. The button below
+  // stays as a retry. Still fills only EMPTY fields.
+  const autoFilledRef = useRef(false);
+  useEffect(() => {
+    if (autoFilledRef.current || !canFillChecklist || !onFillChecklist) return;
+    autoFilledRef.current = true;
+    void handleFill();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canFillChecklist, onFillChecklist]);
+
   return (
     <div
       className="absolute inset-0 z-[57] flex items-end justify-center bg-black/80 p-3 backdrop-blur-sm [touch-action:manipulation] sm:items-center"
@@ -131,7 +144,11 @@ export default function IdentifyPeekCard({
                   disabled={busy || fillState === "busy"}
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-400/40 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition active:scale-[0.99] disabled:opacity-50 [touch-action:manipulation]"
                 >
-                  {fillState === "busy" ? "Reading…" : `➕ Add ${shortSection} system info`}
+                  {fillState === "busy"
+                    ? `Reading ${shortSection} system info…`
+                    : fillState === "error"
+                      ? `Try again: add ${shortSection} system info`
+                      : `➕ Add ${shortSection} system info`}
                 </button>
                 <p className="mt-1.5 text-center text-[11px] text-white/40">
                   Ticks this section's material boxes (e.g. insulation type) — fills only what's empty.
