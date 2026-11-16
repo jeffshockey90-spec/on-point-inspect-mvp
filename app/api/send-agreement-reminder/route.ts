@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
-import { listUnsubscribeHeaders, isEmailUnsubscribed } from "../../../lib/emailUnsubscribe";
-import { getOrCreateShareToken } from "../../../lib/shareToken";
-import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
-import { isSmsConfigured, sendSms } from "../../../lib/sms";
-import { describeSmsOutcome } from "../../../lib/smsOutcome";
+import { sendAgreementReminder } from "../../../lib/agreementReminder";
 
 export const runtime = "nodejs";
 
@@ -14,8 +9,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 function getBaseUrl(req: Request) {
   const envUrl =
@@ -26,25 +19,6 @@ function getBaseUrl(req: Request) {
   if (envUrl) return envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
 
   return new URL(req.url).origin;
-}
-
-function escapeHtml(value: any) {
-  return String(value || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-function isClientAgreementRecipient(contact: any) {
-  const role = String(contact?.role || "").toLowerCase().trim();
-
-  return (
-    Boolean(contact?.email) &&
-    Boolean(contact?.agreement_required) &&
-    !Boolean(contact?.agreement_signed) &&
-    (role === "client" || role === "co-client")
-  );
 }
 
 export async function POST(req: Request) {
@@ -78,205 +52,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Inspection not found." }, { status: 404 });
     }
 
-    const branding = await getCompanyBrandingById(inspection.company_id);
-
-    if (inspection.agreement_waived === true) {
-      return NextResponse.json(
-        {
-          error:
-            "The agreement requirement is waived for this inspection. Remove the waiver first if you need to send a reminder.",
-        },
-        { status: 400 }
-      );
-    }
-
-    let query = supabase
-      .from("inspection_contacts")
-      .select("*")
-      .eq("inspection_id", inspectionId)
-      .eq("agreement_required", true)
-      .eq("agreement_signed", false)
-      .in("role", ["client", "co-client"]);
-
-    if (contactId) query = query.eq("id", contactId);
-
-    const { data: contacts, error: contactsError } = await query;
-    if (contactsError) throw contactsError;
-
-    const recipients = (contacts || []).filter(isClientAgreementRecipient);
-
-    if (!recipients.length) {
-      return NextResponse.json(
-        { error: "No unsigned required client/co-buyer agreement contacts found." },
-        { status: 400 }
-      );
-    }
-
-    const baseUrl = getBaseUrl(req);
-    const portalShareToken = await getOrCreateShareToken(supabase, inspection, { required: true });
-
-    const propertyAddress =
-      inspection.address ||
-      inspection.property_address ||
-      "the inspection property";
-
-    const fromEmail = buildBrandedFromHeader(
-      branding,
-      "On Point Home Inspections <agreements@onpointhomeinspect.com>"
-    );
-
-    const sent: any[] = [];
-    const failed: any[] = [];
-    let smsSentCount = 0;
-    let smsSkippedNoPhoneCount = 0;
-    let smsFailedCount = 0;
-
-    for (const contact of recipients) {
-      const email = String(contact.email || "").trim().toLowerCase();
-      if (!email) continue;
-      // Honor a one-click unsubscribe: reminders are non-essential, so skip.
-      if (await isEmailUnsubscribed(supabase, email)) continue;
-
-      const agreementUrl = `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}&source=reminder`;
-      const portalUrl = `${baseUrl}/client-portal/${portalShareToken}`;
-      const subject = `Reminder: Inspection Agreement for ${propertyAddress}`;
-
-      const html = `
-        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;">
-          <h2 style="color:#0f766e;">${escapeHtml(branding.name)}</h2>
-          <p>Hi ${contact.name || "there"},</p>
-          <p>This is a reminder to review and sign your residential inspection agreement for:</p>
-          <p><strong>${propertyAddress}</strong></p>
-          <p>
-            <a href="${agreementUrl}" style="display:inline-block;background:#14b8a6;color:#020617;font-weight:bold;padding:12px 18px;border-radius:10px;text-decoration:none;">
-              Review & Sign Agreement
-            </a>
-          </p>
-          <p>Client Portal:<br /><a href="${portalUrl}">${portalUrl}</a></p>
-          <p>Thank you,<br />${escapeHtml(branding.name)}</p>
-        </div>
-      `;
-
-      const text = `Hi ${contact.name || "there"},
-
-This is a reminder to review and sign your residential inspection agreement for:
-
-${propertyAddress}
-
-Agreement:
-${agreementUrl}
-
-Client Portal:
-${portalUrl}
-
-Thank you,
-${branding.name}`;
-
-      const result = await resend.emails.send({
-        from: fromEmail,
-        replyTo: brandedReplyTo(branding),
-        to: email,
-        headers: listUnsubscribeHeaders(email),
-        subject,
-        html,
-        text,
-      });
-
-      if (result.error) {
-        failed.push({
-          email,
-          contact_id: contact.id,
-          error: result.error.message,
-        });
-        continue;
-      }
-
-      sent.push({
-        email,
-        contact_id: contact.id,
-        resend_id: result.data?.id || null,
-      });
-
-      await supabase.from("email_logs").insert({
-        inspection_id_bigint: Number(inspectionId),
-        recipient: email,
-        recipient_email: email,
-        email_type: "agreement_reminder",
-        subject,
-        message: portalUrl,
-        html,
-        status: "sent",
-        resend_id: result.data?.id || null,
-        sent_at: new Date().toISOString(),
-        metadata: { type: "agreement_reminder", contactId: contact.id, portalUrl },
-      });
-
-      await supabase.from("client_portal_events").insert({
-        inspection_id: inspectionId,
-        event_type: "agreement_reminder_sent",
-        event_note: `Agreement reminder sent to client contact ${email}`,
-      });
-
-      // Best-effort SMS reminder to this signer (requires a phone on the
-      // contact + Twilio configured). Never blocks the email. Keeps this
-      // reminder path in parity with /api/send-agreement-email's SMS send.
-      const contactPhone = String(contact.phone || "").trim();
-      if (isSmsConfigured()) {
-        if (!contactPhone) {
-          smsSkippedNoPhoneCount += 1;
-        } else {
-          const smsBody = `${branding.name}: Reminder to review & sign your inspection agreement for ${propertyAddress}. Sign: ${agreementUrl}`;
-          const smsResult = await sendSms({ to: contactPhone, body: smsBody }).catch(() => null);
-          if (smsResult?.ok) smsSentCount += 1;
-          else smsFailedCount += 1;
-
-          await supabase.from("email_logs").insert({
-            inspection_id_bigint: Number(inspectionId),
-            recipient: contactPhone,
-            recipient_email: contactPhone,
-            email_type: "agreement_reminder_sms",
-            subject: `Agreement Reminder SMS - ${propertyAddress}`,
-            message: agreementUrl,
-            status: smsResult?.ok ? "sent" : "failed",
-            sent_at: smsResult?.ok ? new Date().toISOString() : null,
-            metadata: {
-              type: "agreement_reminder_sms",
-              contactId: contact.id,
-              channel: "sms",
-              error: smsResult?.ok ? undefined : smsResult?.error || "Agreement reminder SMS failed.",
-            },
-          });
-        }
-      }
-    }
-
-    if (!sent.length) {
-      return NextResponse.json(
-        {
-          error: "Agreement reminder was not sent.",
-          failed,
-        },
-        { status: 500 }
-      );
-    }
-
-    const smsOutcome = describeSmsOutcome({
-      sent: smsSentCount,
-      skippedNoPhone: smsSkippedNoPhoneCount,
-      failed: smsFailedCount,
+    const result = await sendAgreementReminder(supabase, inspection, {
+      baseUrl: getBaseUrl(req),
+      contactId,
     });
 
-    return NextResponse.json({
-      success: true,
-      message: `Agreement reminder sent to ${sent.length} client recipient${sent.length === 1 ? "" : "s"}${
-        smsOutcome ? ` (${smsOutcome})` : ""
-      }.`,
-      sent,
-      failed,
-      smsSent: smsSentCount,
-      smsSkippedNoPhone: smsSkippedNoPhoneCount,
-      smsFailed: smsFailedCount,
-    });
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.error, ...(result.failed ? { failed: result.failed } : {}) },
+        { status: result.status },
+      );
+    }
+
+    const { ok: _ok, ...payload } = result;
+    return NextResponse.json({ success: true, ...payload });
   } catch (error: any) {
     console.error("Send agreement reminder error:", error);
 

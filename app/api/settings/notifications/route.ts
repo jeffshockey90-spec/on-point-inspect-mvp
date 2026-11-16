@@ -5,6 +5,7 @@ import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
 import {
   NOTIFICATION_PREF_KEYS,
   COMPANY_PREF_COLUMN,
+  PREF_DEFAULTS,
   type NotificationPrefKey,
 } from "../../../../lib/notificationPrefs";
 
@@ -36,14 +37,16 @@ async function resolveContext() {
 async function readState(ctx: { userId: string; companyId: string | null }) {
   const company: Record<string, boolean> = {};
   if (ctx.companyId) {
-    const cols = NOTIFICATION_PREF_KEYS.map((k) => COMPANY_PREF_COLUMN[k]).join(", ");
-    const { data } = await admin.from("companies").select(cols).eq("id", ctx.companyId).maybeSingle();
+    // select("*") so a not-yet-migrated toggle column can't fail the read.
+    const { data } = await admin.from("companies").select("*").eq("id", ctx.companyId).maybeSingle();
     for (const key of NOTIFICATION_PREF_KEYS) {
       const v = (data as any)?.[COMPANY_PREF_COLUMN[key]];
-      company[key] = typeof v === "boolean" ? v : true;
+      // Fall back to the same built-in default the senders use (opt-in
+      // reminders show OFF), not a blanket "on".
+      company[key] = typeof v === "boolean" ? v : PREF_DEFAULTS[key];
     }
   } else {
-    for (const key of NOTIFICATION_PREF_KEYS) company[key] = true;
+    for (const key of NOTIFICATION_PREF_KEYS) company[key] = PREF_DEFAULTS[key];
   }
 
   const { data: profile } = await admin

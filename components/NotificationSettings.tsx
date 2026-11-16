@@ -13,7 +13,9 @@ type Key =
   | "client_reminder_30m"
   | "agent_reminder_24h"
   | "agent_reminder_2h"
-  | "agent_reminder_30m";
+  | "agent_reminder_30m"
+  | "auto_agreement_reminder"
+  | "auto_balance_reminder";
 
 type Window = "24h" | "2h" | "30m";
 const WINDOWS: { key: Window; label: string }[] = [
@@ -36,6 +38,21 @@ const MESSAGE_GROUPS: { title: string; rows: { key: Key; label: string; desc: st
     rows: [
       { key: "agent_confirmation", label: "Appointment confirmation", desc: "Confirmation email & text to the agent." },
       { key: "agent_report_ready", label: "Report ready", desc: "Report-published email & text to the agent." },
+    ],
+  },
+  {
+    title: "Automatic client reminders",
+    rows: [
+      {
+        key: "auto_agreement_reminder",
+        label: "Unsigned agreement",
+        desc: "Once a day, starting 3 days before the inspection, remind clients who haven't signed (up to 3 times).",
+      },
+      {
+        key: "auto_balance_reminder",
+        label: "Unpaid balance",
+        desc: "Email clients a Pay link 3, 7 and 14 days after the inspection while a balance is still due.",
+      },
     ],
   },
 ];
