@@ -14,6 +14,7 @@ import {
 } from "../../../lib/agreementTemplates";
 import { getCompanyBrandingById, getCompanyOwnerName } from "../../../lib/companyBranding";
 import { sendPushNotification } from "../../../lib/push";
+import { canSignByRawId } from "../../../lib/portalViewer";
 
 export const runtime = "nodejs";
 
@@ -175,6 +176,16 @@ export async function POST(req: Request) {
     const { data: inspection } = await inspectionQuery.maybeSingle();
 
     if (!inspection) {
+      return NextResponse.json(
+        { error: "Inspection not found." },
+        { status: 404 }
+      );
+    }
+
+    // The raw-id path (no share token) needs the same proof the signing page
+    // requires: a contact id belonging to this inspection, or a signed-in user
+    // tied to it. Otherwise anyone could sign for a client by guessing an id.
+    if (!shareToken && !(await canSignByRawId(supabase, inspection, contactId))) {
       return NextResponse.json(
         { error: "Inspection not found." },
         { status: 404 }

@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("next/headers", () => ({ cookies: async () => ({ getAll: () => [] }) }));
 vi.mock("@supabase/ssr", () => ({ createServerClient: () => ({ auth: { getUser: async () => ({ data: { user: null } }) } }) }));
 
-import { resolvePortalViewerRole, resolveCardInspection, isStaffPreview, canActOnCard } from "./portalViewer";
+import { resolvePortalViewerRole, resolveCardInspection, isStaffPreview, canActOnCard, canSignByRawId } from "./portalViewer";
 
 // Supabase-shaped fake supporting the chain resolvePortalViewerRole uses.
 function fakeDb(tables: Record<string, any[]>) {
@@ -88,5 +88,28 @@ describe("resolveCardInspection", () => {
   it("refuses an unrelated signed-in user and unknown tokens", async () => {
     expect((await resolveCardInspection(cardDb, "7", asUser({ id: "x", email: "x@example.com" }))).inspection).toBeNull();
     expect((await resolveCardInspection(cardDb, "nope", asUser(null))).inspection).toBeNull();
+  });
+});
+
+describe("canSignByRawId", () => {
+  const signDb = fakeDb({
+    company_users: [],
+    inspection_contacts: [{ id: "contact-1", inspection_id: 7, email: "client@example.com" }],
+  });
+  const insp = { id: 7, inspector_id: "owner", company_id: "c1" };
+  const asUser = (u: any) => async () => u;
+
+  it("refuses a bare raw id with no contact and no login", async () => {
+    expect(await canSignByRawId(signDb, insp, "", asUser(null))).toBe(false);
+  });
+  it("refuses a contact id from another inspection", async () => {
+    expect(await canSignByRawId(signDb, { ...insp, id: 8 }, "contact-1", asUser(null))).toBe(false);
+  });
+  it("allows the contact's own link", async () => {
+    expect(await canSignByRawId(signDb, insp, "contact-1", asUser(null))).toBe(true);
+  });
+  it("allows a signed-in inspector or client tied to the job", async () => {
+    expect(await canSignByRawId(signDb, insp, "", asUser({ id: "owner" }))).toBe(true);
+    expect(await canSignByRawId(signDb, insp, "", asUser({ id: "c", email: "client@example.com" }))).toBe(true);
   });
 });

@@ -390,8 +390,14 @@ async function getCompanyMembers(admin: any, companyId: string | number | null) 
 }
 
 async function sendOwnerPush(admin: any, payload: PushPayload, companyId: string | number | null) {
-  const ownerEmails = new Set(OWNER_EMAILS.map((email) => email.toLowerCase()));
-  const ownerIds = await getOwnerIds(admin);
+  // A booking for a company alerts ONLY that company's members (multi-tenant:
+  // other companies' client names/phones/addresses must not reach the platform
+  // owner). The platform owner list is the fallback only for a booking with no
+  // company (the legacy un-scoped booking page).
+  const ownerEmails = companyId
+    ? new Set<string>()
+    : new Set(OWNER_EMAILS.map((email) => email.toLowerCase()));
+  const ownerIds = companyId ? new Set<string>() : await getOwnerIds(admin);
   const companyMembers = await getCompanyMembers(admin, companyId);
   companyMembers.ids.forEach((id) => ownerIds.add(id));
   companyMembers.emails.forEach((email) => ownerEmails.add(email));
@@ -495,16 +501,21 @@ function buildEmailHtml(booking: any, request: Request) {
   `;
 }
 
-async function sendOwnerEmail(booking: any, request: Request, companyEmails: Set<string>) {
-  const to = Array.from(
-    new Set([
-      ...(process.env.BOOKING_ALERT_EMAILS || OWNER_EMAILS.join(","))
+async function sendOwnerEmail(
+  booking: any,
+  request: Request,
+  companyEmails: Set<string>,
+  hasCompany: boolean,
+) {
+  // Company bookings go to that company only; the platform alert list
+  // (BOOKING_ALERT_EMAILS / owner emails) is used only when there's no company.
+  const platformRecipients = hasCompany
+    ? []
+    : (process.env.BOOKING_ALERT_EMAILS || OWNER_EMAILS.join(","))
         .split(",")
         .map((email) => email.trim().toLowerCase())
-        .filter(Boolean),
-      ...companyEmails,
-    ])
-  );
+        .filter(Boolean);
+  const to = Array.from(new Set([...platformRecipients, ...companyEmails]));
 
   if (to.length === 0) {
     return { sent: 0, skipped: true, reason: "No alert email recipients configured." };
@@ -564,7 +575,7 @@ async function notifyOwner(admin: any, booking: any, request: Request, companyId
       failed: 1,
       error: error?.message || "Owner push failed.",
     })),
-    sendOwnerEmail(booking, request, companyMembers.emails).catch((error: any) => ({
+    sendOwnerEmail(booking, request, companyMembers.emails, Boolean(companyId)).catch((error: any) => ({
       sent: 0,
       error: error?.message || "Owner email failed.",
     })),

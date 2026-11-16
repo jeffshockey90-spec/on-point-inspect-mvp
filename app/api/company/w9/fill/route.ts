@@ -112,12 +112,19 @@ export async function POST(req: Request) {
 
     const { data: companyUser } = await admin
       .from("company_users")
-      .select("company_id")
+      .select("company_id, role")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (!companyUser?.company_id) {
       return NextResponse.json({ error: "No company found for this account." }, { status: 403 });
+    }
+
+    // The W-9 is the company's tax document (sent to clients), so only the
+    // owner may replace it — this route writes with the service role, which
+    // bypasses RLS, so the role check has to live here.
+    if (companyUser.role !== "owner") {
+      return NextResponse.json({ error: "Only the company owner can update the W-9." }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
