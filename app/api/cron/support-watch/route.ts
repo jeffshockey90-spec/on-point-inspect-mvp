@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminClient } from "../../../../lib/apiAuth";
 import { addMessage } from "../../../../lib/jarvis/threads";
+import { isCronAuthorized } from "../../../../lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   const auth = req.headers.get("authorization") || "";
   const xcs = req.headers.get("x-cron-secret") || "";
-  if (secret && auth !== `Bearer ${secret}` && xcs !== secret) {
+  if (!isCronAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 

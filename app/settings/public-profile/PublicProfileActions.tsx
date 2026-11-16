@@ -12,7 +12,9 @@ type PublicProfileActionsProps = {
 };
 
 const TEAL = "#14b8a6";
-const DARK = "var(--fl-ground)";
+// Canvas can't read CSS theme variables (a var() fillStyle is ignored and the
+// previous color leaks through), so the logo box behind the QR uses a literal.
+const LOGO_BOX = "#ffffff";
 
 function cleanFilename(value: string) {
   return String(value || "inspector-profile")
@@ -204,7 +206,7 @@ export default function PublicProfileActions({
           const boxX = size / 2 - boxSize / 2;
           const boxY = size / 2 - boxSize / 2;
 
-          ctx.fillStyle = DARK;
+          ctx.fillStyle = LOGO_BOX;
           roundedRect(ctx, boxX, boxY, boxSize, boxSize, 34);
           ctx.fill();
 
@@ -248,7 +250,12 @@ export default function PublicProfileActions({
       : "";
 
     const printWindow = window.open("", "_blank", "width=900,height=1100");
-    if (!printWindow) return;
+    // In the iOS/Android app (or with pop-ups blocked) there's no print window:
+    // save the QR image instead of silently doing nothing.
+    if (!printWindow) {
+      void downloadPng();
+      return;
+    }
 
     printWindow.document.write(`
       <!doctype html>
@@ -256,14 +263,17 @@ export default function PublicProfileActions({
         <head>
           <title>${escapeHtml(companyName)} QR Code</title>
           <style>
-            body { margin: 0; padding: 40px; background: var(--fl-ground); color: white; font-family: Arial, sans-serif; }
-            .card { max-width: 430px; margin: 0 auto; border: 1px solid #334155; border-radius: 28px; padding: 24px; text-align: center; background: var(--fl-surface); }
+            /* A standalone print window has none of the app's theme variables
+               (they were undefined, so the card printed white-on-white).
+               Use literal print-friendly colors. */
+            body { margin: 0; padding: 40px; background: #ffffff; color: #0f172a; font-family: Arial, sans-serif; }
+            .card { max-width: 430px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 28px; padding: 24px; text-align: center; background: #ffffff; }
             .qr-wrap { position: relative; width: 300px; max-width: 100%; margin: 0 auto; border-radius: 24px; background: white; padding: 14px; }
             .qr-wrap svg { display: block; width: 100%; height: auto; }
-            .logo-wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 68px; height: 68px; border-radius: 16px; background: var(--fl-ground); border: 3px solid ${TEAL}; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 8px; }
+            .logo-wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 68px; height: 68px; border-radius: 16px; background: #ffffff; border: 3px solid ${TEAL}; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 8px; }
             .logo-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
             h1 { color: ${TEAL}; font-size: 18px; letter-spacing: .22em; text-transform: uppercase; margin: 18px 0 6px; }
-            p { color: #cbd5e1; font-size: 14px; line-height: 1.5; }
+            p { color: #334155; font-size: 14px; line-height: 1.5; }
             .powered { color: #64748b; font-size: 11px; font-weight: 900; letter-spacing: .26em; text-transform: uppercase; margin-top: 22px; }
             @media print { body { background: white; } }
           </style>

@@ -17,7 +17,8 @@ export function getInspectionShareToken(inspection: any): string {
  */
 export async function getOrCreateShareToken(
   admin: { from: (table: string) => any },
-  inspection: any
+  inspection: any,
+  opts: { required?: boolean } = {},
 ): Promise<string> {
   const existing = getInspectionShareToken(inspection);
   if (existing) return existing;
@@ -31,6 +32,12 @@ export async function getOrCreateShareToken(
 
   if (error) {
     console.error("Share token create error:", error);
+    // Emails must never go out with a raw-id link (it doesn't open for an
+    // anonymous client). Senders pass `required` and get a clear error instead;
+    // pages keep the old fallback so they still render.
+    if (opts.required) {
+      throw new Error("Couldn't create a secure link for this inspection. Please try again.");
+    }
     return String(inspection.id);
   }
 

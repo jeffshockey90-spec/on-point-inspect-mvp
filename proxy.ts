@@ -13,7 +13,9 @@ import { NextResponse, type NextRequest } from "next/server";
 const BLOCKED_BOT_UA =
   /MJ12bot|ShapBot|SERankingBacklinksBot|AhrefsBot|SemrushBot|DotBot|DataForSeoBot|BLEXBot|MegaIndex|Bytespider|PetalBot/i;
 
-const OWNER_ONLY_PREFIXES = ["/dashboard", "/admin", "/settings/marketing-images"];
+// Platform-owner-only. Marketing Images moved out: it's a per-company tool
+// (gated to the COMPANY owner on its page), not a platform-owner page.
+const OWNER_ONLY_PREFIXES = ["/dashboard", "/admin"];
 
 const INSPECTOR_ONLY_PREFIXES = [
   "/dashboard",

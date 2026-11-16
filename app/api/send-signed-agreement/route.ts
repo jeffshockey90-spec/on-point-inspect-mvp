@@ -92,7 +92,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email is not configured." }, { status: 500 });
     }
 
-    const token = await getOrCreateShareToken(admin, inspection);
+    const token = await getOrCreateShareToken(admin, inspection, { required: true });
     const branding = await getCompanyBrandingById((inspection as any).company_id);
     const baseUrl = getBaseUrl(req);
     const contactPart = agreement.contact_id

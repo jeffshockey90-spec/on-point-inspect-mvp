@@ -85,8 +85,8 @@ export async function POST(_req: Request, { params }: RouteProps) {
     (company?.google_place_id
       ? `https://search.google.com/local/writereview?placeid=${company.google_place_id}`
       : "") ||
-    process.env.GOOGLE_REVIEW_URL ||
-    process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL ||
+    // No platform-wide env fallback (it pointed every company's clients at one
+    // company's Google page); each company connects its own in Settings.
     "";
 
   if (!googleReviewUrl) {

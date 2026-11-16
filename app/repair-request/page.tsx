@@ -670,6 +670,9 @@ function RepairRequestContent() {
           },
           body: JSON.stringify({
             inspection_id: inspectionId,
+            // Proof of access (the tracker requires it): the share token, or
+            // the signed-in realtor's session.
+            lookup: initialUrlParams.token || "",
             view_type: "repair_request",
             viewer_role: initialUrlParams.role,
             viewer_email: initialUrlParams.email || null,

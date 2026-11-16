@@ -586,7 +586,7 @@ async function sendAppointmentConfirmedEmails(
     .maybeSingle();
 
   const portalShareToken = inspectionForToken
-    ? await getOrCreateShareToken(admin, inspectionForToken)
+    ? await getOrCreateShareToken(admin, inspectionForToken, { required: true })
     : inspectionId;
 
   const portalUrl = `${getBaseUrl(request)}/client-portal/${portalShareToken}`;

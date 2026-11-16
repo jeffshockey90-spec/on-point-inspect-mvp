@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { isCronAuthorized } from "../../../../lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ const RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 // indefinitely (see supabase/coder-attachments-private-bucket.sql).
 function authorized(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
+  if (!secret) return isCronAuthorized(req); // no secret: only Vercel's scheduler (lib/cronAuth)
   const auth = req.headers.get("authorization") || "";
   const xcs = req.headers.get("x-cron-secret") || "";
   return auth === `Bearer ${secret}` || xcs === secret;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAIBudgetStatus, markAIBudgetAlertSent } from "../../../../lib/aiBudget";
 import { sendPushNotification } from "../../../../lib/push";
 import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
+import { isCronAuthorized } from "../../../../lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ function isAuthorized(req: Request) {
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
-    return true;
+    return isCronAuthorized(req); // no secret: only Vercel's scheduler (lib/cronAuth)
   }
 
   const authHeader = req.headers.get("authorization") || "";

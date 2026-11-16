@@ -2,6 +2,19 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendPushNotification } from "../../../lib/push";
 import { isReportViewReload } from "../../../lib/reportViewThrottle";
+import {
+  getCookieSessionUser,
+  resolveCardInspection,
+  resolvePortalViewerRole,
+} from "../../../lib/portalViewer";
+
+// The only view types the client surfaces send. Anything else is rejected so
+// arbitrary event types can't be injected into the Who-Viewed panel.
+const ALLOWED_VIEW_TYPES = new Set([
+  "client_portal",
+  "agreement_viewed",
+  "repair_request",
+]);
 
 export const runtime = "nodejs";
 
@@ -73,11 +86,45 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!viewType) {
+    if (!viewType || !ALLOWED_VIEW_TYPES.has(viewType)) {
       return NextResponse.json(
-        { error: "Missing view type." },
+        { error: "Missing or unsupported view type." },
         { status: 400 }
       );
+    }
+
+    // Proof the caller is actually looking at THIS inspection: its share token,
+    // a contact id that belongs to it, or a signed-in user tied to it. This was
+    // open to anyone with an inspection number — enough to spam the inspector
+    // with "opened" pushes and to backdate the "first viewed" time shown on a
+    // signed agreement's certificate.
+    let allowed = false;
+    const lookup = String(body.lookup || body.token || "").trim();
+    if (lookup) {
+      const resolved = await resolveCardInspection(supabaseAdmin, lookup);
+      allowed = Boolean(resolved.inspection && Number(resolved.inspection.id) === numericInspectionId);
+    }
+    if (!allowed && contactId) {
+      const { data: contact } = await supabaseAdmin
+        .from("inspection_contacts")
+        .select("id")
+        .eq("id", contactId)
+        .eq("inspection_id", numericInspectionId)
+        .maybeSingle();
+      allowed = Boolean(contact?.id);
+    }
+    if (!allowed) {
+      const { data: owning } = await supabaseAdmin
+        .from("inspections")
+        .select("id, inspector_id, company_id")
+        .eq("id", numericInspectionId)
+        .maybeSingle();
+      allowed =
+        Boolean(owning) &&
+        (await resolvePortalViewerRole(supabaseAdmin, owning, await getCookieSessionUser())) !== null;
+    }
+    if (!allowed) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
     }
 
     const { error } = await supabaseAdmin

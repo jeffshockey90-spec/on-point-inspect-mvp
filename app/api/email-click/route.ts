@@ -22,8 +22,11 @@ function getClientIp(req: Request) {
   );
 }
 
-function getSafeTarget(target: string, appUrl: string, inspectionId: string) {
-  if (!target) return `${appUrl}/share/${inspectionId}`;
+// `fallback` is used when the link's target is missing or off-site. It's the
+// report's share-token link, never a raw numeric id (those don't open for an
+// anonymous client).
+function getSafeTarget(target: string, appUrl: string, fallback: string) {
+  if (!target) return fallback;
 
   try {
     const parsedTarget = new URL(target);
@@ -38,7 +41,7 @@ function getSafeTarget(target: string, appUrl: string, inspectionId: string) {
     }
   }
 
-  return `${appUrl}/share/${inspectionId}`;
+  return fallback;
 }
 
 export async function GET(req: Request) {
@@ -75,10 +78,19 @@ export async function GET(req: Request) {
     } catch {
       /* best-effort */
     }
+    // Only redirect to hosts our own campaign emails link to — any other
+    // target made this an open redirect (phishing links on the FLOW domain).
     let dest = "https://app.flowinspect.app";
     try {
       const parsed = new URL(target);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      const host = parsed.hostname.toLowerCase();
+      const allowedHost =
+        host === "flowinspect.app" ||
+        host.endsWith(".flowinspect.app") ||
+        host === "apps.apple.com" ||
+        host === "testflight.apple.com" ||
+        host === "play.google.com";
+      if (parsed.protocol === "https:" && allowedHost) {
         dest = parsed.toString();
       }
     } catch {
@@ -93,7 +105,10 @@ export async function GET(req: Request) {
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000");
 
-  const safeTarget = getSafeTarget(target, appUrl, inspectionId || "");
+  // No/invalid target → the app's home page. Never resolve the inspection's
+  // share token from the raw id here: this route needs no login, so that would
+  // hand out every report's private link to anyone stepping through ids.
+  const safeTarget = getSafeTarget(target, appUrl, `${appUrl}/`);
 
   try {
     const numericInspectionId = Number(inspectionId);
@@ -126,14 +141,6 @@ export async function GET(req: Request) {
         .eq("recipient_email", recipientEmail)
         .in("email_type", ["inspection_report", "environmental_report"]);
 
-      await supabaseAdmin
-        .from("email_logs")
-        .update({
-          clicked_at: new Date().toISOString(),
-        })
-        .eq("inspection_id", numericInspectionId)
-        .eq("recipient_email", recipientEmail)
-        .in("email_type", ["inspection_report", "environmental_report"]);
     }
   } catch (error) {
     console.error("Email click tracking error:", error);

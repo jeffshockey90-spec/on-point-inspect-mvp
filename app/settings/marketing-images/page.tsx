@@ -51,7 +51,16 @@ export default async function MarketingImagesSettingsPage() {
   } = await supabase.auth.getUser();
 
   if (!user?.email) redirect("/login");
-  if (!OWNER_EMAILS.includes(String(user.email).toLowerCase())) redirect("/settings");
+  // Any company OWNER can use the studio (it brands images with their own
+  // company); it was locked to the platform owner's email.
+  if (!OWNER_EMAILS.includes(String(user.email).toLowerCase())) {
+    const { data: membership } = await supabase
+      .from("company_users")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (membership?.role !== "owner") redirect("/settings");
+  }
 
   const userId = user.id;
   const email = user.email;

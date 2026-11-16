@@ -97,7 +97,7 @@ export async function POST() {
 
   const inspectionId = inspection.id;
 
-  await supabase.from("findings").insert([
+  const sampleFindings = [
     {
       inspection_id: inspectionId,
       section: "Roof",
@@ -143,14 +143,31 @@ export async function POST() {
       repair_request: true,
       repair_priority: "Recommended",
     },
-  ]);
+  ];
 
-  await supabase.from("inspection_contacts").insert([
+  // Insert the sample findings; if an optional column (defect_type /
+  // repair_request / repair_priority) doesn't exist on this database, retry with
+  // the core columns so the sample still gets its findings (errors used to be
+  // ignored, leaving an empty sample report).
+  const warnings: string[] = [];
+  const { error: findingsError } = await supabase.from("findings").insert(sampleFindings);
+  if (findingsError) {
+    const coreFindings = sampleFindings.map(
+      ({ defect_type: _t, repair_request: _r, repair_priority: _p, ...core }) => core,
+    );
+    const { error: coreError } = await supabase.from("findings").insert(coreFindings);
+    if (coreError) warnings.push(`Sample findings were not added: ${coreError.message}`);
+  }
+
+  // inspection_contacts.inspector_id is required (no default) — without it this
+  // insert always failed silently and the sample had no client/realtor.
+  const { error: contactsError } = await supabase.from("inspection_contacts").insert([
     {
       inspection_id: inspectionId,
       name: "Sample Client",
       email: "sample-client@example.com",
       role: "client",
+      inspector_id: user.id,
       agreement_required: true,
       agreement_signed: false,
     },
@@ -159,13 +176,16 @@ export async function POST() {
       name: "Sample Realtor",
       email: "sample-realtor@example.com",
       role: "realtor",
+      inspector_id: user.id,
       agreement_required: false,
       agreement_signed: false,
     },
   ]);
+  if (contactsError) warnings.push(`Sample contacts were not added: ${contactsError.message}`);
 
   return NextResponse.json({
     ok: true,
     inspectionId,
+    ...(warnings.length ? { warnings } : {}),
   });
 }

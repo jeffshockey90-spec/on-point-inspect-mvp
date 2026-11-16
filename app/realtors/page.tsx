@@ -37,7 +37,13 @@ function getInspectionPrice(inspection: any) {
   return 0;
 }
 
-export default async function RealtorsPage() {
+export default async function RealtorsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  // A failed save redirects back with ?error= (it used to fail silently).
+  const saveError = String((searchParams ? await searchParams : {})?.error || "").slice(0, 300);
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -52,7 +58,8 @@ export default async function RealtorsPage() {
     const phone = String(formData.get("phone") || "").trim();
     const lastContactDate = String(formData.get("last_contact_date") || "");
     if (!name) return;
-    await supabase.from("realtors").insert({ inspector_id: user.id, name, email: email || null, phone: phone || null, last_contact_date: lastContactDate || null });
+    const { error } = await supabase.from("realtors").insert({ inspector_id: user.id, name, email: email || null, phone: phone || null, last_contact_date: lastContactDate || null });
+    if (error) redirect(`/realtors?error=${encodeURIComponent(error.message)}`);
     revalidatePath("/realtors");
   }
 
@@ -101,6 +108,11 @@ export default async function RealtorsPage() {
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
       <div className="mx-auto max-w-[96rem]">
+        {saveError && (
+          <div role="alert" className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
+            Couldn&apos;t save: {saveError}
+          </div>
+        )}
         <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-2xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>

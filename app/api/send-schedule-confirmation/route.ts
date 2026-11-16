@@ -194,7 +194,7 @@ export async function POST(req: Request) {
     const timeText = formatTime(inspection.inspection_time);
     const services = cleanText(inspection.services) || "Home Inspection";
 
-    const portalShareToken = await getOrCreateShareToken(supabase, inspection);
+    const portalShareToken = await getOrCreateShareToken(supabase, inspection, { required: true });
     const portalUrl = `${getBaseUrl(req)}/client-portal/${portalShareToken}`;
 
     const fromEmail = buildBrandedFromHeader(

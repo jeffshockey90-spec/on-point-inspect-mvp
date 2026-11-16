@@ -588,7 +588,7 @@ export async function POST(req: Request) {
         ? `https://${process.env.VERCEL_URL}`
         : "http://localhost:3000");
 
-    const shareToken = await getOrCreateShareToken(supabase, inspection);
+    const shareToken = await getOrCreateShareToken(supabase, inspection, { required: true });
 
     // An explicit "Send/Resend Results" (environmentalNotice) always links
     // straight to the environmental report — even on a combined home+mold/radon

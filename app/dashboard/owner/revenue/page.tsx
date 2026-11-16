@@ -143,7 +143,9 @@ function isPaidInspection(inspection: any) {
 function getInspectionRevenue(inspection: any) {
   if (!isPaidInspection(inspection)) return 0;
 
-  return getPaidAmount(inspection) || getInspectionPrice(inspection);
+  // Net of refunds (tracked in amount_refunded; amount_paid is left as-is).
+  const collected = getPaidAmount(inspection) || getInspectionPrice(inspection);
+  return Math.max(0, collected - getNumber(inspection?.amount_refunded));
 }
 
 function getInspectionDate(inspection: any) {
