@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import {
@@ -272,7 +273,7 @@ export async function POST(req: Request) {
           replyTo: brandedReplyTo(branding),
           to,
           subject: built.subject,
-          html: built.html,
+          html: brandEmailHtml(built.html, branding),
         });
 
         // Per the email_logs gotcha, the numeric id goes in inspection_id_bigint

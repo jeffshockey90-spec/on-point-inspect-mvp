@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { logError } from "../../../lib/jarvis/logError";
 import { createClient } from "@supabase/supabase-js";
@@ -318,7 +319,7 @@ ${branding.name}`;
           to: recipient.email,
           headers: listUnsubscribeHeaders(recipient.email),
           subject,
-          html,
+          html: brandEmailHtml(html, branding),
           text,
         });
 

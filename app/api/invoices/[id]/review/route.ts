@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { listUnsubscribeHeaders } from "../../../../../lib/emailUnsubscribe";
@@ -141,7 +142,7 @@ export async function POST(_req: Request, { params }: RouteProps) {
         to: email,
         headers: listUnsubscribeHeaders(email),
         subject,
-        html,
+        html: brandEmailHtml(html, branding),
         text: `Hello ${clientName},
 
 Thank you for your business! If you were happy with our service, would you mind leaving a quick Google review?

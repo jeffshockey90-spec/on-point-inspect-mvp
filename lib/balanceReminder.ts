@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "./emailBrand";
 // Sends the "balance due" invoice reminder (with a Pay link from the one shared
 // checkout path, lib/stripeCheckout) to every client on an inspection. Shared by
 // the manual "Send reminder" button (/api/send-invoice-reminder) and the
@@ -246,7 +247,7 @@ export async function sendBalanceReminder(
       to: recipient,
       headers: listUnsubscribeHeaders(recipient),
       subject: invoiceSubject,
-      html: invoiceReminderHtml,
+      html: brandEmailHtml(invoiceReminderHtml, branding),
     });
 
     if (emailError) {

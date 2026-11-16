@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../../lib/emailBrand";
 
 import { formatAppValue } from "../../../../lib/app-time";
 import { NextResponse } from "next/server";
@@ -667,7 +668,7 @@ ${branding.name}`;
         replyTo: brandedReplyTo(branding),
         to: recipient.email,
         subject,
-        html,
+        html: brandEmailHtml(html, branding),
         text,
       });
 

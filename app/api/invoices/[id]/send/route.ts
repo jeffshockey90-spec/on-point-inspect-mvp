@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { listUnsubscribeHeaders } from "../../../../../lib/emailUnsubscribe";
@@ -222,7 +223,7 @@ export async function POST(req: Request, { params }: RouteProps) {
       to: recipient,
       headers: listUnsubscribeHeaders(recipient),
       subject,
-      html,
+      html: brandEmailHtml(html, branding),
     });
 
     // Log to email_logs. inspection_id is a UUID column -- only inspection_id_bigint

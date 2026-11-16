@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../../lib/emailBrand";
 
 import { formatAppValue } from "../../../../lib/app-time";
 import { NextResponse } from "next/server";
@@ -1013,7 +1014,7 @@ export async function POST(req: Request, { params }: RouteProps) {
         reply_to: brandedReplyTo(data.branding),
         to: recipients,
         subject,
-        html,
+        html: brandEmailHtml(html, data.branding),
         text: `Repair Request Addendum - ${data.property}\n\nBuyer requested credits: ${formatMoney(data.requestedCreditTotal)}\nSeller offered credits: ${formatMoney(data.sellerCreditTotal)}\nDifference: ${formatMoney(data.differenceTotal)}\n\nOpen addendum: ${addendumUrl}`,
       }),
     });

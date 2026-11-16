@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
@@ -131,7 +132,7 @@ export async function POST(req: Request) {
       to,
       headers: listUnsubscribeHeaders(to),
       subject: signedSubject,
-      html: signedHtml,
+      html: brandEmailHtml(signedHtml, branding),
       text: `Here is a copy of your signed inspection agreement for ${property}.\n\nView / print / save a PDF: ${link}\n${signedWhen ? `\nSigned ${signedWhen}.` : ""}`,
     });
 

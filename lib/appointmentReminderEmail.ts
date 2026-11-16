@@ -1,3 +1,4 @@
+import { brandEmailHtml } from "./emailBrand";
 // Appointment reminder EMAIL for clients and agents. Used by the reminder cron
 // as the fallback when a text can't go out (SMS isn't set up for the platform,
 // or that person has no phone on file) — before this, those clients got no
@@ -100,7 +101,7 @@ export async function sendAppointmentReminderEmails(
         to: email,
         headers: listUnsubscribeHeaders(email),
         subject,
-        html,
+        html: brandEmailHtml(html, branding),
         text,
       })
       .catch((error: any) => ({ data: null, error }));
