@@ -172,7 +172,7 @@ export default function AgreementLibraryManager() {
   const [deleting, setDeleting] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
-  const [state, setState] = useState("MD");
+  const [state, setState] = useState("GENERAL");
   const [title, setTitle] = useState("");
   const [version, setVersion] = useState("");
   const [serviceType, setServiceType] = useState("home_inspection");
@@ -294,7 +294,7 @@ export default function AgreementLibraryManager() {
 
   function resetForm() {
     setSelected(null);
-    setState("MD");
+    setState("GENERAL");
     setTitle("");
     setVersion("");
     setServiceType("home_inspection");
@@ -330,7 +330,7 @@ export default function AgreementLibraryManager() {
 
   function editTemplate(template: any) {
     setSelected(template);
-    setState(template.state || template.state_code || "MD");
+    setState(template.state || template.state_code || "GENERAL");
     setTitle(template.title || "");
     setVersion(template.version || "");
     setServiceType(template.service_type || template.template_type || "home_inspection");

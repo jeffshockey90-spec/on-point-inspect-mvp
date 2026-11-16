@@ -42,7 +42,7 @@ export default function AgreementSelector({
   initialAgreementTemplateIds?: string[] | null;
   propertyState?: string | null;
 }) {
-  const defaultState = (initialAgreementState || propertyState || "MD").toUpperCase();
+  const defaultState = (initialAgreementState || propertyState || "").toUpperCase();
 
   const startingTemplateIds =
     initialAgreementTemplateIds && initialAgreementTemplateIds.length > 0

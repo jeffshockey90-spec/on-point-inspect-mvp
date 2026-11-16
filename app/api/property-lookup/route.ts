@@ -1426,7 +1426,9 @@ export async function POST(req: Request) {
     );
     const address = parts.street || rawAddress;
     const city = parts.city;
-    const state = cleanText(parts.state || "MD").toUpperCase();
+    // No state given → don't assume Maryland: the nationwide lookup still runs,
+    // and the MD/WV public-records fallbacks only run for those states.
+    const state = cleanText(parts.state).toUpperCase();
     const zip = cleanZip(parts.zip);
 
     const fullAddress = buildFullAddress({ address, city, state, zip });

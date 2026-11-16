@@ -68,7 +68,8 @@ export function useAddressAutocomplete(
         callbackRef.current({
           address: finalAddress,
           city: locality,
-          state: adminArea || "MD",
+          // Blank when Google gives no state — never assume one.
+          state: adminArea || "",
           zip: postalCode,
         });
       });

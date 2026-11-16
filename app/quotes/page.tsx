@@ -16,6 +16,7 @@ import {
   type InspectorPricingConfig,
   type PricingService,
 } from "../../lib/inspectorPricing";
+import { US_STATES, normalizeStateCode } from "../../lib/usStates";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -134,7 +135,9 @@ function calculateQuote({
 export default function QuotePage() {
   const [propertyAddress, setPropertyAddress] = useState("");
   const [city, setCity] = useState("");
-  const [stateValue, setStateValue] = useState("MD");
+  // Blank until an address is picked or the inspector chooses — quotes work for
+  // every state, not just the ones a particular company services.
+  const [stateValue, setStateValue] = useState("");
   const [zip, setZip] = useState("");
   const [sqft, setSqft] = useState(2500);
   const [sqftAutoFilled, setSqftAutoFilled] = useState(false);
@@ -235,7 +238,7 @@ export default function QuotePage() {
   const addressInputRef = useAddressAutocomplete((parsed) => {
     setPropertyAddress(parsed.address);
     setCity(parsed.city);
-    setStateValue(parsed.state);
+    setStateValue(normalizeStateCode(parsed.state) || parsed.state);
     setZip(parsed.zip);
     void lookupPropertySqft(parsed.address, parsed.city, parsed.state, parsed.zip);
   });
@@ -404,6 +407,22 @@ export default function QuotePage() {
                   placeholder="Start typing an address..."
                   className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
                 />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-bold text-[var(--fl-text)]">State</span>
+                <select
+                  value={stateValue}
+                  onChange={(e) => setStateValue(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
+                >
+                  <option value="">Select state</option>
+                  {US_STATES.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.code} - {s.name}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               {propertyAddress && (

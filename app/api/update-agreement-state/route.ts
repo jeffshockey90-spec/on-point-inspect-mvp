@@ -102,7 +102,7 @@ export async function POST(req: Request) {
     const { data, error } = await supabase
       .from("inspections")
       .update({
-        agreement_state: agreementState,
+        agreement_state: agreementState || null,
         agreement_version: version,
         agreement_template_id: primaryTemplateId,
         agreement_template_ids: agreementTemplateIds,
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       inspection: data,
-      agreement_state: agreementState,
+      agreement_state: agreementState || null,
       agreement_version: version,
       agreement_template_id: primaryTemplateId,
       agreement_template_ids: agreementTemplateIds,

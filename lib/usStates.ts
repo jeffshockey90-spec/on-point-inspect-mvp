@@ -55,3 +55,17 @@ export const US_STATES: { code: string; name: string }[] = [
 ];
 
 export const US_STATE_CODES = US_STATES.map((s) => s.code);
+
+/**
+ * Normalize a state value ("TX", "tx", " Texas ", "District of Columbia") to its
+ * 2-letter code, or "" when it isn't a US state. Never guesses a default —
+ * the app used to treat anything unrecognized as Maryland.
+ */
+export function normalizeStateCode(value: unknown): string {
+  const clean = String(value ?? "").trim();
+  if (!clean) return "";
+  const upper = clean.toUpperCase();
+  if (US_STATE_CODES.includes(upper)) return upper;
+  const byName = US_STATES.find((s) => s.name.toLowerCase() === clean.toLowerCase());
+  return byName ? byName.code : "";
+}
