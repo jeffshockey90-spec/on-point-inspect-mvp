@@ -19,7 +19,14 @@ export default function PortalAutoTranslate({
   useEffect(() => {
     let active = true;
     const qs = new URLSearchParams();
-    if (lang) qs.set("lang", lang);
+    // A language the reader picked on the report travels in ?lang= — honor it
+    // here too, instead of snapping back to the company default.
+    const urlLang =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("lang") || ""
+        : "";
+    const effectiveLang = lang || urlLang;
+    if (effectiveLang) qs.set("lang", effectiveLang);
     if (inspectionId != null && inspectionId !== "") {
       qs.set("inspectionId", String(inspectionId));
     }
