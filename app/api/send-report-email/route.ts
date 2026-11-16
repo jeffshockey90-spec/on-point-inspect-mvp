@@ -10,6 +10,7 @@ import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
 import { isSmsConfigured, sendSms } from "../../../lib/sms";
 import { smsReportReadyClient, smsReportReadyAgent } from "../../../lib/smsTemplates";
 import { hasRadonService, hasMoldService } from "../../../lib/environmental/service";
+import { isOrientationJob } from "../../../lib/orientation";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -556,6 +557,16 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Inspection not found." },
         { status: 404 }
+      );
+    }
+
+    // A Home Orientation walkthrough has no report — never send "your report
+    // is ready" (the link would land on a not-available page). Environmental
+    // result notices on the same job are still allowed.
+    if (!environmentalNotice && isOrientationJob(inspection)) {
+      return NextResponse.json(
+        { error: "Home Orientation walkthroughs don't have a report to send." },
+        { status: 400 }
       );
     }
 

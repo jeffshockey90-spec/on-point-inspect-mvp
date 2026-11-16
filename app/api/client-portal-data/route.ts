@@ -279,6 +279,9 @@ export async function GET(req: Request) {
       for (const field of SHARE_TOKEN_FIELDS) {
         delete pickedInspection[field];
       }
+      // The portal only SHOWS the summary once unlocked, but it was still sent
+      // to the browser — readable in devtools before paying/signing.
+      delete pickedInspection.executive_summary;
     }
 
     // Optional social-media release, resolved here because the portal may be
@@ -403,10 +406,13 @@ export async function GET(req: Request) {
       relatedDocuments,
       deliverable: delivery.deliverable,
       companyBranding: branding,
-      checklistRows: checklistResult.data || [],
-      moldTest: moldResult.data || null,
-      radonTest: radonResult.data || null,
-      sectionNotes,
+      // Report content (system info, lab results, section notes) only once the
+      // report is deliverable — same rule as the share page / environmental
+      // paywall; before that the portal shows the locked state anyway.
+      checklistRows: delivery.deliverable ? checklistResult.data || [] : [],
+      moldTest: delivery.deliverable ? moldResult.data || null : null,
+      radonTest: delivery.deliverable ? radonResult.data || null : null,
+      sectionNotes: delivery.deliverable ? sectionNotes : {},
       agreementComplete,
       agreementUnsignedCount,
       addOnInvoices,

@@ -95,6 +95,7 @@ import FieldReviewQueue from "../../../components/FieldReviewQueue";
 import LimitationEquipmentReview from "../../../components/LimitationEquipmentReview";
 import SaveAgentButton from "../../../components/SaveAgentButton";
 import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
+import { isOrientationJob as isOrientation } from "../../../lib/orientation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -2534,7 +2535,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   // A Home Orientation / new-owner walkthrough is not an inspection and produces
   // no client report, so there's nothing to publish. Hide the Publish control so
   // an empty report can't be sent, and so it never shows as a pending publish.
-  const isOrientationJob = inspection.is_orientation === true;
+  const isOrientationJob = isOrientation(inspection);
 
   const publishGuardNeedsAttention =
     getSingleSearchParam(resolvedSearchParams, "publish_guard") === "blocked" ||
@@ -3051,11 +3052,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 Send &amp; Communicate
               </p>
               <div className="flex flex-wrap items-center gap-3">
-                <SendFullReportButton
-                  inspectionId={String(inspection.id)}
-                  clientEmail={inspection.client_email}
-                  realtorEmail={inspection.realtor_email || inspection.agent_email}
-                />
+                {/* Walkthroughs have no report to send. */}
+                {!isOrientationJob && (
+                  <SendFullReportButton
+                    inspectionId={String(inspection.id)}
+                    clientEmail={inspection.client_email}
+                    realtorEmail={inspection.realtor_email || inspection.agent_email}
+                  />
+                )}
 
                 {inspection.realtor_name ? (
                   <SaveAgentButton
@@ -4476,17 +4480,19 @@ Service-life information is a general industry estimate only. Actual service lif
             defaultOpen={false}
             accentClassName="border-teal-500/40 text-[var(--fl-accent-text)]"
           >
-          <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-            <h2 className="mb-4 text-2xl font-bold text-[var(--fl-accent-text)]">
-              Email Report
-            </h2>
+          {!isOrientationJob && (
+            <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+              <h2 className="mb-4 text-2xl font-bold text-[var(--fl-accent-text)]">
+                Email Report
+              </h2>
 
-            <SendReportEmailButtons
-              inspectionId={String(inspection.id)}
-              clientEmail={inspection.client_email}
-              realtorEmail={inspection.realtor_email || inspection.agent_email}
-            />
-          </div>
+              <SendReportEmailButtons
+                inspectionId={String(inspection.id)}
+                clientEmail={inspection.client_email}
+                realtorEmail={inspection.realtor_email || inspection.agent_email}
+              />
+            </div>
+          )}
 
           <div className="mb-8">
             <ResendConfirmationButton inspectionId={String(inspection.id)} />

@@ -21,6 +21,7 @@ import { severityBucket } from "../../../../lib/report/severityBucket";
 
 import PrintControls from "./PrintControls";
 import { orderPhotos, photosHaveSortOrder } from "../../../../lib/photoOrder";
+import { sectionsWithContent } from "../../../../lib/report/sectionsWithContent";
 
 type PageProps = {
   params: Promise<{
@@ -1123,7 +1124,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
             </h2>
 
             <div className="mt-6 space-y-6">
-              {activeSectionOrder.filter((section) => checklistBySection[section]).map(
+              {sectionsWithContent(activeSectionOrder, checklistBySection).map(
                 (section) => (
                   <div key={section} className="avoid-break rounded-xl border border-slate-300 p-5">
                     <h3 className="mb-4 text-2xl font-black text-teal-800">
@@ -1162,7 +1163,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
             </h2>
 
             <div className="mt-6 space-y-6">
-              {activeSectionOrder.filter((section) => limitationsBySection[section]).map(
+              {sectionsWithContent(activeSectionOrder, limitationsBySection).map(
                 (section) => (
                   <div key={section} className="avoid-break rounded-xl border border-slate-300 bg-white p-5">
                     <h3 className="mb-4 text-2xl font-black text-slate-950">
@@ -1215,7 +1216,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
             </p>
 
             <div className="mt-6 space-y-6">
-              {activeSectionOrder.filter((section) => referencePhotosBySection[section]).map(
+              {sectionsWithContent(activeSectionOrder, referencePhotosBySection).map(
                 (section) => (
                   <div
                     key={section}

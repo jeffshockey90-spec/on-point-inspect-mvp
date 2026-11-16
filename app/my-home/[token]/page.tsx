@@ -24,6 +24,8 @@ import {
   makeTranslator,
 } from "../../../lib/translate";
 import { getSessionUser, authorizeInspection } from "../../../lib/apiAuth";
+import { getReportDeliveryState, hasDeliveryOverride, isPaymentComplete } from "../../../lib/reportDelivery";
+import { isOrientationJob } from "../../../lib/orientation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -171,6 +173,35 @@ export default async function HomeownerPortal({
     );
   }
 
+  // Release gate for clients (token viewers): the hub lists the report's
+  // findings, so it opens only once the report is deliverable (published +
+  // paid/signed, or delivered anyway). A Home Orientation walkthrough has no
+  // report, so it opens once paid. The owning inspector/company always can.
+  const delivery = await getReportDeliveryState(admin, inspection);
+  const hubReleased = isOrientationJob(inspection)
+    ? hasDeliveryOverride(inspection) || isPaymentComplete(inspection)
+    : delivery.deliverable;
+  if (!hubReleased) {
+    let staffViewer = !resolvedByToken; // the raw-id path already proved ownership
+    if (!staffViewer) {
+      const viewer = await getSessionUser();
+      staffViewer = Boolean(viewer && (await authorizeInspection(admin, viewer.id, inspection.id)));
+    }
+    if (!staffViewer) {
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] px-6 text-center text-[var(--fl-text)]">
+          <div>
+            <h1 className="text-3xl font-semibold">Almost ready</h1>
+            <p className="mt-3 text-[var(--fl-muted)]">
+              Your home hub opens once your inspection report is delivered. Check your client portal
+              for anything still needed.
+            </p>
+          </div>
+        </main>
+      );
+    }
+  }
+
   const inspectionId = inspection.id;
   const shareToken = clean(inspection.public_share_token) || String(inspectionId);
 
@@ -183,6 +214,8 @@ export default async function HomeownerPortal({
       .from("findings")
       .select("section, severity, title")
       .eq("inspection_id", inspectionId)
+      // Unapproved drafts never appear outside the builder.
+      .not("needs_review", "is", true)
       .limit(400),
     inspection.company_id
       ? admin

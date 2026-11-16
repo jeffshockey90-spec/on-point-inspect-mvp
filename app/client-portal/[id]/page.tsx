@@ -400,6 +400,9 @@ export default function ClientPortalPage() {
   // Per-contact agreement truth from the API (inspection.agreement_status can be
   // stale after an add-on agreement is added and the client re-prompted to sign).
   const [agreementCompleteSrv, setAgreementCompleteSrv] = useState<boolean | null>(null);
+  // The server's delivery gate (published + paid/signed, or delivered anyway /
+  // one-signer). The portal used to re-derive this itself and disagreed with it.
+  const [deliverableSrv, setDeliverableSrv] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -478,6 +481,7 @@ export default function ClientPortalPage() {
       setSectionNotes(data.sectionNotes || {});
       setRelatedDocuments(data.relatedDocuments || []);
       setAddOnInvoices(Array.isArray(data.addOnInvoices) ? data.addOnInvoices : []);
+      setDeliverableSrv(typeof data.deliverable === "boolean" ? data.deliverable : null);
       setAgreementCompleteSrv(
         typeof data.agreementComplete === "boolean" ? data.agreementComplete : null,
       );
@@ -587,7 +591,10 @@ export default function ClientPortalPage() {
       return;
     }
 
-    router.push(`/reports/${inspectionId}`);
+    // Clients can't open the inspector's builder (/reports/<id>); go to their
+    // report by its share token when it's available, else the home page.
+    const token = inspection ? getInspectionShareToken(inspection) : "";
+    router.push(token ? `/share/${token}` : "/");
   }
 
   if (loading) {
@@ -640,7 +647,9 @@ export default function ClientPortalPage() {
   const agreementWaived = isAgreementWaived(inspection);
   const reportPublished = isReportPublished(inspection);
   const reportUnlocked =
-    agreementSigned && paymentRequirementComplete && reportPublished;
+    deliverableSrv !== null
+      ? deliverableSrv
+      : agreementSigned && paymentRequirementComplete && reportPublished;
 
   const agreementStatus =
     inspection.agreement_status || inspection.agreement_state || "Pending";
@@ -649,9 +658,11 @@ export default function ClientPortalPage() {
   const propertyAddress =
     inspection.property_address || inspection.address || "Property Address Not Entered";
 
-  const reportHref = getClientReportHref(inspection, inspectionId);
-  const pdfHref = getClientPdfHref(inspection, inspectionId);
-  const homeHubHref = `/my-home/${getInspectionShareToken(inspection) || inspectionId}`;
+  // Fall back to the portal's own link id (normally the share token), never the
+  // raw numeric id — raw-id links don't open for clients.
+  const reportHref = getClientReportHref(inspection, shareLookup);
+  const pdfHref = getClientPdfHref(inspection, shareLookup);
+  const homeHubHref = `/my-home/${getInspectionShareToken(inspection) || shareLookup}`;
 
   const moldReportUrl = moldTest?.lab_report_url || "";
   const radonReportUrl = radonTest?.report_url || "";
