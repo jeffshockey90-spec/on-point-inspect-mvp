@@ -6,6 +6,7 @@ import http2 from "http2";
 import { isSmsConfigured, sendSms } from "../../../../lib/sms";
 import { smsReminder } from "../../../../lib/smsTemplates";
 import { getNotificationPrefs } from "../../../../lib/notificationPrefs";
+import { reminderDateWindow } from "../../../../lib/reminderWindow";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -890,14 +891,25 @@ export async function GET(req: Request) {
     const lookAhead = new Date(now.getTime() + 25 * 60 * 60 * 1000);
     const lookBack = new Date(now.getTime() - 60 * 60 * 1000);
 
-    const { data: inspections, error } = await admin
-      .from("inspections")
-      .select("*")
-      .gte("created_at", "2000-01-01T00:00:00.000Z")
-      .limit(500);
+    // Only jobs dated near now (every create path sets inspection_date), read
+    // in pages — not an arbitrary 500 rows across every company (lib/reminderWindow).
+    const { fromDate, toDate } = reminderDateWindow(now);
+    const inspections: InspectionRow[] = [];
+    const PAGE = 1000;
+    for (let offset = 0; offset < 20000; offset += PAGE) {
+      const { data: page, error } = await admin
+        .from("inspections")
+        .select("*")
+        .gte("inspection_date", fromDate)
+        .lte("inspection_date", toDate)
+        .order("id", { ascending: true })
+        .range(offset, offset + PAGE - 1);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      inspections.push(...((page || []) as InspectionRow[]));
+      if (!page || page.length < PAGE) break;
     }
 
     // Resolve each owner's saved timezone so reminders follow the inspector's

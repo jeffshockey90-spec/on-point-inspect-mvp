@@ -82,22 +82,11 @@ export function formatAgreementTime(time?: string | null) {
   return `${displayHour}:${String(minutes).padStart(2, "0")} ${period}`;
 }
 
-function getLicenseNumber(state?: string | null) {
-  const normalized = normalizeAgreementState(state);
-
-  if (normalized === "MD") return "35912";
-  if (normalized === "WV") return "HI5277172-0226";
-
-  return "N/A";
-}
-
-function getLicenseLine(state?: string | null) {
-  const normalized = normalizeAgreementState(state);
-
-  if (normalized === "MD") return "MD Home Inspector License #35912";
-  if (normalized === "WV") return "WV Home Inspector License #HI5277172-0226";
-
-  return "Pennsylvania service area inspection performed under applicable Pennsylvania requirements and InterNACHI SOP.";
+// License wording comes from the company's own "License info" (Settings), never
+// hardcoded: this used to fill one company's MD/WV license numbers and expiry
+// into EVERY company's signed agreements. Blank when the company hasn't set it.
+function cleanLicenseInfo(licenseInfo?: string | null) {
+  return String(licenseInfo || "").trim();
 }
 
 function fillBlankLine(label: string, value: string) {
@@ -117,6 +106,7 @@ export function applyAgreementMergeFields({
   fee,
   inspectorName,
   ownerName,
+  licenseInfo,
   inspectionDate,
   inspectionTime,
   signedDate,
@@ -130,6 +120,7 @@ export function applyAgreementMergeFields({
   fee?: string | number | null;
   inspectorName?: string | null;
   ownerName?: string | null;
+  licenseInfo?: string | null;
   inspectionDate?: string | null;
   inspectionTime?: string | null;
   signedDate?: string | null;
@@ -159,9 +150,10 @@ export function applyAgreementMergeFields({
   const inspectorDisplay =
     inspectorName || `${inspectorCompany} — ${inspectorOwner}, ${inspectorTitle}`;
 
-  const inspectorLicense = getLicenseLine(normalized);
-  const inspectorLicenseNumber = getLicenseNumber(normalized);
-  const inspectorLicenseExpiration = "12-07-27";
+  const inspectorLicense = cleanLicenseInfo(licenseInfo);
+  const inspectorLicenseNumber = inspectorLicense;
+  // No expiration is stored per company; leave the template's own blank.
+  const inspectorLicenseExpiration = "";
 
   let body = templateBody || "";
 
@@ -232,13 +224,21 @@ export function applyAgreementMergeFields({
   body = body.replace(fillBlankLine("Inspection Date", displayDateTime), `Inspection Date: ${displayDateTime}\n`);
   body = body.replace(fillBlankLine("Inspection Time", displayTime), `Inspection Time: ${displayTime}\n`);
   body = body.replace(fillBlankLine("Fee", displayFee), `Fee: ${displayFee}\n`);
-  body = body.replace(fillBlankLine("State License No\\.", inspectorLicense), `State License No.: ${inspectorLicense}\n`);
-  body = body.replace(fillBlankLine("License Expiration Date", inspectorLicenseExpiration), `License Expiration Date: ${inspectorLicenseExpiration}\n`);
+  // Only fill a license blank when there's real info; otherwise keep the
+  // template's own blank line so nothing false is printed.
+  if (inspectorLicense) {
+    body = body.replace(fillBlankLine("State License No\\.", inspectorLicense), `State License No.: ${inspectorLicense}\n`);
+  }
+  if (inspectorLicenseExpiration) {
+    body = body.replace(fillBlankLine("License Expiration Date", inspectorLicenseExpiration), `License Expiration Date: ${inspectorLicenseExpiration}\n`);
+  }
 
   // Template authors write this signature-date blank as either "Date:" or
   // "Dated:" - match either, but keep whichever label they actually used.
   body = body.replace(
-    /(Dated|Date):\s*(?:_+)?\s*(?=\n|$)/i,
+    // Skip "License Expiration Date:" — that blank is the license's, not the
+    // signature date (it stays blank when the company has no expiration set).
+    /(?<!Expiration\s)(Dated|Date):\s*(?:_+)?\s*(?=\n|$)/i,
     (_match, label) => `${label}: ${displaySignedDate}\n`
   );
 
@@ -255,6 +255,7 @@ export function mergeAgreementBody({
   fee,
   inspectorName,
   ownerName,
+  licenseInfo,
   inspectionDate,
   inspectionTime,
   signedDate,
@@ -268,6 +269,7 @@ export function mergeAgreementBody({
   fee?: string | number | null;
   inspectorName?: string | null;
   ownerName?: string | null;
+  licenseInfo?: string | null;
   inspectionDate?: string | null;
   inspectionTime?: string | null;
   signedDate?: string | null;
@@ -282,6 +284,7 @@ export function mergeAgreementBody({
     fee,
     inspectorName,
     ownerName,
+    licenseInfo,
     inspectionDate,
     inspectionTime,
     signedDate,
@@ -498,6 +501,7 @@ export function mergeMultipleAgreementBodies({
   serviceFees,
   inspectorName,
   ownerName,
+  licenseInfo,
   inspectionDate,
   inspectionTime,
   signedDate,
@@ -512,6 +516,7 @@ export function mergeMultipleAgreementBodies({
   serviceFees?: AgreementServiceFees;
   inspectorName?: string | null;
   ownerName?: string | null;
+  licenseInfo?: string | null;
   inspectionDate?: string | null;
   inspectionTime?: string | null;
   signedDate?: string | null;
@@ -528,6 +533,7 @@ export function mergeMultipleAgreementBodies({
       fee,
       inspectorName,
       ownerName,
+      licenseInfo,
       inspectionDate,
       inspectionTime,
       signedDate,
@@ -550,6 +556,7 @@ export function mergeMultipleAgreementBodies({
         fee: feeForServiceType(template?.service_type, serviceFees, fee),
         inspectorName,
         ownerName,
+        licenseInfo,
         inspectionDate,
         inspectionTime,
         signedDate,

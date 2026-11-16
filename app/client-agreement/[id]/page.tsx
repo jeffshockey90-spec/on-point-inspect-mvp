@@ -268,6 +268,7 @@ export default async function ClientAgreementPage({
           fee: inspection.invoice_amount || inspection.fee || inspection.price,
           serviceFees: deriveAgreementServiceFees(inspection),
           inspectorName: branding.name,
+          licenseInfo: branding.licenseInfo,
           ownerName,
           inspectionDate: inspection.inspection_date,
           inspectionTime: inspection.inspection_time,

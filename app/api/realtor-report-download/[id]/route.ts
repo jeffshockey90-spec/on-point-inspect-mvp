@@ -30,6 +30,7 @@ import {
 import sharp from "sharp";
 import { existsSync } from "fs";
 import { recompressPdfImages } from "../../../../lib/pdfRecompress";
+import { orderPhotos, photosHaveSortOrder } from "../../../../lib/photoOrder";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -744,17 +745,16 @@ async function loadPhotos(admin: any, inspectionId: string, findingIds: string[]
     return rows;
   }
 
+  // Manual photo order (photos.sort_order) when the column exists, else
+  // created_at — never an error that drops every photo (lib/photoOrder).
+  const photoSortOk = findingIds.length ? await photosHaveSortOrder(admin) : false;
   const [findingPhotos, inspectionPhotos] = await Promise.all([
     findingIds.length
       ? fetchAll((from, to) =>
-          admin
-            .from("photos")
-            .select("*")
-            .in("finding_id", findingIds)
-            // Manual photo order (photos.sort_order); nulls (legacy) last, created_at tiebreak.
-            .order("sort_order", { ascending: true, nullsFirst: false })
-            .order("created_at", { ascending: true })
-            .range(from, to),
+          orderPhotos(
+            admin.from("photos").select("*").in("finding_id", findingIds),
+            photoSortOk,
+          ).range(from, to),
         )
       : Promise.resolve([]),
     fetchAll((from, to) =>
@@ -877,7 +877,8 @@ async function loadCompanyBranding(admin: any, inspection: any, fallbackEmail = 
     company?.name,
     inspection?.company_name,
     inspection?.inspection_company,
-    "On Point Home Inspections LLC"
+    // Neutral platform default (multi-tenant) — never one company's name.
+    "Your Home Inspection Company"
   );
 
   const companyEmail = pickFirstText(
@@ -1250,12 +1251,12 @@ function buildAgentReportHtml({
   const clientName = clientNameOverride || inspection.client_name || inspection.client || "N/A";
   const clientEmail = clientEmailOverride || inspection.client_email || "N/A";
   const realtorName = inspection.realtor_name || inspection.agent_name || inspection.buyer_agent_name || "N/A";
-  const inspectorName = inspection.inspector_name || inspection.inspector || "Jeff Shockey";
+  const inspectorName = inspection.inspector_name || inspection.inspector || "Inspector";
   const inspectionDate = formatDate(inspection.inspection_date || inspection.scheduled_date || inspection.created_at);
   const cityStateZip = [inspection.city, inspection.state, inspection.zip].filter(Boolean).join(", ");
   const reportId = inspection.report_number || inspection.id || "";
   const onlineReportUrl = onlineReportUrlForInspection(inspection);
-  const companyName = branding?.companyName || "On Point Home Inspections LLC";
+  const companyName = branding?.companyName || "Your Home Inspection Company";
   const companyEmail = branding?.companyEmail || "";
   const companyPhone = branding?.companyPhone || "";
   const companyWebsite = branding?.companyWebsite || "";
@@ -2165,9 +2166,9 @@ function buildPriorityReportHtml({
   const property = getPropertyAddress(inspection);
   const clientName = inspection.client_name || inspection.client || "N/A";
   const inspectionDate = formatDate(inspection.inspection_date || inspection.scheduled_date || inspection.created_at);
-  const inspectorName = inspection.inspector_name || inspection.inspector || "Jeff Shockey";
+  const inspectorName = inspection.inspector_name || inspection.inspector || "Inspector";
   const cityStateZip = [inspection.city, inspection.state, inspection.zip].filter(Boolean).join(", ");
-  const companyName = branding?.companyName || "On Point Home Inspections LLC";
+  const companyName = branding?.companyName || "Your Home Inspection Company";
   const companyEmail = branding?.companyEmail || "";
   const companyPhone = branding?.companyPhone || "";
   const coverLogoHtml = buildLogoHtml(branding, "cover");

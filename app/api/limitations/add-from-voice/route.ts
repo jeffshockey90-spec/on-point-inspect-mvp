@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     }
 
     const admin = getAdminClient();
-    const authorized = await authorizeInspection(admin, user.id, inspectionId, "id");
+    const authorized = await authorizeInspection(admin, user.id, inspectionId, "id, inspector_id");
     if (!authorized) return notFound("Inspection not found.");
 
     const { title, comment } = await generateLimitationNote({ section, notes: note });
@@ -49,6 +49,10 @@ export async function POST(req: Request) {
         limitation_comment: comment,
         ai_notes: note,
         custom_text: null,
+        // Service-role insert into an RLS'd per-inspector table: stamp the
+        // owning inspector (same as live-limitation), or the builder's RLS'd
+        // read never sees the row and the voice limitation "vanishes".
+        inspector_id: (authorized as any)?.inspector_id || user.id,
       })
       .select("*")
       .single();

@@ -60,6 +60,7 @@ import {
   getUiTranslations,
   makeTranslator,
 } from "../../../lib/translate";
+import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1366,18 +1367,14 @@ export default async function PublicSharePage({
   let photosError: any = null;
   if (findingIds.length > 0) {
     const PAGE = 1000;
+    // Manual photo order (photos.sort_order) when that column exists, else
+    // created_at — never an error that drops every photo (lib/photoOrder).
+    const photoSortOk = await photosHaveSortOrder(supabase);
     for (let from = 0; ; from += PAGE) {
-      const { data, error } = await supabase
-        .from("photos")
-        .select("*")
-        .in("finding_id", findingIds)
-        // Honor the inspector's manual photo order (photos.sort_order, added
-        // 2026-09). Legacy photos have NULL sort_order → nullsFirst:false keeps
-        // them after any reordered ones, then created_at as the stable tiebreak,
-        // so nothing is dropped and un-reordered findings keep their old order.
-        .order("sort_order", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: true })
-        .range(from, from + PAGE - 1);
+      const { data, error } = await orderPhotos(
+        supabase.from("photos").select("*").in("finding_id", findingIds),
+        photoSortOk,
+      ).range(from, from + PAGE - 1);
       if (error) {
         photosError = error;
         break;
