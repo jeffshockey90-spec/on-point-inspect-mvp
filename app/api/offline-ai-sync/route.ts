@@ -14,6 +14,9 @@ import { loadActiveReportSections } from "../../../lib/reportSections";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Finding sync uploads media and then runs an AI rewrite; give it room so a
+// platform timeout doesn't kill it mid-way (a killed request is retried).
+export const maxDuration = 300;
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -499,13 +502,22 @@ export async function POST(req: Request) {
 
     if (item.type === "reference_photo") {
       if (offlinePhotos.length === 0) {
-        return NextResponse.json(
-          { error: "Reference photo sync requires at least one photo." },
-          { status: 400 },
-        );
+        // Nothing to save (e.g. the device lost the photo bytes). Answer with a
+        // terminal "skipped" so the item leaves the queue instead of failing
+        // with a 400 and retrying forever.
+        const skipped = {
+          ok: true,
+          synced: false,
+          skipped: true,
+          type: "reference_photo",
+          reason: "No photo data was left to sync.",
+        };
+        await saveSyncReceipt({ queueItemId, inspectionId, itemType: "reference_photo", result: skipped });
+        return NextResponse.json(skipped);
       }
 
       let saved = 0;
+      let failed = 0;
       const section = payload.section || "Exterior";
       const caption =
         cleanText(payload.caption || payload.inspector_note || payload.note || payload.title) ||
@@ -531,8 +543,19 @@ export async function POST(req: Request) {
           ...(payload.unit_id != null ? { unit_id: Number(payload.unit_id) } : {}),
         });
 
-        if (error) throw error;
+        if (error) {
+          // Don't abort after earlier photos were saved: the retry (no receipt
+          // yet) would re-insert them as duplicates. Count it and continue.
+          console.warn("Offline sync: reference photo save failed, continuing:", error.message);
+          failed += 1;
+          continue;
+        }
         saved += 1;
+      }
+
+      // Nothing saved at all → fail so the client retries (safe: no rows exist).
+      if (saved === 0 && failed > 0) {
+        throw new Error("Reference photos could not be saved.");
       }
 
       const result = {
@@ -563,24 +586,38 @@ export async function POST(req: Request) {
       // offline in e.g. "Shed" stays there instead of falling back to Exterior.
       const reportSections = await loadActiveReportSections(supabase, inspectionId);
 
-      const { data: finding, error } = await supabase
+      const findingRow = {
+        inspection_id: inspectionId,
+        title,
+        section: safeSectionValue(payload.section, "Exterior", reportSections),
+        severity: safeSeverityValue(payload.severity),
+        observation,
+        implication: cleanText(payload.implication),
+        recommendation: cleanText(payload.recommendation),
+        image_url: null,
+        // Multi-Unit: file the synced finding under its captured unit.
+        ...(payload.unit_id != null ? { unit_id: Number(payload.unit_id) } : {}),
+      };
+      // Raw offline captures are drafts: flag them for Field Review IN the insert
+      // so they're never briefly visible in the client report (the follow-up
+      // update below used to be the only place this was set). If the review
+      // columns don't exist yet (findings-review.sql not run), insert without.
+      const reviewFlags =
+        payload?.confirmed_live !== true ? { needs_review: true, offline_captured: true } : {};
+      let { data: finding, error } = await supabase
         .from("findings")
-        .insert({
-          inspection_id: inspectionId,
-          title,
-          section: safeSectionValue(payload.section, "Exterior", reportSections),
-          severity: safeSeverityValue(payload.severity),
-          observation,
-          implication: cleanText(payload.implication),
-          recommendation: cleanText(payload.recommendation),
-          image_url: null,
-          // Multi-Unit: file the synced finding under its captured unit.
-          ...(payload.unit_id != null ? { unit_id: Number(payload.unit_id) } : {}),
-        })
+        .insert({ ...findingRow, ...reviewFlags })
         .select()
         .single();
+      if (error && Object.keys(reviewFlags).length) {
+        ({ data: finding, error } = await supabase
+          .from("findings")
+          .insert(findingRow)
+          .select()
+          .single());
+      }
 
-      if (error) throw error;
+      if (error || !finding) throw error || new Error("Finding insert failed.");
 
       // Inspector-set "flag for review" from the field. Best-effort: the column
       // only exists after finding-flag.sql is run, so a missing-column error must
@@ -692,6 +729,23 @@ export async function POST(req: Request) {
           .eq("inspection_id", inspectionId);
       }
 
+      // Record the sync BEFORE the slow AI rewrite: if the request dies there
+      // (timeout), the client's retry finds this receipt instead of creating a
+      // duplicate finding. Overwritten with the final result below.
+      await saveSyncReceipt({
+        queueItemId,
+        inspectionId,
+        itemType: "finding",
+        result: {
+          ok: true,
+          synced: true,
+          type: "finding",
+          finding_id: finding.id,
+          photo_count: photoCount,
+          ai_after_sync: { ran: false, reason: "Pending." },
+        },
+      });
+
       let aiAfterSync: any = {
         ran: false,
         reason: "Not requested or unavailable.",
@@ -748,11 +802,23 @@ export async function POST(req: Request) {
     }
 
     if (item.type === "limitation") {
-      if (offlinePhotos.length === 0) {
-        return NextResponse.json(
-          { error: "Limitation sync requires at least one photo." },
-          { status: 400 },
-        );
+      // A limitation is meaningful as text alone. Only an item with no photos
+      // AND no text is skipped — terminally, so it leaves the queue instead of
+      // failing with a 400 and retrying forever (photos whose bytes were lost).
+      const hasLimitationText = Boolean(
+        cleanText(payload.title) ||
+          cleanText(payload.limitation || payload.note || payload.inspector_note),
+      );
+      if (offlinePhotos.length === 0 && !hasLimitationText) {
+        const skipped = {
+          ok: true,
+          synced: false,
+          skipped: true,
+          type: "limitation",
+          reason: "Nothing was left to sync for this limitation.",
+        };
+        await saveSyncReceipt({ queueItemId, inspectionId, itemType: "limitation", result: skipped });
+        return NextResponse.json(skipped);
       }
 
       // section_limitations / limitation_photos both carry inspector_id.
@@ -933,34 +999,49 @@ export async function POST(req: Request) {
       }
 
       let findingId: string | number | null = null;
+      let findingSaveError = "";
       if (payload.create_finding && payload.finding) {
         const f = payload.finding;
-        const { data: findingData, error: findingError } = await supabase
+        const equipmentFindingRow: Record<string, any> = {
+          inspection_id: inspectionId,
+          ...unitStamp,
+          section: cleanText(f.section) || "Heating",
+          severity: safeSeverityValue(f.severity, "Informational"),
+          title: cleanText(f.title) || "Equipment",
+          observation: cleanText(f.observation),
+          implication: cleanText(f.implication),
+          recommendation: cleanText(f.recommendation),
+          image_url: mainImageUrl,
+        };
+        // The equipment + its derived finding are one unit: if the equipment
+        // is awaiting review, keep its finding out of the client report too.
+        // Retry without the flag if that column doesn't exist yet.
+        let { data: findingData, error: findingError } = await supabase
           .from("findings")
-          .insert({
-            inspection_id: inspectionId,
-            ...unitStamp,
-            section: cleanText(f.section) || "Heating",
-            severity: safeSeverityValue(f.severity, "Informational"),
-            title: cleanText(f.title) || "Equipment",
-            observation: cleanText(f.observation),
-            implication: cleanText(f.implication),
-            recommendation: cleanText(f.recommendation),
-            image_url: mainImageUrl,
-            // The equipment + its derived finding are one unit: if the equipment
-            // is awaiting review, keep its finding out of the client report too.
-            needs_review: payload?.confirmed_live !== true ? true : false,
-          })
+          .insert({ ...equipmentFindingRow, needs_review: payload?.confirmed_live !== true })
           .select()
           .single();
+        if (findingError) {
+          ({ data: findingData, error: findingError } = await supabase
+            .from("findings")
+            .insert(equipmentFindingRow)
+            .select()
+            .single());
+        }
 
-        if (findingError) throw findingError;
-        findingId = findingData.id;
+        // Never throw here: the equipment row already exists, and a throw (no
+        // receipt yet) makes the client's retry insert a DUPLICATE equipment row.
+        if (findingError || !findingData) {
+          findingSaveError = findingError?.message || "Finding insert failed.";
+          console.warn("Offline sync: equipment finding not created:", findingSaveError);
+        } else {
+          findingId = findingData.id;
+        }
 
-        if (uploaded.length > 0) {
+        if (findingData && uploaded.length > 0) {
           const photoRows = uploaded.map((u) => ({
             inspection_id: inspectionId,
-            finding_id: findingData.id,
+            finding_id: findingData!.id,
             public_url: u.publicUrl,
             file_path: u.filePath,
             is_video: String(u.mimeType || "").startsWith("video/"),
@@ -986,6 +1067,7 @@ export async function POST(req: Request) {
         type: "equipment",
         finding_id: findingId,
         created_finding: Boolean(findingId),
+        ...(findingSaveError ? { finding_error: findingSaveError } : {}),
       };
 
       await saveSyncReceipt({

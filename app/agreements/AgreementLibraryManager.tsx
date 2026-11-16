@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { flowAlert, flowConfirm, flowPrompt } from "../../components/ConfirmProvider";
 import { HOME_ORIENTATION_AGREEMENT } from "../../lib/starterAgreements";
+import { saveOrShareFile } from "../../lib/saveFile";
 
 const STATES = [
   { code: "AL", name: "Alabama" },
@@ -513,14 +514,8 @@ export default function AgreementLibraryManager() {
       type: "application/json",
     });
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${safeFileName(exportData.title)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    // Share sheet in the iOS/Android app (a plain download does nothing there).
+    void saveOrShareFile(blob, `${safeFileName(exportData.title)}.json`, { title: exportData.title });
   }
 
   async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {

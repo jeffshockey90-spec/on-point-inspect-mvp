@@ -10,6 +10,7 @@ import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding } 
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 import { sendPushNotification } from "../../../lib/push";
 import { decidePaymentRecord } from "../../../lib/paymentRecord";
+import { combineRefunds } from "../../../lib/refundTotals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -1090,6 +1091,30 @@ export async function POST(req: Request) {
           inspection = data;
         }
 
+        // A standalone (add-on) invoice paid through Stripe: record its refund
+        // too (this only looked at inspections, so refunded invoices stayed "paid").
+        if (!inspection && paymentIntentId) {
+          const { data: invoiceRow } = await supabase
+            .from("invoices")
+            .select("id, total, status")
+            .eq("stripe_payment_intent_id", paymentIntentId)
+            .maybeSingle();
+          if (invoiceRow) {
+            const invoiceTotal = Number(invoiceRow.total) || 0;
+            const refunded = amountRefunded / 100;
+            const status =
+              invoiceTotal > 0 && refunded < invoiceTotal - 0.005 ? "partially_refunded" : "refunded";
+            const { error: invoiceRefundError } = await supabase
+              .from("invoices")
+              .update({ status })
+              .eq("id", invoiceRow.id);
+            if (invoiceRefundError) {
+              console.error("Invoice refund update error:", invoiceRefundError);
+              return NextResponse.json({ error: "Failed to record invoice refund." }, { status: 500 });
+            }
+          }
+        }
+
         if (inspection) {
           const invoiceAmount =
             Number(
@@ -1102,8 +1127,23 @@ export async function POST(req: Request) {
               ).replace(/[^0-9.-]/g, "")
             ) || 0;
 
-          // charge.amount_refunded is CUMULATIVE, so this is the total refunded.
-          const refundedDollars = amountRefunded / 100;
+          // charge.amount_refunded is CUMULATIVE for this charge. Combine it with
+          // refunds recorded manually in the app instead of overwriting them
+          // (lib/refundTotals). stripe_amount_refunded exists only after
+          // supabase/add-stripe-amount-refunded.sql; without it the total can
+          // only grow.
+          const stripeRefundedDollars = amountRefunded / 100;
+          const hasStripeRefundColumn = Object.prototype.hasOwnProperty.call(
+            inspection,
+            "stripe_amount_refunded",
+          );
+          const refundedDollars = combineRefunds({
+            existingTotal: Number(inspection.amount_refunded || 0) || 0,
+            previousStripe: hasStripeRefundColumn
+              ? Number(inspection.stripe_amount_refunded || 0) || 0
+              : null,
+            stripeCumulative: stripeRefundedDollars,
+          });
           const amountPaidOnRecord =
             Number(String(inspection.amount_paid ?? "").replace(/[^0-9.-]/g, "")) || 0;
           // Refund basis = what was actually collected (fall back to invoice).
@@ -1118,8 +1158,8 @@ export async function POST(req: Request) {
             (Number(inspection.amount_refunded || 0) || 0) >= refundedDollars - 0.005;
 
           const note = `Refund recorded via Stripe: ${money(
-            refundedDollars
-          )} refunded (charge ${charge.id}).`;
+            stripeRefundedDollars
+          )} refunded in Stripe (charge ${charge.id}); ${money(refundedDollars)} refunded in total.`;
 
           const { error: refundUpdateError } = await supabase
             .from("inspections")
@@ -1131,6 +1171,7 @@ export async function POST(req: Request) {
               // invoice stays satisfied and the delivered report stays unlocked
               // (full or partial refund). Track the refund as its own quantity.
               amount_refunded: refundedDollars,
+              ...(hasStripeRefundColumn ? { stripe_amount_refunded: stripeRefundedDollars } : {}),
               refunded_at: new Date().toISOString(),
               payment_notes: note,
               invoice_notes: note,
@@ -1195,6 +1236,18 @@ export async function POST(req: Request) {
         inspection = data;
       }
 
+      // Standalone (add-on) invoice disputes too.
+      if (!inspection && paymentIntentId) {
+        const { error: invoiceDisputeError } = await supabase
+          .from("invoices")
+          .update({ status: "disputed" })
+          .eq("stripe_payment_intent_id", paymentIntentId);
+        if (invoiceDisputeError) {
+          console.error("Invoice dispute update error:", invoiceDisputeError);
+          return NextResponse.json({ error: "Failed to record invoice dispute." }, { status: 500 });
+        }
+      }
+
       if (inspection) {
         const alreadyDisputed =
           String(inspection.payment_status || "").toLowerCase() === "disputed";
@@ -1240,6 +1293,37 @@ export async function POST(req: Request) {
               target: "user",
               targetUserId: inspection.inspector_id,
             });
+          }
+        }
+      }
+    }
+
+    // A dispute that ends in the merchant's favor ("won") returns the payment:
+    // put the job / invoice back to Paid instead of leaving it "Disputed"
+    // forever. A lost dispute stays Disputed (the money was returned).
+    if (event.type === "charge.dispute.closed") {
+      const dispute = event.data.object as Stripe.Dispute;
+      if (dispute.status === "won") {
+        const supabase = getSupabaseAdmin();
+        const paymentIntentId =
+          typeof dispute.payment_intent === "string"
+            ? dispute.payment_intent
+            : dispute.payment_intent?.id || null;
+        if (paymentIntentId) {
+          const note = "Chargeback/dispute closed in your favor via Stripe; payment stands.";
+          const { error: wonInspectionError } = await supabase
+            .from("inspections")
+            .update({ payment_status: "Paid", invoice_status: "Paid", payment_notes: note, invoice_notes: note })
+            .eq("stripe_payment_intent_id", paymentIntentId)
+            .eq("payment_status", "Disputed");
+          const { error: wonInvoiceError } = await supabase
+            .from("invoices")
+            .update({ status: "paid" })
+            .eq("stripe_payment_intent_id", paymentIntentId)
+            .eq("status", "disputed");
+          if (wonInspectionError || wonInvoiceError) {
+            console.error("Dispute-won update error:", wonInspectionError || wonInvoiceError);
+            return NextResponse.json({ error: "Failed to record dispute outcome." }, { status: 500 });
           }
         }
       }

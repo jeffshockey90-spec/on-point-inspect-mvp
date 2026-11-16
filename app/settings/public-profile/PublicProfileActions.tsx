@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { flowAlert } from "../../../components/ConfirmProvider";
+import { saveOrShareFile } from "../../../lib/saveFile";
 
 type PublicProfileActionsProps = {
   profileUrl?: string;
@@ -234,12 +235,9 @@ export default function PublicProfileActions({
       }
     }
 
-    const link = document.createElement("a");
-    link.download = `${fileBase}-profile-qr.png`;
-    link.href = canvas.toDataURL("image/png");
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    // Works in the iOS/Android app too (saves to Photos); plain download on web.
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (blob) await saveOrShareFile(blob, `${fileBase}-profile-qr.png`);
   }
 
   function printQrCard() {

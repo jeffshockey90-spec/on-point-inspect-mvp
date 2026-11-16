@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabaseClient";
 import { isNativeApp, takeNativePhotoSavedToGallery } from "../lib/nativePhoto";
 import ExpandableReportImage from "./ExpandableReportImage";
 import { uploadSectionReferencePhoto } from "../lib/sectionReferencePhotos";
+import { throwIfAnyError } from "../lib/supabaseResults";
 
 const PHOTO_BUCKET = "inspection-photos";
 
@@ -372,7 +373,7 @@ function SectionReferencePhotos({
     setReorderBusy(true);
 
     try {
-      await Promise.all(
+      const results = await Promise.all(
         reordered.map((item, i) =>
           supabase
             .from("section_reference_photos")
@@ -381,6 +382,9 @@ function SectionReferencePhotos({
             .eq("inspection_id", inspectionId),
         ),
       );
+      // Supabase returns errors instead of throwing — surface them so the
+      // catch shows the error and reloads the real order.
+      throwIfAnyError(results);
     } catch (error: any) {
       await flowAlert(error?.message || "Could not reorder reference photos.");
       await loadPhotos();

@@ -1,6 +1,7 @@
 "use client";
 
 import { Download } from "lucide-react";
+import { saveOrShareFile } from "../lib/saveFile";
 
 type Row = {
   inspector: string;
@@ -28,14 +29,8 @@ export default function TimesheetExport({
       ),
     );
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    // Share sheet in the iOS/Android app (a plain download does nothing there).
+    void saveOrShareFile(blob, filename, { title: "Timesheet" });
   }
 
   return (

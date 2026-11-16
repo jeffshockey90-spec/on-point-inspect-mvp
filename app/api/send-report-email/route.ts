@@ -11,6 +11,7 @@ import { isSmsConfigured, sendSms } from "../../../lib/sms";
 import { smsReportReadyClient, smsReportReadyAgent } from "../../../lib/smsTemplates";
 import { hasRadonService, hasMoldService } from "../../../lib/environmental/service";
 import { isOrientationJob } from "../../../lib/orientation";
+import { getNotificationPrefs } from "../../../lib/notificationPrefs";
 
 async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -493,7 +494,11 @@ function buildEmailHtml({
 
 export async function POST(req: Request) {
   try {
-    const { inspectionId, recipientType, recipientEmail, recipientEmails, context, channel: channelRaw } = await req.json();
+    const { inspectionId, recipientType, recipientEmail, recipientEmails, context, channel: channelRaw, trigger } = await req.json();
+    // The automatic send when a report is published honors the company /
+    // inspector "Report ready" notification settings. Manual sends from the
+    // builder are explicit and always go.
+    const isAutoPublishSend = String(trigger || "").toLowerCase() === "publish";
     // Optional explicit recipient list (specific people the inspector picked).
     const explicitEmails: string[] = Array.isArray(recipientEmails)
       ? Array.from(
@@ -747,6 +752,29 @@ export async function POST(req: Request) {
       Boolean(recipient.email)
     );
 
+    // "Report ready" notification settings (client / agent) — these toggles
+    // existed in Settings but nothing read them.
+    let allowClientReady = true;
+    let allowAgentReady = true;
+    if (isAutoPublishSend) {
+      const prefs = await getNotificationPrefs(supabase, {
+        inspectorId: inspection.inspector_id || null,
+        companyId: inspection.company_id || null,
+      });
+      allowClientReady = prefs.client_report_ready !== false;
+      allowAgentReady = prefs.agent_report_ready !== false;
+      recipients = recipients.filter((recipient) =>
+        recipient.recipientType === "realtor" ? allowAgentReady : allowClientReady,
+      );
+      if (!recipients.length && !(wantSms && (allowClientReady || allowAgentReady))) {
+        return NextResponse.json({
+          ok: true,
+          skipped: true,
+          reason: "Report-ready notifications are turned off in Settings.",
+        });
+      }
+    }
+
     // Email needs an address; text does not. Only block when we actually need
     // email (email or both) and none is on file.
     if (wantEmail && !recipients.length) {
@@ -847,7 +875,9 @@ export async function POST(req: Request) {
             : recipientType === "realtor"
               ? ["realtor"]
               : recipientType === "all"
-                ? ["client", "realtor"] // "all" -> both parties
+                ? (["client", "realtor"] as Array<"client" | "realtor">).filter((role) =>
+                    role === "realtor" ? allowAgentReady : allowClientReady,
+                  ) // "all" -> both parties (minus any turned off for auto-sends)
                 : []; // "custom" (an arbitrary 3rd-party email) -> DON'T text
         //          the client/realtor. Previously "custom" fell through to both,
         //          so emailing e.g. a lender surprise-texted the buyer + agent.
