@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAIModel, getAIVersion } from "../../../../lib/openai";
 import { inspectionBrain } from "../../../../lib/ai";
-import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
+import { getSessionUser, getAdminClient, unauthorized } from "../../../../lib/apiAuth";
 import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import { loadFlowStyle } from "../../../../lib/ai/flowWriter";
-import { MATERIAL_FIELDS } from "../../../../lib/ai/checklistAutofill";
+import { loadChecklistOptionRows, materialFieldMap } from "../../../../lib/customChecklist";
+import { sanitizeSectionList } from "../../../../lib/ai/identifyResult";
 
 export const runtime = "nodejs";
 
@@ -100,9 +101,11 @@ function clampConfidence(value: any, fallback = 75) {
   return Math.max(0, Math.min(100, Math.round(number)));
 }
 
-function normalizeSection(value: any, fallback: string) {
+// `valid` is this report's ACTIVE section list (custom sections like "Shed"
+// included) when the field tool sends it; otherwise the built-in list.
+function normalizeSection(value: any, fallback: string, valid: string[] = VALID_SECTIONS) {
   const clean = cleanText(value);
-  return VALID_SECTIONS.includes(clean) ? clean : fallback;
+  return valid.includes(clean) ? clean : fallback;
 }
 
 function normalizeSeverity(value: any, fallback: string) {
@@ -208,7 +211,24 @@ export async function POST(req: Request) {
       cleanText(formData.get("inspectionId")) ||
       cleanText(formData.get("inspection_id")) ||
       null;
-    const currentSection = normalizeSection(formData.get("section"), "Exterior");
+    // The report's ACTIVE sections (custom ones included), sent by the field tool
+    // as JSON. Without them a custom section (e.g. "Shed") was coerced to
+    // Exterior before the AI even ran.
+    let reportSections: string[] = [];
+    try {
+      reportSections = sanitizeSectionList(JSON.parse(String(formData.get("availableSections") || "[]")));
+    } catch {
+      reportSections = [];
+    }
+    const validSections = reportSections.length ? reportSections : VALID_SECTIONS;
+    const defaultSection = validSections.includes("Exterior") ? "Exterior" : validSections[0] || "Exterior";
+    const currentSection = normalizeSection(formData.get("section"), defaultSection, validSections);
+    // Photo-fillable checklist fields per section (built-in + the inspector's own
+    // options + custom sections' inspector-defined fields).
+    const sectionFieldMap = materialFieldMap(
+      validSections,
+      user?.id ? await loadChecklistOptionRows(getAdminClient(), user.id) : [],
+    );
     const currentSeverity = normalizeSeverity(
       formData.get("severity"),
       "Recommended Repair"
@@ -288,7 +308,15 @@ Do not keep the current selected section unless it is truly the best match.
 Do not invent new section names.
 
 Valid sections:
-${VALID_SECTIONS.map((section) => `- ${section}: ${SECTION_HINTS[section]}`).join("\n")}
+${validSections
+  .map(
+    (section) =>
+      `- ${section}: ${
+        SECTION_HINTS[section] ||
+        "a section specific to this report; choose it for components that clearly belong to it by name (e.g. a shed, pool, or detached structure)"
+      }`,
+  )
+  .join("\n")}
 
 Valid severities:
 ${VALID_SEVERITIES.map((severity) => `- ${severity}`).join("\n")}
@@ -338,7 +366,7 @@ Return this exact JSON structure:
 SECTION SYSTEM-INFO (sectionInfo):
 Also identify the visible material/type for the section you assign, to auto-fill that section's system info. Include a field ONLY for the section you chose, ONLY when you can CLEARLY identify it from the photo, and choose the value ONLY from that section's allowed options below (or, if it's clearly a material not in the list, a short specific material name). Omit any field you're not sure about — accuracy over completeness; leave it out rather than guessing. If nothing is clearly identifiable, return {}.
 Allowed material/type fields per section (groupTitle: allowed options):
-${JSON.stringify(MATERIAL_FIELDS)}
+${JSON.stringify(sectionFieldMap)}
 
 Client-facing writing rules:
 - Title should be short and specific.
@@ -433,7 +461,7 @@ Important:
       ...cleanStringArray(parsed.detectedConditions || parsed.detected_conditions),
     ].join(" ");
 
-    const aiSection = normalizeSection(parsed.section, "");
+    const aiSection = normalizeSection(parsed.section, "", validSections);
     const finalSection = aiSection || inferSectionFromText(fallbackText, currentSection);
     const confidence = clampConfidence(
       parsed.confidence ?? parsed.confidenceScore ?? parsed.confidence_score,
@@ -457,9 +485,11 @@ Important:
       photoQuality === "Poor" ||
       flags.length > 0;
 
+    const resolvedSection = normalizeSection(finalSection, currentSection, validSections);
+
     return NextResponse.json({
       title,
-      section: normalizeSection(finalSection, currentSection),
+      section: resolvedSection,
       severity: normalizeSeverity(parsed.severity, currentSeverity),
       observation,
       implication,
@@ -483,6 +513,11 @@ Important:
                 .map(([k, v]) => [k, String(v).trim()]),
             )
           : {},
+      // Fields sectionInfo was read against (custom-section fields included),
+      // keyed by section, for the Field Tool's buildMaterialFills.
+      sectionFieldMap: sectionFieldMap[resolvedSection]
+        ? { [resolvedSection]: sectionFieldMap[resolvedSection] }
+        : {},
       evidence: cleanStringArray(parsed.evidence),
       reasoning: cleanText(parsed.reasoning),
       inspectorGuidance:

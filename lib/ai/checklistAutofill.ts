@@ -320,10 +320,9 @@ export function buildEquipmentFills(er: Attrs): ChecklistFill[] {
 // --- Phase 2: material/type fields identified visually from a Finding photo ---
 // section -> the checklist groups the AI can fill by identifying the material.
 // Option lists MIRROR CHECKLIST_LIBRARY in SectionInformationChecklist.tsx.
-export const MATERIAL_FIELDS: Record<
-  string,
-  { groupTitle: string; options: string[]; presence?: boolean }[]
-> = {
+export type MaterialField = { groupTitle: string; options: string[]; presence?: boolean };
+
+export const MATERIAL_FIELDS: Record<string, MaterialField[]> = {
   "Exterior": [
     { groupTitle: "Siding Material", options: ["Brick Veneer", "Plastic", "Logs", "Stone Veneer", "Concrete", "Stucco", "Fiber Cement", "Stone", "Wood", "Vinyl", "Shingles", "Brick", "Engineered Wood", "Masonry", "Asphalt", "Metal"] },
     { groupTitle: "Exterior Entry Door", options: ["Wood", "Steel", "Single Pane", "Glass", "Hollow Core", "Fiberglass"] },
@@ -397,9 +396,18 @@ export const MATERIAL_FIELDS: Record<
 
 // Maps the AI's visually-identified material values (sectionInfo, keyed by
 // group title, returned by /api/ai-capture) to checklist fills for that section.
-export function buildMaterialFills(section: string, sectionInfo: Record<string, any> | null | undefined): ChecklistFill[] {
+// `fieldMap` is the server's field list for the section the AI used (custom
+// sections' fields + the inspector's added options), keyed by section; when the
+// section isn't in it (e.g. the inspector re-filed the draft elsewhere) this
+// falls back to the built-in MATERIAL_FIELDS for that section.
+export function buildMaterialFills(
+  section: string,
+  sectionInfo: Record<string, any> | null | undefined,
+  fieldMap?: Record<string, MaterialField[]> | null,
+): ChecklistFill[] {
   if (!section || !sectionInfo || typeof sectionInfo !== "object") return [];
-  const groups = MATERIAL_FIELDS[section];
+  const provided = fieldMap && Array.isArray(fieldMap[section]) ? fieldMap[section] : null;
+  const groups = provided && provided.length ? provided : MATERIAL_FIELDS[section];
   if (!groups) return [];
   const fills: ChecklistFill[] = [];
   for (const g of groups) {
@@ -499,7 +507,8 @@ export async function writeChecklistFills(
 
       let already = false;
       for (const o of existingOpts || []) {
-        if (o?.hidden) continue;
+        // Skip hidden options and custom-field marker rows (lib/customChecklist).
+        if (o?.hidden || o?.option_label === "__FIELD__") continue;
         const display = o.replacement_label || String(o.option_label || "").replace("__CUSTOM__:", "");
         if (display && normKey(display) === wantKey) {
           already = true;

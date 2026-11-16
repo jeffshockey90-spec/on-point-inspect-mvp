@@ -11,6 +11,9 @@ export type FindingDraft = {
   // checklist group title (e.g. { "Siding Material": "Vinyl" }). Used to
   // auto-fill the section's system-info checklist. See lib/ai/checklistAutofill.
   sectionInfo?: Record<string, string>;
+  // Fields sectionInfo was read against, keyed by section (custom-section fields
+  // included). Used only while the draft stays in that section.
+  sectionFieldMap?: Record<string, { groupTitle: string; options: string[]; presence?: boolean }[]>;
   // Inspector flagged this finding in the field to revisit in the report builder.
   flagged?: boolean;
   // Confirmed location captured in the field (side/level/room), persisted to

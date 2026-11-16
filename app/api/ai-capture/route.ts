@@ -4,7 +4,7 @@ import { logAIEvent } from "../../../lib/logging";
 import { routeFindingSection, normalizeSeverity } from "../../../lib/routeFindingSection";
 import { getAIModel, getFastAIModel, getAIVersion } from "../../../lib/openai";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
-import { getSessionUser } from "../../../lib/apiAuth";
+import { getSessionUser, getAdminClient } from "../../../lib/apiAuth";
 import { buildWritingStyleInstructions } from "../../../lib/ai/writingStyle";
 import { loadWritingConfigForUser } from "../../../lib/ai/loadWritingConfig";
 import { buildDefectKnowledge } from "../../../lib/ai/flowWriter";
@@ -13,7 +13,7 @@ import {
   getInspectorFindingExamples,
   formatExamplesForPrompt,
 } from "../../../lib/ai/findingRetrieval";
-import { MATERIAL_FIELDS } from "../../../lib/ai/checklistAutofill";
+import { loadChecklistOptionRows, materialFieldMap } from "../../../lib/customChecklist";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -162,6 +162,13 @@ export async function POST(req: Request) {
     // back to the fixed base list for callers that don't send it.
     const providedSections = sanitizeSections(body.availableSections);
     const validSections = providedSections.length ? providedSections : VALID_SECTIONS;
+    // Photo-fillable checklist fields per section: built-in fields plus the
+    // inspector's own options, and custom sections' inspector-defined fields
+    // (e.g. "Shed" > "Siding"), so sectionInfo can fill those too.
+    const sectionFieldMap = materialFieldMap(
+      validSections,
+      attributedUserId ? await loadChecklistOptionRows(getAdminClient(), attributedUserId) : [],
+    );
     // Confirmed location captured in the field BEFORE generating (side/level/room,
     // side auto-filled from the phone compass). A stated fact, not an inference.
     const location = cleanText(body.location);
@@ -292,7 +299,7 @@ Writing requirements:
 - Evidence: up to four short statements describing what supports the finding.
 - sectionInfo: an object identifying the visible material/type for the section you assign. Include a field ONLY for the section you chose, ONLY when you can CLEARLY identify it from the photo, and choose the value ONLY from that section's allowed options below (or, if the material is clearly something not in the list, a short specific material name). Omit any field you are not sure about — accuracy over completeness; leave it out rather than guessing. If nothing is clearly identifiable, return {}.
   Allowed material/type fields per section (groupTitle: allowed options):
-${JSON.stringify(MATERIAL_FIELDS)}
+${JSON.stringify(sectionFieldMap)}
 - Section: choose the report section for the actual component or system the defect belongs to, not the section the inspector happened to have selected. Use the visible component to decide, for example:
   - Roof, shingles, flashing, gutters, chimney exterior -> Roof
   - Siding, trim, grading, driveway, walkway, deck, porch, exterior steps -> Exterior
@@ -410,7 +417,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
     // real value — the model can't inject fields for the wrong section, and
     // uncertain/blank values are dropped so nothing is guessed into the report.
     const sectionInfo: Record<string, string> = {};
-    const allowedGroups = MATERIAL_FIELDS[section]?.map((g) => g.groupTitle) || [];
+    const allowedGroups = sectionFieldMap[section]?.map((g) => g.groupTitle) || [];
     const rawInfo =
       parsed.sectionInfo && typeof parsed.sectionInfo === "object" ? parsed.sectionInfo : {};
     for (const group of allowedGroups) {
@@ -442,6 +449,9 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
         ? parsed.evidence.map(cleanText).filter(Boolean).slice(0, 4)
         : [],
       sectionInfo,
+      // The fields sectionInfo was read against, keyed by section — so the
+      // client's buildMaterialFills can fill custom-section fields too.
+      sectionFieldMap: sectionFieldMap[section] ? { [section]: sectionFieldMap[section] } : {},
       aiModel: AI_WRITER_MODEL,
       aiVersion: AI_WRITER_VERSION,
       photoCount: imageDataUrls.length,

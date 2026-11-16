@@ -68,6 +68,7 @@ export async function generateLiveDraft(
         recommendation: data.recommendation,
         confidence: data.confidence,
         sectionInfo: data.sectionInfo || {},
+        sectionFieldMap: data.sectionFieldMap || {},
         location: inp.location,
       },
       baseline: {

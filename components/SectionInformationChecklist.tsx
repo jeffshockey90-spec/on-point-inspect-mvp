@@ -5,6 +5,11 @@ import { createPortal } from "react-dom";
 import { flowConfirm } from "./ConfirmProvider";
 import { supabase } from "../lib/supabaseClient";
 import { CHECKLIST_LIBRARY, type ChecklistGroup } from "../lib/checklistLibrary";
+import {
+  CUSTOM_FIELD_MARKER,
+  LEGACY_CUSTOM_GROUP,
+  customSectionGroups,
+} from "../lib/customChecklist";
 
 
 
@@ -83,6 +88,9 @@ function SectionInformationChecklist({
   const [editingOption, setEditingOption] = useState<{ groupTitle: string; optionLabel: string; nextLabel: string } | null>(null);
   const [addingOptionGroup, setAddingOptionGroup] = useState("");
   const [newOptionLabel, setNewOptionLabel] = useState("");
+  // Custom sections only: "+ Add Field" modal (a new checkbox field, e.g. Siding).
+  const [addingField, setAddingField] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
 
@@ -117,9 +125,17 @@ function SectionInformationChecklist({
     setMessage(text);
   }
 
-  const baseGroups = useMemo(
-    () => CHECKLIST_LIBRARY[section] || [{ title: "Custom Info", options: [] }],
-    [section]
+  // A section without a preset checklist (one the inspector added, e.g. "Shed")
+  // gets the inspector's own fields. They're stored as marker rows alongside
+  // custom options (lib/customChecklist), so the AI camera, field tool and voice
+  // fill see exactly the same fields.
+  const isCustomSection = !CHECKLIST_LIBRARY[section];
+  const baseGroups = useMemo<ChecklistGroup[]>(
+    () =>
+      CHECKLIST_LIBRARY[section] ||
+      // Options render from the override rows (getGroupOptions), so pass titles only.
+      customSectionGroups(section, optionOverrides).map((g) => ({ title: g.title, options: [] })),
+    [section, optionOverrides]
   );
 
   // Only sections that actually have Temperature / Weather Conditions groups
@@ -561,6 +577,64 @@ function SectionInformationChecklist({
     }
   }
 
+  async function addField() {
+    const clean = newFieldLabel.trim();
+    if (!clean || saving || !isCustomSection) return;
+    if (baseGroups.some((g) => g.title.trim().toLowerCase() === clean.toLowerCase())) {
+      showMessage("error", `"${clean}" is already a field in this section.`);
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from("section_checklist_options")
+        .insert({ section, group_title: clean, option_label: CUSTOM_FIELD_MARKER, replacement_label: null, hidden: false, inspector_id: inspectorId })
+        .select("*")
+        .single();
+      if (error) throw error;
+      if (data) setOptionOverrides((prev) => [...prev, data]);
+      setNewFieldLabel("");
+      setAddingField(false);
+      setOpen(true);
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to add field.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Removes a custom field and its custom options from this section's checklist
+  // (for this and future reports). Boxes already checked on existing reports stay
+  // in those reports.
+  async function deleteField(groupTitle: string) {
+    if (saving || !isCustomSection) return;
+    const confirmed = await flowConfirm({
+      title: "Delete Field",
+      message: `Delete the "${groupTitle}" field and its options from the ${section} checklist? Boxes already checked on existing reports stay in those reports.`,
+      confirmText: "Delete",
+      tone: "danger",
+    });
+    if (!confirmed) return;
+    const ids = optionOverrides
+      .filter(
+        (item) =>
+          item.group_title === groupTitle &&
+          (item.option_label === CUSTOM_FIELD_MARKER || item.option_label.startsWith("__CUSTOM__:")),
+      )
+      .map((item) => item.id);
+    if (!ids.length) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("section_checklist_options").delete().in("id", ids);
+      if (error) throw error;
+      setOptionOverrides((prev) => prev.filter((item) => !ids.includes(item.id)));
+    } catch (error: any) {
+      showMessage("error", error?.message || "Failed to delete field.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function deleteOption(groupTitle: string, option: RenderOption) {
     if (saving) return;
     const confirmed = await flowConfirm({
@@ -697,6 +771,22 @@ function SectionInformationChecklist({
 
       {open && (
         <div className="space-y-5 border-t border-[var(--fl-line)] p-5">
+          {isCustomSection && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-teal-500/50 bg-teal-500/5 p-4">
+              <p className="max-w-xl text-sm text-[var(--fl-muted)]">
+                Add your own fields for this section (e.g. Siding, Roof Covering, Floor), then add
+                checkbox options to each. The AI camera, field tool and voice fill use them too.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setAddingField(true); setNewFieldLabel(""); }}
+                className="rounded-lg border border-teal-500 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/20"
+              >
+                + Add Field
+              </button>
+            </div>
+          )}
+
           {baseGroups.map((group) => {
             const options = getGroupOptions(group);
             const textValue = textValueByGroup[group.title] || "";
@@ -705,13 +795,24 @@ function SectionInformationChecklist({
               <div key={group.title} className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <h4 className="text-lg font-semibold text-[var(--fl-text)]">{group.title}</h4>
-                  <button
-                    type="button"
-                    onClick={() => { setAddingOptionGroup(group.title); setNewOptionLabel(""); }}
-                    className="rounded-lg border border-teal-500 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
-                  >
-                    + Add Option
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setAddingOptionGroup(group.title); setNewOptionLabel(""); }}
+                      className="rounded-lg border border-teal-500 px-3 py-1 text-xs font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
+                    >
+                      + Add Option
+                    </button>
+                    {isCustomSection && group.title !== LEGACY_CUSTOM_GROUP && (
+                      <button
+                        type="button"
+                        onClick={() => deleteField(group.title)}
+                        className="rounded-lg border border-[var(--fl-line)] px-3 py-1 text-xs font-semibold text-[var(--fl-muted)] hover:bg-red-500/10 hover:text-[var(--fl-crit-text)]"
+                      >
+                        Delete Field
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {group.type === "text" && (
@@ -789,6 +890,22 @@ function SectionInformationChecklist({
           <div className="mt-5 flex justify-end gap-3">
             <button type="button" onClick={() => setEditingOption(null)} className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]">Cancel</button>
             <button type="button" onClick={saveOptionEdit} disabled={saving} className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-50">Save Option</button>
+          </div>
+        </Modal>
+      )}
+
+      {addingField && (
+        <Modal title="Add Checklist Field" subtitle={section} onClose={() => setAddingField(false)}>
+          <input
+            value={newFieldLabel}
+            onChange={(event) => setNewFieldLabel(event.target.value)}
+            onKeyDown={(event) => { if (event.key === "Enter") void addField(); }}
+            placeholder="Field name, e.g. Siding"
+            className="mt-4 w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+          />
+          <div className="mt-5 flex justify-end gap-3">
+            <button type="button" onClick={() => setAddingField(false)} className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)]">Cancel</button>
+            <button type="button" onClick={addField} disabled={saving || !newFieldLabel.trim()} className="rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-50">Add Field</button>
           </div>
         </Modal>
       )}
