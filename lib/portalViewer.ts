@@ -107,3 +107,29 @@ export function isStaffPreview(r: CardInspection): boolean {
 export function canActOnCard(r: CardInspection): boolean {
   return Boolean(r.inspection?.id) && (!r.viaRawId || r.viewerRole === "client");
 }
+
+/**
+ * Agreement signing reached by RAW inspection id (legacy links, no share
+ * token). Mirrors the signing page's rule: allowed only when the link carries a
+ * contact id that belongs to this inspection (a per-recipient secret), or the
+ * signed-in user is tied to the inspection (inspector/company, or the client).
+ * A bare guessed id with neither is refused, so signatures can't be forged.
+ */
+export async function canSignByRawId(
+  db: { from: (t: string) => any },
+  inspection: { id?: unknown; inspector_id?: unknown; company_id?: unknown } | null | undefined,
+  contactId: string,
+  getUser: () => Promise<SessionUser | null> = getCookieSessionUser,
+): Promise<boolean> {
+  if (!inspection?.id) return false;
+  if (contactId) {
+    const { data } = await db
+      .from("inspection_contacts")
+      .select("id")
+      .eq("id", contactId)
+      .eq("inspection_id", inspection.id)
+      .maybeSingle();
+    if (data?.id) return true;
+  }
+  return (await resolvePortalViewerRole(db, inspection, await getUser())) !== null;
+}

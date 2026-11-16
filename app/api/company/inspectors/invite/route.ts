@@ -4,6 +4,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { sendPushNotification } from "../../../../../lib/push";
 import { OWNER_EMAILS } from "../../../../../lib/ownerEmails";
+import { removeAutoProvisionedCompanies } from "../../../../../lib/companyInvite";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -111,18 +112,9 @@ export async function POST(req: Request) {
     // profiles/companies/company_users(role=owner) row for every new
     // signup - undo that and attach this person to the inviting company
     // as an inspector instead.
-    await admin.from("company_users").delete().eq("user_id", newUserId);
-
-    const { data: strayCompanies } = await admin
-      .from("companies")
-      .select("id")
-      .eq("email", email);
-
-    for (const stray of strayCompanies || []) {
-      if (stray.id !== companyId) {
-        await admin.from("companies").delete().eq("id", stray.id);
-      }
-    }
+    // Only the company created for THIS new user (never matched by email —
+    // that deleted other tenants' companies whose contact email matched).
+    await removeAutoProvisionedCompanies(admin, newUserId, companyId);
 
     await admin.from("profiles").upsert({
       id: newUserId,

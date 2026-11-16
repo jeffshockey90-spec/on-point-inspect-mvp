@@ -55,7 +55,7 @@ async function getCompanyForCurrentUser(supabase: any) {
 
   const { data: companyUser, error: companyUserError } = await supabase
     .from("company_users")
-    .select("company_id")
+    .select("company_id, role")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -76,7 +76,9 @@ async function getCompanyForCurrentUser(supabase: any) {
   if (companyError) return { user, company: null, error: companyError.message };
   if (!company) return { user, company: null, error: "Company not found." };
 
-  return { user, company, error: "" };
+  // Only the company owner may change the public profile gallery (matches the
+  // owner-only company settings save); team members can still read it.
+  return { user, company, error: "", isOwner: companyUser.role === "owner" };
 }
 
 async function loadImages(supabase: any, companyId: any) {
@@ -145,10 +147,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const { company, error } = await getCompanyForCurrentUser(supabase);
+    const { company, error, isOwner } = await getCompanyForCurrentUser(supabase);
 
     if (error || !company) {
       return NextResponse.json({ error: error || "Unable to add gallery image." }, { status: error === "Not authenticated." ? 401 : 400 });
+    }
+    if (!isOwner) {
+      return NextResponse.json({ error: "Only the company owner can change the public profile." }, { status: 403 });
     }
 
     const contentType = request.headers.get("content-type") || "";
@@ -218,10 +223,13 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const supabase = await createClient();
-    const { company, error } = await getCompanyForCurrentUser(supabase);
+    const { company, error, isOwner } = await getCompanyForCurrentUser(supabase);
 
     if (error || !company) {
       return NextResponse.json({ error: error || "Unable to update gallery image." }, { status: error === "Not authenticated." ? 401 : 400 });
+    }
+    if (!isOwner) {
+      return NextResponse.json({ error: "Only the company owner can change the public profile." }, { status: 403 });
     }
 
     const body = await request.json().catch(() => ({}));
@@ -266,10 +274,13 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const supabase = await createClient();
-    const { company, error } = await getCompanyForCurrentUser(supabase);
+    const { company, error, isOwner } = await getCompanyForCurrentUser(supabase);
 
     if (error || !company) {
       return NextResponse.json({ error: error || "Unable to delete gallery image." }, { status: error === "Not authenticated." ? 401 : 400 });
+    }
+    if (!isOwner) {
+      return NextResponse.json({ error: "Only the company owner can change the public profile." }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

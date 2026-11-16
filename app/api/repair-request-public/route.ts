@@ -4,6 +4,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
 import { reportSecurityEvent } from "../../../lib/securityAlerts";
+import { getReportDeliveryState } from "../../../lib/reportDelivery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -325,16 +326,18 @@ export async function GET(req: Request) {
     // Access gate: this endpoint returns every finding (with photos) plus
     // property details, so it must NOT be reachable by enumerating sequential
     // inspection ids. Allow only:
-    //   (1) the signed-in inspector/company that owns the inspection,
+    //   (1) the signed-in inspector/company that owns the inspection (staff),
     //   (2) a caller presenting the inspection's unguessable share token, or
-    //   (3) a caller whose ?email= matches a contact on THIS inspection
-    //       (the realtor/client model the portals already use).
+    //   (3) a SIGNED-IN user (realtor portal / client account) whose own email
+    //       is a contact/agent on THIS inspection. The ?email= query param alone
+    //       no longer grants access: realtor emails are public, so it let anyone
+    //       pull a listing agent's reports by stepping through ids.
+    // Non-staff callers additionally only see a DELIVERABLE report (published
+    // + paid/signed or delivered anyway) and never unapproved draft findings.
     const shareToken = url.searchParams.get("token");
-    const callerEmail = String(url.searchParams.get("email") || "")
-      .trim()
-      .toLowerCase();
 
     let accessGranted = false;
+    let isStaff = false;
 
     if (
       shareToken &&
@@ -343,42 +346,57 @@ export async function GET(req: Request) {
       accessGranted = true;
     }
 
-    if (!accessGranted) {
-      try {
-        const server = await createSupabaseServerClient();
-        const {
-          data: { user },
-        } = await server.auth.getUser();
+    let sessionEmail = "";
+    try {
+      const server = await createSupabaseServerClient();
+      const {
+        data: { user },
+      } = await server.auth.getUser();
 
-        if (user) {
-          if (String((inspection as any).inspector_id || "") === user.id) {
-            accessGranted = true;
-          } else if ((inspection as any).company_id) {
-            const { data: membership } = await admin
-              .from("company_users")
-              .select("company_id")
-              .eq("user_id", user.id)
-              .eq("company_id", (inspection as any).company_id)
-              .maybeSingle();
+      if (user) {
+        sessionEmail = String(user.email || "").trim().toLowerCase();
+        if (String((inspection as any).inspector_id || "") === user.id) {
+          isStaff = true;
+        } else if ((inspection as any).company_id) {
+          const { data: membership } = await admin
+            .from("company_users")
+            .select("company_id")
+            .eq("user_id", user.id)
+            .eq("company_id", (inspection as any).company_id)
+            .maybeSingle();
 
-            if (membership) accessGranted = true;
-          }
+          if (membership) isStaff = true;
         }
-      } catch {
-        // fall through to email match
       }
+    } catch {
+      // not signed in — token is the only remaining way in
     }
+    if (isStaff) accessGranted = true;
 
-    if (!accessGranted && callerEmail) {
-      const { data: contactMatch } = await admin
-        .from("inspection_contacts")
-        .select("id")
-        .eq("inspection_id", (inspection as any).id)
-        .ilike("email", callerEmail)
-        .limit(1)
-        .maybeSingle();
+    if (!accessGranted && sessionEmail) {
+      const agentEmails = [
+        (inspection as any).realtor_email,
+        (inspection as any).agent_email,
+        (inspection as any).buyer_agent_email,
+        (inspection as any).buyers_agent_email,
+        (inspection as any).transaction_coordinator_email,
+        (inspection as any).client_email,
+      ]
+        .map((v) => String(v || "").trim().toLowerCase())
+        .filter(Boolean);
+      if (agentEmails.includes(sessionEmail)) {
+        accessGranted = true;
+      } else {
+        const { data: contactMatch } = await admin
+          .from("inspection_contacts")
+          .select("id")
+          .eq("inspection_id", (inspection as any).id)
+          .ilike("email", sessionEmail)
+          .limit(1)
+          .maybeSingle();
 
-      if (contactMatch) accessGranted = true;
+        if (contactMatch) accessGranted = true;
+      }
     }
 
     if (!accessGranted) {
@@ -393,11 +411,26 @@ export async function GET(req: Request) {
       );
     }
 
+    if (!isStaff) {
+      const delivery = await getReportDeliveryState(admin, inspection as any);
+      if (!delivery.deliverable) {
+        return NextResponse.json(
+          { error: "This report isn't available yet." },
+          { status: 403 }
+        );
+      }
+    }
+
     let findingsQuery = admin
       .from("findings")
       .select("*")
       .eq("inspection_id", inspectionId)
       .order("created_at", { ascending: true });
+
+    // Unapproved drafts (Field Review) are never shown outside the builder.
+    if (!isStaff) {
+      findingsQuery = findingsQuery.not("needs_review", "is", true);
+    }
 
     if (selectedIdsFromUrl.length > 0) {
       findingsQuery = findingsQuery.in("id", selectedIdsFromUrl);
