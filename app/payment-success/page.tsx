@@ -296,7 +296,11 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
       message = "Stripe has not marked this payment complete yet.";
     }
   } catch (error: any) {
-    message = error?.message || "Payment verification failed.";
+    // Never show clients internal error text (e.g. missing env vars or Stripe
+    // session ids) — log it and show a friendly message.
+    console.error("Payment success verification failed:", error);
+    message =
+      "We couldn't confirm your payment yet. If you were charged, your client portal will update shortly.";
   }
 
   return (
@@ -326,30 +330,21 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
               Total Charged Online: {money(totalPaid)}
             </p>
 
-            {verifiedStripeAccount && (
-              <p className="break-all text-xs text-[var(--fl-faint)]">
-                Paid through inspector Stripe account: {verifiedStripeAccount}
-              </p>
-            )}
           </div>
         )}
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {(portalToken || inspectionId) && (
+          {/* Share-token link only — raw-id portal links don't open for a
+              client who isn't signed in. */}
+          {portalToken && (
             <Link
-              href={`/client-portal/${portalToken || inspectionId}`}
+              href={`/client-portal/${portalToken}`}
               className="w-full rounded-xl bg-teal-500 px-6 py-3 text-center font-semibold text-slate-950 hover:bg-teal-400 sm:w-auto"
             >
               Return to Client Portal
             </Link>
           )}
 
-          <Link
-            href="/dashboard"
-            className="w-full rounded-xl border border-[var(--fl-line)] px-6 py-3 text-center font-bold text-[var(--fl-text)] hover:bg-[var(--fl-raised)] sm:w-auto"
-          >
-            Dashboard
-          </Link>
         </div>
       </section>
     </main>

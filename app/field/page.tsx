@@ -3777,10 +3777,18 @@ function FieldPageContent() {
         thumbnail_path: photo.thumbnailPath || null,
       }));
 
-      const { error: photoError } = await supabase
-        .from("photos")
-        .insert(photoRows);
-      if (photoError) throw photoError;
+      let { error: photoError } = await supabase.from("photos").insert(photoRows);
+      if (photoError) {
+        // One retry for a flaky connection.
+        ({ error: photoError } = await supabase.from("photos").insert(photoRows));
+      }
+      if (photoError) {
+        // Roll back the finding we just created before reporting the failure:
+        // the caller re-queues the WHOLE finding offline, so leaving this row
+        // behind made the inspector see the defect twice after sync.
+        await supabase.from("findings").delete().eq("id", finding.id).eq("inspection_id", selectedReport);
+        throw photoError;
+      }
     }
 
     return finding;

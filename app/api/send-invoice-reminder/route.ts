@@ -5,6 +5,7 @@ import { createInspectionCheckoutSession } from "../../../lib/stripeCheckout";
 import { listUnsubscribeHeaders, isEmailUnsubscribed } from "../../../lib/emailUnsubscribe";
 import { getCompanyBrandingById, buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 import { getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../lib/apiAuth";
+import { isPaymentSettled } from "../../../lib/paymentSettled";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +58,8 @@ function getAmountPaid(inspection: any) {
 }
 
 function getBalanceDue(inspection: any) {
+  // Paid / waived / refunded: never send a "Balance Due" reminder.
+  if (isPaymentSettled(inspection)) return 0;
   if (
     inspection?.balance_due !== null &&
     inspection?.balance_due !== undefined

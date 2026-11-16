@@ -175,7 +175,8 @@ export default function PaymentInvoicePanel({
           payment_status: paymentStatus,
           invoice_amount: invoiceAmountNumber || null,
           amount_paid: amountPaidNumber || 0,
-          balance_due: balanceDue,
+          // Waived means nothing is owed (it used to keep the full balance).
+          balance_due: paymentStatus === "Waived" ? 0 : balanceDue,
           payment_method: paymentMethod || null,
           invoice_due_date: invoiceDueDate || null,
           payment_notes: paymentNotes || null,

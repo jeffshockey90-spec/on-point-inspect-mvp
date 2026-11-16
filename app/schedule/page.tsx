@@ -1,5 +1,5 @@
 
-import { formatAppValue } from "../../lib/app-time";
+import { currentLocalDate, formatAppValue, formatClockTime } from "../../lib/app-time";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -77,6 +77,20 @@ function getStatus(row: InspectionRow) {
 function formatDate(value: string | null) {
   if (!value) return "Date not entered";
 
+  // A date-only value ("2026-11-20") is a calendar date, not an instant:
+  // new Date() reads it as UTC midnight, which then displayed as the PREVIOUS
+  // day in US time zones. Format it as the date it is.
+  const dateOnly = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnly) {
+    return new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]), 12)));
+  }
+
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
@@ -103,14 +117,11 @@ function formatTime(value: string) {
     const minutes = Number(minutesRaw.slice(0, 2));
 
     if (!Number.isNaN(hours) && !Number.isNaN(minutes)) {
-      const date = new Date();
-
-      date.setHours(hours, minutes, 0, 0);
-
-      return formatAppValue(date, {
-        hour: "numeric",
-        minute: "2-digit",
-      });
+      // A stored "HH:MM" is a wall-clock time — format it as-is. Building a Date
+      // and formatting it in a time zone shifted it 4–5 hours on the (UTC) server.
+      return formatClockTime(
+        `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
+      );
     }
   }
 
@@ -291,7 +302,9 @@ export default async function SchedulePage({
   const sortedRows = sortScheduleRows(scheduledRows);
 
   // Only show a forecast for inspections within Open-Meteo's ~16-day window.
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // "Today" in the app's time zone (UTC rolled over to tomorrow around 7–8pm
+  // Eastern, dropping today's jobs from the upcoming fallback).
+  const todayStr = currentLocalDate();
   const forecastLimitStr = new Date(Date.now() + 16 * 86400000)
     .toISOString()
     .slice(0, 10);

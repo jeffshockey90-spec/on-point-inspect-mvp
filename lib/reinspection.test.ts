@@ -506,3 +506,24 @@ describe("a re-inspection covers only what was re-checked", () => {
     expect(writes).toEqual([]);
   });
 });
+
+describe("re-inspection keeps units (multi-unit jobs)", () => {
+  it("maps each carried finding to the re-inspection's copy of its unit", () => {
+    const map = new Map<string, number | string>([["10", 110], ["11", 111]]);
+    const rows = buildReinspectionFindingRows(
+      [
+        { id: "a", title: "Roof leak", unit_id: 10 },
+        { id: "b", title: "Panel", unit_id: 11 },
+        { id: "c", title: "Common hall", unit_id: null },
+      ],
+      "child-1",
+      map,
+    );
+    expect(rows.map((r) => r.unit_id)).toEqual([110, 111, undefined]);
+  });
+
+  it("leaves unit_id off when the job has no units", () => {
+    const rows = buildReinspectionFindingRows([{ id: "a", title: "x" }], "child-1");
+    expect(rows[0]).not.toHaveProperty("unit_id");
+  });
+});
