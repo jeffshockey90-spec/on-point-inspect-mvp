@@ -61,6 +61,7 @@ import {
   makeTranslator,
 } from "../../../lib/translate";
 import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
+import { sectionsWithContent } from "../../../lib/report/sectionsWithContent";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -3093,7 +3094,7 @@ export default async function PublicSharePage({
               </summary>
 
               <div className="mt-5 space-y-6">
-                {activeSectionOrder.filter((section) => checklistBySection[section]).map(
+                {sectionsWithContent(activeSectionOrder, checklistBySection).map(
                   (section) => (
                     <div
                       key={section}
@@ -3151,7 +3152,7 @@ export default async function PublicSharePage({
               </summary>
 
               <div className="mt-6 space-y-6 border-t border-[var(--fl-line)] pt-6">
-                {activeSectionOrder.filter((section) => limitationsBySection[section]).map(
+                {sectionsWithContent(activeSectionOrder, limitationsBySection).map(
                   (section) => (
                     <details
                       key={section}

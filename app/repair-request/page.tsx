@@ -1209,7 +1209,15 @@ function RepairRequestContent() {
         <div className="mb-6 space-y-3 print:hidden">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <FastLinkButton
-              href={`/reports/${inspectionId}`}
+              href={
+                // Clients/realtors can't open the inspector's builder: send them
+                // to their own report / portal instead.
+                initialUrlParams.token
+                  ? `/share/${initialUrlParams.token}`
+                  : initialUrlParams.role.toLowerCase().includes("realtor")
+                    ? "/realtor-portal"
+                    : `/reports/${inspectionId}`
+              }
               loadingText="Opening Report..."
               className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-5 py-3 text-center font-bold text-[var(--fl-text)] transition hover:border-slate-300 hover:bg-[var(--fl-surface-2)] active:scale-[0.98]"
             >

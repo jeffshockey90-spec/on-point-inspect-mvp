@@ -6,6 +6,7 @@ import { learningEngine } from "../../../lib/ai/LearningEngine";
 import { getSessionUser } from "../../../lib/apiAuth";
 import { loadFlowWriter, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
 import { resolveDaikinFamilyBrand, BRAND_READING_RULE } from "../../../lib/ai/brandResolver";
+import { sanitizeSectionList } from "../../../lib/ai/identifyResult";
 
 export const runtime = "nodejs";
 
@@ -74,13 +75,14 @@ const VALID_SECTIONS = [
   "Attic, Insulation & Ventilation",
   "Doors, Windows & Interior",
   "Built-in Appliances",
+  "Fireplace",
   "Garage",
-  "General",
 ];
 
 // Identical to the shared canonical ladder — alias so the 6-severity list has
 // exactly one source of truth. (Sections intentionally kept as their own literal
-// above: this route validates/returns "General", which FLOW_SECTIONS omits.)
+// above. "General" was removed: it isn't a real report section, so items filed
+// there fell into the report's "Other" bucket.)
 const VALID_SEVERITIES = FLOW_SEVERITIES;
 
 function cleanText(value: any) {
@@ -415,36 +417,40 @@ function inferCategory(parsed: EquipmentAnalysis) {
   return "general";
 }
 
-function chooseSection(parsed: EquipmentAnalysis, category: string) {
+// `opts.valid` = the report's ACTIVE sections (custom ones included) when the
+// field tool sends them; `opts.current` = the section the inspector is in.
+function chooseSection(
+  parsed: EquipmentAnalysis,
+  category: string,
+  opts: { current?: string; valid?: string[] } = {},
+) {
+  const valid = opts.valid && opts.valid.length ? opts.valid : VALID_SECTIONS;
+  const pick = (section: string) => (valid.includes(section) ? section : "");
+
   const explicit = cleanText(parsed.section);
-  if (VALID_SECTIONS.includes(explicit)) return explicit;
+  if (explicit && valid.includes(explicit)) return explicit;
 
-  if (category === "water_heater" || category === "plumbing") return "Plumbing";
-  if (category === "electrical") return "Electrical";
-  if (category === "appliance") return "Built-in Appliances";
+  const text = [parsed.equipmentType, parsed.equipmentCategory, parsed.model, parsed.clientSummary]
+    .map((value) => cleanText(value).toLowerCase())
+    .join(" ");
 
-  if (category === "hvac") {
-    const text = [
-      parsed.equipmentType,
-      parsed.equipmentCategory,
-      parsed.model,
-      parsed.clientSummary,
-    ]
-      .map((value) => cleanText(value).toLowerCase())
-      .join(" ");
-
-    if (
-      text.includes("air conditioner") ||
-      text.includes("condenser") ||
-      text.includes("cooling")
-    ) {
-      return "Cooling";
-    }
-
-    return "Heating";
+  let mapped = "";
+  if (category === "water_heater" || category === "plumbing") mapped = pick("Plumbing");
+  else if (category === "electrical") mapped = pick("Electrical");
+  else if (category === "appliance") mapped = pick("Built-in Appliances");
+  else if (category === "hvac") {
+    mapped =
+      text.includes("air conditioner") || text.includes("condenser") || text.includes("cooling")
+        ? pick("Cooling")
+        : pick("Heating");
+  } else if (/fireplace|wood stove|pellet stove|insert/.test(text)) {
+    mapped = pick("Fireplace");
   }
+  if (mapped) return mapped;
 
-  return "General";
+  // Never the made-up "General": the inspector's current section, else the
+  // first available one.
+  return pick(cleanText(opts.current)) || valid[0] || "Exterior";
 }
 
 function getExpectedLife(category: string, equipmentType: string) {
@@ -1284,7 +1290,12 @@ function getRecallAwareness(manufacturer: string, model: string, serial: string)
   return `No live recall determination was made from image analysis. Verify ${manufacturer} model ${model} against current manufacturer and CPSC recall records. ${serialNote}`;
 }
 
-function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1, inspectorNote = "") {
+function enhanceAnalysis(
+  parsed: EquipmentAnalysis,
+  imageCount = 1,
+  inspectorNote = "",
+  sectionOpts: { current?: string; valid?: string[] } = {},
+) {
   const category = inferCategory(parsed);
   const normalizedManufacturer = normalizeManufacturer(parsed.manufacturer);
   const equipmentType =
@@ -1351,7 +1362,7 @@ function enhanceAnalysis(parsed: EquipmentAnalysis, imageCount = 1, inspectorNot
     (inspectorNote.trim() && modelCondition
       ? modelCondition
       : getAgeCondition(age, category, equipmentType));
-  const section = chooseSection(parsed, category);
+  const section = chooseSection(parsed, category, sectionOpts);
 
   const severity = chooseSeverity({
     parsed,
@@ -1625,6 +1636,13 @@ export async function POST(req: Request) {
     }
 
     const formData = await req.formData();
+    // The report's ACTIVE sections + current section, from the field tool.
+    let reportSections: string[] = [];
+    try {
+      reportSections = sanitizeSectionList(JSON.parse(String(formData.get("availableSections") || "[]")));
+    } catch {
+      reportSections = [];
+    }
 
     const imageInputFiles = [
       ...(formData.getAll("images") as File[]),
@@ -1862,7 +1880,7 @@ Return ONLY valid JSON in this exact format:
 }
 
 Section must be one of:
-Exterior, Roof, Basement, Foundation, Crawlspace & Structure, Heating, Cooling, Plumbing, Electrical, Attic, Insulation & Ventilation, Doors, Windows & Interior, Built-in Appliances, Garage, General.
+${(reportSections.length ? reportSections : VALID_SECTIONS).join(", ")}.
 
 Severity must be one of:
 Informational, Monitor, Maintenance, Recommended Repair, Safety Concern, Major Concern.
@@ -1927,7 +1945,10 @@ Rules:
       };
     }
 
-    const enhanced = parsed?.error ? parsed : enhanceAnalysis(parsed || {}, imageFiles.length, inspectorNote);
+    const enhanced = parsed?.error ? parsed : enhanceAnalysis(parsed || {}, imageFiles.length, inspectorNote, {
+          current: cleanText(formData.get("section")),
+          valid: reportSections,
+        });
 
     await logAIEvent({
       userId: attributedUserId,

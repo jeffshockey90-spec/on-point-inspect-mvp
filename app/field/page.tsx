@@ -2109,6 +2109,10 @@ function FieldPageContent() {
       formData.append("image", aiImages[0]);
       formData.append("inspectionId", selectedReport || "");
       formData.append("inspection_id", selectedReport || "");
+      // Current + report sections so the item is filed in a real section (never
+      // the old made-up "General"), custom sections included.
+      formData.append("section", section);
+      formData.append("availableSections", JSON.stringify(activeSections));
 
       if (note.trim()) {
         formData.append("note", note.trim());
@@ -3007,6 +3011,8 @@ function FieldPageContent() {
         cache: "no-store",
         body: JSON.stringify({
           currentSection: section,
+          // The report's own sections (custom ones included).
+          availableSections: activeSections,
           note: organizeNote.trim() || undefined,
           images,
         }),

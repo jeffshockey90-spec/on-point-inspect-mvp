@@ -4,6 +4,7 @@ import { classifyAIServiceError } from "../../../../lib/aiServiceError";
 import { getAIModel } from "../../../../lib/openai";
 import { getSessionUser, unauthorized } from "../../../../lib/apiAuth";
 import { loadFlowStyle } from "../../../../lib/ai/flowWriter";
+import { sanitizeSectionList } from "../../../../lib/ai/identifyResult";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,9 +58,15 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const images = Array.isArray(body.images) ? body.images.slice(0, 24) : [];
-    const currentSection = VALID_SECTIONS.includes(body.currentSection)
+    // The report's ACTIVE sections (custom ones like "Shed" included) when the
+    // field tool sends them; otherwise the built-in list. Without this every
+    // organized group in a custom section was filed under Exterior.
+    const reportSections = sanitizeSectionList(body.availableSections);
+    const validSections = reportSections.length ? reportSections : VALID_SECTIONS;
+    const defaultSection = validSections.includes("Exterior") ? "Exterior" : validSections[0] || "Exterior";
+    const currentSection = validSections.includes(body.currentSection)
       ? body.currentSection
-      : "Exterior";
+      : defaultSection;
     const note = clean(body.note).slice(0, 700);
 
     if (!images.length) {
@@ -148,7 +155,7 @@ Return ONLY JSON:
 }
 
 Valid sections:
-${VALID_SECTIONS.join(", ")}
+${validSections.join(", ")}
 
 Valid severities:
 ${VALID_SEVERITIES.join(", ")}${styleGuidance ? `\n\n${styleGuidance}` : ""}`,
@@ -203,7 +210,7 @@ Organize these photos into sensible inspection groups. Do not overstate image-on
             label: clean(group.label) || `Photo Group ${index + 1}`,
             photoIndexes: indexes,
             classification,
-            section: VALID_SECTIONS.includes(clean(group.section))
+            section: validSections.includes(clean(group.section))
               ? clean(group.section)
               : currentSection,
             severity: VALID_SEVERITIES.includes(clean(group.severity))
