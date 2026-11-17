@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { isPaymentComplete } from "../lib/reportDelivery";
+import { isPaymentComplete, agreementCompleteFrom } from "../lib/reportDelivery";
 import { formatMoney } from "../lib/locale";
 
 type InspectionPaymentStatus = {
@@ -41,6 +41,11 @@ export default function ReportDeliveryGuard({
   const [payment, setPayment] =
     useState<InspectionPaymentStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  // For the same agreement rule the client's gate uses (lib/reportDelivery).
+  const [agreementExtra, setAgreementExtra] = useState<{ signedOnFile: boolean; oneSigner: boolean }>({
+    signedOnFile: false,
+    oneSigner: false,
+  });
   const [override, setOverrideState] = useState(false);
   const [savingOverride, setSavingOverride] = useState(false);
   const [overrideMessage, setOverrideMessage] = useState("");
@@ -107,6 +112,16 @@ export default function ReportDeliveryGuard({
 
         if (error) throw error;
         setPayment(data || null);
+        // Separate, tolerant read so a missing column can't break the payment box.
+        const { data: extra } = await supabase
+          .from("inspections")
+          .select("agreement_status, agreement_one_signer")
+          .eq("id", inspectionId)
+          .maybeSingle();
+        setAgreementExtra({
+          signedOnFile: String((extra as any)?.agreement_status || "").toLowerCase() === "signed",
+          oneSigner: (extra as any)?.agreement_one_signer === true,
+        });
         setOverrideState((data as any)?.delivery_override === true);
       } catch (error) {
         console.error("Failed to load payment guard data:", error);
@@ -167,8 +182,17 @@ export default function ReportDeliveryGuard({
     payment?.payment_status || payment?.invoice_status || "Unpaid",
   );
 
-  const hasAgreementBlock =
-    !agreementWaived && unsignedRequiredContacts.length > 0;
+  // Same rule as the client's gate: includes "no client on file" (locked until
+  // an agreement is signed) and one-signature-covers-all.
+  const hasAgreementBlock = !agreementCompleteFrom({
+    waived: agreementWaived,
+    oneSigner: agreementExtra.oneSigner,
+    contacts,
+    signedOnFile: agreementExtra.signedOnFile,
+  });
+  const noClientOnFile = !contacts.some((contact) =>
+    ["client", "co-client"].includes(String(contact?.role || "").toLowerCase()),
+  );
   const hasPaymentBlock = !paymentComplete;
 
   if (loading) {
@@ -241,8 +265,9 @@ export default function ReportDeliveryGuard({
           </h3>
 
           <p className="mt-2 text-sm text-[var(--fl-muted)]">
-            {unsignedRequiredContacts.length} required client signature
-            {unsignedRequiredContacts.length === 1 ? "" : "s"} still pending.
+            {noClientOnFile
+              ? "No client is on file to sign the agreement, so the report stays locked. Add the client (agreement required), have them sign, or waive the agreement."
+              : `${unsignedRequiredContacts.length} required client signature${unsignedRequiredContacts.length === 1 ? "" : "s"} still pending.`}
           </p>
 
           <div className="mt-3 flex flex-wrap gap-2">
@@ -263,6 +288,13 @@ export default function ReportDeliveryGuard({
           <h3 className="font-semibold text-[var(--fl-warn-text)]">
             Payment Not Complete
           </h3>
+
+          {invoiceAmount <= 0 && (
+            <p className="mt-2 text-sm text-[var(--fl-muted)]">
+              No price is set on this job, so the report stays locked. Enter the price, or mark the
+              payment Waived / Not Required if there&apos;s nothing to collect.
+            </p>
+          )}
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-orange-700 bg-[var(--fl-surface-2)] p-3">

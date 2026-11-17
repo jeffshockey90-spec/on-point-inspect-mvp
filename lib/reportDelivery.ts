@@ -39,15 +39,26 @@ export function isPaymentComplete(row: Record<string, any> | null | undefined) {
       ? getNumber(row.balance_due)
       : Math.max(0, invoiceAmount - amountPaid);
 
-  if (status === "paid" || status === "waived") return true;
+  // A refund returns money already collected — it is not a new balance and
+  // must never re-lock a report the client already paid for.
+  const amountRefunded = getNumber(row.amount_refunded);
+  if ((amountRefunded > 0 || status.includes("refund")) && (amountPaid > 0 || Boolean(row.paid_at))) {
+    return true;
+  }
 
-  // A free/unpriced inspection has nothing to collect - treat it as complete
-  // instead of leaving the client permanently locked out (audit finding M6).
-  if (invoiceAmount <= 0 && storedBalance <= 0) return true;
+  // The inspector's explicit decisions: paid, waived, or payment not required
+  // (e.g. imported reports).
+  if (status === "paid" || status === "waived" || status === "not required") return true;
 
-  if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;
+  // A job with NO price used to count as paid ("nothing to collect"), so a
+  // report published before the price was entered opened for free. Now it
+  // stays locked until it's priced and paid, marked Waived / Not Required, or
+  // the inspector uses "Deliver anyway".
+  if (invoiceAmount <= 0) return false;
 
-  return storedBalance <= 0 && invoiceAmount > 0;
+  if (amountPaid >= invoiceAmount) return true;
+
+  return storedBalance <= 0;
 }
 
 export function isPublished(row: Record<string, any> | null | undefined) {
@@ -63,6 +74,38 @@ export function hasDeliveryOverride(row: Record<string, any> | null | undefined)
 
 // Required agreements are complete when the agreement is waived, or no contact
 // still needs to sign. Reads inspection_contacts via the provided admin client.
+/**
+ * Pure agreement rule (tested). Clients / co-clients are the only signers.
+ * - Waived -> complete.
+ * - Some marked "agreement required" -> they must sign (or any one, when
+ *   "one signature covers all clients" is on).
+ * - Clients on file but none marked required -> the inspector chose no
+ *   agreement for them (e.g. imported reports) -> complete.
+ * - NO client on file at all -> complete only with a signed agreement on file.
+ *   (This used to count as complete, so a job without a client contact opened
+ *   without anyone signing.)
+ */
+export function agreementCompleteFrom(input: {
+  waived: boolean;
+  oneSigner: boolean;
+  contacts: Array<{ role?: string | null; agreement_required?: boolean | null; agreement_signed?: boolean | null }>;
+  signedOnFile: boolean;
+}): boolean {
+  if (input.waived) return true;
+  const clients = (input.contacts || []).filter((contact) => {
+    const role = String(contact?.role || "").toLowerCase();
+    return role === "client" || role === "co-client";
+  });
+  const requiredSigners = clients.filter((contact) => Boolean(contact.agreement_required));
+
+  if (requiredSigners.length > 0) {
+    if (input.oneSigner) return requiredSigners.some((contact) => Boolean(contact.agreement_signed));
+    return requiredSigners.every((contact) => Boolean(contact.agreement_signed));
+  }
+  if (clients.length > 0) return true;
+  return input.signedOnFile;
+}
+
 export async function isAgreementComplete(
   admin: any,
   inspectionRow: Record<string, any>
@@ -74,22 +117,32 @@ export async function isAgreementComplete(
     .select("agreement_required, agreement_signed, role")
     .eq("inspection_id", inspectionRow.id);
 
-  // Only clients / co-clients can be required to sign — never realtors or other
-  // roles, even if agreement_required got set on them.
-  const requiredSigners = (data || []).filter((contact: any) => {
-    const role = String(contact.role || "").toLowerCase();
-    const isSigner = role === "client" || role === "co-client";
-    return isSigner && contact.agreement_required;
-  });
-
-  // "One signature covers all clients": when the inspector opts in (e.g. a couple
-  // on the same property), any ONE required client signing satisfies it for all.
-  if (inspectionRow?.agreement_one_signer === true && requiredSigners.length > 0) {
-    return requiredSigners.some((contact: any) => Boolean(contact.agreement_signed));
+  // Only needed when there's no client contact: was an agreement signed anyway
+  // (signing without a contact marks the inspection itself)?
+  let signedOnFile = String(inspectionRow?.agreement_status || "").toLowerCase() === "signed";
+  const hasClient = (data || []).some((contact: any) =>
+    ["client", "co-client"].includes(String(contact.role || "").toLowerCase()),
+  );
+  if (!hasClient && !signedOnFile) {
+    try {
+      const { data: signed } = await admin
+        .from("inspection_agreements")
+        .select("id")
+        .eq("inspection_id", inspectionRow.id)
+        .eq("status", "signed")
+        .limit(1);
+      signedOnFile = Array.isArray(signed) && signed.length > 0;
+    } catch {
+      signedOnFile = false;
+    }
   }
 
-  // Default: every required client must sign.
-  return requiredSigners.every((contact: any) => Boolean(contact.agreement_signed));
+  return agreementCompleteFrom({
+    waived: false,
+    oneSigner: inspectionRow?.agreement_one_signer === true,
+    contacts: data || [],
+    signedOnFile,
+  });
 }
 
 export type ReportDeliveryState = {
