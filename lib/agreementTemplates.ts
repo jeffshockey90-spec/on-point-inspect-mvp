@@ -2,6 +2,7 @@
 import { formatAppValue } from "./app-time";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeStateCode } from "./usStates";
+import { agreementCategoriesForInspection, pickAgreementTemplates } from "./agreementServiceMatch";
 
 // Any US state's 2-letter code, or "" when unknown. (This used to be limited to
 // MD/WV/PA and silently turned every other state — and blanks — into "MD".)
@@ -677,6 +678,25 @@ export async function getAgreementTemplatesForInspection({
   ].filter(Boolean);
   if (!ownerFilters.length) return [];
   const states = state ? [state, "GENERAL"] : ["GENERAL"];
+
+  // One agreement PER SERVICE on the job (Home, Radon, Mold, a custom main
+  // service like Pre-Listing, add-ons) — e.g. a confirmed "Home + Radon"
+  // booking used to get a single state default.
+  const categories = agreementCategoriesForInspection(inspection);
+  if (categories.length) {
+    const { data: active } = await supabase
+      .from("agreement_templates")
+      .select("*")
+      .or(ownerFilters.join(","))
+      .in("state", states)
+      .eq("is_active", true)
+      .order("display_order", { ascending: true })
+      .order("created_at", { ascending: false });
+    const picks = pickAgreementTemplates(active || [], categories, state);
+    if (picks.length) return picks;
+    // A walkthrough with no orientation agreement must not get a home one.
+    if (categories.includes("orientation")) return [];
+  }
 
   const { data } = await supabase
     .from("agreement_templates")
