@@ -63,6 +63,7 @@ import {
 import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
 import { sectionsWithContent } from "../../../lib/report/sectionsWithContent";
 import { getCachedSignedUrls } from "../../../lib/signedUrlCache";
+import { lockAudience, lockReason, lockedCopy } from "../../../lib/deliveryMessage";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1064,6 +1065,40 @@ export default async function PublicSharePage({
     const needsAgreement = gatedPublished && !deliveryState?.agreementComplete;
     const unpaidButPublished =
       gatedPublished && Boolean(deliveryState?.agreementComplete) && !deliveryState?.paymentComplete;
+    const lockAudienceValue = lockAudience((resolvedSearchParams as any)?.role);
+
+    // An AGENT opening a published-but-locked report gets an agent screen:
+    // it's waiting on the client — never "sign my agreement" / "pay".
+    if (gatedPublished && lockAudienceValue === "agent") {
+      const copy = lockedCopy(
+        lockReason({
+          published: true,
+          agreementComplete: Boolean(deliveryState?.agreementComplete),
+          paymentComplete: Boolean(deliveryState?.paymentComplete),
+        }),
+        "agent",
+      );
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center shadow-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-teal-400/50 bg-teal-500/15 text-2xl">
+              🔒
+            </div>
+            <h1 className="mt-5 text-2xl font-semibold text-[var(--fl-accent-text)]">{copy.title}</h1>
+            <p className="mt-3 leading-7 text-[var(--fl-muted)]">{copy.body}</p>
+            <Link
+              href="/realtor-portal"
+              className="mt-6 inline-flex w-full items-center justify-center rounded-xl border border-teal-500 px-5 py-3.5 font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
+            >
+              Go to my Realtor Portal
+            </Link>
+            <p className="mt-3 text-xs leading-5 text-[var(--fl-muted)]">
+              Questions? Contact the inspector.
+            </p>
+          </div>
+        </main>
+      );
+    }
 
     if (needsAgreement) {
       const signLink = `/client-agreement/${clientToken}`;
@@ -1077,9 +1112,9 @@ export default async function PublicSharePage({
               Your report is ready
             </h1>
             <p className="mt-3 leading-7 text-[var(--fl-muted)]">
-              Before we can release your report, your inspection agreement needs
-              to be signed. It unlocks for viewing and download as soon as the
-              agreement is signed.
+              {deliveryState?.paymentComplete
+                ? "Before we can release your report, your inspection agreement needs to be signed. It unlocks for viewing and download as soon as the agreement is signed."
+                : "Before we can release your report, your inspection agreement needs to be signed and payment received. Start by signing — you can pay from your client portal right after."}
             </p>
             <Link
               href={signLink}

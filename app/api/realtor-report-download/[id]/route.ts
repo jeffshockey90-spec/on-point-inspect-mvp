@@ -32,6 +32,7 @@ import { existsSync } from "fs";
 import { recompressPdfImages } from "../../../../lib/pdfRecompress";
 import { orderPhotos, photosHaveSortOrder } from "../../../../lib/photoOrder";
 import { signInternal } from "../../../../lib/internalSignature";
+import { lockAudience, lockReason, lockedCopy } from "../../../../lib/deliveryMessage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -2828,6 +2829,7 @@ export async function GET(req: Request, { params }: RouteProps) {
     }
 
     let allowed = allowedByShareToken;
+    let downloadAudience: "client" | "agent" = "client";
 
     if (!allowed) {
       allowed =
@@ -2844,6 +2846,7 @@ export async function GET(req: Request, { params }: RouteProps) {
         .maybeSingle();
 
       allowed = Boolean(contact && contact.portal_access !== false && roleLooksLikeRealtor(contact.role));
+      if (allowed) downloadAudience = "agent";
     }
 
     if (!allowed) {
@@ -2871,11 +2874,12 @@ export async function GET(req: Request, { params }: RouteProps) {
       if (!sampleRow) {
         const delivery = await getReportDeliveryState(admin, inspection);
         if (!delivery.deliverable) {
-          return reportErrorResponse(
-            req,
-            "This report isn't available for download yet.",
-            403,
-          );
+          // Say WHAT it's waiting on, and to an agent that it's the client's
+          // step (never "pay" / "sign" to the agent).
+          const audience =
+            downloadAudience === "agent" ? "agent" : lockAudience(new URL(req.url).searchParams.get("role"));
+          const copy = lockedCopy(lockReason(delivery), audience);
+          return reportErrorResponse(req, `${copy.title}. ${copy.body}`, 403);
         }
       }
     }

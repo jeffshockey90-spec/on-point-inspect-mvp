@@ -6,7 +6,8 @@ import PdfExportButton from "../../../components/PdfExportButton";
 import PortalAutoTranslate from "../../../components/PortalAutoTranslate";
 import { getInspectionShareToken } from "../../../lib/shareToken";
 import { getCompanyBrandingById } from "../../../lib/companyBranding";
-import { isPaymentComplete, hasDeliveryOverride, isPublished } from "../../../lib/reportDelivery";
+import { isPaymentComplete, hasDeliveryOverride, isPublished, isAgreementComplete } from "../../../lib/reportDelivery";
+import { lockAudience, lockReason, lockedCopy } from "../../../lib/deliveryMessage";
 import {
   hasRadonService,
   hasMoldService,
@@ -16,6 +17,7 @@ import { classifyRadon, radonSummary } from "../../../lib/environmental/radon";
 
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ role?: string; lang?: string }>;
 };
 
 const supabase = createClient(
@@ -193,8 +195,9 @@ function resultClass(result: string) {
   return "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]";
 }
 
-export default async function PublicEnvironmentalSharePage({ params }: PageProps) {
+export default async function PublicEnvironmentalSharePage({ params, searchParams }: PageProps) {
   const { id: shareLookup } = await params;
+  const resolvedEnvSearchParams = (searchParams ? await searchParams : {}) || {};
 
   const { data: inspectionByToken, error: tokenLookupError } = await supabase
     .from("inspections")
@@ -266,9 +269,11 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
     ).replace(/[^0-9.-]/g, ""),
   );
   const envPriced = Number.isFinite(envPrice) && envPrice > 0;
+  // The agreement must be signed too (it used to check payment only).
+  const envAgreementComplete = await isAgreementComplete(supabase, inspection as any);
+  const envPaymentComplete = isPaymentComplete(inspection) && (envPriced || isPublished(inspection));
   let allowEnvironmentalView =
-    hasDeliveryOverride(inspection) ||
-    (isPaymentComplete(inspection) && (envPriced || isPublished(inspection)));
+    hasDeliveryOverride(inspection) || (envPaymentComplete && envAgreementComplete);
 
   if (!allowEnvironmentalView) {
     const { createClient: createServerSupabase } = await import(
@@ -295,22 +300,27 @@ export default async function PublicEnvironmentalSharePage({ params }: PageProps
       ? `/client-portal/${inspection.public_share_token}`
       : `/client-portal/${id}`;
 
+    const envAudience = lockAudience((resolvedEnvSearchParams as any)?.role);
+    const envCopy = lockedCopy(
+      lockReason({
+        published: true,
+        agreementComplete: envAgreementComplete,
+        paymentComplete: envPaymentComplete,
+      }),
+      envAudience,
+      "results",
+    );
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
         <PortalAutoTranslate inspectionId={inspection.id} />
         <div className="max-w-md rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center">
-          <h1 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
-            Results available after payment
-          </h1>
-          <p className="mt-3 leading-7 text-[var(--fl-muted)]">
-            Your radon/mold lab results will be viewable here once payment is
-            complete. You can pay from your client portal.
-          </p>
+          <h1 className="text-2xl font-semibold text-[var(--fl-accent-text)]">{envCopy.title}</h1>
+          <p className="mt-3 leading-7 text-[var(--fl-muted)]">{envCopy.body}</p>
           <Link
-            href={portalLink}
+            href={envAudience === "agent" ? "/realtor-portal" : portalLink}
             className="mt-6 inline-block rounded-xl bg-teal-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-teal-400"
           >
-            Go to Client Portal
+            {envAudience === "agent" ? "Go to my Realtor Portal" : "Go to Client Portal"}
           </Link>
         </div>
       </main>
