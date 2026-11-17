@@ -58,6 +58,8 @@ import Secure24ReferralSettings from "../../components/Secure24ReferralSettings"
 import InsuranceReferralSettings from "../../components/InsuranceReferralSettings";
 import ReferralAlertToggle from "../../components/ReferralAlertToggle";
 import OfficeAddressField from "../../components/OfficeAddressField";
+import StateLicensesEditor from "../../components/StateLicensesEditor";
+import { sanitizeStateLicenses } from "../../lib/stateLicenses";
 import { geocodeAddress } from "../../lib/geocode";
 
 export const dynamic = "force-dynamic";
@@ -473,6 +475,16 @@ export default async function SettingsPage({
 
     if (officeAddress && officeAddressChanged) {
       officeLocation = await geocodeAddress(officeAddress);
+    }
+
+    // Per-state licenses: saved on their own so a not-yet-run
+    // supabase/state-licenses.sql can't block the rest of the settings save.
+    if (formData.has("state_licenses")) {
+      const { error: licensesError } = await supabase
+        .from("companies")
+        .update({ state_licenses: sanitizeStateLicenses(String(formData.get("state_licenses") || "{}")) })
+        .eq("id", company.id);
+      if (licensesError) console.warn("State licenses not saved (run supabase/state-licenses.sql):", licensesError.message);
     }
 
     const { error: updateError } = await supabase
@@ -1153,6 +1165,17 @@ export default async function SettingsPage({
                   className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
                 />
               </label>
+
+              <div className="block min-w-0 md:col-span-2">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
+                  License / Certification by State
+                </p>
+                <p className="mb-2 text-xs text-[var(--fl-faint)]">
+                  Each state&apos;s agreement shows its own number (e.g. MD license, WV certification, PA
+                  association membership). States not listed use License Info above.
+                </p>
+                <StateLicensesEditor initial={sanitizeStateLicenses((company as any).state_licenses)} />
+              </div>
 
               <label className="block min-w-0 md:col-span-2">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">
