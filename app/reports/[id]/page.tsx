@@ -96,6 +96,8 @@ import LimitationEquipmentReview from "../../../components/LimitationEquipmentRe
 import SaveAgentButton from "../../../components/SaveAgentButton";
 import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
 import { isOrientationJob as isOrientation } from "../../../lib/orientation";
+import { redraftEquipmentNotes } from "../../../lib/equipmentNoteRedraft";
+import { relatedDefectFindings, DEFICIENCY_STATUS } from "../../../lib/equipmentFindings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1450,6 +1452,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     const condition = String(formData.get("condition") || "").trim();
     const inspectorNote = String(formData.get("inspector_note") || "").trim();
     const maintenanceNote = String(formData.get("maintenance_note") || "").trim();
+    // Only touch the status when the form actually sends it — the note form
+    // doesn't, and saving a note used to wipe the equipment's status.
+    const statusSent = formData.has("equipment_status");
     const equipmentStatus = String(formData.get("equipment_status") || "").trim();
 
     const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
@@ -1465,21 +1470,26 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       redirect("/reports");
     }
 
-    const { error } = await supabase
+    // Write as the server AFTER the access check above. Equipment rows saved by
+    // the scanner's background sync don't always match the per-user row
+    // policy, and an update blocked that way changes 0 rows WITHOUT an error —
+    // so the note looked saved but wasn't.
+    const writer = createSupabaseStorageClient() || supabase;
+    const { data: updatedRows, error } = await writer
       .from("equipment_inventory")
       .update({
         condition,
         inspector_note: inspectorNote,
         maintenance_note: maintenanceNote,
         // `|| undefined` dropped the key on JSON serialization, so a cleared
-        // status never saved. Use null so clearing it actually persists (the
-        // sibling note fields already persist their empty strings).
-        equipment_status: equipmentStatus || null,
+        // status never saved. Use null so clearing it actually persists.
+        ...(statusSent ? { equipment_status: equipmentStatus || null } : {}),
       })
       .eq("id", equipmentId)
-      .eq("inspection_id", inspectionId);
+      .eq("inspection_id", inspectionId)
+      .select("id");
 
-    if (error) {
+    if (error || !updatedRows || updatedRows.length === 0) {
       console.error("Update equipment inventory error:", error);
       redirect(`/reports/${inspectionId}?equipment_update_error=1`);
     }
@@ -1490,6 +1500,80 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     redirect(`/reports/${inspectionId}#equipment-inventory`);
   }
 
+
+  // "Redraft with AI" on an equipment record: rewrites condition + notes from
+  // the equipment data, any defects already written up for it, the current
+  // notes and an optional instruction, then saves them.
+  async function redraftEquipmentNote(formData: FormData) {
+    "use server";
+
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+
+    const inspectionId = String(formData.get("inspection_id") || "");
+    const equipmentId = String(formData.get("equipment_id") || "");
+    const instruction = String(formData.get("ai_instruction") || "").trim();
+
+    const accessFilter = await resolveInspectionAccessFilter(supabase, user.id);
+    const { data: ownedInspection } = await supabase
+      .from("inspections")
+      .select("id")
+      .eq("id", inspectionId)
+      .eq(accessFilter.column, accessFilter.value)
+      .single();
+    if (!ownedInspection) redirect("/reports");
+
+    const admin = createSupabaseStorageClient();
+    if (!admin || !process.env.OPENAI_API_KEY) {
+      redirect(`/reports/${inspectionId}?equipment_update_error=1#equipment-inventory`);
+    }
+
+    const [{ data: item }, { data: reportFindings }] = await Promise.all([
+      admin.from("equipment_inventory").select("*").eq("id", equipmentId).eq("inspection_id", inspectionId).maybeSingle(),
+      admin.from("findings").select("title, observation, severity, needs_review").eq("inspection_id", inspectionId),
+    ]);
+    if (!item) redirect(`/reports/${inspectionId}?equipment_update_error=1#equipment-inventory`);
+
+    // Use the inspector's unsaved edits from the form as the starting point.
+    const current = {
+      ...item,
+      condition: String(formData.get("condition") ?? item.condition ?? ""),
+      inspector_note: String(formData.get("inspector_note") ?? item.inspector_note ?? ""),
+      maintenance_note: String(formData.get("maintenance_note") ?? item.maintenance_note ?? ""),
+    };
+    const related = relatedDefectFindings(String(item.equipment_type || ""), reportFindings || []);
+
+    let notes;
+    try {
+      notes = await redraftEquipmentNotes({ item: current, related, instruction });
+    } catch (redraftError) {
+      console.error("Equipment redraft error:", redraftError);
+      redirect(`/reports/${inspectionId}?equipment_update_error=1#equipment-inventory`);
+    }
+
+    const { error } = await admin
+      .from("equipment_inventory")
+      .update({
+        condition: notes.condition,
+        inspector_note: notes.inspector_note,
+        maintenance_note: notes.maintenance_note,
+        ...(related.length ? { equipment_status: DEFICIENCY_STATUS } : {}),
+      })
+      .eq("id", equipmentId)
+      .eq("inspection_id", inspectionId);
+    if (error) {
+      console.error("Equipment redraft save error:", error);
+      redirect(`/reports/${inspectionId}?equipment_update_error=1#equipment-inventory`);
+    }
+
+    revalidatePath(`/reports/${inspectionId}`);
+    revalidatePath(`/reports/${inspectionId}/print`);
+    revalidatePath(`/share/${inspectionId}`);
+    redirect(`/reports/${inspectionId}#equipment-inventory`);
+  }
 
   async function publishReport(formData: FormData) {
     "use server";
@@ -3535,6 +3619,27 @@ Service-life information is a general industry estimate only. Actual service lif
                             >
                               Save Equipment Note
                             </PendingSubmitButton>
+
+                            <div className="rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] p-3">
+                              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--fl-muted)]">
+                                Redraft with AI (optional instruction)
+                              </label>
+                              <input
+                                name="ai_instruction"
+                                placeholder='e.g. "mention the missing TPR pipe" or "shorter"'
+                                className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-2 text-sm text-[var(--fl-text)] outline-none focus:border-cyan-400"
+                              />
+                              <button
+                                type="submit"
+                                formAction={redraftEquipmentNote}
+                                className="mt-2 w-full rounded-xl border border-cyan-400/60 px-4 py-2 text-sm font-semibold text-[var(--fl-info-text)] hover:bg-cyan-500/10"
+                              >
+                                ✨ Redraft with AI
+                              </button>
+                              <p className="mt-1 text-[11px] text-[var(--fl-faint)]">
+                                Rewrites condition and notes from the equipment data, your notes and any defects already written up for it, then saves.
+                              </p>
+                            </div>
                           </form>
                         </details>
 
