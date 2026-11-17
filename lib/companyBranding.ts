@@ -1,3 +1,4 @@
+import { sanitizeStateLicenses, type StateLicenses } from "./stateLicenses";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 function createAdminClient() {
@@ -19,6 +20,8 @@ export type CompanyBranding = {
   phone: string | null;
   email: string | null;
   licenseInfo: string | null;
+  /** Per-state license / certification numbers, e.g. { MD: "...", WV: "..." }. */
+  stateLicenses: StateLicenses;
   website: string | null;
   brandColor: string;
   tagline: string;
@@ -30,6 +33,7 @@ const DEFAULT_BRANDING: CompanyBranding = {
   phone: null,
   email: null,
   licenseInfo: null,
+  stateLicenses: {},
   website: null,
   brandColor: "#14b8a6",
   tagline: "Protecting Your Investment. One Inspection at a Time.",
@@ -50,6 +54,7 @@ export function normalizeCompanyBranding(company: any): CompanyBranding {
     phone: company.phone || null,
     email: company.email || null,
     licenseInfo: company.license_info || null,
+    stateLicenses: sanitizeStateLicenses(company.state_licenses),
     website: company.website || null,
     brandColor: company.brand_color || DEFAULT_BRANDING.brandColor,
     tagline: DEFAULT_BRANDING.tagline,
@@ -119,7 +124,9 @@ export async function getCompanyBrandingById(
   const admin = createAdminClient();
   const { data } = await admin
     .from("companies")
-    .select("name,display_name,logo_url,phone,email,license_info,website,brand_color")
+    // select("*") so the optional state_licenses column (supabase/state-licenses.sql)
+    // never breaks branding before it's added.
+    .select("*")
     .eq("id", companyId)
     .maybeSingle();
 

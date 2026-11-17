@@ -3,6 +3,7 @@ import { formatAppValue } from "./app-time";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeStateCode } from "./usStates";
 import { agreementCategoriesForInspection, pickAgreementTemplates } from "./agreementServiceMatch";
+import { licenseForState, type StateLicenses } from "./stateLicenses";
 
 // Any US state's 2-letter code, or "" when unknown. (This used to be limited to
 // MD/WV/PA and silently turned every other state — and blanks — into "MD".)
@@ -503,6 +504,7 @@ export function mergeMultipleAgreementBodies({
   inspectorName,
   ownerName,
   licenseInfo,
+  stateLicenses,
   inspectionDate,
   inspectionTime,
   signedDate,
@@ -518,6 +520,8 @@ export function mergeMultipleAgreementBodies({
   inspectorName?: string | null;
   ownerName?: string | null;
   licenseInfo?: string | null;
+  /** Per-state license numbers; each agreement uses its own state's. */
+  stateLicenses?: StateLicenses | null;
   inspectionDate?: string | null;
   inspectionTime?: string | null;
   signedDate?: string | null;
@@ -534,7 +538,7 @@ export function mergeMultipleAgreementBodies({
       fee,
       inspectorName,
       ownerName,
-      licenseInfo,
+      licenseInfo: licenseForState(licenseInfo, stateLicenses, state),
       inspectionDate,
       inspectionTime,
       signedDate,
@@ -557,7 +561,8 @@ export function mergeMultipleAgreementBodies({
         fee: feeForServiceType(template?.service_type, serviceFees, fee),
         inspectorName,
         ownerName,
-        licenseInfo,
+        // This agreement's own state (MD / WV / PA ...), else the job's state.
+        licenseInfo: licenseForState(licenseInfo, stateLicenses, template?.state, state),
         inspectionDate,
         inspectionTime,
         signedDate,
