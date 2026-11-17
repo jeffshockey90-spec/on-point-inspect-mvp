@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { extractVideoPosterJpeg } from "../../../../lib/videoPoster";
 import { isCronAuthorized } from "../../../../lib/cronAuth";
+import { verifyInternal } from "../../../../lib/internalSignature";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +24,14 @@ function authorized(req: Request) {
 }
 
 export async function GET(req: Request) {
-  if (!authorized(req)) {
+  const params = new URL(req.url).searchParams;
+  // One-inspection mode: the report PDF calls this (signed, short-lived) right
+  // before building, so a video synced today gets its poster in today's PDF
+  // instead of waiting for the nightly run.
+  const inspectionId = String(params.get("inspection") || "").trim();
+  const forInspection =
+    Boolean(inspectionId) && verifyInternal("video-posters", inspectionId, params.get("exp"), params.get("sig"));
+  if (!forInspection && !authorized(req)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -37,17 +45,23 @@ export async function GET(req: Request) {
   // next run picks up any remainder.
   const limit = Math.min(
     40,
-    Math.max(1, Number(new URL(req.url).searchParams.get("limit")) || 20),
+    Math.max(1, Number(params.get("limit")) || 20),
   );
 
   try {
-    const { data: vids, error } = await admin
+    let query = admin
       .from("photos")
       .select("id, file_path, thumbnail_path, thumbnail_url")
       .eq("is_video", true)
       .is("thumbnail_path", null)
       .is("thumbnail_url", null)
-      .not("file_path", "is", null)
+      .not("file_path", "is", null);
+    if (forInspection) query = query.eq("inspection_id", inspectionId);
+    // Newest first: with no order, the same old videos that ffmpeg can't read
+    // came back first every night and could use up the whole batch, so new
+    // videos never got a poster.
+    const { data: vids, error } = await query
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) throw error;

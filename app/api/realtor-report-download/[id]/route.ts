@@ -31,6 +31,7 @@ import sharp from "sharp";
 import { existsSync } from "fs";
 import { recompressPdfImages } from "../../../../lib/pdfRecompress";
 import { orderPhotos, photosHaveSortOrder } from "../../../../lib/photoOrder";
+import { signInternal } from "../../../../lib/internalSignature";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -2877,6 +2878,43 @@ export async function GET(req: Request, { params }: RouteProps) {
           );
         }
       }
+    }
+
+    // -------- Video posters --------
+    // A video saved through background/offline sync has no poster until the
+    // nightly job runs, so a same-day PDF showed blank video boxes. Before
+    // building (and before the cache signature, so a cached poster-less PDF
+    // is rebuilt), ask the poster job — which ships ffmpeg — to make posters
+    // for THIS inspection's videos. Best-effort with a time cap; any failure
+    // just leaves the placeholder.
+    try {
+      const { count: missingPosters } = await admin
+        .from("photos")
+        .select("id", { count: "exact", head: true })
+        .eq("inspection_id", inspectionId)
+        .eq("is_video", true)
+        .is("thumbnail_path", null)
+        .is("thumbnail_url", null)
+        // Only recent videos trigger the wait: an old file ffmpeg can't read
+        // must not slow every download of this report forever (the nightly job
+        // still retries those).
+        .gte("created_at", new Date(Date.now() - 2 * 86400000).toISOString());
+      if (missingPosters) {
+        const { exp, sig } = signInternal("video-posters", String(inspectionId), 300);
+        const qs = new URLSearchParams({ inspection: String(inspectionId), exp: String(exp), sig, limit: "12" });
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 45_000);
+        try {
+          await fetch(`${new URL(req.url).origin}/api/cron/backfill-video-posters?${qs.toString()}`, {
+            cache: "no-store",
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+    } catch (posterError) {
+      console.warn("Video poster pre-pass skipped:", posterError);
     }
 
     // -------- PDF cache (fast repeat downloads, self-invalidating) --------
