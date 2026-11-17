@@ -7,12 +7,15 @@
 
 
 export type EquipmentNotes = { condition: string; inspector_note: string; maintenance_note: string };
+export type RedraftResult = EquipmentNotes & { relatedTitles: string[] };
+type Candidate = { title: string; severity: string; observation?: string; section?: string };
 
 const clean = (v: unknown, max = 600) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 
 export function buildEquipmentRedraftPrompt(input: {
   item: Record<string, any>;
   related: Array<{ title: string; severity: string }>;
+  candidates?: Candidate[];
   instruction?: string;
 }): string {
   const i = input.item || {};
@@ -31,14 +34,27 @@ export function buildEquipmentRedraftPrompt(input: {
     .join("\n");
   const related = input.related.length
     ? input.related.map((r) => `- ${clean(r.title, 160)} (${clean(r.severity, 40)})`).join("\n")
+    : "None found by name";
+  const candidates = (input.candidates || []).length
+    ? (input.candidates || [])
+        .map(
+          (c) =>
+            `- "${clean(c.title, 160)}" (${clean(c.severity, 40)}${c.section ? `, ${clean(c.section, 60)}` : ""})${
+              c.observation ? `: ${clean(c.observation, 200)}` : ""
+            }`,
+        )
+        .join("\n")
     : "None";
   return `Rewrite the report notes for this piece of equipment.
 
 Equipment data:
 ${facts || "(no data plate details)"}
 
-Defects already written up in this report for this equipment:
+Defects already written up in this report that name this equipment:
 ${related}
+
+Every other defect on this report (decide which, if any, are about THIS equipment — e.g. a missing TPR discharge pipe or a rusted tank belongs to the water heater; a leaking sink trap does not):
+${candidates}
 
 Current notes (the inspector's — keep their facts):
 Condition: ${clean(i.condition) || "(none)"}
@@ -48,14 +64,15 @@ Maintenance note: ${clean(i.maintenance_note) || "(none)"}
 Inspector instruction: ${clean(input.instruction, 400) || "Improve the wording; keep it short, clear and client-friendly."}
 
 Rules:
-- If defects are listed above, the condition must say deficiencies were noted and point the reader to the report findings — never "no deficiency noted".
+- List in "related_titles" the exact titles (copied from above) of every defect that is about THIS equipment, including all of the ones that name it. Empty if none.
+- If any defects are related, the condition must say deficiencies were noted and point the reader to the report findings — never "no deficiency noted". If none are related, don't claim deficiencies.
 - Never say the equipment WILL fail and never give a deadline or years remaining. Talk about typical service life and that actual life varies with maintenance and use.
 - Don't invent defects, measurements or brands. Keep each field to 1-3 sentences.
 
-Return ONLY JSON: {"condition":"","inspector_note":"","maintenance_note":""}`;
+Return ONLY JSON: {"condition":"","inspector_note":"","maintenance_note":"","related_titles":[]}`;
 }
 
-export function parseEquipmentRedraft(raw: string, fallback: EquipmentNotes): EquipmentNotes {
+export function parseEquipmentRedraft(raw: string, fallback: EquipmentNotes): RedraftResult {
   let parsed: any = {};
   try {
     parsed = JSON.parse(raw || "{}");
@@ -66,14 +83,36 @@ export function parseEquipmentRedraft(raw: string, fallback: EquipmentNotes): Eq
     condition: clean(parsed.condition, 400) || fallback.condition,
     inspector_note: clean(parsed.inspector_note, 1200) || fallback.inspector_note,
     maintenance_note: clean(parsed.maintenance_note, 1200) || fallback.maintenance_note,
+    relatedTitles: Array.isArray(parsed.related_titles)
+      ? parsed.related_titles.map((t: unknown) => clean(t, 200)).filter(Boolean)
+      : [],
   };
+}
+
+/**
+ * The equipment's related defects after a redraft: the ones that name it, plus
+ * the ones the AI matched — but only titles that really exist on the report.
+ */
+export function resolveRelatedTitles(
+  named: Array<{ title: string }>,
+  candidates: Array<{ title: string }>,
+  aiTitles: string[],
+): string[] {
+  const exists = new Map(candidates.map((c) => [c.title.trim().toLowerCase(), c.title.trim()]));
+  const out = new Set(named.map((n) => n.title.trim()).filter(Boolean));
+  for (const t of aiTitles) {
+    const hit = exists.get(String(t || "").trim().toLowerCase());
+    if (hit) out.add(hit);
+  }
+  return Array.from(out);
 }
 
 export async function redraftEquipmentNotes(input: {
   item: Record<string, any>;
   related: Array<{ title: string; severity: string }>;
+  candidates?: Candidate[];
   instruction?: string;
-}): Promise<EquipmentNotes> {
+}): Promise<RedraftResult> {
   const fallback: EquipmentNotes = {
     condition: clean(input.item?.condition, 400),
     inspector_note: clean(input.item?.inspector_note, 1200),
