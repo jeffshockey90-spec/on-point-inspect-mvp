@@ -83,8 +83,10 @@ Recommendation: ${recommendation || "(none)"}
 
 Instruction: ${instruction}
 
+The title is part of the finding: keep it a short (2-8 word) headline that matches the revised text. If the instruction changes what the finding is about or how it is described, update the title to match; otherwise keep it as is.
+
 Return ONLY valid JSON in this exact shape (keep any field that should not change the same):
-{"observation":"","implication":"","recommendation":""}`;
+{"title":"","observation":"","implication":"","recommendation":""}`;
 
     const response = await openai.chat.completions.create({
       model: getAIModel(),
@@ -104,6 +106,9 @@ Return ONLY valid JSON in this exact shape (keep any field that should not chang
     }
 
     return NextResponse.json({
+      // The title used to be left as-is, so "Tell it how" fixed the text but
+      // not the headline.
+      title: clean(parsed.title) || title,
       observation: clean(parsed.observation) || observation,
       implication: clean(parsed.implication) || implication,
       recommendation: clean(parsed.recommendation) || recommendation,

@@ -494,6 +494,7 @@ export default function CaptureConfirmCard({
                 }}
                 onApply={(f) =>
                   update({
+                    ...(f.title ? { title: f.title } : {}),
                     observation: f.observation,
                     implication: f.implication,
                     recommendation: f.recommendation,
