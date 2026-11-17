@@ -3,7 +3,8 @@ import { logAIEvent } from "../../../lib/logging";
 import { getAIModel, getAIVersion } from "../../../lib/openai";
 import { inspectionBrain } from "../../../lib/ai";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
-import { getSessionUser } from "../../../lib/apiAuth";
+import { getSessionUser, getAdminClient, authorizeInspection } from "../../../lib/apiAuth";
+import { relatedDefectFindings, deficiencyConditionText, DEFICIENCY_STATUS } from "../../../lib/equipmentFindings";
 import { loadFlowWriter, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
 import { resolveDaikinFamilyBrand, BRAND_READING_RULE } from "../../../lib/ai/brandResolver";
 import { sanitizeSectionList } from "../../../lib/ai/identifyResult";
@@ -1949,6 +1950,39 @@ Rules:
           current: cleanText(formData.get("section")),
           valid: reportSections,
         });
+
+    // Defects the inspector ALREADY wrote up for this kind of equipment (e.g. a
+    // water heater's missing TPR discharge pipe) override the data-plate-only
+    // "No specific deficiency noted" status.
+    if (!parsed?.error && enhanced && inspectionId && sessionUser?.id) {
+      try {
+        const admin = getAdminClient();
+        const authorized = await authorizeInspection(admin, sessionUser.id, String(inspectionId));
+        if (authorized) {
+          const { data: reportFindings } = await admin
+            .from("findings")
+            .select("title, observation, severity, needs_review")
+            .eq("inspection_id", String(inspectionId));
+          const related = relatedDefectFindings(String((enhanced as any).equipmentType || ""), reportFindings || []);
+          if (related.length) {
+            const note = deficiencyConditionText(related);
+            const e = enhanced as any;
+            e.condition = note;
+            e.equipmentStatus = DEFICIENCY_STATUS;
+            e.relatedFindings = related;
+            const noDeficiency = /[^.]*\bno (specific|significant)[^.]*deficienc[^.]*\.?/gi;
+            for (const key of ["observation", "implication", "recommendation", "clientSummary"]) {
+              if (typeof e[key] === "string" && noDeficiency.test(e[key])) {
+                e[key] = e[key].replace(noDeficiency, ` ${note}`).replace(/\s{2,}/g, " ").trim();
+              }
+              noDeficiency.lastIndex = 0;
+            }
+          }
+        }
+      } catch (relatedError) {
+        console.warn("Equipment related-findings check skipped:", relatedError);
+      }
+    }
 
     await logAIEvent({
       userId: attributedUserId,
