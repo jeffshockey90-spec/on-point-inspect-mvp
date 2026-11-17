@@ -54,6 +54,7 @@ const PhotoMarkupEditor = dynamic(() => import("./PhotoMarkupEditor"), {
 import FieldFindingLinker from "./FieldFindingLinker";
 import { useCompassHeading } from "./useCompassHeading";
 import { allowRecovery, MUTED_GRACE_MS, BLACK_FRAME_CHECK_MS, CALL_INTERRUPTED_MESSAGE } from "../lib/cameraRecovery";
+import { StableTextarea, StableInput } from "./StableField";
 
 type Stage =
   | "idle"
@@ -3317,7 +3318,7 @@ export default function AILiveInspectionCamera({
           {noteOpen && (
             <div className="mx-auto mb-3 max-w-[520px] rounded-2xl border border-white/15 bg-neutral-900/85 p-3 backdrop-blur">
               <div className="relative">
-                <textarea
+                <StableTextarea
                   value={noteText}
                   onChange={(event) => setNoteText(event.target.value)}
                   autoFocus
@@ -3644,7 +3645,7 @@ export default function AILiveInspectionCamera({
                   <label className="mt-3 block text-[11px] font-semibold uppercase tracking-wide text-white/60">
                     Caption (optional)
                   </label>
-                  <input
+                  <StableInput
                     value={referenceCaption}
                     onChange={(event) => setReferenceCaption(event.target.value)}
                     placeholder="What do these photos show?"
@@ -3677,7 +3678,7 @@ export default function AILiveInspectionCamera({
                     Note for AI (optional)
                   </label>
                   <div className="relative mt-1">
-                    <textarea
+                    <StableTextarea
                       value={noteText}
                       onChange={(event) => setNoteText(event.target.value)}
                       placeholder="e.g. 'cracked heat exchanger — call it a safety concern', or 🎤 dictate, or leave blank and AI describes what it sees"

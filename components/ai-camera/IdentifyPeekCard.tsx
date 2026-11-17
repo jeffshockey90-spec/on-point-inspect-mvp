@@ -16,6 +16,7 @@ import {
   severityBadgeStyle,
   severityLabel,
 } from "../../lib/severity/severityConfig";
+import { StableTextarea } from "../StableField";
 
 type Props = {
   previewUrl: string;
@@ -308,7 +309,7 @@ export default function IdentifyPeekCard({
           <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-white/50">
             Add context <span className="font-normal normal-case text-white/35">(optional)</span>
           </label>
-          <textarea
+          <StableTextarea
             value={context}
             onChange={(event) => setContext(event.target.value)}
             disabled={busy}
