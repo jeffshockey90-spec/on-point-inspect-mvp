@@ -10,7 +10,7 @@ type Fields = {
   recommendation?: string;
 };
 
-type Applied = { observation: string; implication: string; recommendation: string };
+type Applied = { title: string; observation: string; implication: string; recommendation: string };
 
 // Inline "adjust how the AI wrote this finding" control. One-tap presets plus a
 // free-text instruction. Rewrites wording/tone only — the endpoint refuses to
@@ -46,6 +46,7 @@ export default function FindingToneControl({
         setErr(data.error || "Could not adjust.");
       } else {
         onApply({
+          title: data.title ?? fields.title ?? "",
           observation: data.observation ?? fields.observation ?? "",
           implication: data.implication ?? fields.implication ?? "",
           recommendation: data.recommendation ?? fields.recommendation ?? "",

@@ -5437,6 +5437,7 @@ function FieldPageContent() {
                         }}
                         onApply={(f) =>
                           updateMediaGroup(group.id, {
+                            ...(f.title ? { title: f.title } : {}),
                             observation: f.observation,
                             implication: f.implication,
                             recommendation: f.recommendation,

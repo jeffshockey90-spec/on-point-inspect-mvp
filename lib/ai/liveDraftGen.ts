@@ -47,6 +47,9 @@ export async function generateLiveDraft(
         // Let the AI choose severity from the evidence, not the field's value.
         severity: "",
         images: inp.aiFrames,
+        // Live camera findings (instant AND background drafts) use the smart
+        // model — better at spotting subtle defects in a single video frame.
+        smartModel: true,
       }),
     });
     const data = await res.json().catch(() => ({}));

@@ -250,7 +250,11 @@ function SectionInformationChecklist({
 
   // The current inspector — checklist-option customizations are scoped to them,
   // so one inspector's renames/additions don't leak into or mutate another's.
-  const [inspectorId, setInspectorId] = useState<string | null>(null);
+  // undefined = not known yet. The checklist waits for it: loading before the
+  // user id resolved fetched only shared options, and if that slower first
+  // load finished LAST it overwrote the full list — so options the inspector
+  // had added looked like they never saved (and got re-added as duplicates).
+  const [inspectorId, setInspectorId] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
@@ -262,8 +266,9 @@ function SectionInformationChecklist({
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
-      if (!inspectionId || !section) return;
+      if (!inspectionId || !section || inspectorId === undefined) return;
 
       // Options: this inspector's own rows PLUS legacy rows that predate scoping
       // (inspector_id is null) so nothing an inspector already customized vanishes.
@@ -286,6 +291,9 @@ function SectionInformationChecklist({
         optionsQuery.order("created_at", { ascending: true }),
       ]);
 
+      // A newer load (section/user/reload changed) owns the state now.
+      if (cancelled) return;
+
       if (!selectedResult.error) {
         const rows = selectedResult.data || [];
         setSelections(rows);
@@ -301,6 +309,9 @@ function SectionInformationChecklist({
     }
 
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [inspectionId, section, inspectorId, reloadKey]);
 
   // Reload when voice fill / photo autofill writes checklist boxes for THIS
@@ -501,7 +512,7 @@ function SectionInformationChecklist({
     try {
       const { data, error } = await supabase
         .from("section_checklist_options")
-        .insert({ section, group_title: groupTitle, option_label: `__CUSTOM__:${clean}`, replacement_label: clean, hidden: false, inspector_id: inspectorId })
+        .insert({ section, group_title: groupTitle, option_label: `__CUSTOM__:${clean}`, replacement_label: clean, hidden: false, ...(inspectorId ? { inspector_id: inspectorId } : {}) })
         .select("*")
         .single();
       if (error) throw error;
@@ -536,7 +547,7 @@ function SectionInformationChecklist({
       } else {
         const { data, error } = await supabase
           .from("section_checklist_options")
-          .insert({ section, group_title: editingOption.groupTitle, option_label: editingOption.optionLabel, replacement_label: clean, hidden: false, inspector_id: inspectorId })
+          .insert({ section, group_title: editingOption.groupTitle, option_label: editingOption.optionLabel, replacement_label: clean, hidden: false, ...(inspectorId ? { inspector_id: inspectorId } : {}) })
           .select("*")
           .single();
         if (error) throw error;
@@ -588,7 +599,7 @@ function SectionInformationChecklist({
     try {
       const { data, error } = await supabase
         .from("section_checklist_options")
-        .insert({ section, group_title: clean, option_label: CUSTOM_FIELD_MARKER, replacement_label: null, hidden: false, inspector_id: inspectorId })
+        .insert({ section, group_title: clean, option_label: CUSTOM_FIELD_MARKER, replacement_label: null, hidden: false, ...(inspectorId ? { inspector_id: inspectorId } : {}) })
         .select("*")
         .single();
       if (error) throw error;
@@ -679,7 +690,7 @@ function SectionInformationChecklist({
         } else {
           const { data, error } = await supabase
             .from("section_checklist_options")
-            .insert({ section, group_title: groupTitle, option_label: originalLabel, hidden: true, inspector_id: inspectorId })
+            .insert({ section, group_title: groupTitle, option_label: originalLabel, hidden: true, ...(inspectorId ? { inspector_id: inspectorId } : {}) })
             .select("*")
             .single();
           if (error) throw error;
