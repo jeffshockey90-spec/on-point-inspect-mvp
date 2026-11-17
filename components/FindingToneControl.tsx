@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StableInput } from "./StableField";
 
 type Fields = {
   title?: string;
@@ -100,7 +101,7 @@ export default function FindingToneControl({
 
       {showCustom && (
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <input
+          <StableInput
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             placeholder='e.g. "less scary but keep the safety note" or "mention it may be older"'

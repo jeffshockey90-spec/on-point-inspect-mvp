@@ -11,6 +11,7 @@ import FindingToneControl from "../FindingToneControl";
 import { detectFindingRelationships } from "../../lib/ai/findingRelationships";
 import { estimatePrognosis, deriveAgeYears } from "../../lib/ai/serviceLife";
 import { matchStandards } from "../../lib/ai/standardsReference";
+import { StableTextarea, StableInput } from "../StableField";
 
 function fillKey(f: ChecklistFill) {
   return `${f.section}|${f.groupTitle}|${f.value}`;
@@ -395,7 +396,7 @@ export default function CaptureConfirmCard({
             ) : (
               <div className="rounded-xl border border-cyan-400/40 bg-[var(--fl-surface-2)] p-3">
                 <label className={labelClass}>Inspector note for AI</label>
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-16`}
                   value={note}
                   autoFocus
@@ -429,7 +430,7 @@ export default function CaptureConfirmCard({
           {edited.kind === "finding" && (
             <>
               <Field label="Title">
-                <input
+                <StableInput
                   className={inputClass}
                   value={edited.title}
                   onChange={(event) => update({ title: event.target.value })}
@@ -464,21 +465,21 @@ export default function CaptureConfirmCard({
                 </Field>
               </div>
               <Field label="Observation">
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-20`}
                   value={edited.observation}
                   onChange={(event) => update({ observation: event.target.value })}
                 />
               </Field>
               <Field label="Implication">
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-16`}
                   value={edited.implication}
                   onChange={(event) => update({ implication: event.target.value })}
                 />
               </Field>
               <Field label="Recommendation">
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-16`}
                   value={edited.recommendation}
                   onChange={(event) => update({ recommendation: event.target.value })}
@@ -536,7 +537,7 @@ export default function CaptureConfirmCard({
           {edited.kind === "limitation" && (
             <>
               <Field label="Title">
-                <input
+                <StableInput
                   className={inputClass}
                   value={edited.title}
                   onChange={(event) => update({ title: event.target.value })}
@@ -556,14 +557,14 @@ export default function CaptureConfirmCard({
                 </select>
               </Field>
               <Field label="Limitation">
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-20`}
                   value={edited.limitation}
                   onChange={(event) => update({ limitation: event.target.value })}
                 />
               </Field>
               <Field label="Recommendation">
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-16`}
                   value={edited.recommendation || ""}
                   onChange={(event) => update({ recommendation: event.target.value })}
@@ -581,7 +582,7 @@ export default function CaptureConfirmCard({
               )}
 
               <Field label="Equipment Type">
-                <input
+                <StableInput
                   className={inputClass}
                   value={edited.equipmentType || ""}
                   onChange={(event) => update({ equipmentType: event.target.value })}
@@ -589,14 +590,14 @@ export default function CaptureConfirmCard({
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Manufacturer">
-                  <input
+                  <StableInput
                     className={inputClass}
                     value={edited.manufacturer || ""}
                     onChange={(event) => update({ manufacturer: event.target.value })}
                   />
                 </Field>
                 <Field label="Model">
-                  <input
+                  <StableInput
                     className={inputClass}
                     value={edited.model || ""}
                     onChange={(event) => update({ model: event.target.value })}
@@ -605,14 +606,14 @@ export default function CaptureConfirmCard({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Serial">
-                  <input
+                  <StableInput
                     className={inputClass}
                     value={edited.serial || ""}
                     onChange={(event) => update({ serial: event.target.value })}
                   />
                 </Field>
                 <Field label="Manufacture Year">
-                  <input
+                  <StableInput
                     className={inputClass}
                     value={String(edited.manufactureYear || "")}
                     onChange={(event) => update({ manufactureYear: event.target.value })}
@@ -747,28 +748,28 @@ export default function CaptureConfirmCard({
                 </Field>
               </div>
               <Field label="Condition">
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-16`}
                   value={edited.condition || ""}
                   onChange={(event) => update({ condition: event.target.value })}
                 />
               </Field>
               <Field label="Observation">
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-16`}
                   value={edited.observation || ""}
                   onChange={(event) => update({ observation: event.target.value })}
                 />
               </Field>
               <Field label="Implication">
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-16`}
                   value={edited.implication || ""}
                   onChange={(event) => update({ implication: event.target.value })}
                 />
               </Field>
               <Field label="Recommendation">
-                <textarea
+                <StableTextarea
                   className={`${inputClass} min-h-16`}
                   value={edited.recommendation || ""}
                   onChange={(event) => update({ recommendation: event.target.value })}
@@ -779,7 +780,7 @@ export default function CaptureConfirmCard({
 
           {edited.kind === "reference" && (
             <Field label="Caption (optional)">
-              <input
+              <StableInput
                 className={inputClass}
                 value={edited.caption}
                 placeholder="What does this photo show?"
