@@ -333,12 +333,21 @@ function calculateFullInspectionPrice({
             (canonicalServiceKey(s.name) || s.id) === serviceMode,
         )
       : null;
+  // A custom square-footage service (e.g. Pre-Listing, Mechanical & Structural)
+  // can carry its own multi-family (per-door) pricing, same as Home Inspection.
+  const usingCustomMultiUnit =
+    Boolean(customService) &&
+    customService!.type === "sqft_formula" &&
+    multiUnit &&
+    hasMultiUnitPricing(customService);
   const customFee = customService
-    ? calculateServiceFee(customService, {
-        sqft: getNumber(squareFeet),
-        units: 1,
-        paired: false,
-      })
+    ? usingCustomMultiUnit
+      ? calculateMultiUnitPrice(customService!, unitCount, getNumber(squareFeet))
+      : calculateServiceFee(customService, {
+          sqft: getNumber(squareFeet),
+          units: 1,
+          paired: false,
+        })
     : 0;
 
   // Price from the inspector's saved pricing config (same source as the Quote
@@ -413,6 +422,11 @@ function calculateFullInspectionPrice({
     multiUnitPerUnitFee: usingMultiUnitPrice ? Math.max(0, Number(homeService?.multiUnitPerUnitFee) || 0) : 0,
     multiUnitSizeFee: usingMultiUnitPrice ? multiUnitSizeFee(homeService!, getNumber(squareFeet), unitCount) : 0,
     customFee,
+    customServiceName: customService?.name || "",
+    customMultiUnitApplied: usingCustomMultiUnit,
+    customMultiUnitBaseFee: usingCustomMultiUnit ? Math.max(0, Number(customService?.multiUnitBaseFee) || 0) : 0,
+    customMultiUnitPerUnitFee: usingCustomMultiUnit ? Math.max(0, Number(customService?.multiUnitPerUnitFee) || 0) : 0,
+    customMultiUnitSizeFee: usingCustomMultiUnit ? multiUnitSizeFee(customService!, getNumber(squareFeet), unitCount) : 0,
     customServiceKey: customService ? String(serviceMode) : "",
     needsSqft,
     radonFee,
@@ -2396,6 +2410,18 @@ function NewInspectionPageContent() {
                   </span>
                 )}
               </p>
+              {quote.customServiceName && (
+                <p>
+                  {quote.customServiceName}: ${quote.customFee}
+                  {quote.customMultiUnitApplied && (
+                    <span className="text-[var(--fl-faint)]">
+                      {" "}(${quote.customMultiUnitBaseFee} base + ${quote.customMultiUnitPerUnitFee} ×{" "}
+                      {Math.max(1, Math.floor(unitCount || 1))} units
+                      {quote.customMultiUnitSizeFee > 0 ? ` + $${quote.customMultiUnitSizeFee} size` : ""})
+                    </span>
+                  )}
+                </p>
+              )}
               <p>Radon: ${quote.radonFee}</p>
               <p>
                 Mold Package: ${quote.moldSetupFee}

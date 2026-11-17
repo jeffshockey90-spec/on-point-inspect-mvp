@@ -97,7 +97,10 @@ function calculateQuote({
       const units = Math.max(0, Math.floor(getNumber(serviceUnits[service.id])));
       // Per-door pricing replaces the base service's sqft fee when the quote is
       // marked multi-unit and a per-unit fee is configured.
-      const useMultiUnit = isBase && multiUnit && hasMultiUnitPricing(service);
+      // Any square-footage service with per-door pricing (Home Inspection, or a
+      // custom one like Pre-Listing) prices per door when marked multi-unit.
+      const useMultiUnit =
+        multiUnit && (isBase || service.type === "sqft_formula") && hasMultiUnitPricing(service);
       const fee = useMultiUnit
         ? calculateMultiUnitPrice(service, safeUnitCount, sqft)
         : calculateServiceFee(service, { sqft, units, paired });
@@ -119,9 +122,14 @@ function calculateQuote({
   const subtotal = servicesSubtotal + safeTravelFee;
   const total = Math.max(0, subtotal - safeDiscount);
 
+  // Square footage drives Home Inspection AND any custom square-footage
+  // service (e.g. Pre-Listing), so ask for it whenever one is selected.
+  const needsSqft = includesBase || lineItems.some((item) => item.type === "sqft_formula");
+
   return {
     lineItems,
     includesBase,
+    needsSqft,
     baseServiceId: baseService?.id || null,
     multiUnitCount: safeUnitCount,
     travelFee: safeTravelFee,
@@ -273,13 +281,12 @@ export default function QuotePage() {
   // inspector has configured per-door pricing (a per-unit fee). Otherwise it
   // would do nothing, so we hide it.
   const baseService = getBaseService(pricingConfig);
-  const baseHasMultiUnit = hasMultiUnitPricing(baseService);
-  const multiUnitBaseFee = Math.max(0, Number(baseService?.multiUnitBaseFee) || 0);
-  const multiUnitPerUnitFee = Math.max(0, Number(baseService?.multiUnitPerUnitFee) || 0);
-  const quoteMultiUnitSizeFee =
-    multiUnit && baseService
-      ? multiUnitSizeFee(baseService, sqft, Math.max(1, Math.floor(unitCount || 1)))
-      : 0;
+  // Offer the multi-unit toggle when ANY selected square-footage service has
+  // per-door pricing (Home Inspection or a custom one).
+  const baseHasMultiUnit = selectedServiceIds.some((id) => {
+    const service = getService(pricingConfig, id);
+    return Boolean(service) && (service!.type === "sqft_formula" || service!.id === baseService?.id) && hasMultiUnitPricing(service);
+  });
 
   const pricingRulesSummary = useMemo(() => {
     return pricingConfig.services
@@ -411,10 +418,10 @@ export default function QuotePage() {
     if (city) params.set("city", city);
     if (stateValue) params.set("state", stateValue);
     if (zip) params.set("zip", zip);
-    if (quote.includesBase) params.set("squareFeet", String(sqft));
+    if (quote.needsSqft) params.set("squareFeet", String(sqft));
 
     // Carry the multi-family selection so New Inspection opens per-door priced.
-    if (quote.includesBase && multiUnit && baseHasMultiUnit) {
+    if (multiUnit && baseHasMultiUnit) {
       params.set("multiUnit", "1");
       params.set("unitCount", String(quote.multiUnitCount));
     }
@@ -543,7 +550,7 @@ export default function QuotePage() {
                 </div>
               </div>
 
-              {quote.includesBase && (
+              {quote.needsSqft && (
                 <div className="space-y-1">
                   <Input
                     label="Square Footage"
@@ -561,7 +568,7 @@ export default function QuotePage() {
                 </div>
               )}
 
-              {quote.includesBase && baseHasMultiUnit && (
+              {baseHasMultiUnit && (
                 <div className="space-y-2 md:col-span-2">
                   <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
                     <input
@@ -625,13 +632,15 @@ export default function QuotePage() {
                 quote.lineItems.map((item) => (
                   <SummaryLine
                     key={item.id}
-                    label={
-                      item.multiUnitApplied
-                        ? `${item.name} ($${multiUnitBaseFee} base + $${multiUnitPerUnitFee} × ${quote.multiUnitCount} units${
-                            quoteMultiUnitSizeFee > 0 ? ` + $${quoteMultiUnitSizeFee} size` : ""
-                          })`
-                        : item.name
-                    }
+                    label={(() => {
+                      if (!item.multiUnitApplied) return item.name;
+                      // Each service's OWN per-door rates (Home or a custom one).
+                      const svc = getService(pricingConfig, item.id);
+                      const bf = Math.max(0, Number(svc?.multiUnitBaseFee) || 0);
+                      const pu = Math.max(0, Number(svc?.multiUnitPerUnitFee) || 0);
+                      const size = svc ? multiUnitSizeFee(svc, sqft, quote.multiUnitCount) : 0;
+                      return `${item.name} ($${bf} base + $${pu} × ${quote.multiUnitCount} units${size > 0 ? ` + $${size} size` : ""})`;
+                    })()}
                     value={item.fee}
                   />
                 ))
