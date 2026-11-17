@@ -184,6 +184,20 @@ export default function PricingEditor({
     setSaved(false);
   }
 
+  // Start a new service from an existing one's full setup (rates + multi-family),
+  // e.g. copy Home Inspection to make "Pre-Listing Inspection" and adjust it.
+  function duplicateService(id: string) {
+    setConfig((current) => {
+      if (!current) return current;
+      const source = current.services.find((service) => service.id === id);
+      if (!source) return current;
+      const fresh = createCustomService(source.type);
+      const copy = { ...source, id: fresh.id, name: `${source.name} (copy)` };
+      return { ...current, services: [...current.services, copy] };
+    });
+    setSaved(false);
+  }
+
   function removeService(id: string) {
     setConfig((current) => {
       if (!current) return current;
@@ -327,83 +341,15 @@ export default function PricingEditor({
             {home.incrementPrice || 0} for every {home.incrementSqftBlock || 0} sqft over that.
           </p>
 
-          <div className="mt-5 border-t border-[var(--fl-line)] pt-5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
-              Multi-family (duplex &amp; up)
-            </p>
-            <p className="mt-1 mb-3 text-xs leading-5 text-[var(--fl-muted)]">
-              When a job is marked multi-unit, price it per door instead of by square
-              footage: a base building fee plus a fee for each unit. Leave the per-unit
-              fee at 0 to keep using square footage.
-            </p>
-            <div className="grid gap-3">
-              <NumberField
-                label="Base Building Fee"
-                value={home.multiUnitBaseFee}
-                onChange={(value) => updateService("home", { multiUnitBaseFee: value })}
-              />
-              <NumberField
-                label="Fee Per Unit"
-                value={home.multiUnitPerUnitFee}
-                onChange={(value) => updateService("home", { multiUnitPerUnitFee: value })}
-              />
-            </div>
+          <MultiFamilyFields service={home} onChange={(patch) => updateService("home", patch)} />
 
-            {Number(home.multiUnitPerUnitFee) > 0 && (
-              <>
-                <p className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
-                  Size step for large buildings (optional)
-                </p>
-                <p className="mt-1 mb-3 text-xs leading-5 text-[var(--fl-muted)]">
-                  Add a fee for every block of total building square footage over an
-                  allowance, so a large building isn&apos;t priced like a small one. The
-                  allowance is <span className="font-semibold">per unit</span>, so it
-                  scales with the building — a normal duplex or fourplex stays flat and
-                  only genuinely large units trigger it. Leave &quot;Then Add&quot; at 0
-                  to price purely per door.
-                </p>
-                <div className="grid gap-3">
-                  <NumberField
-                    label="Included Per Unit"
-                    prefix=""
-                    suffix="sqft/unit"
-                    value={home.multiUnitSqftLimit}
-                    onChange={(value) => updateService("home", { multiUnitSqftLimit: value })}
-                  />
-                  <NumberField
-                    label="Then Add"
-                    value={home.multiUnitIncrementPrice}
-                    onChange={(value) => updateService("home", { multiUnitIncrementPrice: value })}
-                  />
-                  <NumberField
-                    label="Per Every"
-                    prefix=""
-                    suffix="sqft"
-                    value={home.multiUnitIncrementSqftBlock}
-                    onChange={(value) =>
-                      updateService("home", { multiUnitIncrementSqftBlock: value })
-                    }
-                  />
-                </div>
-
-                <p className="mt-3 rounded-lg bg-[var(--fl-ground)] px-3 py-2 text-xs leading-5 text-[var(--fl-faint)]">
-                  Example: a duplex = $
-                  {(Number(home.multiUnitBaseFee) || 0) + (Number(home.multiUnitPerUnitFee) || 0) * 2}{" "}
-                  (${Number(home.multiUnitBaseFee) || 0} base + ${Number(home.multiUnitPerUnitFee) || 0}{" "}
-                  × 2 units); a fourplex = $
-                  {(Number(home.multiUnitBaseFee) || 0) + (Number(home.multiUnitPerUnitFee) || 0) * 4}
-                  {Number(home.multiUnitIncrementPrice) > 0 &&
-                  Number(home.multiUnitIncrementSqftBlock) > 0
-                    ? `, then +$${Number(home.multiUnitIncrementPrice) || 0} per ${
-                        Number(home.multiUnitIncrementSqftBlock) || 0
-                      } sqft over ${Number(home.multiUnitSqftLimit) || 0}/unit (${
-                        (Number(home.multiUnitSqftLimit) || 0) * 2
-                      } for a duplex).`
-                    : "."}
-                </p>
-              </>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => duplicateService("home")}
+            className="mt-4 w-full rounded-xl border border-teal-500/50 px-4 py-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
+          >
+            ⧉ Copy as a new service (e.g. Pre-Listing)
+          </button>
         </section>
       )}
 
@@ -503,6 +449,7 @@ export default function PricingEditor({
               service={service}
               onChange={(patch) => updateService(service.id, patch)}
               onRemove={() => removeService(service.id)}
+              onDuplicate={() => duplicateService(service.id)}
             />
           ))}
         </div>
@@ -541,14 +488,106 @@ export default function PricingEditor({
   );
 }
 
+// Multi-family (per-door) pricing for ANY square-footage service — Home
+// Inspection or a custom one like Pre-Listing / Mechanical & Structural.
+function MultiFamilyFields({
+  service,
+  onChange,
+}: {
+  service: PricingService;
+  onChange: (patch: Partial<PricingService>) => void;
+}) {
+  return (
+    <div className="mt-5 border-t border-[var(--fl-line)] pt-5">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+        Multi-family (duplex &amp; up)
+      </p>
+      <p className="mt-1 mb-3 text-xs leading-5 text-[var(--fl-muted)]">
+        When a job is marked multi-unit, price it per door instead of by square
+        footage: a base building fee plus a fee for each unit. Leave the per-unit
+        fee at 0 to keep using square footage.
+      </p>
+      <div className="grid gap-3">
+        <NumberField
+          label="Base Building Fee"
+          value={service.multiUnitBaseFee}
+          onChange={(value) => onChange({ multiUnitBaseFee: value })}
+        />
+        <NumberField
+          label="Fee Per Unit"
+          value={service.multiUnitPerUnitFee}
+          onChange={(value) => onChange({ multiUnitPerUnitFee: value })}
+        />
+      </div>
+
+      {Number(service.multiUnitPerUnitFee) > 0 && (
+        <>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+            Size step for large buildings (optional)
+          </p>
+          <p className="mt-1 mb-3 text-xs leading-5 text-[var(--fl-muted)]">
+            Add a fee for every block of total building square footage over an
+            allowance, so a large building isn&apos;t priced like a small one. The
+            allowance is <span className="font-semibold">per unit</span>, so it
+            scales with the building — a normal duplex or fourplex stays flat and
+            only genuinely large units trigger it. Leave &quot;Then Add&quot; at 0
+            to price purely per door.
+          </p>
+          <div className="grid gap-3">
+            <NumberField
+              label="Included Per Unit"
+              prefix=""
+              suffix="sqft/unit"
+              value={service.multiUnitSqftLimit}
+              onChange={(value) => onChange({ multiUnitSqftLimit: value })}
+            />
+            <NumberField
+              label="Then Add"
+              value={service.multiUnitIncrementPrice}
+              onChange={(value) => onChange({ multiUnitIncrementPrice: value })}
+            />
+            <NumberField
+              label="Per Every"
+              prefix=""
+              suffix="sqft"
+              value={service.multiUnitIncrementSqftBlock}
+              onChange={(value) =>
+                onChange({ multiUnitIncrementSqftBlock: value })
+              }
+            />
+          </div>
+
+          <p className="mt-3 rounded-lg bg-[var(--fl-ground)] px-3 py-2 text-xs leading-5 text-[var(--fl-faint)]">
+            Example: a duplex = $
+            {(Number(service.multiUnitBaseFee) || 0) + (Number(service.multiUnitPerUnitFee) || 0) * 2}{" "}
+            (${Number(service.multiUnitBaseFee) || 0} base + ${Number(service.multiUnitPerUnitFee) || 0}{" "}
+            × 2 units); a fourplex = $
+            {(Number(service.multiUnitBaseFee) || 0) + (Number(service.multiUnitPerUnitFee) || 0) * 4}
+            {Number(service.multiUnitIncrementPrice) > 0 &&
+            Number(service.multiUnitIncrementSqftBlock) > 0
+              ? `, then +$${Number(service.multiUnitIncrementPrice) || 0} per ${
+                  Number(service.multiUnitIncrementSqftBlock) || 0
+                } sqft over ${Number(service.multiUnitSqftLimit) || 0}/unit (${
+                  (Number(service.multiUnitSqftLimit) || 0) * 2
+                } for a duplex).`
+              : "."}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 function CustomServiceCard({
   service,
   onChange,
   onRemove,
+  onDuplicate,
 }: {
   service: PricingService;
   onChange: (patch: Partial<PricingService>) => void;
   onRemove: () => void;
+  onDuplicate?: () => void;
 }) {
   return (
     <div className="flex h-full flex-col rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 sm:p-5">
@@ -572,6 +611,15 @@ function CustomServiceCard({
         >
           Remove
         </button>
+        {onDuplicate && (
+          <button
+            type="button"
+            onClick={onDuplicate}
+            className="mt-6 shrink-0 rounded-xl border border-teal-500/50 px-3 py-2 text-xs font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
+          >
+            ⧉ Copy
+          </button>
+        )}
       </div>
 
       {service.type === "sqft_formula" && (
@@ -600,6 +648,11 @@ function CustomServiceCard({
             value={service.incrementSqftBlock}
             onChange={(value) => onChange({ incrementSqftBlock: value })}
           />
+          <p className="rounded-lg bg-[var(--fl-surface)] px-3 py-2 text-xs leading-5 text-[var(--fl-faint)]">
+            Example: ${service.basePrice || 0} for up to {service.baseSqftLimit || 0} sqft, then +$
+            {service.incrementPrice || 0} for every {service.incrementSqftBlock || 0} sqft over that.
+          </p>
+          <MultiFamilyFields service={service} onChange={onChange} />
         </div>
       )}
 
