@@ -7,7 +7,7 @@
 
 
 export type EquipmentNotes = { condition: string; inspector_note: string; maintenance_note: string };
-export type RedraftResult = EquipmentNotes & { relatedTitles: string[] };
+export type RedraftResult = EquipmentNotes & { relatedTitles: string[]; limitationRelated: boolean };
 type Candidate = { title: string; severity: string; observation?: string; section?: string };
 
 const clean = (v: unknown, max = 600) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -16,6 +16,7 @@ export function buildEquipmentRedraftPrompt(input: {
   item: Record<string, any>;
   related: Array<{ title: string; severity: string }>;
   candidates?: Candidate[];
+  limitations?: Array<{ text: string; section?: string }>;
   instruction?: string;
 }): string {
   const i = input.item || {};
@@ -45,6 +46,11 @@ export function buildEquipmentRedraftPrompt(input: {
         )
         .join("\n")
     : "None";
+  const limitations = (input.limitations || []).length
+    ? (input.limitations || [])
+        .map((l) => `- ${clean(l.text, 220)}${l.section ? ` (${clean(l.section, 60)})` : ""}`)
+        .join("\n")
+    : "None";
   return `Rewrite the report notes for this piece of equipment.
 
 Equipment data:
@@ -64,12 +70,16 @@ Maintenance note: ${clean(i.maintenance_note) || "(none)"}
 Inspector instruction: ${clean(input.instruction, 400) || "Improve the wording; keep it short, clear and client-friendly."}
 
 Rules:
+Limitations on this report (things the inspector could NOT test, operate, access or fully evaluate):
+${limitations}
+
+- Set "not_fully_evaluated" to true if any limitation above is about THIS equipment (e.g. "water heater not tested — gas off"); then the condition and inspector note must say it could not be fully evaluated and why, and point to the report limitations — never imply it was tested or operated normally.
 - List in "related_titles" the exact titles (copied from above) of every defect that is about THIS equipment, including all of the ones that name it. Empty if none.
 - If any defects are related, the condition must say deficiencies were noted and point the reader to the report findings — never "no deficiency noted". If none are related, don't claim deficiencies.
 - Never say the equipment WILL fail and never give a deadline or years remaining. Talk about typical service life and that actual life varies with maintenance and use.
 - Don't invent defects, measurements or brands. Keep each field to 1-3 sentences.
 
-Return ONLY JSON: {"condition":"","inspector_note":"","maintenance_note":"","related_titles":[]}`;
+Return ONLY JSON: {"condition":"","inspector_note":"","maintenance_note":"","related_titles":[],"not_fully_evaluated":false}`;
 }
 
 export function parseEquipmentRedraft(raw: string, fallback: EquipmentNotes): RedraftResult {
@@ -86,6 +96,7 @@ export function parseEquipmentRedraft(raw: string, fallback: EquipmentNotes): Re
     relatedTitles: Array.isArray(parsed.related_titles)
       ? parsed.related_titles.map((t: unknown) => clean(t, 200)).filter(Boolean)
       : [],
+    limitationRelated: parsed.not_fully_evaluated === true,
   };
 }
 
@@ -111,6 +122,7 @@ export async function redraftEquipmentNotes(input: {
   item: Record<string, any>;
   related: Array<{ title: string; severity: string }>;
   candidates?: Candidate[];
+  limitations?: Array<{ text: string; section?: string }>;
   instruction?: string;
 }): Promise<RedraftResult> {
   const fallback: EquipmentNotes = {
