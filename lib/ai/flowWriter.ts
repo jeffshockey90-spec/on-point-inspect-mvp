@@ -63,7 +63,7 @@ export function buildFindingContract(sections?: string[]): string {
 Write a single finding as clear, factual, client-readable prose in the inspector's voice.
 
 Return ONE finding as an object with these fields:
-- title: a short, specific noun phrase (the defect/observation), no severity words.
+- title: a short, specific noun phrase (the defect/observation), no severity words. NAME THE EQUIPMENT: when the finding is about a piece of equipment or an appliance (water heater, furnace, boiler, air conditioner/condenser, heat pump, air handler, electrical panel, dishwasher, range/oven, refrigerator, microwave, disposal, washer/dryer, garage door opener, sump pump, well pump, etc.), the TITLE must start with that equipment name (e.g. "Water Heater - Missing TPR Discharge Pipe", "Furnace - Rust at Burner Area") and the observation must name it too, so the report can tie the finding to that equipment. An inspector-dictated title still wins.
 - section: EXACTLY one of: ${sectionList.join(" | ")}. Pick the MOST SPECIFIC section that matches the component; if a specialized section is present (its name defines its scope, e.g. "Structural Framing" for studs/joists/rafters/trusses/beams/sheathing, "Fire & Draft Stopping" for firestop sealing and plate/fire-separation penetrations), prefer it over a general one.
 - severity: EXACTLY one of: ${FLOW_SEVERITIES.join(" | ")}.
 - location: where in/on the home it was observed, if known (else omit/empty).

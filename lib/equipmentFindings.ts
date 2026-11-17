@@ -63,6 +63,26 @@ export function relatedDefectFindings(
   return out;
 }
 
+/** Every saved defect on the report (no info items / review drafts), for the AI to judge. */
+export function defectCandidates(
+  findings: Array<{ title?: string | null; observation?: string | null; severity?: string | null; needs_review?: boolean | null; section?: string | null }>,
+  max = 40,
+): Array<{ title: string; severity: string; observation: string; section: string }> {
+  return (findings || [])
+    .filter((f) => f?.needs_review !== true)
+    .filter((f) => {
+      const severity = String(f?.severity || "").trim();
+      return severity && !NON_DEFECT.test(severity);
+    })
+    .slice(0, max)
+    .map((f) => ({
+      title: String(f?.title || "Finding").trim(),
+      severity: String(f?.severity || "").trim(),
+      observation: String(f?.observation || "").replace(/\s+/g, " ").trim().slice(0, 240),
+      section: String(f?.section || "").trim(),
+    }));
+}
+
 export const DEFICIENCY_STATUS = "⚠ Deficiency Noted – See Report Findings";
 
 /** Condition line for equipment that has related defects written up. */

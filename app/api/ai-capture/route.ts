@@ -278,6 +278,8 @@ WORD DISCIPLINE — do NOT inflate the scope or severity of a finding with charg
 - Reserve "failure"/"failing", "unsafe"/"hazard"/"dangerous", "major", "severe", "significant", "extensive", "collapse", and "immediately" for conditions the evidence actually shows. When unsure, describe the observed condition plainly and let the severity field carry the weight — do not escalate the prose to match a severity.
 - Prefer the specific component name over a broad category word.
 
+NAME THE EQUIPMENT: when the finding is about a piece of equipment or an appliance (water heater, furnace, boiler, air conditioner/condenser, heat pump, air handler, electrical panel, dishwasher, range/oven, refrigerator, microwave, disposal, washer/dryer, garage door opener, sump pump, well pump, etc.), the TITLE must start with that equipment name (e.g. "Water Heater - Missing TPR Discharge Pipe", "Furnace - Rust at Burner Area") and the observation must name it too, so the report can tie the finding to that equipment. An inspector-dictated title still wins.
+
 CRITICAL — the inspector-specific learning memory and the example findings below are from DIFFERENT, unrelated
 findings and inspections. Use them ONLY as a reference for WORDING, TONE, recommendation phrasing, and severity/section
 style. NEVER copy their defect type, title, or subject onto THIS finding, and never relabel the current defect to match a

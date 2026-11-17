@@ -17,7 +17,49 @@ describe("equipment note redraft", () => {
 
   it("keeps the current notes when the AI returns nothing usable", () => {
     const fallback = { condition: "a", inspector_note: "b", maintenance_note: "c" };
-    expect(parseEquipmentRedraft("not json", fallback)).toEqual(fallback);
-    expect(parseEquipmentRedraft('{"condition":"New"}', fallback)).toEqual({ ...fallback, condition: "New" });
+    expect(parseEquipmentRedraft("not json", fallback)).toEqual({ ...fallback, relatedTitles: [] });
+    expect(parseEquipmentRedraft('{"condition":"New"}', fallback)).toEqual({ ...fallback, condition: "New", relatedTitles: [] });
+  });
+});
+
+import { resolveRelatedTitles } from "./equipmentNoteRedraft";
+import { defectCandidates } from "./equipmentFindings";
+
+describe("AI-matched related findings", () => {
+  const findings = [
+    { title: "TPR discharge pipe missing", severity: "Safety Concern", section: "Plumbing" },
+    { title: "Leaking sink trap", severity: "Recommended Repair", section: "Plumbing" },
+    { title: "Data plate photo", severity: "Informational", section: "Plumbing" },
+    { title: "Rusted tank", severity: "Monitor", needs_review: true },
+  ];
+
+  it("offers only saved defects to the AI", () => {
+    expect(defectCandidates(findings).map((c) => c.title)).toEqual([
+      "TPR discharge pipe missing",
+      "Leaking sink trap",
+    ]);
+  });
+
+  it("keeps named findings, adds AI matches that exist, ignores invented titles", () => {
+    const candidates = defectCandidates(findings);
+    expect(
+      resolveRelatedTitles([], candidates, ["tpr discharge pipe missing", "Made up finding"]),
+    ).toEqual(["TPR discharge pipe missing"]);
+    expect(resolveRelatedTitles([{ title: "Water heater rust" }], candidates, [])).toEqual(["Water heater rust"]);
+  });
+
+  it("asks the AI to judge every defect and return related_titles", () => {
+    const prompt = buildEquipmentRedraftPrompt({
+      item: { equipment_type: "Water Heater" },
+      related: [],
+      candidates: defectCandidates(findings),
+    });
+    expect(prompt).toContain('"TPR discharge pipe missing" (Safety Concern, Plumbing)');
+    expect(prompt).toContain("related_titles");
+  });
+
+  it("parses related_titles", () => {
+    const fallback = { condition: "", inspector_note: "", maintenance_note: "" };
+    expect(parseEquipmentRedraft('{"related_titles":["A"," "]}', fallback).relatedTitles).toEqual(["A"]);
   });
 });

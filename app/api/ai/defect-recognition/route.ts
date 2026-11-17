@@ -350,6 +350,8 @@ Section examples:
 - Interior doors, windows, walls, ceilings, floors, stairs, railings = Doors, Windows & Interior
 - Fireplace, firebox, damper, hearth = Fireplace
 
+NAME THE EQUIPMENT: when the finding is about a piece of equipment or an appliance (water heater, furnace, boiler, air conditioner/condenser, heat pump, air handler, electrical panel, dishwasher, range/oven, refrigerator, microwave, disposal, washer/dryer, garage door opener, sump pump, well pump, etc.), the TITLE must start with that equipment name (e.g. "Water Heater - Missing TPR Discharge Pipe", "Furnace - Rust at Burner Area") and the observation must name it too, so the report can tie the finding to that equipment. An inspector-dictated title still wins.
+
 Return this exact JSON structure:
 {
   "title": "",
