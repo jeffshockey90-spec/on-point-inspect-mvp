@@ -160,6 +160,12 @@ export async function POST(req: Request) {
     if (!guard.ok) return guard.response;
     inspectionId = guard.inspectionId;
 
+    // The live camera asks for the SMART model: it drafts from one frame of
+    // live video, and the fast model missed subtle defects there that the
+    // field tool's multi-photo organize (smart model) catches. Other callers
+    // keep the fast model.
+    const writerModel = body.smartModel === true ? getAIModel() : AI_WRITER_MODEL;
+
     const requestedSection = cleanText(body.section);
     const requestedSeverity = cleanText(body.severity);
     // The report's ACTIVE sections (base + custom template sections), sent by the
@@ -395,7 +401,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
     ];
 
     const response = await openai.chat.completions.create({
-      model: AI_WRITER_MODEL,
+      model: writerModel,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -458,7 +464,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
       // The fields sectionInfo was read against, keyed by section — so the
       // client's buildMaterialFills can fill custom-section fields too.
       sectionFieldMap: sectionFieldMap[section] ? { [section]: sectionFieldMap[section] } : {},
-      aiModel: AI_WRITER_MODEL,
+      aiModel: writerModel,
       aiVersion: AI_WRITER_VERSION,
       photoCount: imageDataUrls.length,
       reviewRequired: true,
@@ -477,7 +483,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
         maintenanceTip: result.maintenanceTip,
         liabilityNote: result.liabilityNote,
         photoCount: result.photoCount,
-        aiModel: AI_WRITER_MODEL,
+        aiModel: writerModel,
         aiVersion: AI_WRITER_VERSION,
       },
       tokensUsed: response.usage?.total_tokens ?? null,
