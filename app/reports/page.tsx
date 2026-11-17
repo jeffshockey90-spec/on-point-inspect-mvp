@@ -466,6 +466,21 @@ export default async function ReportsPage() {
       clientName: inspection.client_name || "N/A",
       realtorName,
       inspectionDate: inspection.inspection_date || "N/A",
+      inspectionTime: String(inspection.inspection_time || inspection.scheduled_time || "").slice(0, 5),
+      // Emails + every contact (co-clients included) so the search box finds a
+      // report by any client's / agent's name or email.
+      searchText: [
+        inspection.client_email,
+        inspection.realtor_email,
+        inspection.agent_email,
+        ...(contactsByInspectionId[String(inspection.id)] || []).flatMap((contact: any) => [
+          contact?.name,
+          contact?.email,
+        ]),
+      ]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+        .join(" "),
       // Social-media consent: true = OK to post, false = declined, null = not
       // answered (no badge). Lets the inspector scan which jobs they can post.
       socialMediaConsent:

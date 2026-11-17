@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import FastLinkButton from "./FastLinkButton";
 import DeleteInspectionButton from "./DeleteInspectionButton";
 import { currentLocalDate } from "../lib/app-time";
+import { compareTodayFirst } from "../lib/reportSort";
 import { orientationStatus } from "../lib/report/orientationStatus";
 
 export type PreparedReport = {
@@ -15,6 +16,11 @@ export type PreparedReport = {
   clientName: string;
   realtorName: string;
   inspectionDate: string;
+  // "HH:MM" when known — orders same-day jobs in the "Today first" sort.
+  inspectionTime?: string;
+  // Extra text the search box matches: client / realtor emails and every
+  // contact's name + email (co-clients included).
+  searchText?: string;
   propertyPhoto: string;
   // Home Orientation walkthrough (no report is ever published).
   isOrientation?: boolean;
@@ -41,7 +47,9 @@ export type PreparedReport = {
   };
 };
 
-type SortOption = "newest" | "oldest" | "address" | "most-viewed";
+type SortOption = "today" | "newest" | "oldest" | "address" | "most-viewed";
+const SORT_OPTIONS: SortOption[] = ["today", "newest", "oldest", "most-viewed", "address"];
+const SORT_STORAGE_KEY = "flow:reports-sort";
 type StatusFilter =
   | "all"
   | "draft"
@@ -67,6 +75,7 @@ function matchesSearch(report: PreparedReport, query: string) {
     report.cityStateZip,
     report.clientName,
     report.realtorName,
+    report.searchText || "",
   ]
     .join(" ")
     .toLowerCase();
@@ -88,7 +97,24 @@ function matchesStatus(report: PreparedReport, status: StatusFilter) {
 export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
-  const [sort, setSort] = useState<SortOption>("newest");
+  const [sort, setSortState] = useState<SortOption>("newest");
+  // Remember the chosen order on this device (a per-viewer convenience).
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(SORT_STORAGE_KEY) as SortOption | null;
+      if (saved && SORT_OPTIONS.includes(saved)) setSortState(saved);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  function setSort(next: SortOption) {
+    setSortState(next);
+    try {
+      window.localStorage.setItem(SORT_STORAGE_KEY, next);
+    } catch {
+      /* storage unavailable */
+    }
+  }
 
   const visibleReports = useMemo(() => {
     const filtered = reports.filter(
@@ -96,6 +122,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
     );
 
     const sorted = [...filtered].sort((a, b) => {
+      if (sort === "today") return compareTodayFirst(a, b, currentLocalDate());
       if (sort === "newest") return b.createdAtMs - a.createdAtMs;
       if (sort === "oldest") return a.createdAtMs - b.createdAtMs;
       if (sort === "most-viewed") return b.activity.totalViews - a.activity.totalViews;
@@ -131,7 +158,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by address, client, or realtor..."
+              placeholder="Search address, client, realtor, or email..."
               className="flex-1 bg-transparent text-sm text-[var(--fl-text)] placeholder:text-[var(--fl-faint)] outline-none"
             />
           </div>
@@ -141,6 +168,7 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
             onChange={(event) => setSort(event.target.value as SortOption)}
             className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] px-3 py-2.5 text-sm font-bold text-[var(--fl-text)] outline-none focus:border-teal-400"
           >
+            <option value="today">Today&apos;s Inspections First</option>
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
             <option value="most-viewed">Most Viewed</option>
