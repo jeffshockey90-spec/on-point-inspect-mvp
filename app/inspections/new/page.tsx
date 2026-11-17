@@ -2121,6 +2121,15 @@ function NewInspectionPageContent() {
               serviceMode === ORIENTATION_SERVICE_KEY
                 ? ORIENTATION_AGREEMENT_SERVICE_TYPE
                 : null,
+              // A custom MAIN service (e.g. Pre-Listing, Mechanical & Structural)
+              // attaches its own agreement — it used to fall back to the home one.
+              serviceMode &&
+              serviceMode !== ORIENTATION_SERVICE_KEY &&
+              !hasHomeInspection(serviceMode) &&
+              !hasRadon(serviceMode) &&
+              !hasMold(serviceMode)
+                ? canonicalServiceKey(serviceMode)
+                : null,
               ...addonServices.map((addon) =>
                 canonicalServiceKey(
                   addon.type === "other" && addon.label.trim() ? addon.label : addon.type,

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { US_STATES } from "../lib/usStates";
+import { templateMatchesService } from "../lib/agreementServiceMatch";
 
 type AgreementTemplate = Record<string, any>;
 
@@ -11,15 +12,9 @@ function formatServiceType(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-// Does a template's service type belong to a requested service category?
-// service_type is free-form text the inspector sets on each template, so we
-// match by keyword: "home" -> anything with "home" (default is home_inspection),
-// "radon"/"mold" -> anything containing that word.
-function templateMatchesService(template: AgreementTemplate, category: string) {
-  const serviceType = String(template.service_type || "home_inspection").toLowerCase();
-  if (category === "home") return serviceType.includes("home");
-  return serviceType.includes(category);
-}
+// Shared with the server fallback (lib/agreementServiceMatch): Home / Radon /
+// Mold by keyword, and custom services (Pre-Listing, Mechanical & Structural,
+// add-ons) by their service key.
 
 function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?: "teal" | "green" | "yellow" | "slate" }) {
   const classes =
