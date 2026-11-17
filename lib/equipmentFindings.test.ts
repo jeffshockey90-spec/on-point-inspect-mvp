@@ -33,3 +33,27 @@ describe("deficiencyConditionText", () => {
     );
   });
 });
+
+import { relatedLimitations, limitationCandidates, limitationConditionText } from "./equipmentFindings";
+
+describe("limitations on equipment", () => {
+  const limitations = [
+    { section: "Plumbing", label: "Not Tested", custom_text: "Water heater not tested — gas supply off" },
+    { section: "Cooling", label: "Not Operated", limitation_comment: "A/C not operated due to low outdoor temperature" },
+    { section: "Plumbing", label: "Inaccessible", custom_text: "Main shutoff behind storage", needs_review: true },
+  ];
+
+  it("finds the limitation for the scanned equipment only", () => {
+    expect(relatedLimitations("Water Heater", limitations)).toEqual([
+      "Not Tested — Water heater not tested — gas supply off",
+    ]);
+    expect(relatedLimitations("Air Conditioner Condenser", limitations)).toHaveLength(1);
+  });
+
+  it("offers saved limitations to the AI and words the condition", () => {
+    expect(limitationCandidates(limitations)).toHaveLength(2);
+    expect(limitationConditionText(["A/C not operated"])).toBe(
+      "Not fully evaluated — see the report limitation: A/C not operated.",
+    );
+  });
+});

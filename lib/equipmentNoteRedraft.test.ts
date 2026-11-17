@@ -17,8 +17,8 @@ describe("equipment note redraft", () => {
 
   it("keeps the current notes when the AI returns nothing usable", () => {
     const fallback = { condition: "a", inspector_note: "b", maintenance_note: "c" };
-    expect(parseEquipmentRedraft("not json", fallback)).toEqual({ ...fallback, relatedTitles: [] });
-    expect(parseEquipmentRedraft('{"condition":"New"}', fallback)).toEqual({ ...fallback, condition: "New", relatedTitles: [] });
+    expect(parseEquipmentRedraft("not json", fallback)).toEqual({ ...fallback, relatedTitles: [], limitationRelated: false });
+    expect(parseEquipmentRedraft('{"condition":"New"}', fallback)).toEqual({ ...fallback, condition: "New", relatedTitles: [], limitationRelated: false });
   });
 });
 
@@ -61,5 +61,19 @@ describe("AI-matched related findings", () => {
   it("parses related_titles", () => {
     const fallback = { condition: "", inspector_note: "", maintenance_note: "" };
     expect(parseEquipmentRedraft('{"related_titles":["A"," "]}', fallback).relatedTitles).toEqual(["A"]);
+  });
+});
+
+describe("redraft with limitations", () => {
+  it("shows the AI the limitations and parses not_fully_evaluated", () => {
+    const prompt = buildEquipmentRedraftPrompt({
+      item: { equipment_type: "Water Heater" },
+      related: [],
+      limitations: [{ text: "Water heater not tested — gas off", section: "Plumbing" }],
+    });
+    expect(prompt).toContain("- Water heater not tested — gas off (Plumbing)");
+    expect(prompt).toContain("not_fully_evaluated");
+    const fallback = { condition: "", inspector_note: "", maintenance_note: "" };
+    expect(parseEquipmentRedraft('{"not_fully_evaluated":true}', fallback).limitationRelated).toBe(true);
   });
 });

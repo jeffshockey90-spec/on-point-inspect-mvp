@@ -97,7 +97,14 @@ import SaveAgentButton from "../../../components/SaveAgentButton";
 import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
 import { isOrientationJob as isOrientation } from "../../../lib/orientation";
 import { redraftEquipmentNotes, resolveRelatedTitles } from "../../../lib/equipmentNoteRedraft";
-import { relatedDefectFindings, defectCandidates, DEFICIENCY_STATUS } from "../../../lib/equipmentFindings";
+import {
+  relatedDefectFindings,
+  defectCandidates,
+  DEFICIENCY_STATUS,
+  relatedLimitations,
+  limitationCandidates,
+  LIMITATION_STATUS,
+} from "../../../lib/equipmentFindings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1531,9 +1538,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       redirect(`/reports/${inspectionId}?equipment_update_error=1#equipment-inventory`);
     }
 
-    const [{ data: item }, { data: reportFindings }] = await Promise.all([
+    const [{ data: item }, { data: reportFindings }, { data: reportLimitations }] = await Promise.all([
       admin.from("equipment_inventory").select("*").eq("id", equipmentId).eq("inspection_id", inspectionId).maybeSingle(),
       admin.from("findings").select("title, observation, severity, needs_review, section").eq("inspection_id", inspectionId),
+      admin.from("section_limitations").select("*").eq("inspection_id", inspectionId),
     ]);
     if (!item) redirect(`/reports/${inspectionId}?equipment_update_error=1#equipment-inventory`);
 
@@ -1549,10 +1557,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     // discharge pipe missing" — is still tied to it).
     const related = relatedDefectFindings(String(item.equipment_type || ""), reportFindings || []);
     const candidates = defectCandidates(reportFindings || []);
+    // Limitations too ("couldn't test the water heater — gas off"): the AI
+    // judges which belong to this unit; ones that name it always count.
+    const namedLimitations = relatedLimitations(String(item.equipment_type || ""), (reportLimitations as any[]) || []);
+    const limitations = limitationCandidates((reportLimitations as any[]) || []);
 
     let notes;
     try {
-      notes = await redraftEquipmentNotes({ item: current, related, candidates, instruction });
+      notes = await redraftEquipmentNotes({ item: current, related, candidates, limitations, instruction });
     } catch (redraftError) {
       console.error("Equipment redraft error:", redraftError);
       redirect(`/reports/${inspectionId}?equipment_update_error=1#equipment-inventory`);
@@ -1562,11 +1574,15 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     // Related defects -> "Deficiency Noted". None anymore (finding deleted or
     // downgraded) -> clear a deficiency status this feature set earlier, so the
     // report falls back to the normal age-based status.
+    const notFullyEvaluated = namedLimitations.length > 0 || notes.limitationRelated;
+    const ourStatuses = [DEFICIENCY_STATUS, LIMITATION_STATUS];
     const statusUpdate = relatedTitles.length
       ? { equipment_status: DEFICIENCY_STATUS }
-      : item.equipment_status === DEFICIENCY_STATUS
-        ? { equipment_status: null }
-        : {};
+      : notFullyEvaluated
+        ? { equipment_status: LIMITATION_STATUS }
+        : ourStatuses.includes(item.equipment_status)
+          ? { equipment_status: null }
+          : {};
 
     const { error } = await admin
       .from("equipment_inventory")

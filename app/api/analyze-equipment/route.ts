@@ -4,7 +4,14 @@ import { getAIModel, getAIVersion } from "../../../lib/openai";
 import { inspectionBrain } from "../../../lib/ai";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
 import { getSessionUser, getAdminClient, authorizeInspection } from "../../../lib/apiAuth";
-import { relatedDefectFindings, deficiencyConditionText, DEFICIENCY_STATUS } from "../../../lib/equipmentFindings";
+import {
+  relatedDefectFindings,
+  deficiencyConditionText,
+  DEFICIENCY_STATUS,
+  relatedLimitations,
+  limitationConditionText,
+  LIMITATION_STATUS,
+} from "../../../lib/equipmentFindings";
 import { loadFlowWriter, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
 import { resolveDaikinFamilyBrand, BRAND_READING_RULE } from "../../../lib/ai/brandResolver";
 import { sanitizeSectionList } from "../../../lib/ai/identifyResult";
@@ -1959,23 +1966,48 @@ Rules:
         const admin = getAdminClient();
         const authorized = await authorizeInspection(admin, sessionUser.id, String(inspectionId));
         if (authorized) {
-          const { data: reportFindings } = await admin
-            .from("findings")
-            .select("title, observation, severity, needs_review")
-            .eq("inspection_id", String(inspectionId));
-          const related = relatedDefectFindings(String((enhanced as any).equipmentType || ""), reportFindings || []);
-          if (related.length) {
-            const note = deficiencyConditionText(related);
+          const [{ data: reportFindings }, { data: reportLimitations }] = await Promise.all([
+            admin
+              .from("findings")
+              .select("title, observation, severity, needs_review")
+              .eq("inspection_id", String(inspectionId)),
+            admin.from("section_limitations").select("*").eq("inspection_id", String(inspectionId)),
+          ]);
+          const equipmentType = String((enhanced as any).equipmentType || "");
+          const related = relatedDefectFindings(equipmentType, reportFindings || []);
+          const limited = relatedLimitations(equipmentType, (reportLimitations as any[]) || []);
+          if (related.length || limited.length) {
+            // Defects win the status; a limitation ("not tested") is still named
+            // so the unit never reads as checked-and-fine.
+            const note = [
+              related.length ? deficiencyConditionText(related) : "",
+              limited.length ? limitationConditionText(limited) : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
             const e = enhanced as any;
             e.condition = note;
-            e.equipmentStatus = DEFICIENCY_STATUS;
+            e.equipmentStatus = related.length ? DEFICIENCY_STATUS : LIMITATION_STATUS;
             e.relatedFindings = related;
-            const noDeficiency = /[^.]*\bno (specific|significant)[^.]*deficienc[^.]*\.?/gi;
+            e.relatedLimitations = limited;
+            // Replace "no deficiency" claims — and, when the unit couldn't be
+            // tested, "operated normally / appeared functional" claims — with
+            // the real status. Only the first match gets the note; the rest drop.
+            const claims = [/[^.]*\bno (specific|significant)[^.]*deficienc[^.]*\.?/gi];
+            if (limited.length) {
+              claims.push(/[^.]*\b(operated normally|operating normally|appeared (to be )?functional|responded to (normal )?(operating )?controls|functioned (as intended|normally))[^.]*\.?/gi);
+            }
             for (const key of ["observation", "implication", "recommendation", "clientSummary"]) {
-              if (typeof e[key] === "string" && noDeficiency.test(e[key])) {
-                e[key] = e[key].replace(noDeficiency, ` ${note}`).replace(/\s{2,}/g, " ").trim();
+              if (typeof e[key] !== "string") continue;
+              let used = false;
+              for (const claim of claims) {
+                e[key] = e[key].replace(claim, () => {
+                  if (used) return " ";
+                  used = true;
+                  return ` ${note}`;
+                });
               }
-              noDeficiency.lastIndex = 0;
+              e[key] = e[key].replace(/\s{2,}/g, " ").trim();
             }
           }
         }

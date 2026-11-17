@@ -43,6 +43,13 @@ function keywordsFor(equipmentType: string): string[] {
   return Array.from(new Set(words));
 }
 
+function mentionsAny(words: string[], text: string): boolean {
+  const lower = text.toLowerCase();
+  return words.some((w) =>
+    new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}([^a-z]|$)`).test(lower),
+  );
+}
+
 /** Defect findings on the report that are about this equipment type. */
 export function relatedDefectFindings(
   equipmentType: string,
@@ -81,6 +88,57 @@ export function defectCandidates(
       observation: String(f?.observation || "").replace(/\s+/g, " ").trim().slice(0, 240),
       section: String(f?.section || "").trim(),
     }));
+}
+
+type LimitationRow = {
+  label?: string | null;
+  limitation_comment?: string | null;
+  custom_text?: string | null;
+  section?: string | null;
+  needs_review?: boolean | null;
+};
+
+function limitationText(l: LimitationRow): string {
+  return [l?.label, l?.custom_text, l?.limitation_comment]
+    .map((v) => String(v || "").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join(" — ");
+}
+
+/**
+ * Limitations on the report that are about this equipment type — e.g. "Water
+ * heater not tested: gas supply off" — so the equipment doesn't read as
+ * checked-and-fine when it couldn't actually be evaluated.
+ */
+export function relatedLimitations(equipmentType: string, limitations: LimitationRow[]): string[] {
+  const words = keywordsFor(equipmentType);
+  if (!words.length) return [];
+  const out: string[] = [];
+  for (const l of limitations || []) {
+    if (l?.needs_review === true) continue;
+    const text = limitationText(l);
+    if (text && mentionsAny(words, text)) out.push(text.slice(0, 200));
+  }
+  return Array.from(new Set(out));
+}
+
+/** Every saved limitation on the report, for the AI to judge. */
+export function limitationCandidates(limitations: LimitationRow[], max = 30): Array<{ text: string; section: string }> {
+  return (limitations || [])
+    .filter((l) => l?.needs_review !== true)
+    .map((l) => ({ text: limitationText(l).slice(0, 240), section: String(l?.section || "").trim() }))
+    .filter((l) => l.text)
+    .slice(0, max);
+}
+
+export const LIMITATION_STATUS = "⚠ Not Fully Evaluated – See Limitations";
+
+/** Condition sentence for equipment that couldn't be fully evaluated. */
+export function limitationConditionText(limitations: string[]): string {
+  const first = Array.from(new Set(limitations.filter(Boolean))).slice(0, 2);
+  return first.length
+    ? `Not fully evaluated — see the report limitation${first.length === 1 ? "" : "s"}: ${first.join("; ")}.`
+    : "Not fully evaluated — see the report limitations.";
 }
 
 export const DEFICIENCY_STATUS = "⚠ Deficiency Noted – See Report Findings";
