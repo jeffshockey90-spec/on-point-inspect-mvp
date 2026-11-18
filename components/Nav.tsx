@@ -139,20 +139,14 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
       clearOpeningHref();
     }
 
-    function clearOnAnyPageInteraction() {
-      clearOpeningHref();
-    }
-
     window.addEventListener("pageshow", clear);
     window.addEventListener("focus", clear);
     document.addEventListener("visibilitychange", clear);
-    document.addEventListener("pointerdown", clearOnAnyPageInteraction, true);
 
     return () => {
       window.removeEventListener("pageshow", clear);
       window.removeEventListener("focus", clear);
       document.removeEventListener("visibilitychange", clear);
-      document.removeEventListener("pointerdown", clearOnAnyPageInteraction, true);
 
       if (openingTimeoutRef.current) {
         clearTimeout(openingTimeoutRef.current);
@@ -407,9 +401,13 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
       clearTimeout(openingTimeoutRef.current);
     }
 
+    // Keep "Opening" up until the page actually changes (pathname effect
+    // clears it). It used to vanish after 0.5s — and any tap cleared it — while
+    // a heavy page like Reports was still loading, so the button looked dead and
+    // got tapped again, restarting the load. 12s is only a safety net.
     openingTimeoutRef.current = setTimeout(() => {
       clearOpeningHref();
-    }, 500);
+    }, 12000);
   }
 
   async function handleLogout() {
@@ -502,7 +500,15 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
                     prefetch
                     onPointerEnter={() => prefetchRoute(item.href)}
                     onTouchStart={() => prefetchRoute(item.href)}
-                    onClick={() => handleNavClick(item.href)}
+                    onClick={(event) => {
+                  // Already opening this page: ignore the extra tap so it
+                  // doesn't restart the navigation.
+                  if (openingHref === item.href) {
+                    event.preventDefault();
+                    return;
+                  }
+                  handleNavClick(item.href);
+                }}
                     aria-busy={opening}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-semibold transition active:scale-[0.98] [touch-action:manipulation] ${
                       active
@@ -608,7 +614,15 @@ export default function Navbar({ signedIn = false }: { signedIn?: boolean }) {
                 prefetch
                 onTouchStart={() => prefetchRoute(item.href)}
                 onPointerEnter={() => prefetchRoute(item.href)}
-                onClick={() => handleNavClick(item.href)}
+                onClick={(event) => {
+                  // Already opening this page: ignore the extra tap so it
+                  // doesn't restart the navigation.
+                  if (openingHref === item.href) {
+                    event.preventDefault();
+                    return;
+                  }
+                  handleNavClick(item.href);
+                }}
                 aria-busy={opening}
                 className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center overflow-hidden px-0.5 text-center transition active:scale-[0.98] [touch-action:manipulation] ${
                   active
