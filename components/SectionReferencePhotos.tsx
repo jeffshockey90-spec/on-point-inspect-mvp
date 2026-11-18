@@ -806,4 +806,21 @@ function SectionReferencePhotos({
   );
 }
 
-export default memo(SectionReferencePhotos);
+// The builder passes a freshly built sectionFindings list on every render,
+// which defeated plain memo and redrew this (photo-heavy) panel on every
+// builder change. Compare it by content instead; everything else shallowly.
+function sameReferencePhotoProps(prev: any, next: any) {
+  const keys = new Set([...Object.keys(prev || {}), ...Object.keys(next || {})]);
+  for (const key of keys) {
+    if (key === "sectionFindings" || key === "availableSections") continue;
+    if (prev[key] !== next[key]) return false;
+  }
+  const sameList = (a: any[] = [], b: any[] = [], pick: (x: any) => string) =>
+    a.length === b.length && a.every((x, i) => pick(x) === pick(b[i]));
+  return (
+    sameList(prev.availableSections, next.availableSections, (x) => String(x)) &&
+    sameList(prev.sectionFindings, next.sectionFindings, (x) => `${x?.id}|${x?.title}`)
+  );
+}
+
+export default memo(SectionReferencePhotos, sameReferencePhotoProps);

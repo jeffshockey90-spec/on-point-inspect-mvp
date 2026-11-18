@@ -377,7 +377,23 @@ function EditableFinding({
       markLocalEdit();
       setRepairLabel("Saved!");
       showMessage("success", "Repair request saved.");
-      refreshKeepScroll(router);
+      // Patch the card in place (same as a finding save) instead of a full
+      // builder refresh + scroll-restore, which made the page jump.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("opi:finding-updated", {
+            detail: {
+              inspectionId: String(finding.inspection_id || ""),
+              findingId: String(finding.id || ""),
+              patch: {
+                repair_request: repairRequest,
+                repair_priority: repairPriority,
+                repair_notes: repairNotes,
+              },
+            },
+          }),
+        );
+      }
     } catch (error: any) {
       setRepairLabel("Failed");
       showMessage("error", error?.message || "Failed to save repair request.");
@@ -434,7 +450,20 @@ function EditableFinding({
       setRecommendation(data.rewritten);
       setRewriteLabel("Rewritten!");
       showMessage("success", "Finding rewritten.");
-      refreshKeepScroll(router);
+      markLocalEdit();
+      // Patch the card in place (same as a finding save) instead of a full
+      // builder refresh + scroll-restore, which made the page jump.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("opi:finding-updated", {
+            detail: {
+              inspectionId: String(finding.inspection_id || ""),
+              findingId: String(finding.id || ""),
+              patch: { recommendation: data.rewritten },
+            },
+          }),
+        );
+      }
     } catch (error: any) {
       setRewriteLabel("Failed");
       showMessage("error", error?.message || "Failed to rewrite finding.");

@@ -557,10 +557,10 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         [targetSection]: false,
       }));
 
-      // Keep the inspector's scroll position — a smooth scrollIntoView here fought
-      // refreshKeepScroll's restore and yanked the page (badly on mobile). The
-      // section is un-collapsed above so the new item is there when you look.
-      refreshKeepScroll(router);
+      // No full builder refresh: the section's limitations editor listens for
+      // this same event and reloads its own list. The old refresh re-ran the
+      // whole builder + scroll-restore on every limitation change (page jumps).
+      markLocalEdit();
     }
 
     window.addEventListener(
