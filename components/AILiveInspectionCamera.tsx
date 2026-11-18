@@ -53,7 +53,14 @@ const PhotoMarkupEditor = dynamic(() => import("./PhotoMarkupEditor"), {
 });
 import FieldFindingLinker from "./FieldFindingLinker";
 import { useCompassHeading } from "./useCompassHeading";
-import { allowRecovery, MUTED_GRACE_MS, BLACK_FRAME_CHECK_MS, CALL_INTERRUPTED_MESSAGE } from "../lib/cameraRecovery";
+import {
+  allowRecovery,
+  MUTED_GRACE_MS,
+  BLACK_FRAME_CHECK_MS,
+  CALL_INTERRUPTED_MESSAGE,
+  withMediaTimeout,
+  isStartInProgress,
+} from "../lib/cameraRecovery";
 import { StableTextarea, StableInput } from "./StableField";
 
 type Stage =
@@ -191,6 +198,11 @@ export default function AILiveInspectionCamera({
   // the preview again. Plus recent recovery attempts (lib/cameraRecovery).
   const audioBlockedRef = useRef(false);
   const recoveryAttemptsRef = useRef<number[]>([]);
+  // Frozen-preview watchdog (separate budget from the phone-call recovery).
+  const stallAttemptsRef = useRef<number[]>([]);
+  // When the current camera start began (0 = none in progress).
+  const startingSinceRef = useRef(0);
+  const manualRetriesRef = useRef(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const hardwareZoomSupportedRef = useRef(false);
@@ -591,7 +603,11 @@ export default function AILiveInspectionCamera({
     mode: "environment" | "user" = facingMode,
     deviceId?: string,
   ) {
-    if (starting) return;
+    // Read from a ref, not state: recovery timers/listeners call this through
+    // an old render's closure. A start stuck past STALE_START_MS is treated as
+    // hung so Retry can always try again.
+    if (isStartInProgress(startingSinceRef.current, Date.now())) return;
+    startingSinceRef.current = Date.now();
 
     setStarting(true);
     setCameraError("");
@@ -621,17 +637,29 @@ export default function AILiveInspectionCamera({
         setLens("wide");
       }
 
+      // Release whatever stream is still attached first — iOS may not hand the
+      // camera to a new request while an old (frozen/muted) one still holds it.
+      try {
+        streamRef.current?.getTracks?.().forEach((t) => t.stop());
+      } catch {}
+      streamRef.current = null;
+      if (videoRef.current) {
+        try {
+          videoRef.current.srcObject = null;
+        } catch {}
+      }
+
       let stream: MediaStream;
       try {
         if (audioBlockedRef.current) throw new Error("audio blocked earlier this session");
-        stream = await navigator.mediaDevices.getUserMedia({
+        stream = await withMediaTimeout(navigator.mediaDevices.getUserMedia({
           video: videoConstraints,
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
           },
-        });
+        }));
       } catch (micErr: any) {
         // On iOS a phone call (or another app) holds the microphone exclusively,
         // and because video + audio are requested together the WHOLE request
@@ -639,10 +667,12 @@ export default function AILiveInspectionCamera({
         // camera still works during a call; voice/dictation just pauses until the
         // mic is free again (the call-recovery effect re-acquires both after).
         logCam("camera:audio-busy-fallback", { msg: String(micErr?.message || micErr) });
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: videoConstraints,
-          audio: false,
-        });
+        stream = await withMediaTimeout(
+          navigator.mediaDevices.getUserMedia({
+            video: videoConstraints,
+            audio: false,
+          }),
+        );
       }
 
       streamRef.current = stream;
@@ -736,6 +766,7 @@ export default function AILiveInspectionCamera({
       logCam("camera:error", { msg: String(error?.message || error) });
       setCameraError(error?.message || "Could not start camera.");
     } finally {
+      startingSinceRef.current = 0;
       setStarting(false);
     }
   }
@@ -759,15 +790,103 @@ export default function AILiveInspectionCamera({
     await startCamera(facingMode);
   }
 
-  // Manual retry from the error card (also tries the mic again — the call may
-  // have ended).
-  async function retryCamera() {
-    recoveryAttemptsRef.current = [];
-    audioBlockedRef.current = false;
+  // ---- Frozen-preview watchdog ------------------------------------------------
+  // Sometimes (after a call, app switch, or randomly on iOS) the stream stays
+  // "live" but the picture stops updating — no mute/ended event fires, so the
+  // other recovery never runs, and only flipping the camera or reopening it
+  // helped. Every second, while a live preview is on screen, check the video is
+  // still advancing: stuck ~1.5s -> nudge play(); still stuck ~3.5s -> restart
+  // the camera (what the flip button effectively does). Rate-limited; then a
+  // Retry button instead of looping.
+  const startingNowRef = useRef(starting);
+  startingNowRef.current = starting;
+  const restartStalledRef = useRef<() => void>(() => {});
+  restartStalledRef.current = () => {
+    const gate = allowRecovery(stallAttemptsRef.current, Date.now());
+    stallAttemptsRef.current = gate.attempts;
+    logCam("camera:stalled", { allowed: gate.allowed });
+    if (!gate.allowed) {
+      setCameraError("The camera stopped responding. Tap Retry camera.");
+      return;
+    }
     try {
       streamRef.current?.getTracks?.().forEach((t) => t.stop());
     } catch {}
     streamRef.current = null;
+    void startCamera(facingMode);
+  };
+
+  useEffect(() => {
+    manualRetriesRef.current = 0;
+    if (!open) return;
+    let lastTime = -1;
+    let stuckSince = 0;
+    let nudged = false;
+    const reset = () => {
+      lastTime = -1;
+      stuckSince = 0;
+      nudged = false;
+    };
+    const id = window.setInterval(() => {
+      const video = videoRef.current;
+      const stream = streamRef.current;
+      if (
+        !video ||
+        !stream ||
+        startingNowRef.current ||
+        typeof document === "undefined" ||
+        document.visibilityState !== "visible"
+      ) {
+        reset();
+        return;
+      }
+      const now = Date.now();
+      const t = video.currentTime;
+      if (t !== lastTime) {
+        lastTime = t;
+        stuckSince = 0;
+        nudged = false;
+        return;
+      }
+      if (!stuckSince) {
+        stuckSince = now;
+        return;
+      }
+      if (!nudged && now - stuckSince >= 1500) {
+        nudged = true;
+        video.play().catch(() => undefined);
+        return;
+      }
+      if (now - stuckSince >= 3500) {
+        reset();
+        restartStalledRef.current();
+      }
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [open]);
+
+  // Manual retry from the error card (also tries the mic again — the call may
+  // have ended).
+  async function retryCamera() {
+    recoveryAttemptsRef.current = [];
+    stallAttemptsRef.current = [];
+    // A tap on Retry always gets a fresh attempt, even if an earlier start hung.
+    startingSinceRef.current = 0;
+    // First Retry also tries the mic again (the call may have ended); if that
+    // didn't bring the camera back, the next Retry goes video-only.
+    manualRetriesRef.current += 1;
+    audioBlockedRef.current = manualRetriesRef.current > 1;
+    try {
+      streamRef.current?.getTracks?.().forEach((t) => t.stop());
+    } catch {}
+    streamRef.current = null;
+    if (videoRef.current) {
+      try {
+        videoRef.current.srcObject = null;
+      } catch {}
+    }
+    // Give iOS a moment to actually release the camera before asking again.
+    await new Promise((r) => window.setTimeout(r, 300));
     await startCamera(facingMode);
   }
 
@@ -3246,7 +3365,6 @@ export default function AILiveInspectionCamera({
           <button
             type="button"
             onClick={() => void retryCamera()}
-            disabled={starting}
             className="mt-3 block w-full rounded-lg border border-red-400/50 bg-black/40 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50 [touch-action:manipulation]"
           >
             {starting ? "Starting…" : "Retry camera"}
