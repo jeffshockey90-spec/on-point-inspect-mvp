@@ -105,6 +105,7 @@ import {
   limitationCandidates,
   LIMITATION_STATUS,
 } from "../../../lib/equipmentFindings";
+import ChangeServicePanel from "../../../components/ChangeServicePanel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -3379,6 +3380,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               invoices={addOnInvoices}
               agreementSigned={addOnAgreementSigned}
               clientEmail={inspection.client_email || inspection.realtor_email || ""}
+            />
+
+            <ChangeServicePanel
+              inspectionId={String(inspection.id)}
+              currentServiceMode={(inspection as any).service_mode || null}
             />
 
             <AgreementSelector
