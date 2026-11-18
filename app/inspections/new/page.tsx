@@ -28,7 +28,6 @@ import { buildPropertyFills, writeChecklistFills } from "../../../lib/ai/checkli
 import { buildDefaultUnitRows, type UnitNaming } from "../../../lib/report/units";
 import { isAppleActive } from "../../../lib/entitlements";
 import { toPhoneDigits } from "../../../lib/phone";
-import { findingInsertRows } from "../../../lib/findingRows";
 
 declare global {
   interface Window {
@@ -121,68 +120,6 @@ const timeOptions = [
   "17:00",
 ];
 
-const DEFAULT_INSPECTION_DETAILS_FINDINGS = [
-  {
-    section: "Inspection Details",
-    title: "In Attendance",
-    observation:
-      "In attendance at the time of inspection: Client, Listing Agent, Home Owner, Client's Agent, Inspector, or Other.",
-    implication: "",
-    recommendation:
-      "Update this item as applicable to document who was present during the inspection.",
-    severity: "Informational",
-  },
-  {
-    section: "Inspection Details",
-    title: "Occupancy",
-    observation:
-      "Occupancy status at the time of inspection: Furnished, Occupied, Vacant, Utilities Off, or Other.",
-    implication: "",
-    recommendation:
-      "Update this item as applicable to document the occupancy and utility status observed during the inspection.",
-    severity: "Informational",
-  },
-  {
-    section: "Inspection Details",
-    title: "Style",
-    observation:
-      "Home style/type observed: Manufactured, Rambler, Modular, Ranch, Modern, Multi-level, Bungalow, Contemporary, Victorian, Colonial, Row House, Townhouse, or Other.",
-    implication: "",
-    recommendation:
-      "Update this item as applicable to document the observed home style.",
-    severity: "Informational",
-  },
-  {
-    section: "Inspection Details",
-    title: "Temperature",
-    observation:
-      "Approximate exterior temperature at the time of inspection should be documented.",
-    implication: "",
-    recommendation:
-      "Enter the approximate temperature observed during the inspection.",
-    severity: "Informational",
-  },
-  {
-    section: "Inspection Details",
-    title: "Type of Building",
-    observation:
-      "Building type observed: Multi-Family, Attached, Single Family, Condominium / Townhouse, Detached, or Other.",
-    implication: "",
-    recommendation:
-      "Update this item as applicable to document the building type.",
-    severity: "Informational",
-  },
-  {
-    section: "Inspection Details",
-    title: "Weather Conditions",
-    observation:
-      "Weather conditions at the time of inspection: Snow, Dry, Cloudy, Hot, Heavy Rain, Clear, Light Rain, Humid, Recent Rain, or Other.",
-    implication: "",
-    recommendation:
-      "Update this item as applicable to document weather conditions that may affect inspection visibility or limitations.",
-    severity: "Informational",
-  },
-];
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -1455,13 +1392,11 @@ function NewInspectionPageContent() {
         }
       }
 
-      // findings has NO inspector_id column (CLAUDE.md): including it 400'd this
-      // whole insert, so no new inspection ever got these default rows.
-      const defaultFindings = findingInsertRows(
-        data.id,
-        companyId,
-        DEFAULT_INSPECTION_DETAILS_FINDINGS,
-      );
+      // No placeholder "Inspection Details" findings are created any more: In
+      // Attendance / Occupancy / Style / Temperature / Type of Building / Weather
+      // are CHECKLIST fields in that section. The old placeholder findings
+      // (which listed every option) duplicated them and showed in the client's
+      // report as six Informational findings.
 
       // Auto-fill the report's Inspection Details "Style" / "Type of Building"
       // from the looked-up property data, so they're pre-filled instead of blank
@@ -1474,17 +1409,6 @@ function NewInspectionPageContent() {
         }
       } catch (fillErr) {
         console.warn("Property style/type autofill skipped:", fillErr);
-      }
-
-      const { error: defaultFindingsError } = await supabase
-        .from("findings")
-        .insert(defaultFindings);
-
-      if (defaultFindingsError) {
-        // Do not block inspection creation if the optional default inspection
-        // details findings cannot be inserted. This keeps the core scheduling
-        // and report workflow stable.
-        console.warn("Default inspection details were not inserted.");
       }
 
       const inspectionContacts = [];
