@@ -1469,24 +1469,27 @@ function FieldPageContent() {
     );
     if (!target) throw new Error("That defect could not be found.");
 
-    let firstImageUrl = "";
-    for (const file of files) {
-      const media = await uploadPhotoFile(file, "field-media");
-      const { error: photoError } = await supabase.from("photos").insert({
-        inspection_id: selectedReport,
-        finding_id: findingId,
-        public_url: media.publicUrl,
-        file_path: media.filePath,
-        is_video: Boolean(media.isVideo),
-        mime_type: media.mimeType || (media.isVideo ? "video/mp4" : null),
-        thumbnail_url: media.thumbnailUrl || null,
-        thumbnail_path: media.thumbnailPath || null,
-      });
-      if (photoError) throw photoError;
-      if (!firstImageUrl && media.publicUrl && !media.isVideo) {
-        firstImageUrl = media.publicUrl;
-      }
-    }
+    // Upload every angle at the same time (they used to go one after another,
+    // so a multi-photo attach sat on the camera for a long time).
+    const uploaded = await Promise.all(
+      files.map(async (file) => {
+        const media = await uploadPhotoFile(file, "field-media");
+        const { error: photoError } = await supabase.from("photos").insert({
+          inspection_id: selectedReport,
+          finding_id: findingId,
+          public_url: media.publicUrl,
+          file_path: media.filePath,
+          is_video: Boolean(media.isVideo),
+          mime_type: media.mimeType || (media.isVideo ? "video/mp4" : null),
+          thumbnail_url: media.thumbnailUrl || null,
+          thumbnail_path: media.thumbnailPath || null,
+        });
+        if (photoError) throw photoError;
+        return media;
+      }),
+    );
+    const firstImageUrl =
+      uploaded.find((media) => media.publicUrl && !media.isVideo)?.publicUrl || "";
 
     if (!target.image_url && firstImageUrl) {
       await supabase
@@ -1499,9 +1502,12 @@ function FieldPageContent() {
     // COMBINE: when a drafted finding is provided, AI-rewrite the existing
     // finding to cover both locations (report-builder Combine Defects behaviour).
     // Best-effort — the photos are already attached even if the rewrite fails.
+    // The photos are attached and saved. The AI rewrite that merges both
+    // write-ups is the slow part — run it in the BACKGROUND (like the report-
+    // builder camera) instead of holding the camera until the AI finishes,
+    // and refresh the lists again when it lands.
     if (draft) {
-      try {
-        await fetch("/api/findings/combine-capture", {
+      void fetch("/api/findings/combine-capture", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1521,10 +1527,13 @@ function FieldPageContent() {
               location: (draft as any).location || "",
             },
           }),
+        })
+        .then((res) => {
+          if (res.ok) setQueueTick((current) => current + 1);
+        })
+        .catch(() => {
+          /* photos are attached; rewrite is best-effort */
         });
-      } catch {
-        /* photos are attached; rewrite is best-effort */
-      }
     }
 
     setQueueTick((current) => current + 1);
