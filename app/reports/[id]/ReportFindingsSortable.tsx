@@ -546,6 +546,9 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
 
     function handleLiveLimitationAdded(event: Event) {
       const detail = (event as CustomEvent)?.detail || {};
+      // Remote change relayed by the live sync — the limitations editor
+      // reloads itself; don't expand the section or mark a local edit.
+      if (detail.quiet === true) return;
       const eventInspectionId = String(detail.inspectionId || "");
       const targetSection = String(detail.section || "");
 
