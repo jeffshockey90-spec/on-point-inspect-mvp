@@ -19,6 +19,14 @@ export function headingToCardinal(deg: number): string {
   return CARDINALS[idx];
 }
 
+function isEditingText(): boolean {
+  if (typeof document === "undefined") return false;
+  const el = document.activeElement as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === "TEXTAREA" || el.isContentEditable || (tag === "INPUT" && !/^(checkbox|radio|range|button|submit|file|color)$/i.test((el as HTMLInputElement).type || ""));
+}
+
 export function useCompassHeading() {
   const [heading, setHeading] = useState<number | null>(null);
   const [needsPermission, setNeedsPermission] = useState(false);
@@ -41,6 +49,11 @@ export function useCompassHeading() {
     if (deg == null) return;
     const rounded = Math.round(((deg % 360) + 360) % 360) % 360;
     if (lastHeadingRef.current === rounded) return; // ignore sub-degree jitter
+    // Hold compass updates while the inspector is TYPING. Every heading change
+    // re-renders the live camera, and on iPhone a screen update mid-typing
+    // cancels the keyboard's pending autocorrect — tapping the suggested word
+    // did nothing. The heading catches up on the next move after typing ends.
+    if (isEditingText()) return;
     lastHeadingRef.current = rounded;
     setHeading(rounded);
   }, []);
