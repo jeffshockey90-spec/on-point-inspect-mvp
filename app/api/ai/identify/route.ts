@@ -9,6 +9,7 @@ import {
   IDENTIFY_SEVERITIES,
 } from "../../../../lib/ai/identifyResult";
 import { BRAND_READING_RULE } from "../../../../lib/ai/brandResolver";
+import { getAIModel } from "../../../../lib/openai";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,10 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({} as any));
     const imageDataUrl: string = typeof body?.imageDataUrl === "string" ? body.imageDataUrl : "";
     const fallbackSection: string = typeof body?.section === "string" ? body.section : "Exterior";
+    // A real working-section hint (the field tool's selected section). The
+    // report-builder camera has no section of its own (it sends the report's
+    // first section, Inspection Details), so that one is not used as a hint.
+    const hintSection = fallbackSection && !/inspection details/i.test(fallbackSection) ? fallbackSection : "";
     // The report's ACTIVE sections (custom ones like "Shed" included), sent by the
     // camera. Empty → the built-in list.
     const reportSections = sanitizeSectionList(body?.availableSections);
@@ -54,6 +59,11 @@ Rules:
   - An OUTDOOR unit sitting on a pad or wall bracket with a fan, a refrigerant line set, and a compressor is the CONDENSING UNIT. A heat pump and an air-conditioner condenser look nearly identical from outside — do NOT guess between them. Read the data plate (a heat pump is labeled as such and rates both heating and cooling); if the plate is not legible, label it "outdoor condensing unit" rather than committing to heat pump vs. AC.
   - An INDOOR cabinet connected to ductwork that holds a blower and coil is the AIR HANDLER (electric / heat-pump systems) — it is NOT a "heat pump". If that indoor cabinet instead has gas or oil burners and a flue/vent pipe, it is a FURNACE. The indoor unit of a heat-pump system is an air handler; never label an indoor unit "heat pump".
 - "section": the single best report section from this list, character-for-character: ${sectionChoices.join(", ")}. Some sections may be specific to this report (e.g. "Shed", "Pool", "Detached Garage") — when the component clearly belongs to one of those, choose it over a broader section.
+- INDOOR vs OUTDOOR: decide from the surroundings before picking a section — walls, ceiling, joists, indoor lighting, stored items and utilities mean INSIDE; sky, grass, soil, siding and daylight mean OUTSIDE. Never pick "Exterior" for something photographed indoors. A concrete floor/slab with foundation walls, ceiling joists, a sump, or mechanicals around it is a basement/foundation item ("Basement, Foundation, Crawlspace & Structure" when listed); a slab with a garage door or vehicles is the garage; only a driveway, walkway, patio, or porch outdoors is "Exterior".${
+      hintSection
+        ? `\n- The inspector is currently working in the "${hintSection}" section. When the photo could belong to more than one section, choose "${hintSection}".`
+        : ""
+    }
 - "hazard": true ONLY for a WELL-KNOWN, widely-recognized inspection hazard that is identifiable from the component itself — e.g. a Federal Pacific Stab-Lok or Zinsco/Sylvania panel, a TPR valve with no discharge pipe, knob-and-tube wiring, a missing garage fire separation. Otherwise false. Never guess a hazard.
 - "hazardNote": one short clause on why it matters (general, cautious wording). Empty when hazard is false.
 - "severity": one of ${IDENTIFY_SEVERITIES.join(", ")}. Choose a CONSERVATIVE severity ONLY when a defect or hazard is visibly supported. If it's just a normal component with no visible problem, use "Informational".
@@ -66,7 +76,9 @@ Return exactly:
 {"label":"","componentType":"","section":"","hazard":false,"hazardNote":"","severity":"","confidence":0,"worthLogging":false}`;
 
     const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_VISION_MODEL || "gpt-4o-mini",
+      // Smart vision model (same as defect recognition / multi-photo organize):
+      // the small model mis-placed indoor items (a basement floor as Exterior).
+      model: getAIModel(process.env.OPENAI_VISION_MODEL),
       response_format: { type: "json_object" },
       temperature: 0.1,
       messages: [
