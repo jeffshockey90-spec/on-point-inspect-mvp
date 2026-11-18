@@ -17,8 +17,8 @@ describe("equipment note redraft", () => {
 
   it("keeps the current notes when the AI returns nothing usable", () => {
     const fallback = { condition: "a", inspector_note: "b", maintenance_note: "c" };
-    expect(parseEquipmentRedraft("not json", fallback)).toEqual({ ...fallback, relatedTitles: [], limitationRelated: false });
-    expect(parseEquipmentRedraft('{"condition":"New"}', fallback)).toEqual({ ...fallback, condition: "New", relatedTitles: [], limitationRelated: false });
+    expect(parseEquipmentRedraft("not json", fallback)).toEqual({ ...fallback, relatedTitles: [], limitationRelated: false, equipmentType: "" });
+    expect(parseEquipmentRedraft('{"condition":"New"}', fallback)).toEqual({ ...fallback, condition: "New", relatedTitles: [], limitationRelated: false, equipmentType: "" });
   });
 });
 
@@ -75,5 +75,21 @@ describe("redraft with limitations", () => {
     expect(prompt).toContain("not_fully_evaluated");
     const fallback = { condition: "", inspector_note: "", maintenance_note: "" };
     expect(parseEquipmentRedraft('{"not_fully_evaluated":true}', fallback).limitationRelated).toBe(true);
+  });
+});
+
+describe("redraft can correct the equipment type", () => {
+  it("asks the AI for a corrected type and parses it", () => {
+    const prompt = buildEquipmentRedraftPrompt({
+      item: { equipment_type: "Air Conditioner" },
+      related: [],
+      instruction: "this is a heat pump",
+    });
+    expect(prompt).toContain('comes from the scan ("Air Conditioner")');
+    expect(prompt).toContain("Never change the type because of wording in the findings");
+    expect(prompt).toContain('"equipment_type"');
+    const fallback = { condition: "", inspector_note: "", maintenance_note: "" };
+    expect(parseEquipmentRedraft('{"equipment_type":"Heat Pump"}', fallback).equipmentType).toBe("Heat Pump");
+    expect(parseEquipmentRedraft("{}", fallback).equipmentType).toBe("");
   });
 });
