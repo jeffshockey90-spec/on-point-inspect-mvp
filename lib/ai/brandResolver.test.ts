@@ -45,3 +45,24 @@ describe("resolveDaikinFamilyBrand", () => {
     expect(resolveDaikinFamilyBrand("", "GM9S960603BNAB")).toBe("");
   });
 });
+
+import { daikinFamilyBrandFromModel } from "./brandResolver";
+
+describe("Goodman-family air handlers and model-only identification", () => {
+  it("identifies an ARUF air handler as Goodman when the plate brand was misread", () => {
+    expect(daikinFamilyBrandFromModel("ARUF37C14AD")).toBe("Goodman");
+  });
+
+  it("keeps an Amana badge on a shared air-handler model", () => {
+    expect(resolveDaikinFamilyBrand("Amana", "ARUF37C14AD")).toBe("Amana");
+    expect(resolveDaikinFamilyBrand("Daikin Comfort Technologies", "ARUF37C14AD")).toBe("Goodman");
+  });
+
+  it("recognizes Goodman / Amana / Daikin model prefixes and ignores others", () => {
+    expect(daikinFamilyBrandFromModel("GSX140361")).toBe("Goodman");
+    expect(daikinFamilyBrandFromModel("ASX140361")).toBe("Amana");
+    expect(daikinFamilyBrandFromModel("DX16SA0361")).toBe("Daikin");
+    expect(daikinFamilyBrandFromModel("24ACC636A003")).toBe("");
+    expect(daikinFamilyBrandFromModel("")).toBe("");
+  });
+});
