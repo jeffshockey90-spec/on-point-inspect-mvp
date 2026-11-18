@@ -1587,6 +1587,12 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     const { error } = await admin
       .from("equipment_inventory")
       .update({
+        // The inspector corrected what the unit is (e.g. "it's a heat pump"):
+        // update the type shown above the model, not just the wording.
+        ...(notes.equipmentType &&
+        notes.equipmentType.toLowerCase() !== String(item.equipment_type || "").trim().toLowerCase()
+          ? { equipment_type: notes.equipmentType }
+          : {}),
         condition: notes.condition,
         inspector_note: notes.inspector_note,
         maintenance_note: notes.maintenance_note,
