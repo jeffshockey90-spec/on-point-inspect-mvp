@@ -1440,7 +1440,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     revalidatePath(`/reports/${inspectionId}`);
     revalidatePath(`/reports/${inspectionId}/print`);
     revalidatePath(`/share/${inspectionId}`);
-    redirect(`/reports/${inspectionId}#equipment-inventory`);
+    // No redirect: revalidating refreshes the builder IN PLACE (no navigation,
+    // no jump to #equipment-inventory, scroll position kept). The redirect used
+    // to reload the whole builder and jump the page after every equipment save.
   }
 
   async function updateEquipmentInventoryItem(formData: FormData) {
@@ -1505,7 +1507,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     revalidatePath(`/reports/${inspectionId}`);
     revalidatePath(`/reports/${inspectionId}/print`);
     revalidatePath(`/share/${inspectionId}`);
-    redirect(`/reports/${inspectionId}#equipment-inventory`);
+    // No redirect: revalidating refreshes the builder IN PLACE (no navigation,
+    // no jump to #equipment-inventory, scroll position kept). The redirect used
+    // to reload the whole builder and jump the page after every equipment save.
   }
 
 
@@ -1609,7 +1613,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     revalidatePath(`/reports/${inspectionId}`);
     revalidatePath(`/reports/${inspectionId}/print`);
     revalidatePath(`/share/${inspectionId}`);
-    redirect(`/reports/${inspectionId}#equipment-inventory`);
+    // No redirect: revalidating refreshes the builder IN PLACE (no navigation,
+    // no jump to #equipment-inventory, scroll position kept). The redirect used
+    // to reload the whole builder and jump the page after every equipment save.
   }
 
   async function publishReport(formData: FormData) {
@@ -3613,7 +3619,13 @@ Service-life information is a general industry estimate only. Actual service lif
                             Edit Equipment Note
                           </summary>
 
-                          <form action={updateEquipmentInventoryItem} className="mt-4 space-y-3">
+                          <form
+                            action={updateEquipmentInventoryItem}
+                            // Remount when the saved notes change (e.g. after "Redraft with
+                            // AI") so the boxes show the new text — they're uncontrolled.
+                            key={`${item.id}:${item.condition || ""}:${item.inspector_note || ""}:${item.maintenance_note || ""}`}
+                            className="mt-4 space-y-3"
+                          >
                             <input type="hidden" name="inspection_id" value={inspection.id} />
                             <input type="hidden" name="equipment_id" value={item.id} />
 
