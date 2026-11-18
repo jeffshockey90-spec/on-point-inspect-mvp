@@ -16,6 +16,8 @@ export type PreparedReport = {
   clientName: string;
   realtorName: string;
   inspectionDate: string;
+  // What kind of job it is, e.g. ["Home Inspection", "Radon"] (lib/inspectionTypeLabels).
+  serviceLabels?: string[];
   // "HH:MM" when known — orders same-day jobs in the "Today first" sort.
   inspectionTime?: string;
   // Extra text the search box matches: client / realtor emails and every
@@ -76,6 +78,7 @@ function matchesSearch(report: PreparedReport, query: string) {
     report.clientName,
     report.realtorName,
     report.searchText || "",
+    (report.serviceLabels || []).join(" "),
   ]
     .join(" ")
     .toLowerCase();
@@ -283,6 +286,19 @@ export default function ReportsGrid({ reports }: { reports: PreparedReport[] }) 
                 </h2>
 
                 <p className="mt-3 text-[var(--fl-muted)]">{report.cityStateZip}</p>
+
+                {(report.serviceLabels || []).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {(report.serviceLabels || []).map((label) => (
+                      <span
+                        key={label}
+                        className="rounded-full border border-cyan-400/40 bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-[var(--fl-info-text)]"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {report.isOrientation ? (

@@ -13,6 +13,7 @@ import {
   getAgreementStatsForInspection,
 } from "../../lib/inspectionStatus";
 import { fetchViewEvents } from "../../lib/viewEvents";
+import { inspectionTypeLabels } from "../../lib/inspectionTypeLabels";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -466,6 +467,7 @@ export default async function ReportsPage() {
       clientName: inspection.client_name || "N/A",
       realtorName,
       inspectionDate: inspection.inspection_date || "N/A",
+      serviceLabels: inspectionTypeLabels(inspection),
       inspectionTime: String(inspection.inspection_time || inspection.scheduled_time || "").slice(0, 5),
       // Emails + every contact (co-clients included) so the search box finds a
       // report by any client's / agent's name or email.
