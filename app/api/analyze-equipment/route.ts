@@ -13,7 +13,8 @@ import {
   LIMITATION_STATUS,
 } from "../../../lib/equipmentFindings";
 import { loadFlowWriter, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
-import { resolveDaikinFamilyBrand, BRAND_READING_RULE } from "../../../lib/ai/brandResolver";
+import { resolveDaikinFamilyBrand, daikinFamilyBrandFromModel, BRAND_READING_RULE } from "../../../lib/ai/brandResolver";
+import { pickManufactureYear } from "../../../lib/equipment/manufactureYear";
 import { sanitizeSectionList } from "../../../lib/ai/identifyResult";
 
 export const runtime = "nodejs";
@@ -143,6 +144,21 @@ function getAgeFromYear(year: number | null) {
   return age;
 }
 
+// Canonical names normalizeManufacturer() returns for brands it knows.
+const KNOWN_BRANDS = new Set(
+  [
+    "A.O. Smith", "Rheem", "Ruud", "Bradford White", "Goodman", "Amana", "Daikin", "Carrier", "Bryant",
+    "Payne", "Tempstar", "Heil", "Comfortmaker", "Arcoaire", "KeepRite", "Day & Night", "ICP", "Trane",
+    "American Standard", "Lennox", "York", "Coleman", "Luxaire", "Nordyne", "Nortek", "Intertherm",
+    "Miller", "Gibson", "Frigidaire", "Westinghouse", "Whirlpool", "GE", "Samsung", "LG", "Siemens",
+    "Square D", "Eaton", "Cutler-Hammer",
+  ].map((b) => b.toLowerCase()),
+);
+function isRecognizedBrand(normalized: string) {
+  const lower = cleanText(normalized).toLowerCase();
+  return KNOWN_BRANDS.has(lower);
+}
+
 function normalizeManufacturer(value: any) {
   const clean = cleanText(value);
   const lower = clean.toLowerCase();
@@ -198,12 +214,35 @@ function normalizeManufacturer(value: any) {
   return clean;
 }
 
+// Brands whose serial date code is a fixed, well-documented pattern (checked
+// for a valid month/week too). When one of these decodes, it beats the AI's
+// own year guess — the AI tends to read the first four digits of a serial as a
+// year (Goodman 2005xxxxxx = May 2020, not 2005).
+function hasStrictSerialDecode(manufacturer: string) {
+  const brand = cleanText(manufacturer).toLowerCase();
+  return (
+    brand.includes("goodman") ||
+    brand.includes("amana") ||
+    brand.includes("daikin") ||
+    brand.includes("a.o. smith") ||
+    brand.includes("ao smith") ||
+    brand.includes("a o smith") ||
+    brand.includes("state") ||
+    brand.includes("american water heater") ||
+    brand.includes("reliance") ||
+    brand.includes("rheem") ||
+    brand.includes("ruud")
+  );
+}
+
 function decodeManufactureYearFromSerial({
   manufacturer,
   serial,
+  allowFallback = true,
 }: {
   manufacturer: string;
   serial: string;
+  allowFallback?: boolean;
 }) {
   const brand = cleanText(manufacturer).toLowerCase();
   const cleanSerial = cleanText(serial).toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -350,6 +389,7 @@ function decodeManufactureYearFromSerial({
   // decoders run first (above), so a model/lot number that happens to contain
   // e.g. "2015" can't pre-empt a correct brand decode — this only fires when no
   // brand pattern matched.
+  if (!allowFallback) return null;
   for (let index = 0; index <= cleanSerial.length - 4; index += 1) {
     const possibleYear = yearFromFourDigitsAt(index);
     if (possibleYear) return possibleYear;
@@ -1330,14 +1370,32 @@ function enhanceAnalysis(
   // deterministic regardless of whether the vision model read the plate text or
   // the unit logo (the live-camera vs. field-tool discrepancy). See
   // lib/ai/brandResolver.
-  const manufacturer = resolveDaikinFamilyBrand(normalizedManufacturer, model);
+  // When the plate's brand text was misread into something that isn't any
+  // known brand ("Alumacool Manufacturing Company, L.P." for "Goodman
+  // Manufacturing Company, L.P."), a distinctive Goodman/Amana/Daikin model
+  // prefix (ARUF…, GSX…) identifies the family. A legible known brand is never
+  // overridden.
+  const familyFromModel = daikinFamilyBrandFromModel(model);
+  const manufacturer =
+    familyFromModel && !isRecognizedBrand(normalizedManufacturer)
+      ? familyFromModel
+      : resolveDaikinFamilyBrand(normalizedManufacturer, model);
 
-  const serialYearNumber = decodeManufactureYearFromSerial({
-    manufacturer,
-    serial: cleanText(parsed.serial),
+  const strictSerialYear = hasStrictSerialDecode(manufacturer)
+    ? decodeManufactureYearFromSerial({ manufacturer, serial: cleanText(parsed.serial), allowFallback: false })
+    : null;
+  const serialYearNumber =
+    strictSerialYear ??
+    decodeManufactureYearFromSerial({
+      manufacturer,
+      serial: cleanText(parsed.serial),
+    });
+
+  const manufactureYearNumber = pickManufactureYear({
+    strictSerialYear,
+    aiYear: getFirstYear(parsed.manufactureYear),
+    fallbackSerialYear: serialYearNumber,
   });
-
-  const manufactureYearNumber = getFirstYear(parsed.manufactureYear) ?? serialYearNumber;
   const ageFromYear = getAgeFromYear(manufactureYearNumber);
   const parsedAgeNumber = Number(cleanText(parsed.estimatedAge).replace(/[^0-9.-]/g, ""));
   const age = ageFromYear ?? (Number.isFinite(parsedAgeNumber) && parsedAgeNumber > 0 ? parsedAgeNumber : null);
@@ -1734,6 +1792,11 @@ INSPECTOR NOTE — AUTHORITATIVE ON CONDITION: When an inspector note is provide
 You are the FLOW Equipment Intelligence Engine, an expert home inspection equipment analyst and data-plate reader. Think in passes: first read all visible text, then identify logos/brand marks, then identify equipment type, model, serial, manufacture date, capacity, fuel/refrigerant, and finally cross-check the result. Be accurate and conservative, but work hard before using Unknown. Carefully read visible labels, model numbers, serial numbers, capacity codes, refrigerant markings, manufacture dates, and brand/manufacturer markings. Use known HVAC, water heater, appliance, and electrical data-plate conventions only when strongly supported by visible evidence. Never invent a serial number, model number, manufacture year, refrigerant, capacity, or fuel type. If a value cannot be confirmed or strongly inferred, use Unknown. Include confidence scores and evidence for inspector review. Keep maintenance recommendations separate from identification notes. If inspector-specific learning memory is provided, match this inspector's demonstrated wording and style in the observation/implication/recommendation/clientSummary fields without changing factual identification data.
 
 ${BRAND_READING_RULE}
+
+MANUFACTURE DATE FROM A SERIAL — use the brand's date code, never just the first four digits:
+- Goodman / Amana / Daikin: serial starts YYMM (2005388630 = May 2020, NOT 2005). Their plates say "Goodman Manufacturing Company, L.P." or "Daikin Comfort Technologies"; ARUF/ASPT/AWUF/MBR models are Goodman air handlers.
+- Rheem / Ruud: MMYY after any leading letters. A.O. Smith / State / American / Reliance: YYWW.
+- Only report a four-digit year from a serial when that brand's code actually puts a four-digit year there; otherwise leave manufactureYear blank rather than guessing.
 
 Image-narration discipline: describe the equipment/component and its condition directly, NOT the photo. Never write "in this photo", "this image shows", "pictured", or "as seen".
 

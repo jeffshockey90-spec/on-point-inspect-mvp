@@ -39,6 +39,16 @@ export function resolveDaikinFamilyBrand(
     lower.includes("amana");
   if (!isDaikinFamily) return brand;
 
+  // Air handlers / coils (ARUF, ASPT, AWUF, AEPF, AVPTC, MBR, MBVC …) are one
+  // Goodman-built product line sold under BOTH the Goodman and Amana badges, so
+  // the "A…" prefix does not mean Amana here. Keep a Goodman/Amana read as-is;
+  // a Daikin parent-company read becomes Goodman.
+  if (isSharedAirHandlerModel(model)) {
+    if (lower.includes("goodman")) return "Goodman";
+    if (lower.includes("amana")) return "Amana";
+    return "Goodman";
+  }
+
   const firstLetter = String(model || "")
     .toUpperCase()
     .replace(/[^A-Z]/g, "")
@@ -49,4 +59,35 @@ export function resolveDaikinFamilyBrand(
   if (firstLetter === "D") return "Daikin";
 
   return brand;
+}
+
+// Goodman-built air handlers / coils sold under both Goodman and Amana badges.
+const SHARED_AIR_HANDLER_PREFIXES = ["ARUF", "ARPT", "ASPT", "AWUF", "AEPF", "AVPTC", "AMVT", "MBR", "MBVC", "MBE", "CAPF", "CHPF", "CAUF", "CHPT"];
+
+// Model prefixes specific enough to identify the Goodman / Amana / Daikin family
+// on their own. Used ONLY when the brand on the plate could not be read as any
+// known brand (a misread like "Alumacool Manufacturing Company, L.P." for
+// "Goodman Manufacturing Company, L.P."), never to override a legible brand.
+const GOODMAN_PREFIXES = ["GSX", "GSZ", "GLXS", "GLZS", "GMVC", "GMVM", "GMSS", "GMEC", "GMES", "GMH", "GMS9", "GME8", "GCVC", "GCSS", "GDH", "GPG", "GPH", "GPC", "GKS", "GM9S", "GC9S", "GR9S"];
+const AMANA_PREFIXES = ["ASX", "ASZ", "ANX", "AMVC", "AMVM", "AMEC", "AMES", "AMH", "AMS8", "ACVC", "ACVM", "ADVC", "AVXC", "AVZC", "APG", "APH"];
+const DAIKIN_PREFIXES = ["DX1", "DX2", "DZ1", "DZ2", "DM9", "DM8", "DC9", "DV", "DSX", "DSZ"];
+
+function normalizedModel(model: string) {
+  return String(model || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function isSharedAirHandlerModel(model: string) {
+  const m = normalizedModel(model);
+  return SHARED_AIR_HANDLER_PREFIXES.some((p) => m.startsWith(p));
+}
+
+/** The family brand a model number alone identifies, or "" when it doesn't. */
+export function daikinFamilyBrandFromModel(model: string): string {
+  const m = normalizedModel(model);
+  if (!m) return "";
+  if (isSharedAirHandlerModel(m)) return "Goodman";
+  if (GOODMAN_PREFIXES.some((p) => m.startsWith(p))) return "Goodman";
+  if (AMANA_PREFIXES.some((p) => m.startsWith(p))) return "Amana";
+  if (DAIKIN_PREFIXES.some((p) => m.startsWith(p))) return "Daikin";
+  return "";
 }
