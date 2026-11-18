@@ -3763,11 +3763,20 @@ export default function AILiveInspectionCamera({
                       type="button"
                       disabled={saving || !attachTargetId}
                       onClick={() => void attachTrayToExisting(attachTargetId)}
-                      className="rounded-lg border border-cyan-400/60 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-300 disabled:opacity-50 [touch-action:manipulation]"
+                      aria-busy={saving}
+                      className="flex items-center gap-2 rounded-lg border border-cyan-400/60 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-300 disabled:opacity-50 [touch-action:manipulation]"
                     >
-                      Attach
+                      {saving && (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      )}
+                      {saving ? "Attaching…" : "Attach"}
                     </button>
                   </div>
+                  {saving && (
+                    <p className="mt-2 text-xs text-cyan-200/80">
+                      Uploading {shots.length > 1 ? `${shots.length} photos` : "the photo"} to that defect…
+                    </p>
+                  )}
                 </div>
               )}
 
