@@ -104,6 +104,21 @@ function SectionReferencePhotos({
     loadPhotos();
   }, [inspectionId, section]);
 
+  // Live sync: another device added/removed/moved a reference photo here.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    function onRemoteChange(event: Event) {
+      const detail = (event as CustomEvent)?.detail || {};
+      if (String(detail.inspectionId || "") !== String(inspectionId)) return;
+      const eventSection = String(detail.section || "");
+      if (eventSection && eventSection !== String(section)) return;
+      void loadPhotos();
+    }
+    window.addEventListener("opi:reference-photos-changed", onRemoteChange as EventListener);
+    return () => window.removeEventListener("opi:reference-photos-changed", onRemoteChange as EventListener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inspectionId, section]);
+
   async function loadPhotos() {
     if (!inspectionId || !section) return;
 

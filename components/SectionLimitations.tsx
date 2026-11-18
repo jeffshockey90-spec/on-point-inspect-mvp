@@ -270,6 +270,15 @@ function SectionLimitations({
       const eventInspectionId = String(detail.inspectionId || "");
       const eventSection = String(detail.section || "");
 
+      // A change from another device (live sync): reload quietly — no message,
+      // don't pop the section open. Unknown section (a delete) reloads all.
+      if (detail.quiet === true) {
+        if (eventInspectionId === String(inspectionId) && (!eventSection || eventSection === String(section))) {
+          void loadLimitations();
+        }
+        return;
+      }
+
       if (
         eventInspectionId === String(inspectionId) &&
         eventSection === String(section)
