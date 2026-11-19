@@ -37,6 +37,17 @@ body {
   overflow-x: clip;
 }
 
+/* Keep page content out of side safe areas. The iOS app uses viewport-fit=cover,
+   so the web view runs edge to edge: on the folded iPhone Duo the camera/status
+   column reports an 84pt right inset, and landscape iPhones report the notch
+   side. Without this, header buttons sit underneath it. Insets are 0 on devices
+   without side cutouts, so nothing changes there. Full-screen fixed overlays
+   (cameras, viewers) handle their own side insets. */
+html {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
 /* Branded text selection */
 ::selection {
   background: rgba(20, 200, 210, 0.28);

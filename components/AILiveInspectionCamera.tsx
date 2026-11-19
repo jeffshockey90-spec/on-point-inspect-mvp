@@ -3082,8 +3082,12 @@ export default function AILiveInspectionCamera({
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/65" />
 
       <div
-        className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 px-4"
-        style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+        className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2"
+        style={{
+          paddingTop: "max(1rem, env(safe-area-inset-top))",
+          paddingLeft: "max(1rem, env(safe-area-inset-left))",
+          paddingRight: "max(1rem, env(safe-area-inset-right))",
+        }}
       >
         <div className="flex items-center gap-2">
           <button
@@ -3306,8 +3310,11 @@ export default function AILiveInspectionCamera({
                 />
               )}
               <div
-                className="absolute right-4 z-30 flex flex-col items-end gap-2"
-                style={{ top: "calc(env(safe-area-inset-top) + 5.5rem)" }}
+                className="absolute z-30 flex flex-col items-end gap-2"
+                style={{
+                  top: "calc(env(safe-area-inset-top) + 5.5rem)",
+                  right: "max(1rem, env(safe-area-inset-right))",
+                }}
               >
                 <button
                   type="button"

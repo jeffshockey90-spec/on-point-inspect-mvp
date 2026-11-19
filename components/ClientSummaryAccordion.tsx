@@ -503,7 +503,7 @@ function CompactSummaryCard({
                 setVideoOpen(false);
               }}
               aria-label="Close video"
-              className="fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-[var(--fl-surface-2)] text-2xl font-semibold text-[var(--fl-text)] active:scale-95"
+              className="fixed right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-[var(--fl-surface-2)] text-2xl font-semibold text-[var(--fl-text)] active:scale-95"
             >
               ×
             </button>

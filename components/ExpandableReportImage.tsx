@@ -96,7 +96,7 @@ function ExpandableReportImage({
             <button
               type="button"
               aria-label="Close expanded image"
-              className="fixed right-4 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] z-[2147483647] min-h-12 rounded-full border border-white/30 bg-[var(--fl-surface-2)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] shadow-xl active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
+              className="fixed right-[max(1rem,env(safe-area-inset-right))] top-[calc(env(safe-area-inset-top,0px)+0.75rem)] z-[2147483647] min-h-12 rounded-full border border-white/30 bg-[var(--fl-surface-2)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] shadow-xl active:scale-[0.98] active:opacity-80 [touch-action:manipulation]"
               onClick={(event) => {
                 event.stopPropagation();
                 setExpanded(false);
