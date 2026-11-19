@@ -3069,6 +3069,19 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   .filter(Boolean)
                   .join("  ·  ") || "No client on file"}
               </p>
+              {/* Report progress at a glance (also in the workspace card). */}
+              <a
+                href="#report-findings"
+                className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-semibold [touch-action:manipulation]"
+              >
+                <span className="text-[var(--fl-accent-text)]">{inspectionProgressPercent}% complete</span>
+                <span className="text-[var(--fl-faint)]">·</span>
+                <span className="text-[var(--fl-text)]">{findings.length} items</span>
+                <span className="text-[var(--fl-faint)]">·</span>
+                <span className="text-[var(--fl-text)]">{photosWithUrls.length + referencePhotoCount} media</span>
+                <span className="text-[var(--fl-faint)]">·</span>
+                <span className="text-[var(--fl-crit-text)]">{defectTotals.safety} safety</span>
+              </a>
             </div>
             {/* Job status strip: tap a chip to jump to where it's fixed. */}
             <JobStatusStrip chips={jobStatus.chips} next={jobStatus.next} />
