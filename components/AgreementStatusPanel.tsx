@@ -6,6 +6,7 @@ import { findReplacedAgreementForContact } from "../lib/agreementReplacement";
 import { describeSmsOutcome } from "../lib/smsOutcome";
 import { flowAlert, flowConfirm } from "./ConfirmProvider";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 function Badge({
@@ -96,6 +97,35 @@ export default function AgreementStatusPanel({
     void loadContacts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inspectionId]);
+
+  const router = useRouter();
+  const [resigning, setResigning] = useState(false);
+  async function requireNewSignature() {
+    const ok = await flowConfirm({
+      title: "Require a new signature?",
+      message:
+        "The client's current signature will no longer count (it stays in the history as replaced). They'll need to sign the agreement that's on this job now. Use this when the agreement changed after they signed.",
+      confirmText: "Require new signature",
+    });
+    if (!ok) return;
+    setResigning(true);
+    try {
+      const res = await fetch("/api/agreements/require-resign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inspectionId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Couldn't clear the signature.");
+      await loadContacts();
+      router.refresh();
+      await flowAlert("Done. Send the client the agreement to sign — use Remind All below.");
+    } catch (error: any) {
+      await flowAlert(error?.message || "Couldn't clear the signature.");
+    } finally {
+      setResigning(false);
+    }
+  }
 
   async function loadContacts() {
     if (!inspectionId) return;
@@ -416,6 +446,18 @@ export default function AgreementStatusPanel({
                   {sendingReminder === "all" ? "Sending..." : "Remind All"}
                 </button>
               )}
+
+            {/* The agreement was changed after the client signed: make them sign the current one. */}
+            {!waiver.agreement_waived && requiredContacts.some((contact) => Boolean(contact.agreement_signed)) && (
+              <button
+                type="button"
+                onClick={() => void requireNewSignature()}
+                disabled={resigning || waiverBusy}
+                className="w-full rounded-2xl border border-orange-500/70 bg-orange-500/10 px-5 py-3 text-sm font-semibold text-[var(--fl-warn-text)] transition hover:bg-orange-500/20 disabled:opacity-50 sm:w-auto [touch-action:manipulation]"
+              >
+                {resigning ? "Clearing…" : "Require New Signature"}
+              </button>
+            )}
 
             {!waiver.agreement_waived && (
               <button

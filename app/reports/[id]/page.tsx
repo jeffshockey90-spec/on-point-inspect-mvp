@@ -3379,6 +3379,23 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             </div>
 
             <div id="agreement-status" data-command-target="agreement-status">
+            {/* Most-used first: who has signed, which agreement is on the job,
+                the service; then add-on services and the body editor. */}
+            <AgreementStatusPanel inspectionId={String(inspection.id)} />
+
+            <AgreementSelector
+              inspectionId={String(inspection.id)}
+              initialAgreementState={inspection.agreement_state}
+              initialAgreementTemplateId={inspection.agreement_template_id}
+              initialAgreementTemplateIds={inspection.agreement_template_ids}
+              propertyState={inspection.state}
+            />
+
+            <ChangeServicePanel
+              inspectionId={String(inspection.id)}
+              currentServiceMode={(inspection as any).service_mode || null}
+            />
+
             <AddServicePanel
               inspectionId={String(inspection.id)}
               propertyState={inspection.state}
@@ -3396,22 +3413,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               clientEmail={inspection.client_email || inspection.realtor_email || ""}
             />
 
-            <ChangeServicePanel
-              inspectionId={String(inspection.id)}
-              currentServiceMode={(inspection as any).service_mode || null}
-            />
-
-            <AgreementSelector
-              inspectionId={String(inspection.id)}
-              initialAgreementState={inspection.agreement_state}
-              initialAgreementTemplateId={inspection.agreement_template_id}
-              initialAgreementTemplateIds={inspection.agreement_template_ids}
-              propertyState={inspection.state}
-            />
-
             <AgreementBodyEditor inspectionId={String(inspection.id)} />
-
-            <AgreementStatusPanel inspectionId={String(inspection.id)} />
 
             {socialReleaseEnabled && (
               <div
