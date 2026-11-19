@@ -7,8 +7,9 @@ import {
   MD_DISCLOSURE_FONT_SIZE,
   MD_REPORT_DISCLOSURE_STATEMENTS,
   marylandLicenseFor,
-  needsMarylandDisclosure,
+  marylandReportNotice,
 } from "../lib/report/marylandDisclosure";
+import { MD_WALKTHROUGH_NOTICE } from "../lib/report/serviceScope";
 
 const bold14 = { fontSize: MD_DISCLOSURE_FONT_SIZE, fontWeight: 700, lineHeight: 1.35 } as const;
 
@@ -26,7 +27,23 @@ export default function MarylandReportDisclosure({
   /** "print" = black on white for the printable report; "theme" follows the app theme. */
   tone?: "theme" | "print";
 }) {
-  if (!needsMarylandDisclosure(inspection)) return null;
+  const kind = marylandReportNotice(inspection);
+  if (!kind) return null;
+  const boxTone =
+    tone === "print"
+      ? "border-slate-900 bg-white text-slate-950"
+      : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)]";
+  // Maryland walkthrough = a consultation, not a home inspection.
+  if (kind === "walkthrough") {
+    return (
+      <section
+        aria-label="Walkthrough consultation notice"
+        className={`md-walkthrough-notice rounded-2xl border-2 p-6 font-bold leading-7 ${boxTone} ${className}`}
+      >
+        {MD_WALKTHROUGH_NOTICE}
+      </section>
+    );
+  }
   const license = marylandLicenseFor(company, fallbackLicense);
   return (
     <section

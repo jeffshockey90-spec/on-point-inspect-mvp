@@ -1,3 +1,7 @@
+import ReportScopeSection from "../../../components/ReportScopeSection";
+import { reportScopeFor, reportTitleFor } from "../../../lib/report/serviceScope";
+import { inspectionStateCode } from "../../../lib/report/marylandDisclosure";
+import { loadEffectivePricing } from "../../../lib/bookingPrice";
 import MarylandReportDisclosure from "../../../components/MarylandReportDisclosure";
 import Link from "next/link";
 import {
@@ -1756,6 +1760,17 @@ export default async function PublicSharePage({
   const { data: standardsCompany } = await companyQuery;
   // Same company row — its Maryland license number goes in the MD disclosure.
   const mdDisclosureCompany = standardsCompany;
+  // Limited-scope jobs: what was / wasn't inspected (inspector's service settings).
+  let reportScope = reportScopeFor(null, inspection);
+  if (inspection?.inspector_id) {
+    try {
+      reportScope = reportScopeFor(await loadEffectivePricing(supabase, String(inspection.inspector_id)), inspection);
+    } catch {
+      /* keep the name-based default */
+    }
+  }
+  // A Maryland walkthrough is a consultation, not a home inspection.
+  const reportTitle = reportTitleFor(inspection, inspectionStateCode(inspection), "Residential Home Inspection Report");
 
   const standardsOfPractice = getCompanyStandards(standardsCompany);
   const showStandardsInShare = shouldShowStandardsInShare(standardsCompany);
@@ -2184,7 +2199,7 @@ export default async function PublicSharePage({
               </p>
 
               <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[var(--fl-text)] md:text-6xl">
-                Residential Home Inspection Report
+                {reportTitle}
               </h1>
 
               <p className="mt-4 max-w-3xl text-lg font-semibold leading-8 text-[var(--fl-text)]">
@@ -2763,6 +2778,8 @@ export default async function PublicSharePage({
             company={mdDisclosureCompany}
             className="mt-8"
           />
+
+          <ReportScopeSection scope={reportScope} className="mt-8" />
 
           <details className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6">
             <summary className="cursor-pointer list-none">

@@ -55,6 +55,11 @@ export type PricingService = {
   multiUnitSqftLimit?: number;
   multiUnitIncrementPrice?: number;
   multiUnitIncrementSqftBlock?: number;
+
+  // Limited-scope services (e.g. Mechanical & Structural): what the report's
+  // "Scope of This Inspection" section lists as inspected / not inspected.
+  // One item per line. Maryland requires a limited-scope report to state both.
+  reportScope?: { included?: string; excluded?: string };
 };
 
 export type InspectorPricingConfig = {
