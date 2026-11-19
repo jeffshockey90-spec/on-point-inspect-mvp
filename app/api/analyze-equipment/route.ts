@@ -15,6 +15,7 @@ import {
 import { loadFlowWriter, FLOW_SEVERITIES } from "../../../lib/ai/flowWriter";
 import { resolveDaikinFamilyBrand, daikinFamilyBrandFromModel, BRAND_READING_RULE } from "../../../lib/ai/brandResolver";
 import { pickManufactureYear } from "../../../lib/equipment/manufactureYear";
+import { getPlateReaderModel, hasPlateData, mergePlateRead, readDataPlate } from "../../../lib/ai/plateReader";
 import { sanitizeSectionList } from "../../../lib/ai/identifyResult";
 
 export const runtime = "nodejs";
@@ -1980,6 +1981,18 @@ Rules:
 - crossChecks should explain consistency checks, conflicts, or why a decoded value was preferred.
     `;
 
+    // Dedicated data-plate read on the smart vision model at full detail, run
+    // in PARALLEL with the main call (no added wait). Its identification
+    // values override the main call's below. Never throws.
+    const plateImages = imageFiles.map((image, index) => {
+      const imageUrl = (imageContent[index] as any)?.image_url?.url || "";
+      return { mimeType: image.type || "image/jpeg", base64: imageUrl.split(",")[1] || "" };
+    });
+    const plateReadPromise = readDataPlate({
+      images: plateImages,
+      model: getPlateReaderModel(getAIModel(process.env.OPENAI_VISION_MODEL)),
+    });
+
     const brainResult = await inspectionBrain.run({
       task: "equipment",
       systemPrompt,
@@ -2014,6 +2027,11 @@ Rules:
         error: "AI did not return valid JSON",
         raw: text,
       };
+    }
+
+    const plateRead = await plateReadPromise;
+    if (!parsed?.error && hasPlateData(plateRead)) {
+      parsed = mergePlateRead(parsed || {}, plateRead);
     }
 
     const enhanced = parsed?.error ? parsed : enhanceAnalysis(parsed || {}, imageFiles.length, inspectorNote, {
