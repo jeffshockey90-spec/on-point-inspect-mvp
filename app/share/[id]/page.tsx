@@ -1,3 +1,4 @@
+import MarylandReportDisclosure from "../../../components/MarylandReportDisclosure";
 import Link from "next/link";
 import {
   isKnownEquipmentValue,
@@ -1753,6 +1754,8 @@ export default async function PublicSharePage({
   }
 
   const { data: standardsCompany } = await companyQuery;
+  // Same company row — its Maryland license number goes in the MD disclosure.
+  const mdDisclosureCompany = standardsCompany;
 
   const standardsOfPractice = getCompanyStandards(standardsCompany);
   const showStandardsInShare = shouldShowStandardsInShare(standardsCompany);
@@ -2754,6 +2757,12 @@ export default async function PublicSharePage({
               </div>
             </section>
           )}
+
+          <MarylandReportDisclosure
+            inspection={inspection}
+            company={mdDisclosureCompany}
+            className="mt-8"
+          />
 
           <details className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6">
             <summary className="cursor-pointer list-none">

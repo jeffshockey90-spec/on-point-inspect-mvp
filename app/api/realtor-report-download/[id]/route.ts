@@ -18,6 +18,7 @@ import QRCode from "qrcode";
 import { randomUUID, createHash } from "crypto";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
+import { marylandDisclosureHtml, marylandLicenseFor, needsMarylandDisclosure } from "../../../../lib/report/marylandDisclosure";
 import { normalizeSection } from "../../../../lib/report/normalizeSection";
 import { checklistRowDisplay } from "../../../../lib/report/checklist";
 import {
@@ -933,6 +934,19 @@ async function loadCompanyBranding(admin: any, inspection: any, fallbackEmail = 
   };
 }
 
+// Maryland reports only (Md. Bus. Occ. & Prof. § 16-4A-01(a)(4)): the four
+// required statements in 14-point bold, with the inspector's MD license, on
+// their own page right after the cover. Empty for every other state.
+function buildMarylandDisclosurePageHtml(inspection: any, branding: any) {
+  if (!needsMarylandDisclosure(inspection)) return "";
+  const license = marylandLicenseFor(branding?.company, branding?.licenseInfo);
+  return `
+    <section class="page md-disclosure-page">
+      ${marylandDisclosureHtml(license)}
+    </section>
+  `;
+}
+
 function buildLogoHtml(branding: any, variant: "cover" | "header" = "header") {
   const logoUrl = cleanText(branding?.logoUrl);
 
@@ -1076,6 +1090,7 @@ function buildAgentReportHtml({
 }) {
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
+  const mdDisclosurePageHtml = buildMarylandDisclosurePageHtml(inspection, branding);
 
   // ---------------------------------------------------------------------
   // Limited Repair Re-Inspection page.
@@ -2020,6 +2035,8 @@ function buildAgentReportHtml({
       </footer>
     </section>
 
+    ${mdDisclosurePageHtml}
+
     ${isReinspection ? `
     <section class="page">
       <header class="page-header">
@@ -2166,6 +2183,7 @@ function buildPriorityReportHtml({
 }) {
   const isSummary = mode === "summary";
   const property = getPropertyAddress(inspection);
+  const mdDisclosurePageHtml = buildMarylandDisclosurePageHtml(inspection, branding);
   const clientName = inspection.client_name || inspection.client || "N/A";
   const inspectionDate = formatDate(inspection.inspection_date || inspection.scheduled_date || inspection.created_at);
   const inspectorName = inspection.inspector_name || inspection.inspector || "Inspector";
@@ -2445,6 +2463,7 @@ function buildPriorityReportHtml({
         <div class="detail-card"><span>Inspector</span><strong>${escapeHtml(inspectorName)}</strong></div>
       </div>${coverQrHtml}
     </section>
+${mdDisclosurePageHtml}
 ${isSummary ? summaryPagesHtml : `
     <section class="page report-page">
       <header class="page-header">

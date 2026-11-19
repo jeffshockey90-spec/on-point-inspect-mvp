@@ -1,3 +1,4 @@
+import MarylandReportDisclosure from "../../../../components/MarylandReportDisclosure";
 import { redirect } from "next/navigation";
 import {
   isKnownEquipmentValue,
@@ -1002,6 +1003,13 @@ export default async function PrintableReportPage({ params }: PageProps) {
               }`}
             />
           </div>
+
+          <MarylandReportDisclosure
+            inspection={inspection}
+            company={{ license_info: branding.licenseInfo, state_licenses: branding.stateLicenses }}
+            tone="print"
+            className="mx-8 mb-8"
+          />
 
           <div className="mx-8 mb-8 rounded-2xl border border-slate-300 bg-slate-50 p-6">
             <h2 className="text-2xl font-black text-slate-950">
