@@ -80,10 +80,11 @@ const ownerNavItem = {
 // sidebar shortcut into the same tabs; clicking one just updates the URL
 // hash, which ReportBuilderSectionTabs already listens for.
 const REPORT_SECTION_LINKS = [
-  { key: "disclaimers", label: "Disclaimers", anchorId: "report-disclaimers" },
+  { key: "client", label: "Client & Contacts", anchorId: "client-contacts" },
   { key: "agreement", label: "Agreement", anchorId: "agreement-status" },
   { key: "payment", label: "Payment", anchorId: "payment-invoice" },
-  { key: "delivery", label: "Delivery Guard", anchorId: "report-delivery-guard" },
+  { key: "delivery", label: "Delivery", anchorId: "report-delivery-guard" },
+  { key: "disclaimers", label: "Disclaimers", anchorId: "report-disclaimers" },
   { key: "defects", label: "Defect Totals", anchorId: "defect-totals" },
   { key: "equipment", label: "Equipment", anchorId: "equipment-inventory" },
 ];

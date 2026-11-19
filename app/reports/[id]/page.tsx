@@ -3029,10 +3029,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   });
 
   const reportSectionTabs = [
-    { key: "disclaimers", label: "Disclaimers", anchorId: "report-disclaimers" },
+    { key: "client", label: "Client & Contacts", anchorId: "client-contacts" },
     { key: "agreement", label: "Agreement", anchorId: "agreement-status" },
     { key: "payment", label: "Payment", anchorId: "payment-invoice" },
-    { key: "delivery", label: "Delivery Guard", anchorId: "report-delivery-guard" },
+    { key: "delivery", label: "Delivery", anchorId: "report-delivery-guard" },
+    { key: "disclaimers", label: "Disclaimers", anchorId: "report-disclaimers" },
     { key: "defects", label: "Defect Totals", anchorId: "defect-totals" },
     ...(equipmentInventory.length > 0
       ? [{ key: "equipment", label: "Equipment", anchorId: "equipment-inventory" }]
@@ -3437,6 +3438,197 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
           {/* Job panel (agreement, payment, delivery…) sits after the findings. */}
           <ReportBuilderSectionTabs tabs={reportSectionTabs}>
+            {/* Client & Contacts: who's on the job and the property details. */}
+            <div id="client-contacts" data-command-target="client-contacts" className="space-y-4">
+          <InspectionContactsManager
+            inspectionId={String(inspection.id)}
+            defaultClientName={inspection.client_name}
+            defaultClientEmail={inspection.client_email}
+            defaultRealtorName={inspection.realtor_name}
+            defaultRealtorEmail={
+              inspection.realtor_email || inspection.agent_email
+            }
+          />
+          <CollapsibleReportSection
+            title="Inspection Details"
+            subtitle="Property, client, realtor & inspection dates"
+            defaultOpen={Boolean(detailsUpdated)}
+          >
+          <form action={updateInspectionDetails}>
+            <input type="hidden" name="inspection_id" value={inspection.id} />
+
+            <div className="mb-6 flex items-center justify-end gap-4">
+              <PendingSubmitButton
+                className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
+                pendingLabel="Saving..."
+              >
+                Save Inspection Details
+              </PendingSubmitButton>
+            </div>
+
+            {detailsUpdated && (
+              <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-good-text)]">
+                Inspection details saved.
+              </div>
+            )}
+
+            {detailsUpdateError && (
+              <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
+                Couldn&apos;t save inspection details. Please try again.
+              </div>
+            )}
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <h3 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">
+                  Inspection Information
+                </h3>
+
+                <EditItem
+                  label="Property Address"
+                  name="address"
+                  value={inspection.address}
+                />
+                <EditItem
+                  label="Client Name"
+                  name="client_name"
+                  value={inspection.client_name}
+                />
+                <EditItem
+                  label="Client Email"
+                  name="client_email"
+                  value={inspection.client_email}
+                />
+                <EditItem
+                  label="Client Phone"
+                  name="client_phone"
+                  value={inspection.client_phone}
+                  type="tel"
+                />
+                <EditItem
+                  label="Business/Organization (if hiring on behalf of one)"
+                  name="client_organization_name"
+                  value={inspection.client_organization_name}
+                />
+                <EditItem
+                  label="Realtor"
+                  name="realtor_name"
+                  value={inspection.realtor_name}
+                />
+                <EditItem
+                  label="Realtor Email"
+                  name="realtor_email"
+                  value={inspection.realtor_email || inspection.agent_email}
+                  type="email"
+                />
+                <EditItem
+                  label="Realtor Phone"
+                  name="realtor_phone"
+                  value={inspection.realtor_phone}
+                  type="tel"
+                />
+                <SaveAgentButton
+                  name={inspection.realtor_name}
+                  email={inspection.realtor_email || inspection.agent_email}
+                  phone={inspection.realtor_phone}
+                />
+                <EditItem
+                  label="Inspection Date"
+                  name="inspection_date"
+                  value={inspection.inspection_date}
+                  type="date"
+                />
+                <EditItem
+                  label="Inspection Time"
+                  name="inspection_time"
+                  value={inspection.inspection_time}
+                  type="time"
+                />
+              </div>
+
+              <div>
+                <h3 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">
+                  Property / Site Information
+                </h3>
+
+                <EditItem
+                  label="Square Feet"
+                  name="square_feet"
+                  value={inspection.square_feet}
+                />
+                <EditItem
+                  label="Year Built"
+                  name="year_built"
+                  value={inspection.year_built}
+                />
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <EditItem label="City" name="city" value={inspection.city} />
+                  <EditItem
+                    label="State"
+                    name="state"
+                    value={inspection.state}
+                  />
+                  <EditItem label="Zip" name="zip" value={inspection.zip} />
+                </div>
+
+                <div className="mt-4">
+                  <label className="mb-1 block text-sm font-bold text-[var(--fl-muted)]">
+                    Inspection Notes (internal)
+                  </label>
+                  <textarea
+                    name="notes"
+                    defaultValue={inspection.notes || ""}
+                    rows={4}
+                    placeholder="Not entered"
+                    className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
+                  />
+                </div>
+              </div>
+            </div>
+          </form>
+          </CollapsibleReportSection>
+          <CollapsibleReportSection
+            title="Property Photo"
+            subtitle={propertyPhoto ? "Photo saved" : "No photo saved yet"}
+            defaultOpen={Boolean(propertyPhotoUpdated || propertyPhotoError)}
+            accentClassName="border-[var(--fl-line)] text-[var(--fl-text)]"
+          >
+          <section className="mb-6 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
+            {propertyPhotoUpdated && (
+              <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-good-text)]">
+                Property photo updated.
+              </div>
+            )}
+
+            {propertyPhotoError && (
+              <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
+                {getPropertyPhotoErrorMessage(propertyPhotoError)}
+              </div>
+            )}
+
+            {propertyPhoto ? (
+              <img
+                src={propertyPhoto}
+                alt="Property"
+                loading="lazy"
+                decoding="async"
+                className="h-56 w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-56 items-center justify-center bg-[var(--fl-ground)] px-4 text-center text-sm font-bold text-[var(--fl-muted)]">
+                No property photo saved yet.
+              </div>
+            )}
+
+            <PropertyPhotoUploader
+              inspectionId={String(inspection.id)}
+              returnTo={`/reports/${inspection.id}`}
+            />
+          </section>
+          </CollapsibleReportSection>
+            </div>
+
             <div id="report-disclaimers" data-command-target="report-disclaimers" className="mb-8">
               <ReportDisclaimers inspectionId={String(inspection.id)} />
             </div>
@@ -3458,6 +3650,78 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               inspectionId={String(inspection.id)}
               currentServiceMode={(inspection as any).service_mode || null}
             />
+
+          <CollapsibleReportSection
+            title="Signed Agreements"
+            subtitle={`${signedAgreements.length} signed`}
+            defaultOpen={false}
+            accentClassName="border-emerald-500/40 text-[var(--fl-good-text)]"
+          >
+          <section className="mb-6 rounded-2xl border border-emerald-500/40 bg-[var(--fl-surface-2)] p-4 shadow-xl">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-[var(--fl-good-text)]">
+                  Signed Agreements
+                </h2>
+
+                <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
+                  View, print, or save a PDF copy of each signed client/co-buyer agreement.
+                </p>
+              </div>
+
+              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">
+                {signedAgreements.length} Signed
+              </span>
+            </div>
+
+            {signedAgreements.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
+                No signed agreements saved yet. Once a client or co-buyer signs, their signed copy will appear here.
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-3">
+                {signedAgreements.map((agreement: any) => (
+                  <article
+                    key={agreement.id}
+                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="break-words text-base font-semibold text-[var(--fl-text)]">
+                          {agreement.client_name || "Signed Client"}
+                        </p>
+
+                        <p className="mt-1 break-all text-sm text-[var(--fl-muted)]">
+                          {agreement.client_email || "No email saved"}
+                        </p>
+
+                        <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--fl-good-text)]">
+                          {agreement.signature_role || "client"} • Signed {formatEmailStatusDate(agreement.signed_at)}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-2 sm:min-w-[220px]">
+                        <FastLinkButton
+                          href={`/reports/${inspection.id}/signed-agreement/${agreement.id}`}
+                          loadingText="Opening Signed Agreement..."
+                          className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-good-text)] hover:bg-emerald-500 hover:text-slate-950"
+                        >
+                          View / Save Copy
+                        </FastLinkButton>
+
+                        <SendSignedAgreementButton
+                          inspectionId={inspection.id}
+                          agreementId={agreement.id}
+                          clientEmail={agreement.client_email}
+                        />
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+          </CollapsibleReportSection>
 
             <AddServicePanel
               inspectionId={String(inspection.id)}
@@ -3525,9 +3789,59 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
             <div id="report-delivery-guard" data-command-target="report-delivery-guard">
             <ReportDeliveryGuard inspectionId={String(inspection.id)} currency={companyCurrency} />
-            </div>
 
             <HomeownerPortalLink token={reportDownloadId} />
+          <CollapsibleReportSection
+            title="Email Delivery"
+            subtitle="Email the report, resend the confirmation, send a W9"
+            defaultOpen={false}
+            accentClassName="border-teal-500/40 text-[var(--fl-accent-text)]"
+          >
+          {!noReportToSend && (
+            <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+              <h2 className="mb-4 text-2xl font-bold text-[var(--fl-accent-text)]">
+                Email Report
+              </h2>
+
+              <SendReportEmailButtons
+                inspectionId={String(inspection.id)}
+                clientEmail={inspection.client_email}
+                realtorEmail={inspection.realtor_email || inspection.agent_email}
+              />
+            </div>
+          )}
+
+          <div className="mb-8">
+            <ResendConfirmationButton inspectionId={String(inspection.id)} />
+          </div>
+
+          <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+            <h2 className="mb-4 text-2xl font-bold text-[var(--fl-warn-text)]">
+              Email W9 Form
+            </h2>
+
+            <SendW9Button inspectionId={String(inspection.id)} />
+          </div>
+
+          </CollapsibleReportSection>
+          {(hasMoldService || hasRadonService) && (
+            <CollapsibleReportSection
+              title="Environmental Testing"
+              subtitle="Mold/radon test details and the lab report link shown on the client report"
+              defaultOpen={false}
+              accentClassName="border-purple-500/40 text-[var(--fl-purple-text)]"
+            >
+              <EnvironmentalTestPanel
+                inspectionId={String(inspection.id)}
+                hasMold={hasMoldService}
+                hasRadon={hasRadonService}
+                moldTest={moldTestForPanel}
+                radonTest={radonTestForPanel}
+              />
+            </CollapsibleReportSection>
+          )}
+            </div>
+
 
             <section id="defect-totals" className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <div className="mb-4">
@@ -4677,317 +4991,10 @@ Service-life information is a general industry estimate only. Actual service lif
           </section>
           </CollapsibleReportSection>
 
-          <CollapsibleReportSection
-            title="Contacts & Email Delivery"
-            subtitle="Send the report and manage client/realtor contact info"
-            defaultOpen={false}
-            accentClassName="border-teal-500/40 text-[var(--fl-accent-text)]"
-          >
-          {!noReportToSend && (
-            <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-              <h2 className="mb-4 text-2xl font-bold text-[var(--fl-accent-text)]">
-                Email Report
-              </h2>
 
-              <SendReportEmailButtons
-                inspectionId={String(inspection.id)}
-                clientEmail={inspection.client_email}
-                realtorEmail={inspection.realtor_email || inspection.agent_email}
-              />
-            </div>
-          )}
 
-          <div className="mb-8">
-            <ResendConfirmationButton inspectionId={String(inspection.id)} />
-          </div>
 
-          <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-            <h2 className="mb-4 text-2xl font-bold text-[var(--fl-warn-text)]">
-              Email W9 Form
-            </h2>
 
-            <SendW9Button inspectionId={String(inspection.id)} />
-          </div>
-
-          <InspectionContactsManager
-            inspectionId={String(inspection.id)}
-            defaultClientName={inspection.client_name}
-            defaultClientEmail={inspection.client_email}
-            defaultRealtorName={inspection.realtor_name}
-            defaultRealtorEmail={
-              inspection.realtor_email || inspection.agent_email
-            }
-          />
-          </CollapsibleReportSection>
-
-          {(hasMoldService || hasRadonService) && (
-            <CollapsibleReportSection
-              title="Environmental Testing"
-              subtitle="Mold/radon test details and the lab report link shown on the client report"
-              defaultOpen={false}
-              accentClassName="border-purple-500/40 text-[var(--fl-purple-text)]"
-            >
-              <EnvironmentalTestPanel
-                inspectionId={String(inspection.id)}
-                hasMold={hasMoldService}
-                hasRadon={hasRadonService}
-                moldTest={moldTestForPanel}
-                radonTest={radonTestForPanel}
-              />
-            </CollapsibleReportSection>
-          )}
-
-          <CollapsibleReportSection
-            title="Signed Agreements"
-            subtitle={`${signedAgreements.length} signed`}
-            defaultOpen={false}
-            accentClassName="border-emerald-500/40 text-[var(--fl-good-text)]"
-          >
-          <section className="mb-6 rounded-2xl border border-emerald-500/40 bg-[var(--fl-surface-2)] p-4 shadow-xl">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-[var(--fl-good-text)]">
-                  Signed Agreements
-                </h2>
-
-                <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
-                  View, print, or save a PDF copy of each signed client/co-buyer agreement.
-                </p>
-              </div>
-
-              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-good-text)]">
-                {signedAgreements.length} Signed
-              </span>
-            </div>
-
-            {signedAgreements.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-6 text-[var(--fl-muted)]">
-                No signed agreements saved yet. Once a client or co-buyer signs, their signed copy will appear here.
-              </div>
-            ) : (
-              <div className="mt-4 grid gap-3">
-                {signedAgreements.map((agreement: any) => (
-                  <article
-                    key={agreement.id}
-                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="break-words text-base font-semibold text-[var(--fl-text)]">
-                          {agreement.client_name || "Signed Client"}
-                        </p>
-
-                        <p className="mt-1 break-all text-sm text-[var(--fl-muted)]">
-                          {agreement.client_email || "No email saved"}
-                        </p>
-
-                        <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--fl-good-text)]">
-                          {agreement.signature_role || "client"} • Signed {formatEmailStatusDate(agreement.signed_at)}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col gap-2 sm:min-w-[220px]">
-                        <FastLinkButton
-                          href={`/reports/${inspection.id}/signed-agreement/${agreement.id}`}
-                          loadingText="Opening Signed Agreement..."
-                          className="rounded-xl border border-emerald-500 bg-emerald-500/10 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-good-text)] hover:bg-emerald-500 hover:text-slate-950"
-                        >
-                          View / Save Copy
-                        </FastLinkButton>
-
-                        <SendSignedAgreementButton
-                          inspectionId={inspection.id}
-                          agreementId={agreement.id}
-                          clientEmail={agreement.client_email}
-                        />
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-          </CollapsibleReportSection>
-
-          <CollapsibleReportSection
-            title="Property Photo"
-            subtitle={propertyPhoto ? "Photo saved" : "No photo saved yet"}
-            defaultOpen={Boolean(propertyPhotoUpdated || propertyPhotoError)}
-            accentClassName="border-[var(--fl-line)] text-[var(--fl-text)]"
-          >
-          <section className="mb-6 overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)]">
-            {propertyPhotoUpdated && (
-              <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-good-text)]">
-                Property photo updated.
-              </div>
-            )}
-
-            {propertyPhotoError && (
-              <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
-                {getPropertyPhotoErrorMessage(propertyPhotoError)}
-              </div>
-            )}
-
-            {propertyPhoto ? (
-              <img
-                src={propertyPhoto}
-                alt="Property"
-                loading="lazy"
-                decoding="async"
-                className="h-56 w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-56 items-center justify-center bg-[var(--fl-ground)] px-4 text-center text-sm font-bold text-[var(--fl-muted)]">
-                No property photo saved yet.
-              </div>
-            )}
-
-            <PropertyPhotoUploader
-              inspectionId={String(inspection.id)}
-              returnTo={`/reports/${inspection.id}`}
-            />
-          </section>
-          </CollapsibleReportSection>
-
-          <CollapsibleReportSection
-            title="Inspection Details"
-            subtitle="Property, client, realtor & inspection dates — rarely edited here"
-            defaultOpen={false}
-          >
-          <form action={updateInspectionDetails}>
-            <input type="hidden" name="inspection_id" value={inspection.id} />
-
-            <div className="mb-6 flex items-center justify-end gap-4">
-              <PendingSubmitButton
-                className="rounded-xl bg-teal-500 px-5 py-3 font-bold text-slate-950 hover:bg-teal-400"
-                pendingLabel="Saving..."
-              >
-                Save Inspection Details
-              </PendingSubmitButton>
-            </div>
-
-            {detailsUpdated && (
-              <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-good-text)]">
-                Inspection details saved.
-              </div>
-            )}
-
-            {detailsUpdateError && (
-              <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-[var(--fl-crit-text)]">
-                Couldn&apos;t save inspection details. Please try again.
-              </div>
-            )}
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <h3 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">
-                  Inspection Information
-                </h3>
-
-                <EditItem
-                  label="Property Address"
-                  name="address"
-                  value={inspection.address}
-                />
-                <EditItem
-                  label="Client Name"
-                  name="client_name"
-                  value={inspection.client_name}
-                />
-                <EditItem
-                  label="Client Email"
-                  name="client_email"
-                  value={inspection.client_email}
-                />
-                <EditItem
-                  label="Client Phone"
-                  name="client_phone"
-                  value={inspection.client_phone}
-                  type="tel"
-                />
-                <EditItem
-                  label="Business/Organization (if hiring on behalf of one)"
-                  name="client_organization_name"
-                  value={inspection.client_organization_name}
-                />
-                <EditItem
-                  label="Realtor"
-                  name="realtor_name"
-                  value={inspection.realtor_name}
-                />
-                <EditItem
-                  label="Realtor Email"
-                  name="realtor_email"
-                  value={inspection.realtor_email || inspection.agent_email}
-                  type="email"
-                />
-                <EditItem
-                  label="Realtor Phone"
-                  name="realtor_phone"
-                  value={inspection.realtor_phone}
-                  type="tel"
-                />
-                <SaveAgentButton
-                  name={inspection.realtor_name}
-                  email={inspection.realtor_email || inspection.agent_email}
-                  phone={inspection.realtor_phone}
-                />
-                <EditItem
-                  label="Inspection Date"
-                  name="inspection_date"
-                  value={inspection.inspection_date}
-                  type="date"
-                />
-                <EditItem
-                  label="Inspection Time"
-                  name="inspection_time"
-                  value={inspection.inspection_time}
-                  type="time"
-                />
-              </div>
-
-              <div>
-                <h3 className="mb-4 text-xl font-bold text-[var(--fl-accent-text)]">
-                  Property / Site Information
-                </h3>
-
-                <EditItem
-                  label="Square Feet"
-                  name="square_feet"
-                  value={inspection.square_feet}
-                />
-                <EditItem
-                  label="Year Built"
-                  name="year_built"
-                  value={inspection.year_built}
-                />
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <EditItem label="City" name="city" value={inspection.city} />
-                  <EditItem
-                    label="State"
-                    name="state"
-                    value={inspection.state}
-                  />
-                  <EditItem label="Zip" name="zip" value={inspection.zip} />
-                </div>
-
-                <div className="mt-4">
-                  <label className="mb-1 block text-sm font-bold text-[var(--fl-muted)]">
-                    Inspection Notes (internal)
-                  </label>
-                  <textarea
-                    name="notes"
-                    defaultValue={inspection.notes || ""}
-                    rows={4}
-                    placeholder="Not entered"
-                    className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-teal-400"
-                  />
-                </div>
-              </div>
-            </div>
-          </form>
-          </CollapsibleReportSection>
         </div>
       </div>
     </main>

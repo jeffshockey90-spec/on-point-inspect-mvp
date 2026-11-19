@@ -134,7 +134,7 @@ export default function ResendConfirmationButton({
         <p className="mt-3 text-xs text-[var(--fl-muted)]">Loading contacts…</p>
       ) : contacts.length === 0 ? (
         <p className="mt-3 text-xs text-[var(--fl-crit-text)]">
-          No contacts with an email on this inspection. Add one under &ldquo;Contacts &amp; Email Delivery&rdquo; first.
+          No contacts with an email on this inspection. Add one under &ldquo;Client &amp; Contacts&rdquo; first.
         </p>
       ) : (
         <div className="mt-3 space-y-2">
