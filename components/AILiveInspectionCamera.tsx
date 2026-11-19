@@ -14,6 +14,7 @@ import type { IdentifyResult } from "../lib/ai/identifyResult";
 import { MATERIAL_FIELDS } from "../lib/ai/checklistAutofill";
 import { hasBuiltInChecklist } from "../lib/customChecklist";
 import { shrinkForAi, dataUrlToFile } from "../lib/aiFrame";
+import { captureSourceRect, shouldFillPreview } from "../lib/cameraFrame";
 import { generateLiveDraft, type LiveDraftCategory } from "../lib/ai/liveDraftGen";
 import {
   enqueueDraft,
@@ -230,6 +231,9 @@ export default function AILiveInspectionCamera({
   );
   const [focusMessage, setFocusMessage] = useState("");
   const [zoomLevel, setZoomLevel] = useState(1);
+  // Fill the screen when it is wider than the camera frame (iPhone Duo, iPad);
+  // the capture crops to the same visible area. See lib/cameraFrame.ts.
+  const [fillPreview, setFillPreview] = useState(false);
   const [zoomMin, setZoomMin] = useState(1);
   const [zoomMax, setZoomMax] = useState(3);
   const [zoomOpen, setZoomOpen] = useState(false);
@@ -948,39 +952,57 @@ export default function AILiveInspectionCamera({
     }
   }
 
+  function updateFillPreview() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) return;
+    setFillPreview(
+      shouldFillPreview(
+        video.videoWidth,
+        video.videoHeight,
+        video.clientWidth || window.innerWidth,
+        video.clientHeight || window.innerHeight,
+      ),
+    );
+  }
+
+  // Screen size changes when the Duo folds/unfolds or the phone rotates, and the
+  // frame's dimensions change when the camera restarts or rotates.
+  useEffect(() => {
+    const video = videoRef.current;
+    window.addEventListener("resize", updateFillPreview);
+    video?.addEventListener("resize", updateFillPreview);
+    updateFillPreview();
+    return () => {
+      window.removeEventListener("resize", updateFillPreview);
+      video?.removeEventListener("resize", updateFillPreview);
+    };
+  });
+
   function captureFrame(): string {
     const video = videoRef.current;
 
     if (!video || !video.videoWidth || !video.videoHeight) return "";
 
+    // Draw exactly what the preview shows: the visible part of the frame (when
+    // filling a wide screen) narrowed by software zoom.
+    const rect = captureSourceRect(
+      video.videoWidth,
+      video.videoHeight,
+      video.clientWidth || window.innerWidth,
+      video.clientHeight || window.innerHeight,
+      !hardwareZoomSupportedRef.current ? zoomLevel : 1,
+    );
+
     const maxWidth = 1920;
     const scale = Math.min(1, maxWidth / video.videoWidth);
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
-    canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+    canvas.height = Math.max(1, Math.round(video.videoWidth * scale * (rect.sh / rect.sw)));
 
     const context = canvas.getContext("2d");
     if (!context) return "";
 
-    if (!hardwareZoomSupportedRef.current && zoomLevel > 1) {
-      const sourceWidth = video.videoWidth / zoomLevel;
-      const sourceHeight = video.videoHeight / zoomLevel;
-      const sourceX = (video.videoWidth - sourceWidth) / 2;
-      const sourceY = (video.videoHeight - sourceHeight) / 2;
-      context.drawImage(
-        video,
-        sourceX,
-        sourceY,
-        sourceWidth,
-        sourceHeight,
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-      );
-    } else {
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    }
+    context.drawImage(video, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, canvas.width, canvas.height);
 
     return canvas.toDataURL("image/jpeg", 0.9);
   }
@@ -3048,7 +3070,8 @@ export default function AILiveInspectionCamera({
         autoPlay
         muted
         playsInline
-        className="absolute inset-0 h-full w-full bg-black object-contain"
+        onLoadedMetadata={updateFillPreview}
+        className={`absolute inset-0 h-full w-full bg-black ${fillPreview ? "object-cover" : "object-contain"}`}
         style={
           hardwareZoomSupportedRef.current || zoomLevel <= 1
             ? undefined
