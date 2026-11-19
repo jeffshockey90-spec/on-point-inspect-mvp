@@ -1,3 +1,7 @@
+import ReportScopeSection from "../../../../components/ReportScopeSection";
+import { reportScopeFor, reportTitleFor } from "../../../../lib/report/serviceScope";
+import { inspectionStateCode } from "../../../../lib/report/marylandDisclosure";
+import { loadEffectivePricing } from "../../../../lib/bookingPrice";
 import MarylandReportDisclosure from "../../../../components/MarylandReportDisclosure";
 import { redirect } from "next/navigation";
 import {
@@ -428,6 +432,15 @@ export default async function PrintableReportPage({ params }: PageProps) {
   }
 
   const branding = await getCompanyBrandingById(inspection.company_id);
+  // Limited-scope jobs: what was / wasn't inspected (inspector's service settings).
+  let printReportScope = reportScopeFor(null, inspection);
+  if (inspection?.inspector_id) {
+    try {
+      printReportScope = reportScopeFor(await loadEffectivePricing(supabase, String(inspection.inspector_id)), inspection);
+    } catch {
+      /* keep the name-based default */
+    }
+  }
 
   // Use the current Client / Co-Client contact records as the report source
   // of truth. This prevents an old placeholder such as "Test" stored on the
@@ -950,7 +963,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div>
                 <p className="text-sm font-black uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
-                  Residential Home Inspection Report
+                  {reportTitleFor(inspection, inspectionStateCode(inspection), "Residential Home Inspection Report")}
                 </p>
 
                 <h1 className="mt-4 text-5xl font-black tracking-tight">
@@ -1010,6 +1023,8 @@ export default async function PrintableReportPage({ params }: PageProps) {
             tone="print"
             className="mx-8 mb-8"
           />
+
+          <ReportScopeSection scope={printReportScope} tone="print" className="mx-8 mb-8" />
 
           <div className="mx-8 mb-8 rounded-2xl border border-slate-300 bg-slate-50 p-6">
             <h2 className="text-2xl font-black text-slate-950">

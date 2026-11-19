@@ -10,6 +10,7 @@ import {
   type PricingService,
   type PricingServiceType,
 } from "../../../lib/inspectorPricing";
+import { MECHANICAL_STRUCTURAL_DEFAULT_SCOPE } from "../../../lib/report/serviceScope";
 
 const DEFAULT_SERVICE_IDS = new Set(["home", "radon", "mold", "orientation"]);
 
@@ -706,6 +707,67 @@ function CustomServiceCard({
           </label>
         </div>
       )}
+
+      <ReportScopeFields service={service} onChange={onChange} />
     </div>
+  );
+}
+
+// Limited-scope services: the report's "Scope of This Inspection" section
+// (what was / wasn't inspected). Maryland requires a limited-scope report to
+// state both. A "Mechanical & Structural" service with nothing filled in uses
+// the standard Mechanical & Structural lists automatically.
+function ReportScopeFields({
+  service,
+  onChange,
+}: {
+  service: PricingService;
+  onChange: (patch: Partial<PricingService>) => void;
+}) {
+  const scope = service.reportScope || {};
+  const hasScope = Boolean((scope.included || "").trim() || (scope.excluded || "").trim());
+  const textareaClass =
+    "mt-1 min-h-28 w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 text-sm text-[var(--fl-text)] outline-none focus:border-teal-400";
+  return (
+    <details className="mt-5 border-t border-[var(--fl-line)] pt-4" open={hasScope}>
+      <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+        Limited-scope report section {hasScope ? "· on" : ""}
+      </summary>
+      <p className="mt-2 text-xs leading-5 text-[var(--fl-muted)]">
+        For services that aren&apos;t a full home inspection. The report shows a &quot;Scope of This
+        Inspection&quot; section listing what was and wasn&apos;t inspected (required in Maryland).
+        One item per line. Leave both blank for a full inspection.
+      </p>
+      <button
+        type="button"
+        onClick={() =>
+          onChange({
+            reportScope: {
+              included: MECHANICAL_STRUCTURAL_DEFAULT_SCOPE.included.join("\n"),
+              excluded: MECHANICAL_STRUCTURAL_DEFAULT_SCOPE.excluded.join("\n"),
+            },
+          })
+        }
+        className="mt-3 rounded-lg border border-teal-500/50 px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10"
+      >
+        Fill with Mechanical &amp; Structural lists
+      </button>
+      <label className="mt-3 block min-w-0">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Inspected</span>
+        <textarea
+          value={scope.included || ""}
+          onChange={(e) => onChange({ reportScope: { ...scope, included: e.target.value } })}
+          className={textareaClass}
+        />
+      </label>
+      <label className="mt-3 block min-w-0">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Not inspected</span>
+        <textarea
+          value={scope.excluded || ""}
+          onChange={(e) => onChange({ reportScope: { ...scope, excluded: e.target.value } })}
+          className={textareaClass}
+        />
+      </label>
+    </details>
   );
 }

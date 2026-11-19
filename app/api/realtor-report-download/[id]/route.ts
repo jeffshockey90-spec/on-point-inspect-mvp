@@ -18,7 +18,9 @@ import QRCode from "qrcode";
 import { randomUUID, createHash } from "crypto";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
-import { marylandDisclosureHtml, marylandLicenseFor, needsMarylandDisclosure } from "../../../../lib/report/marylandDisclosure";
+import { inspectionStateCode, marylandLicenseFor, marylandReportNoticeHtml } from "../../../../lib/report/marylandDisclosure";
+import { MD_WALKTHROUGH_TITLE, isMarylandWalkthrough, reportScopeFor, reportScopeHtml } from "../../../../lib/report/serviceScope";
+import { loadEffectivePricing } from "../../../../lib/bookingPrice";
 import { normalizeSection } from "../../../../lib/report/normalizeSection";
 import { checklistRowDisplay } from "../../../../lib/report/checklist";
 import {
@@ -934,15 +936,19 @@ async function loadCompanyBranding(admin: any, inspection: any, fallbackEmail = 
   };
 }
 
-// Maryland reports only (Md. Bus. Occ. & Prof. § 16-4A-01(a)(4)): the four
-// required statements in 14-point bold, with the inspector's MD license, on
-// their own page right after the cover. Empty for every other state.
+// Page right after the cover holding (a) Maryland reports only (Md. Bus. Occ. &
+// Prof. § 16-4A-01(a)(4)): the four required statements in 14-point bold with
+// the inspector's MD license — or, for a Maryland walkthrough, the "not a home
+// inspection" consultation notice; and (b) for limited-scope jobs, the "Scope
+// of This Inspection" lists. Empty when neither applies.
 function buildMarylandDisclosurePageHtml(inspection: any, branding: any) {
-  if (!needsMarylandDisclosure(inspection)) return "";
   const license = marylandLicenseFor(branding?.company, branding?.licenseInfo);
+  const notice = marylandReportNoticeHtml(inspection, license);
+  const scope = inspection?.__reportScope ? reportScopeHtml(inspection.__reportScope) : "";
+  if (!notice && !scope) return "";
   return `
     <section class="page md-disclosure-page">
-      ${marylandDisclosureHtml(license)}
+      ${notice}${scope}
     </section>
   `;
 }
@@ -1091,6 +1097,7 @@ function buildAgentReportHtml({
   const property = getPropertyAddress(inspection);
   const isFull = reportMode === "full";
   const mdDisclosurePageHtml = buildMarylandDisclosurePageHtml(inspection, branding);
+  const mdWalkthrough = isMarylandWalkthrough(inspection, inspectionStateCode(inspection));
 
   // ---------------------------------------------------------------------
   // Limited Repair Re-Inspection page.
@@ -2000,7 +2007,7 @@ function buildAgentReportHtml({
 
       ${coverPhotoHtml}
 
-      <p class="cover-eyebrow">${isReinspection ? "Limited Repair Re-Inspection" : isFull ? "Residential Inspection Report" : "Agent Friendly Report"}</p>
+      <p class="cover-eyebrow">${isReinspection ? "Limited Repair Re-Inspection" : mdWalkthrough ? MD_WALKTHROUGH_TITLE : isFull ? "Residential Inspection Report" : "Agent Friendly Report"}</p>
       <h1>${escapeHtml(property)}</h1>
       <p class="cover-address">${escapeHtml(cityStateZip || "Inspection Location")}</p>
       <hr class="cover-rule" />
@@ -3068,6 +3075,14 @@ export async function GET(req: Request, { params }: RouteProps) {
     const secureOnlineReportUrl = onlineReportUrlForInspection(inspection);
 
     const brandingPromise = loadCompanyBranding(admin, inspection, userEmail);
+    // Limited-scope jobs (e.g. Mechanical & Structural): what was / wasn't
+    // inspected, from the inspector's own service settings. Read by both builders.
+    try {
+      const pricing = inspection?.inspector_id ? await loadEffectivePricing(admin, String(inspection.inspector_id)) : null;
+      (inspection as any).__reportScope = reportScopeFor(pricing, inspection);
+    } catch {
+      (inspection as any).__reportScope = reportScopeFor(null, inspection);
+    }
     // Tag the QR so a scan is recorded as "QR Code" on the Who-Viewed panel.
     const qrReportUrl = secureOnlineReportUrl
       ? `${secureOnlineReportUrl}${secureOnlineReportUrl.includes("?") ? "&" : "?"}src=qr`

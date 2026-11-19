@@ -7,6 +7,7 @@
 
 import { normalizeStateCode } from "../usStates";
 import { licenseForState, sanitizeStateLicenses } from "../stateLicenses";
+import { isMarylandWalkthrough, mdWalkthroughNoticeHtml } from "./serviceScope";
 
 export const MD_REPORT_DISCLOSURE_STATEMENTS: readonly string[] = [
   "An inspection is intended to assist in the evaluation of the overall condition of a building. The inspection is based on observation of the visible and apparent condition of the building and its components on the date of the inspection",
@@ -32,9 +33,31 @@ export function inspectionStateCode(inspection: Record<string, any> | null | und
   return match ? normalizeStateCode(match[1]) : "";
 }
 
-/** True only for a Maryland property — the disclosure never shows elsewhere. */
+/**
+ * True only for a Maryland home inspection — never other states. A Maryland
+ * walkthrough is a consultation (not a home inspection), so it gets the
+ * consultation notice instead of this disclosure.
+ */
 export function needsMarylandDisclosure(inspection: Record<string, any> | null | undefined): boolean {
-  return inspectionStateCode(inspection) === "MD";
+  const state = inspectionStateCode(inspection);
+  return state === "MD" && !isMarylandWalkthrough(inspection, state);
+}
+
+/** What Maryland notice a report gets: the statutory disclosure, the walkthrough-consultation notice, or none. */
+export function marylandReportNotice(
+  inspection: Record<string, any> | null | undefined,
+): "disclosure" | "walkthrough" | null {
+  const state = inspectionStateCode(inspection);
+  if (state !== "MD") return null;
+  return isMarylandWalkthrough(inspection, state) ? "walkthrough" : "disclosure";
+}
+
+/** The Maryland block for the PDFs: disclosure, walkthrough notice, or "" for other states. */
+export function marylandReportNoticeHtml(inspection: Record<string, any> | null | undefined, license: string): string {
+  const kind = marylandReportNotice(inspection);
+  if (kind === "walkthrough") return mdWalkthroughNoticeHtml();
+  if (kind === "disclosure") return marylandDisclosureHtml(license);
+  return "";
 }
 
 /** The Maryland license line for the report: the company's MD number, else its general license. */
