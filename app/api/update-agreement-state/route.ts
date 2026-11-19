@@ -7,6 +7,7 @@ import {
   normalizeAgreementState,
 } from "../../../lib/agreementTemplates";
 import { resolveInspectionAccessFilter } from "../../../lib/inspectionAccess";
+import { currentTemplateIds, resetAgreementSignatures, templateSelectionChanged } from "../../../lib/agreementResign";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
 
     const { data: ownedInspection, error: ownershipError } = await supabase
       .from("inspections")
-      .select("id")
+      .select("id, agreement_template_id, agreement_template_ids")
       .eq("id", inspectionId)
       .eq(accessFilter.column, accessFilter.value)
       .single();
@@ -113,8 +114,16 @@ export async function POST(req: Request) {
 
     if (error) throw error;
 
+    // A DIFFERENT agreement means the old signature no longer counts: retire
+    // it (kept as "superseded" for the record) so the client signs the new one.
+    let signaturesReset = false;
+    if (agreementTemplateIds.length > 0 && templateSelectionChanged(currentTemplateIds(ownedInspection), agreementTemplateIds)) {
+      signaturesReset = await resetAgreementSignatures(supabase, inspectionId);
+    }
+
     return NextResponse.json({
       ok: true,
+      signaturesReset,
       inspection: data,
       agreement_state: agreementState || null,
       agreement_version: version,

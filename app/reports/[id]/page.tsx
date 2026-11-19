@@ -96,6 +96,7 @@ import LimitationEquipmentReview from "../../../components/LimitationEquipmentRe
 import SaveAgentButton from "../../../components/SaveAgentButton";
 import { orderPhotos, photosHaveSortOrder } from "../../../lib/photoOrder";
 import { isOrientationJob as isOrientation } from "../../../lib/orientation";
+import { isVerbalOnlyJob } from "../../../lib/report/serviceScope";
 import { redraftEquipmentNotes, resolveRelatedTitles } from "../../../lib/equipmentNoteRedraft";
 import {
   relatedDefectFindings,
@@ -1643,7 +1644,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
       .eq("id", inspectionId)
       .eq(accessFilter.column, accessFilter.value)
       .maybeSingle();
-    if (String(orientationCheck?.service_mode || "") === ORIENTATION_SERVICE_KEY) {
+    // Verbal walkthroughs are never published either (agreement: no written report).
+    if (
+      String(orientationCheck?.service_mode || "") === ORIENTATION_SERVICE_KEY ||
+      isVerbalOnlyJob(orientationCheck)
+    ) {
       redirect(`/reports/${inspectionId}`);
     }
 
@@ -2664,6 +2669,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
   // no client report, so there's nothing to publish. Hide the Publish control so
   // an empty report can't be sent, and so it never shows as a pending publish.
   const isOrientationJob = isOrientation(inspection);
+  // Verbal walkthrough: no written report to publish or send (its agreement says so).
+  const isVerbalJob = isVerbalOnlyJob(inspection);
+  const noReportToSend = isOrientationJob || isVerbalJob;
 
   const publishGuardNeedsAttention =
     getSingleSearchParam(resolvedSearchParams, "publish_guard") === "blocked" ||
@@ -3127,9 +3135,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   Realtor Summary
                 </FastLinkButton>
 
-                {isOrientationJob ? (
+                {noReportToSend ? (
                   <span className="inline-flex min-w-[154px] items-center justify-center rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-5 py-3 text-center text-sm font-semibold text-[var(--fl-muted)]">
-                    Orientation — no report to publish
+                    {isVerbalJob ? "Verbal walkthrough — no written report" : "Orientation — no report to publish"}
                   </span>
                 ) : (
                   <PublishReportActionButton
@@ -3181,7 +3189,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 {/* Walkthroughs have no report to send. */}
-                {!isOrientationJob && (
+                {!noReportToSend && (
                   <SendFullReportButton
                     inspectionId={String(inspection.id)}
                     clientEmail={inspection.client_email}
@@ -4640,7 +4648,7 @@ Service-life information is a general industry estimate only. Actual service lif
             defaultOpen={false}
             accentClassName="border-teal-500/40 text-[var(--fl-accent-text)]"
           >
-          {!isOrientationJob && (
+          {!noReportToSend && (
             <div className="mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
               <h2 className="mb-4 text-2xl font-bold text-[var(--fl-accent-text)]">
                 Email Report

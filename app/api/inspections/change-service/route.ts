@@ -1,12 +1,14 @@
 // Change an existing job's service (e.g. a job created as a Home Inspection
 // before the "Pre Offer Verbal Walkthrough" service existed). Optionally
-// re-picks the job's agreements for the new service — only while NO ONE has
-// signed yet, so a signed agreement is never swapped out from under a client.
+// re-picks the job's agreements for the new service. If the client had already
+// signed, that signature is retired (kept as "superseded") and they sign the
+// new agreement — a signature never carries over to a different document.
 // Price is left as-is (the inspector adjusts it on the invoice if needed).
 
 import { NextResponse } from "next/server";
 import { getAdminClient, getSessionUser, unauthorized, notFound, authorizeInspection } from "../../../../lib/apiAuth";
 import { canonicalServiceKey, getAgreementTemplatesForInspection } from "../../../../lib/agreementTemplates";
+import { currentTemplateIds, resetAgreementSignatures, templateSelectionChanged } from "../../../../lib/agreementResign";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,19 +46,9 @@ export async function POST(req: Request) {
   let agreementNote = "";
   let agreementTitles: string[] = [];
 
+  let signaturesReset = false;
   if (swapAgreement) {
-    const [{ data: signedContacts }, { data: signedAgreements }] = await Promise.all([
-      admin.from("inspection_contacts").select("id").eq("inspection_id", inspectionId).eq("agreement_signed", true).limit(1),
-      admin.from("inspection_agreements").select("id").eq("inspection_id", inspectionId).eq("status", "signed").limit(1),
-    ]);
-    const alreadySigned =
-      (signedContacts || []).length > 0 ||
-      (signedAgreements || []).length > 0 ||
-      String((owned as any).agreement_status || "").toLowerCase() === "signed";
-
-    if (alreadySigned) {
-      agreementNote = "The client already signed, so the agreement was left as is.";
-    } else {
+    {
       const templates = await getAgreementTemplatesForInspection({
         inspection: { ...(owned as any), ...updates, agreement_template_ids: null, agreement_template_id: null },
       });
@@ -69,6 +61,10 @@ export async function POST(req: Request) {
         if (!agreementError) {
           agreementSwapped = true;
           agreementTitles = (templates || []).map((t: any) => String(t?.title || "")).filter(Boolean);
+          if (templateSelectionChanged(currentTemplateIds(owned), ids)) {
+            signaturesReset = await resetAgreementSignatures(admin, inspectionId);
+            if (signaturesReset) agreementNote = "The client had signed the old agreement, so they'll need to sign the new one.";
+          }
         }
       } else {
         agreementNote = "No agreement in your library matches this service yet, so the agreement was left as is.";
@@ -76,5 +72,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, serviceMode, agreementSwapped, agreementTitles, agreementNote });
+  return NextResponse.json({ ok: true, serviceMode, agreementSwapped, agreementTitles, agreementNote, signaturesReset });
 }

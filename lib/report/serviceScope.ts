@@ -95,6 +95,18 @@ export function reportScopeFor(
   return null;
 }
 
+/**
+ * A verbal-only service ("Pre Offer Verbal Walkthrough"): its agreement promises
+ * NO written report, so FLOW never publishes or sends one for these jobs.
+ */
+export function isVerbalOnlyService(name: string): boolean {
+  return /\bverbal\b/i.test(String(name || ""));
+}
+
+export function isVerbalOnlyJob(inspection: Record<string, any> | null | undefined): boolean {
+  return isVerbalOnlyService(jobServiceName(inspection));
+}
+
 export function isWalkthroughService(name: string): boolean {
   return WALKTHROUGH.test(String(name || ""));
 }

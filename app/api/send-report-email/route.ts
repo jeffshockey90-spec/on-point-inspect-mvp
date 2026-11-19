@@ -12,6 +12,7 @@ import { isSmsConfigured, sendSms } from "../../../lib/sms";
 import { smsReportReadyClient, smsReportReadyAgent } from "../../../lib/smsTemplates";
 import { hasRadonService, hasMoldService } from "../../../lib/environmental/service";
 import { isOrientationJob } from "../../../lib/orientation";
+import { isVerbalOnlyJob } from "../../../lib/report/serviceScope";
 import { getNotificationPrefs } from "../../../lib/notificationPrefs";
 
 async function createSupabaseServerClient() {
@@ -574,6 +575,13 @@ export async function POST(req: Request) {
     if (!environmentalNotice && isOrientationJob(inspection)) {
       return NextResponse.json(
         { error: "Home Orientation walkthroughs don't have a report to send." },
+        { status: 400 }
+      );
+    }
+    // Verbal walkthroughs: the agreement promises no written report.
+    if (!environmentalNotice && isVerbalOnlyJob(inspection)) {
+      return NextResponse.json(
+        { error: "Verbal walkthroughs don't include a written report, so there's nothing to send." },
         { status: 400 }
       );
     }
