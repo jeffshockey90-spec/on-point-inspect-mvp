@@ -909,7 +909,7 @@ function PhotoMarkupEditor({
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col bg-black text-[var(--fl-text)]">
-      <div className="flex items-center justify-between border-b border-white/10 bg-[var(--fl-surface-2)] px-5 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)]">
+      <div className="flex items-center justify-between gap-2 border-b border-white/10 bg-[var(--fl-surface-2)] pb-4 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] pt-[calc(env(safe-area-inset-top)+1rem)]">
         <button
           type="button"
           onClick={() => {
@@ -932,7 +932,7 @@ function PhotoMarkupEditor({
           onClick={save}
           disabled={saving}
           aria-busy={saving}
-          className="inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-lg font-semibold text-[#65c832] transition active:scale-[0.96] hover:text-[#7ee047] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
+          className="inline-flex min-h-11 min-w-16 items-center justify-center gap-2 rounded-xl px-3 py-2 text-lg font-semibold text-[#65c832] transition active:scale-[0.96] hover:text-[#7ee047] disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]"
         >
           {saving && (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -1269,7 +1269,7 @@ function PhotoMarkupEditor({
         </div>
       </div>
 
-      <div className="border-t border-white/10 bg-[var(--fl-surface-2)] px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+      <div className="border-t border-white/10 bg-[var(--fl-surface-2)] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-1.5">
           <button
             type="button"
