@@ -4,6 +4,7 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { flowAlert, flowConfirm, flowPrompt } from "../../components/ConfirmProvider";
 import { HOME_ORIENTATION_AGREEMENT } from "../../lib/starterAgreements";
 import { saveOrShareFile } from "../../lib/saveFile";
+import { renameTarget, templatesUsingServiceType } from "../../lib/agreementServiceTypeRename";
 
 const STATES = [
   { code: "AL", name: "Alabama" },
@@ -396,6 +397,47 @@ export default function AgreementLibraryManager() {
     }
   }
 
+  // Rename a service type on EVERY agreement that uses it (a type only exists
+  // because templates carry it). Renaming onto an existing type merges them.
+  const [renamingType, setRenamingType] = useState(false);
+  async function renameServiceType(fromType: string) {
+    const using = templatesUsingServiceType(templates, fromType);
+    if (!using.length) return;
+    const typed = await flowPrompt({
+      title: "Rename Service Type",
+      message: `New name for "${serviceLabel(fromType)}" (used by ${using.length} agreement${using.length === 1 ? "" : "s"}). Use the same name as the service in Settings → Pricing so jobs pick this agreement. Typing an existing type merges them.`,
+      defaultValue: serviceLabel(fromType),
+    });
+    const next = renameTarget(fromType, typed || "");
+    if (!next) return;
+    setRenamingType(true);
+    let failed = 0;
+    try {
+      for (const template of using) {
+        try {
+          const res = await fetch("/api/agreement-templates", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: template.id, service_type: next, template_type: next }),
+          });
+          if (!res.ok) failed += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+      await loadTemplates();
+      setServiceFilter(next);
+      if (selected && using.some((t) => t.id === selected.id)) setServiceType(next);
+      await flowAlert(
+        failed
+          ? `Renamed ${using.length - failed} of ${using.length}. ${failed} couldn't be changed (they may be shared starter agreements) — open them and change the Service Type by hand.`
+          : `Renamed to "${serviceLabel(next)}" on ${using.length} agreement${using.length === 1 ? "" : "s"}.`,
+      );
+    } finally {
+      setRenamingType(false);
+    }
+  }
+
   async function deleteTemplate(templateToDelete = selected) {
     if (!templateToDelete?.id) {
       await flowAlert("Select an agreement first.");
@@ -698,6 +740,17 @@ export default function AgreementLibraryManager() {
               </option>
             ))}
           </select>
+
+          {serviceFilter !== "ALL" && templatesUsingServiceType(templates, serviceFilter).length > 0 && (
+            <button
+              type="button"
+              onClick={() => void renameServiceType(serviceFilter)}
+              disabled={renamingType}
+              className="h-11 rounded-xl border border-teal-500/50 px-4 text-sm font-semibold text-[var(--fl-accent-text)] hover:bg-teal-500/10 disabled:opacity-60"
+            >
+              {renamingType ? "Renaming…" : "Rename type"}
+            </button>
+          )}
         </div>
 
         {loading && <p className="text-sm text-[var(--fl-muted)]">Loading templates...</p>}
