@@ -2,6 +2,8 @@
 // the dashboard and the Reports list so both pages agree on what counts as
 // paid, signed, and published.
 
+import { paidWithBalanceRemaining } from "./paymentSettled";
+
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
 
@@ -65,6 +67,9 @@ export function isPaymentComplete(inspection: any) {
     return true;
   }
 
+  // "Paid" but the recorded payment is less than the invoice (price raised
+  // after payment) still has a balance due — same rule as lib/paymentSettled.
+  if (paidWithBalanceRemaining(inspection)) return false;
   if (status === "paid" || status === "waived") return true;
   if (status === "unpaid" || status === "partial") return false;
   if (invoiceAmount > 0 && amountPaid >= invoiceAmount) return true;

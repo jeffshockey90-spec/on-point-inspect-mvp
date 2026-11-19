@@ -3069,7 +3069,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 }`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${isPaymentComplete(inspection) ? "bg-emerald-400" : "bg-amber-400"}`} />
-                {isPaymentComplete(inspection) ? "Paid" : "Unpaid"}
+                {isPaymentComplete(inspection)
+                  ? "Paid"
+                  : Number(inspection.amount_paid || 0) > 0
+                    ? "Partial"
+                    : "Unpaid"}
               </span>
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
