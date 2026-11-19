@@ -79,3 +79,11 @@ describe("isPaymentComplete — baseline (unchanged for non-refund cases)", () =
     expect(isPaymentComplete({ id: 1, client_name: "Test" })).toBe(true);
   });
 });
+
+describe("price raised after payment (header / dashboard / Reports list)", () => {
+  it("is not paid while a balance remains", async () => {
+    const { isPaymentComplete: complete } = await import("./inspectionStatus");
+    expect(complete({ payment_status: "Paid", invoice_amount: 400, amount_paid: 300, balance_due: 0 })).toBe(false);
+    expect(complete({ payment_status: "Paid", invoice_amount: 400, amount_paid: 400 })).toBe(true);
+  });
+});
