@@ -42,5 +42,6 @@ describe("data plate read", () => {
     expect(acceptsTemperature("gpt-4o")).toBe(true);
     expect(acceptsTemperature("gpt-5.2")).toBe(false);
     expect(acceptsTemperature("o4-mini")).toBe(false);
+    expect(acceptsTemperature("gpt-6.2-astra")).toBe(false);
   });
 });
