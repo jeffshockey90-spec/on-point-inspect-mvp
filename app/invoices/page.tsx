@@ -11,6 +11,7 @@ import InspectionReviewButton from "../../components/InspectionReviewButton";
 import { formatUsd } from "../../lib/currency";
 import { resolveInspectionAccessFilter } from "../../lib/inspectionAccess";
 import { isInvoiceClosed, invoiceStatusLabel } from "../../lib/invoiceStatus";
+import { paidWithBalanceRemaining } from "../../lib/paymentSettled";
 
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -46,6 +47,9 @@ function getAmountPaid(inspection: any) {
 }
 
 function getBalanceDue(inspection: any) {
+  if (paidWithBalanceRemaining(inspection)) {
+    return Math.max(0, getInvoiceAmount(inspection) - getAmountPaid(inspection));
+  }
   const value = inspection?.balance_due;
   if (value !== null && value !== undefined) {
     return Math.max(0, getNumber(value));
@@ -68,6 +72,8 @@ function getInvoiceStatus(inspection: any) {
   const paid = getAmountPaid(inspection);
   const amount = getInvoiceAmount(inspection);
 
+  // Price raised after payment: "Paid" with less paid than invoiced is Partial.
+  if (paidWithBalanceRemaining(inspection)) return "Partial";
   if (rawStatus === "paid") return "Paid";
   if (rawStatus === "waived") return "Waived";
   if (rawStatus === "partial") return "Partial";
@@ -180,16 +186,16 @@ export default async function InvoicesPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[var(--fl-ground)] px-6 py-10 text-[var(--fl-text)]">
+    <main className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] px-3 py-6 text-[var(--fl-text)] sm:px-6 sm:py-10">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-8 shadow-2xl">
+        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-2xl sm:p-8">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[var(--fl-accent-text)]">
                 FLOW
               </p>
 
-              <h1 className="mt-4 text-5xl font-semibold text-[var(--fl-text)]">
+              <h1 className="mt-4 text-3xl font-semibold text-[var(--fl-text)] sm:text-5xl">
                 Invoices
               </h1>
 
@@ -225,7 +231,7 @@ export default async function InvoicesPage() {
         </section>
 
         {customInvoices.length > 0 && (
-          <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6">
+          <section className="mt-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">Custom Invoices</h2>
@@ -266,7 +272,7 @@ export default async function InvoicesPage() {
                         {formatAppValue(inv.created_at, { month: "short", day: "numeric", year: "numeric" })}
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase ${statusTone}`}>
                         {invoiceStatusLabel(status)}
                       </span>
@@ -293,7 +299,7 @@ export default async function InvoicesPage() {
           </section>
         )}
 
-        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
+        <section className="mt-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-xl sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">
@@ -314,7 +320,76 @@ export default async function InvoicesPage() {
               No invoices found yet.
             </div>
           ) : (
-            <div className="mt-6 overflow-x-auto">
+            <>
+            {/* Phones, foldables, tablets: one card per invoice (no sideways scroll). */}
+            <div className="mt-6 space-y-3 2xl:hidden">
+              {invoiceRows.map((inspection: any) => {
+                const canPay =
+                  inspection.balanceDue > 0 &&
+                  inspection.invoiceStatus !== "Paid" &&
+                  inspection.invoiceStatus !== "Waived";
+                return (
+                  <div key={inspection.id} className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="break-words font-bold text-[var(--fl-text)]">
+                          {inspection.address || inspection.property_address || "Untitled Inspection"}
+                        </p>
+                        <p className="mt-0.5 break-words text-xs text-[var(--fl-muted)]">
+                          {inspection.client_name || inspection.client || "N/A"} · {inspection.inspection_type || "Inspection"}
+                        </p>
+                      </div>
+                      <div className="shrink-0">
+                        <InvoiceStatusBadge status={inspection.invoiceStatus} overdue={inspection.overdue} />
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                      <div className="rounded-lg border border-[var(--fl-line)] p-2">
+                        <p className="text-[var(--fl-muted)]">Invoice</p>
+                        <p className="mt-0.5 font-bold text-[var(--fl-text)]">{money(inspection.invoiceAmount)}</p>
+                      </div>
+                      <div className="rounded-lg border border-[var(--fl-line)] p-2">
+                        <p className="text-[var(--fl-muted)]">Paid</p>
+                        <p className="mt-0.5 font-bold text-[var(--fl-good-text)]">{money(inspection.amountPaid)}</p>
+                      </div>
+                      <div className="rounded-lg border border-[var(--fl-line)] p-2">
+                        <p className="text-[var(--fl-muted)]">Balance</p>
+                        <p className="mt-0.5 font-bold text-[var(--fl-crit-text)]">{money(inspection.balanceDue)}</p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-[var(--fl-muted)]">
+                      {inspection.payment_method || "No method"} · Due {formatDate(inspection.invoice_due_date)} · ID #{inspection.id}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {canPay && (
+                        <>
+                          <InvoicePaymentButton inspectionId={inspection.id} />
+                          <InvoiceReminderButton inspectionId={inspection.id} />
+                        </>
+                      )}
+                      <Link
+                        href={`/invoices/${inspection.id}/print`}
+                        className="inline-flex rounded-lg border border-cyan-500 px-3 py-2 text-xs font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/10"
+                      >
+                        Invoice PDF
+                      </Link>
+                      <Link
+                        href={`/reports/${inspection.id}`}
+                        className="inline-flex rounded-lg border border-teal-500 px-3 py-2 text-xs font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/10"
+                      >
+                        View Report
+                      </Link>
+                      {(inspection.client_email || inspection.email) && (
+                        <InspectionReviewButton inspectionId={inspection.id} />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Large screens: the full table. */}
+            <div className="mt-6 hidden overflow-x-auto 2xl:block">
               <table className="w-full min-w-[1120px] border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--fl-line)] text-left text-xs uppercase tracking-wide text-[var(--fl-muted)]">
@@ -399,6 +474,7 @@ export default async function InvoicesPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </section>
       </div>

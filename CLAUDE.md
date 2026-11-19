@@ -21,6 +21,20 @@ FLOW is a home-inspection SaaS: **Next.js 16 (App Router) + Supabase (Postgres /
 - **Tailwind v4 scans CSS comments and `.mjs`** — a complete class-token literal like a `bg-[var(--fl-…)]` value inside a comment 500s the app. Don't put class-token literals in comments.
 - **iOS offline queue stores ArrayBuffer bytes, not Blobs** (iOS drops Blobs on restart).
 
+## Screen sizes (no overflow on any device)
+Every screen must work, with **no sideways scrolling or cut-off content**, at all of these widths (CSS points):
+- **Phones:** 360 (small Android), 375–393 (iPhone), 430–440 (Pro Max). Also landscape phones (~844–956 wide, ~390 tall).
+- **iPhone Duo (foldable):** folded about **466 × 678**. Open (inner screen, 1878 × 2670 px at 3×) about **626 × 890** held upright, **890 × 626** sideways.
+- **Tablets:** iPad mini 744, iPad 810–834 upright, 1024–1366 landscape / 13".
+- **Desktop:** 1280+ (the left nav sidebar appears at `xl`, taking 256px).
+
+Rules:
+- Wide tables (`min-w-[…]`) need a card layout below the width where they fit; never leave a page that only works by scrolling sideways.
+- Rows of buttons/badges must `flex-wrap`; don't put `shrink-0`/`whitespace-nowrap` on a whole group.
+- Use smaller padding/type on phones (e.g. `px-3 sm:px-6`, `text-3xl sm:text-5xl`).
+- The custom `fold:` breakpoint (600px, `app/globals.css`) is for two-pane layouts on the open Duo and tablets; phones held upright stay single-column.
+- When changing layout, check the result at 360, 390, 466, 626, 890 and 1280 wide (Playwright against the built CSS works without a database).
+
 ## How you work here
 - You implement on a branch and open a PR; **Jeff reviews the diff in-app and merges** — nothing ships without him. Write clear, reviewable diffs and a short PR summary of what changed and how you verified it (build + tests).
 - **Debugging a bug:** understand it from the code (and any error/log Jeff gave you) first, state the root cause plainly, then make the smallest correct fix — and add a test where practical.
