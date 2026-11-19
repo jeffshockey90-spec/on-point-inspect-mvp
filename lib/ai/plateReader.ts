@@ -120,9 +120,9 @@ export function getPlateReaderModel(fallback: string): string {
   return process.env.OPENAI_PLATE_MODEL || process.env.OPENAI_VISION_MODEL || fallback;
 }
 
-/** Reasoning-style models (o-series, gpt-5…) reject a custom temperature. */
+/** Reasoning-style / newer models (o-series, gpt-5, gpt-6…) reject a custom temperature. */
 export function acceptsTemperature(model: string): boolean {
-  return !/^(o\d|gpt-5)/i.test(String(model || "").trim());
+  return !/^(o\d|gpt-[5-9])/i.test(String(model || "").trim());
 }
 
 /**
@@ -142,7 +142,8 @@ export async function readDataPlate(input: {
     const response = await client.chat.completions.create(
       {
         model: input.model,
-        ...(acceptsTemperature(input.model) ? { temperature: 0 } : {}),
+        // No temperature: newer models (gpt-6.x, o-series, gpt-5) reject a
+        // custom one, and a transcription task doesn't need it.
         response_format: { type: "json_object" },
         messages: [
           {
