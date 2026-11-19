@@ -1,5 +1,6 @@
 "use client";
 
+import { openClosedAncestors } from "../lib/revealElement";
 import { useEffect, useState } from "react";
 
 // Cache the last AI review per inspection so navigating away to fix a finding and
@@ -593,7 +594,11 @@ export default function AIReportReviewPanel({
               )}
               <button
                 type="button"
-                onClick={() => document.getElementById("publish-guard")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                onClick={() => {
+                  const target = document.getElementById("publish-guard");
+                  openClosedAncestors(target);
+                  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
                 className="rounded-lg border border-[var(--fl-faint)] bg-[var(--fl-surface-2)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)]"
               >
                 View Publish Guard

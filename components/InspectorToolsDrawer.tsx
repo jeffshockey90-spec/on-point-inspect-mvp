@@ -1,5 +1,6 @@
 "use client";
 
+import { openClosedAncestors } from "../lib/revealElement";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import CommandCenterGenie from "./CommandCenterGenie";
 
@@ -1311,6 +1312,8 @@ export default function InspectorToolsDrawer({
       window.setTimeout(() => {
         const element = findReportTargetElement(reportTarget);
         if (element) {
+          // It may sit in a closed section (e.g. the "AI & Insights" drawer).
+          openClosedAncestors(element);
           element.scrollIntoView({ behavior: "smooth", block: "start" });
           flashReportTarget(element);
         } else if (reportTarget.fallbackTool) {
