@@ -29,7 +29,7 @@ Every screen must work, with **no sideways scrolling or cut-off content**, at al
 - **Desktop:** 1280+ (the left nav sidebar appears at `xl`, taking 256px).
 
 Rules:
-- Wide tables (`min-w-[…]`) need a card layout below the width where they fit; never leave a page that only works by scrolling sideways.
+- Wide tables (fixed minimum width) need a card layout below the width where they fit; never leave a page that only works by scrolling sideways.
 - Rows of buttons/badges must `flex-wrap`; don't put `shrink-0`/`whitespace-nowrap` on a whole group.
 - Use smaller padding/type on phones (e.g. `px-3 sm:px-6`, `text-3xl sm:text-5xl`).
 - The custom `fold:` breakpoint (600px, `app/globals.css`) is for two-pane layouts on the open Duo and tablets; phones held upright stay single-column.
