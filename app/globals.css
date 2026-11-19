@@ -17,6 +17,11 @@
   --color-teal-800: hsl(183 88% 23%);
   --color-teal-900: hsl(183 85% 19%);
   --color-teal-950: hsl(183 80% 11%);
+  /* "fold" breakpoint at 600px: open foldables (the iPhone Duo's inner
+     screen is 626 x 890 points, so either way up) and tablets get the
+     two-pane builder that otherwise starts at the 1280px breakpoint.
+     Regular phones held upright (under 600) are unchanged. */
+  --breakpoint-fold: 37.5rem;
 }
 
 body {

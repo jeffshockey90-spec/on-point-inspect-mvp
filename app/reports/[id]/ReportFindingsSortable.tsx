@@ -1333,10 +1333,10 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
         </div>
       )}
 
-      <div className="xl:grid xl:grid-cols-[13rem_minmax(0,1fr)] xl:gap-6">
+      <div className="fold:grid fold:grid-cols-[13rem_minmax(0,1fr)] fold:gap-6">
         {/* Desktop: vertical section rail */}
         {(orderedGroups || []).length > 1 && (
-          <aside className="hidden xl:block" aria-label="Jump to inspection section">
+          <aside className="hidden fold:block" aria-label="Jump to inspection section">
             <div className="sticky top-20 max-h-[calc(100vh-6rem)] space-y-0.5 overflow-y-auto pr-1">
               <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--fl-faint)]">
                 Sections
@@ -1375,7 +1375,7 @@ export default function ReportFindingsSortable({ groupedFindings, deletedSection
       {(orderedGroups || []).length > 1 && (
         <nav
           aria-label="Jump to inspection section"
-          className="sticky top-[calc(env(safe-area-inset-top,0px)+0.5rem)] z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-2.5 py-2 shadow-lg xl:hidden"
+          className="sticky top-[calc(env(safe-area-inset-top,0px)+0.5rem)] z-30 flex gap-2 overflow-x-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] px-2.5 py-2 shadow-lg fold:hidden"
         >
           {(orderedGroups || []).map((group: any) => (
             <button
