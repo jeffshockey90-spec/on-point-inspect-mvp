@@ -57,3 +57,15 @@ describe("Maryland walkthrough", () => {
     expect(marylandReportNotice({ state: "WV", service_mode: "pre_offer_verbal_walkthrough" })).toBeNull();
   });
 });
+
+import { isVerbalOnlyJob, isVerbalOnlyService } from "./serviceScope";
+
+describe("verbal-only services (no written report)", () => {
+  it("recognizes verbal walkthrough services only", () => {
+    expect(isVerbalOnlyService("Pre Offer Verbal Walkthrough")).toBe(true);
+    expect(isVerbalOnlyJob({ service_mode: "pre_offer_verbal_walkthrough" })).toBe(true);
+    expect(isVerbalOnlyJob({ service_mode: "mechanical_and_structural" })).toBe(false);
+    expect(isVerbalOnlyJob({ service_mode: "home" })).toBe(false);
+    expect(isVerbalOnlyService("Verbalize")).toBe(false);
+  });
+});

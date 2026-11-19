@@ -19,7 +19,7 @@ import { randomUUID, createHash } from "crypto";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import { inspectionStateCode, marylandLicenseFor, marylandReportNoticeHtml } from "../../../../lib/report/marylandDisclosure";
-import { MD_WALKTHROUGH_TITLE, isMarylandWalkthrough, reportScopeFor, reportScopeHtml } from "../../../../lib/report/serviceScope";
+import { MD_WALKTHROUGH_TITLE, isMarylandWalkthrough, isVerbalOnlyJob, reportScopeFor, reportScopeHtml } from "../../../../lib/report/serviceScope";
 import { loadEffectivePricing } from "../../../../lib/bookingPrice";
 import { normalizeSection } from "../../../../lib/report/normalizeSection";
 import { checklistRowDisplay } from "../../../../lib/report/checklist";
@@ -2877,6 +2877,12 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     if (!allowed) {
       return reportErrorResponse(req, "You do not have access to this report.", 403);
+    }
+
+    // Verbal walkthrough: no written report (its agreement says so). Only the
+    // owning inspector may still download it as their own notes.
+    if (isVerbalOnlyJob(inspection) && !inspectionBelongsToUser(inspection, user)) {
+      return reportErrorResponse(req, "This was a verbal walkthrough consultation, so there's no written report.", 403);
     }
 
     // Delivery gate (audit C3): the owning inspector/owner may always download,

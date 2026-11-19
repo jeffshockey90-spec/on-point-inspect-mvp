@@ -23,8 +23,8 @@ function serviceKey(value: string) {
 }
 
 // Report builder: change an existing job's service (e.g. a job created before
-// the matching service existed), optionally re-picking the agreement while no
-// one has signed.
+// the matching service existed), optionally re-picking the agreement (a client
+// who signed the old one signs the new one).
 export default function ChangeServicePanel({
   inspectionId,
   currentServiceMode,
@@ -127,7 +127,7 @@ export default function ChangeServicePanel({
               onChange={(e) => setSwapAgreement(e.target.checked)}
               className="mt-1 h-4 w-4 accent-teal-500"
             />
-            <span>Also switch the agreement to match this service (only if the client hasn&apos;t signed yet)</span>
+            <span>Also switch the agreement to match this service (if the client already signed, they&apos;ll sign the new one)</span>
           </label>
           <button
             type="button"

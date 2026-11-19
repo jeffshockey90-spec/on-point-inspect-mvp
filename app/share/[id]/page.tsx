@@ -1,5 +1,5 @@
 import ReportScopeSection from "../../../components/ReportScopeSection";
-import { reportScopeFor, reportTitleFor } from "../../../lib/report/serviceScope";
+import { isVerbalOnlyJob, reportScopeFor, reportTitleFor } from "../../../lib/report/serviceScope";
 import { inspectionStateCode } from "../../../lib/report/marylandDisclosure";
 import { loadEffectivePricing } from "../../../lib/bookingPrice";
 import MarylandReportDisclosure from "../../../components/MarylandReportDisclosure";
@@ -1055,6 +1055,27 @@ export default async function PublicSharePage({
         const owned = await authorizeInspection(supabase, viewer.id, inspectionId);
         if (owned) allowShareView = true;
       }
+    }
+  }
+
+  // Verbal walkthrough: the agreement promises no written report, so clients and
+  // agents never see one here — even if it was published before. The owning
+  // inspector can still open it as their own notes.
+  if (allowShareView && !isDemo && isVerbalOnlyJob(inspection)) {
+    const viewer = await getSessionUser();
+    const owned = viewer ? await authorizeInspection(supabase, viewer.id, inspectionId) : null;
+    if (!owned) {
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-[var(--fl-ground)] p-6 text-[var(--fl-text)]">
+          <div className="max-w-md rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-8 text-center">
+            <h1 className="text-2xl font-semibold text-[var(--fl-accent-text)]">No written report</h1>
+            <p className="mt-3 leading-7 text-[var(--fl-muted)]">
+              This was a verbal walkthrough consultation, so there&apos;s no written report to view. Please
+              contact your inspector with any questions.
+            </p>
+          </div>
+        </main>
+      );
     }
   }
 

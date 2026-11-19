@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { flowAlert } from "./ConfirmProvider";
 import { US_STATES } from "../lib/usStates";
 
@@ -51,6 +52,7 @@ export default function AgreementSelector({
         ? [initialAgreementTemplateId]
         : [];
 
+  const router = useRouter();
   const [agreementState, setAgreementState] = useState(defaultState);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>(startingTemplateIds);
   const [templates, setTemplates] = useState<AgreementTemplate[]>([]);
@@ -108,6 +110,13 @@ export default function AgreementSelector({
       setAgreementState(data.agreement_state);
       setSelectedTemplateIds(data.agreement_template_ids || []);
       setSavedLabel("Saved!");
+      if (data.signaturesReset) {
+        // The old signature was retired — refresh so the builder stops showing "signed".
+        router.refresh();
+        await flowAlert(
+          "Agreement changed. The client's signature on the old agreement no longer counts — send them the new agreement to sign.",
+        );
+      }
       window.setTimeout(() => setSavedLabel("Save Agreement Selection"), 1200);
     } catch (error: any) {
       setSavedLabel("Failed");
