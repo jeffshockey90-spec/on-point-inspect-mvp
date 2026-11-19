@@ -1,4 +1,7 @@
 
+import JobStatusStrip from "../../../components/JobStatusStrip";
+import OpenDetailsForHash from "../../../components/OpenDetailsForHash";
+import { buildJobStatus } from "../../../lib/report/jobStatus";
 import { formatAppValue } from "../../../lib/app-time";
 import { isPaymentComplete } from "../../../lib/inspectionStatus";
 import { Camera } from "lucide-react";
@@ -3010,6 +3013,21 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   commandTool: "",
                 };
 
+  const jobStatus = buildJobStatus({
+    agreementComplete,
+    agreementWaived: (inspection as any).agreement_waived === true,
+    unsignedCount: unsignedRequiredAgreementContacts.length,
+    unsignedNames: unsignedRequiredAgreementContacts.map((contact: any) => String(contact.name || "").split(" ")[0]).filter(Boolean),
+    paymentComplete: isPaymentComplete(inspection),
+    balanceDue: Math.max(
+      0,
+      (Number(inspection.invoice_amount) || 0) - (Number(inspection.amount_paid) || 0),
+    ),
+    published: reportIsPublished,
+    reportSent: Boolean(latestReportEmail),
+    noReport: noReportToSend,
+  });
+
   const reportSectionTabs = [
     { key: "disclaimers", label: "Disclaimers", anchorId: "report-disclaimers" },
     { key: "agreement", label: "Agreement", anchorId: "agreement-status" },
@@ -3031,6 +3049,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         clientInfo={inspection}
       />
       <div className="mx-auto w-full max-w-none px-1 py-2 sm:px-2 md:px-4 lg:max-w-[96rem] lg:py-8">
+        <OpenDetailsForHash />
         {/* Report context header - always shows which report you're editing + its live status */}
         <div className="mb-4 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] px-4 py-3 shadow-lg md:rounded-2xl md:px-6 md:py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -3050,52 +3069,48 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   .join("  ·  ") || "No client on file"}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
-                  reportIsPublished
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
-                    : "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]"
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${reportIsPublished ? "bg-emerald-400" : "bg-amber-400"}`} />
-                {reportIsPublished ? "Published" : "Draft"}
-              </span>
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
-                  isPaymentComplete(inspection)
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
-                    : "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]"
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${isPaymentComplete(inspection) ? "bg-emerald-400" : "bg-amber-400"}`} />
-                {isPaymentComplete(inspection)
-                  ? "Paid"
-                  : Number(inspection.amount_paid || 0) > 0
-                    ? "Partial"
-                    : "Unpaid"}
-              </span>
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
-                  agreementComplete
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
-                    : "border-amber-500/40 bg-amber-500/10 text-[var(--fl-warn-text)]"
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${agreementComplete ? "bg-emerald-400" : "bg-amber-400"}`} />
-                {agreementComplete ? "Signed" : "Agreement"}
-              </span>
-            </div>
+            {/* Job status strip: tap a chip to jump to where it's fixed. */}
+            <JobStatusStrip chips={jobStatus.chips} next={jobStatus.next} />
           </div>
         </div>
 
         <div className="mb-4 overflow-x-clip overflow-y-visible rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-1.5 shadow-xl sm:p-3 md:rounded-2xl md:p-6">
           <div className="mb-6 max-w-full space-y-4 overflow-x-clip overflow-y-visible">
-            <div>
+            {/* Main actions up front; every other report/share/communicate
+                tool is unchanged, just tucked under "More". */}
+            <div id="report-actions" className="scroll-mt-48">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
-                Report &amp; Share
+                Report
               </p>
               <div className="flex flex-wrap gap-3">
+                <FastLinkButton
+                  href={shareHref}
+                  loadingText="Opening Client Report..."
+                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                >
+                  Client Report
+                </FastLinkButton>
+                {noReportToSend ? (
+                  <span className="inline-flex min-w-[154px] items-center justify-center rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-5 py-3 text-center text-sm font-semibold text-[var(--fl-muted)]">
+                    {isVerbalJob ? "Verbal walkthrough — no written report" : "Orientation — no report to publish"}
+                  </span>
+                ) : (
+                  <PublishReportActionButton
+                    action={publishReport}
+                    inspectionId={String(inspection.id)}
+                    published={reportIsPublished}
+                  />
+                )}
+                {/* Walkthroughs have no report to send. */}
+                {!noReportToSend && (
+                  <SendFullReportButton
+                    inspectionId={String(inspection.id)}
+                    clientEmail={inspection.client_email}
+                    realtorEmail={inspection.realtor_email || inspection.agent_email}
+                  />
+                )}
+                {/* Until the agreement is signed, sending it is a main action. */}
+                {!agreementComplete && <SendAgreementButton inspectionId={String(inspection.id)} />}
                 {/* One clear PRIMARY (the real server-rendered PDF download),
                     with the two browser-print paths as consistent secondary
                     (ghost) buttons — was three different solid colors incl. a
@@ -3108,6 +3123,25 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 >
                   Download PDF
                 </ReportDownloadButton>
+              </div>
+            </div>
+
+            <details className="group rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--fl-text)] [touch-action:manipulation]">
+                <span>
+                  More
+                  <span className="ml-2 font-normal text-[var(--fl-muted)]">
+                    Summaries &amp; PDFs · Realtor · Portal · Re-inspection · Agreement · Review · Repair request
+                  </span>
+                </span>
+                <span className="text-[var(--fl-muted)] transition group-open:rotate-90">›</span>
+              </summary>
+              <div className="mt-4 space-y-4">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
+                Report &amp; Share
+              </p>
+              <div className="flex flex-wrap gap-3">
 
                 <ReportDownloadButton
                   href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?summary=1`}
@@ -3139,25 +3173,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   Realtor Summary
                 </FastLinkButton>
 
-                {noReportToSend ? (
-                  <span className="inline-flex min-w-[154px] items-center justify-center rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-5 py-3 text-center text-sm font-semibold text-[var(--fl-muted)]">
-                    {isVerbalJob ? "Verbal walkthrough — no written report" : "Orientation — no report to publish"}
-                  </span>
-                ) : (
-                  <PublishReportActionButton
-                    action={publishReport}
-                    inspectionId={String(inspection.id)}
-                    published={reportIsPublished}
-                  />
-                )}
 
-                <FastLinkButton
-                  href={shareHref}
-                  loadingText="Opening Client Report..."
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                >
-                  Client Report
-                </FastLinkButton>
 
                 <CreateDemoReportButton inspectionId={String(inspection.id)} />
 
@@ -3192,14 +3208,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 Send &amp; Communicate
               </p>
               <div className="flex flex-wrap items-center gap-3">
-                {/* Walkthroughs have no report to send. */}
-                {!noReportToSend && (
-                  <SendFullReportButton
-                    inspectionId={String(inspection.id)}
-                    clientEmail={inspection.client_email}
-                    realtorEmail={inspection.realtor_email || inspection.agent_email}
-                  />
-                )}
 
                 {inspection.realtor_name ? (
                   <SaveAgentButton
@@ -3218,7 +3226,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                   reviewStatus={inspection.review_status}
                 />
 
-                <SendAgreementButton inspectionId={String(inspection.id)} />
+                {agreementComplete && <SendAgreementButton inspectionId={String(inspection.id)} />}
 
                 <FastLinkButton
                   href={`/repair-request?inspection_id=${inspection.id}`}
@@ -3229,6 +3237,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                 </FastLinkButton>
               </div>
             </div>
+
+              </div>
+            </details>
 
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
@@ -3356,27 +3367,75 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             currentEmails={[inspection.client_email, inspection.realtor_email]}
           />
 
-          <div className="mb-6">
-            <InspectionRouteCard
-              propertyAddress={inspection.property_address || inspection.address || ""}
-              city={inspection.city}
-              state={inspection.state}
-              zip={inspection.zip}
-              officeAddress={officeAddress}
-              distanceMiles={liveDistanceMiles}
-              driveMinutes={liveDriveMinutes}
+          <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
+            <FieldReviewQueue
+              inspectionId={String(inspection.id)}
+              reviewFindings={fieldReviewFindings}
+              availableSections={fieldReviewSections}
+            />
+
+            <LimitationEquipmentReview
+              inspectionId={String(inspection.id)}
+              availableSections={fieldReviewSections}
+            />
+
+            <RealtimeReportSync inspectionId={String(inspection.id)} />
+            <WorkflowStateSync />
+            <ReportTemplateSwitcher
+              inspectionId={String(inspection.id)}
+              currentTemplateId={(inspection as any).report_template_id || null}
+            />
+
+            <PriorityRepairsPanel
+              inspectionId={String(inspection.id)}
+              downloadId={reportDownloadId}
+              findings={editorFindings.map((f: any) => ({
+                id: String(f.id),
+                title: f.title || "Finding",
+                severity: f.severity || "",
+                section: f.section || "",
+                itemNo: f.report_item_number ? String(f.report_item_number) : "",
+              }))}
+            />
+
+            {/* Silently clocks active report-editing time for the "finished in
+                X minutes" metric — foreground-only, excludes overnight gaps. */}
+            <ReportEditTimer inspectionId={String(inspection.id)} />
+
+            <ReportFindingsSortable
+              groupedFindings={groupedFindingsArray}
+              deletedSections={deletedReportSections}
+              sectionNotes={sectionNotesMap}
+              units={reportUnits}
+              isMultiUnit={inspectionIsMultiUnit}
+              hasEquipment={equipmentInventory.length > 0}
+              equipment={equipmentInventory.map((item: any) => ({
+                name: item.equipment_type || item.equipmentType || item.name || item.type || "Equipment",
+                type: [item.equipment_type || item.equipmentType || item.type, item.equipment_category || item.equipmentCategory, item.manufacturer, item.model]
+                  .filter(Boolean)
+                  .join(" "),
+                manufactureYear: item.manufacture_year || item.manufactureYear || item.year || null,
+                estimatedAge: item.estimated_age || item.estimatedAge || null,
+              }))}
+              weatherContext={{
+                address: [
+                  inspection.property_address || inspection.address,
+                  inspection.city,
+                  inspection.state,
+                  inspection.zip,
+                ]
+                  .filter(Boolean)
+                  .join(", "),
+                date: inspection.inspection_date || null,
+                hour: inspection.inspection_time
+                  ? Number(String(inspection.inspection_time).slice(0, 2))
+                  : null,
+              }}
             />
           </div>
 
-          <div className="mb-6">
-            <DroneAirspaceCard
-              address={inspection.property_address || inspection.address || ""}
-              city={inspection.city}
-              state={inspection.state}
-              zip={inspection.zip}
-            />
-          </div>
 
+          {/* Job panel (agreement, payment, delivery…) sits after the findings. */}
           <ReportBuilderSectionTabs tabs={reportSectionTabs}>
             <div id="report-disclaimers" data-command-target="report-disclaimers" className="mb-8">
               <ReportDisclaimers inspectionId={String(inspection.id)} />
@@ -3730,66 +3789,19 @@ Service-life information is a general industry estimate only. Actual service lif
 
           </ReportBuilderSectionTabs>
 
-          <CollapsibleReportSection
-            title="AI Inspection Watchlist"
-            subtitle={
-              inspectionWatchlistItems.length > 0
-                ? `${inspectionWatchlistItems.length} item${inspectionWatchlistItems.length === 1 ? "" : "s"} to review before you finish`
-                : "No watchlist items yet"
-            }
-            accentClassName="border-cyan-500/40 text-[var(--fl-info-text)]"
-          >
-          <section className="mb-8 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-5 shadow-xl">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--fl-info-text)]">
-                  AI Inspection Watchlist
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
-                  Be on the lookout before you finish this report
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-                  {inspectionYearBuilt
-                    ? `This home was reportedly built in ${inspectionYearBuilt}. The system is watching for age-related risks, finding-based limitations, and disclaimers you may want to add.`
-                    : "Add or auto-fill the year built to unlock age-based watchlist items and disclaimer suggestions."}
-                </p>
-              </div>
-
-              <a
-                href="#report-disclaimers"
-                className="w-fit rounded-xl border border-cyan-300 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] hover:bg-cyan-400/20"
-              >
-                Review Disclaimers
-              </a>
-            </div>
-
-            {inspectionWatchlistItems.length > 0 ? (
-              <div className="mt-5 grid gap-3 lg:grid-cols-2">
-                {inspectionWatchlistItems.map((item: any, index: number) => (
-                  <div
-                    key={`${item.title}-${index}`}
-                    className="rounded-xl border border-cyan-400/30 bg-[var(--fl-ground)] p-4"
-                  >
-                    <p className="text-base font-semibold text-[var(--fl-text)]">{item.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--fl-info-text)]">{item.reason}</p>
-                    {item.tips?.length ? (
-                      <ul className="mt-3 space-y-1 text-xs font-bold leading-5 text-[var(--fl-muted)]">
-                        {item.tips.map((tip: string) => (
-                          <li key={tip}>✓ {tip}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm font-bold text-[var(--fl-muted)]">
-                No age-based watchlist items yet. Add the year built or continue documenting findings.
-              </div>
-            )}
-          </section>
-          </CollapsibleReportSection>
-
+          {/* AI & Insights: workspace stats, age watchlist, route & drone —
+              closed by default so the findings stay near the top. */}
+          <details id="ai-insights" className="group mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [touch-action:manipulation]">
+              <span>
+                <span className="block text-lg font-semibold text-[var(--fl-text)]">AI &amp; Insights</span>
+                <span className="block text-xs text-[var(--fl-muted)]">
+                  Workspace stats · AI watchlist · Drive route · Drone airspace
+                </span>
+              </span>
+              <span className="text-xl text-[var(--fl-muted)] transition group-open:rotate-90">›</span>
+            </summary>
+            <div className="mt-4">
           <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
@@ -4008,72 +4020,89 @@ Service-life information is a general industry estimate only. Actual service lif
                 Next Best Action buttons above stay. */}
           </section>
 
-          <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
-            <FieldReviewQueue
-              inspectionId={String(inspection.id)}
-              reviewFindings={fieldReviewFindings}
-              availableSections={fieldReviewSections}
-            />
+          <CollapsibleReportSection
+            title="AI Inspection Watchlist"
+            subtitle={
+              inspectionWatchlistItems.length > 0
+                ? `${inspectionWatchlistItems.length} item${inspectionWatchlistItems.length === 1 ? "" : "s"} to review before you finish`
+                : "No watchlist items yet"
+            }
+            accentClassName="border-cyan-500/40 text-[var(--fl-info-text)]"
+          >
+          <section className="mb-8 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-5 shadow-xl">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--fl-info-text)]">
+                  AI Inspection Watchlist
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-[var(--fl-text)]">
+                  Be on the lookout before you finish this report
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
+                  {inspectionYearBuilt
+                    ? `This home was reportedly built in ${inspectionYearBuilt}. The system is watching for age-related risks, finding-based limitations, and disclaimers you may want to add.`
+                    : "Add or auto-fill the year built to unlock age-based watchlist items and disclaimer suggestions."}
+                </p>
+              </div>
 
-            <LimitationEquipmentReview
-              inspectionId={String(inspection.id)}
-              availableSections={fieldReviewSections}
-            />
+              <a
+                href="#report-disclaimers"
+                className="w-fit rounded-xl border border-cyan-300 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-[var(--fl-info-text)] hover:bg-cyan-400/20"
+              >
+                Review Disclaimers
+              </a>
+            </div>
 
-            <RealtimeReportSync inspectionId={String(inspection.id)} />
-            <WorkflowStateSync />
-            <ReportTemplateSwitcher
-              inspectionId={String(inspection.id)}
-              currentTemplateId={(inspection as any).report_template_id || null}
-            />
+            {inspectionWatchlistItems.length > 0 ? (
+              <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                {inspectionWatchlistItems.map((item: any, index: number) => (
+                  <div
+                    key={`${item.title}-${index}`}
+                    className="rounded-xl border border-cyan-400/30 bg-[var(--fl-ground)] p-4"
+                  >
+                    <p className="text-base font-semibold text-[var(--fl-text)]">{item.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--fl-info-text)]">{item.reason}</p>
+                    {item.tips?.length ? (
+                      <ul className="mt-3 space-y-1 text-xs font-bold leading-5 text-[var(--fl-muted)]">
+                        {item.tips.map((tip: string) => (
+                          <li key={tip}>✓ {tip}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-sm font-bold text-[var(--fl-muted)]">
+                No age-based watchlist items yet. Add the year built or continue documenting findings.
+              </div>
+            )}
+          </section>
+          </CollapsibleReportSection>
 
-            <PriorityRepairsPanel
-              inspectionId={String(inspection.id)}
-              downloadId={reportDownloadId}
-              findings={editorFindings.map((f: any) => ({
-                id: String(f.id),
-                title: f.title || "Finding",
-                severity: f.severity || "",
-                section: f.section || "",
-                itemNo: f.report_item_number ? String(f.report_item_number) : "",
-              }))}
-            />
-
-            {/* Silently clocks active report-editing time for the "finished in
-                X minutes" metric — foreground-only, excludes overnight gaps. */}
-            <ReportEditTimer inspectionId={String(inspection.id)} />
-
-            <ReportFindingsSortable
-              groupedFindings={groupedFindingsArray}
-              deletedSections={deletedReportSections}
-              sectionNotes={sectionNotesMap}
-              units={reportUnits}
-              isMultiUnit={inspectionIsMultiUnit}
-              hasEquipment={equipmentInventory.length > 0}
-              equipment={equipmentInventory.map((item: any) => ({
-                name: item.equipment_type || item.equipmentType || item.name || item.type || "Equipment",
-                type: [item.equipment_type || item.equipmentType || item.type, item.equipment_category || item.equipmentCategory, item.manufacturer, item.model]
-                  .filter(Boolean)
-                  .join(" "),
-                manufactureYear: item.manufacture_year || item.manufactureYear || item.year || null,
-                estimatedAge: item.estimated_age || item.estimatedAge || null,
-              }))}
-              weatherContext={{
-                address: [
-                  inspection.property_address || inspection.address,
-                  inspection.city,
-                  inspection.state,
-                  inspection.zip,
-                ]
-                  .filter(Boolean)
-                  .join(", "),
-                date: inspection.inspection_date || null,
-                hour: inspection.inspection_time
-                  ? Number(String(inspection.inspection_time).slice(0, 2))
-                  : null,
-              }}
+          <div className="mb-6">
+            <InspectionRouteCard
+              propertyAddress={inspection.property_address || inspection.address || ""}
+              city={inspection.city}
+              state={inspection.state}
+              zip={inspection.zip}
+              officeAddress={officeAddress}
+              distanceMiles={liveDistanceMiles}
+              driveMinutes={liveDriveMinutes}
             />
           </div>
+
+          <div className="mb-6">
+            <DroneAirspaceCard
+              address={inspection.property_address || inspection.address || ""}
+              city={inspection.city}
+              state={inspection.state}
+              zip={inspection.zip}
+            />
+          </div>
+
+            </div>
+          </details>
 
           <InspectorToolsDrawer
             badge={inspectorWorkspaceBadge}
