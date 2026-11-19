@@ -8,6 +8,7 @@ import { hasSessionCookie } from "../lib/sessionCookie";
 import DeferredGlobals from "../components/DeferredGlobals";
 import { ConfirmProvider } from "../components/ConfirmProvider";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
+import ScreenSizeCheck from "../components/ScreenSizeCheck";
 
 // App-wide UI typeface — Manrope (clean, geometric, professional) for UI/body,
 // JetBrains Mono for figures/labels (precise, instrument-like). Self-hosted by
@@ -101,6 +102,8 @@ export default async function RootLayout({
           <TimeLocationEngine />
 
           <DeferredGlobals />
+
+          <ScreenSizeCheck />
 
           <PageShell signedIn={signedIn}>{children}</PageShell>
         </ConfirmProvider>
