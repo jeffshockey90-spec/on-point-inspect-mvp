@@ -3,16 +3,16 @@
 // property (full, limited-scope, agent, summary — every view and PDF) must
 // contain these four statements in 14-point bold type. Applied ONLY to
 // Maryland properties; other states never get it. Text is verbatim — do not
-// reword.
+// reword. Matches the Commission's published text exactly (no closing periods).
 
 import { normalizeStateCode } from "../usStates";
 import { licenseForState, sanitizeStateLicenses } from "../stateLicenses";
 
 export const MD_REPORT_DISCLOSURE_STATEMENTS: readonly string[] = [
-  "An inspection is intended to assist in the evaluation of the overall condition of a building. The inspection is based on observation of the visible and apparent condition of the building and its components on the date of the inspection.",
-  "The results of this home inspection are not intended to make any representation regarding latent or concealed defects that may exist, and no warranty or guaranty is expressed or implied.",
-  "If your home inspector is not a licensed structural engineer or other professional whose license authorizes the rendering of an opinion as to structural integrity of a building or the condition of its components or systems, you may wish to seek the professional opinion of a licensed structural engineer or other professional regarding any possible defects or other observations set forth in this report.",
-  "Only home inspections performed by Maryland licensed home inspectors will be recognized as a valid home inspection under a real estate contract.",
+  "An inspection is intended to assist in the evaluation of the overall condition of a building. The inspection is based on observation of the visible and apparent condition of the building and its components on the date of the inspection",
+  "The results of this home inspection are not intended to make any representation regarding latent or concealed defects that may exist, and no warranty or guaranty is expressed or implied",
+  "If your home inspector is not a licensed structural engineer or other professional whose license authorizes the rendering of an opinion as to structural integrity of a building or the condition of its components or systems, you may wish to seek the professional opinion of a licensed structural engineer or other professional regarding any possible defects or other observations set forth in this report",
+  "Only home inspections performed by Maryland licensed home inspectors will be recognized as a valid home inspection under a real estate contract",
 ];
 
 /** 14-point bold, as the statute requires (CSS points render as true points in print/PDF). */
