@@ -1,3 +1,4 @@
+import { WALKTHROUGH_NOUN, isWalkthroughJob } from "../../../lib/report/serviceScope";
 import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { logError } from "../../../lib/jarvis/logError";
@@ -250,18 +251,22 @@ export async function POST(req: Request) {
         recipient.email
       )}&email_type=appointment_confirmed`;
 
+      // Walkthroughs are consultations, not inspections — say what it is.
+      const isWalkthrough = isWalkthroughJob(inspection);
+      const kindTitle = isWalkthrough ? WALKTHROUGH_NOUN : "Inspection";
+      const kindLower = isWalkthrough ? "walkthrough consultation" : "inspection";
       const subject = isReschedule
-        ? `Inspection Rescheduled - ${address || branding.name}`
-        : `Inspection Confirmed - ${address || branding.name}`;
+        ? `${kindTitle} Rescheduled - ${address || branding.name}`
+        : `${kindTitle} Confirmed - ${address || branding.name}`;
       const greeting = recipient.name ? `Hi ${escapeHtml(recipient.name)},` : "Hello,";
 
       const note = isReschedule
         ? isRealtor
-          ? "The inspection has been rescheduled. Please note the updated date and time below."
-          : "Your inspection has been rescheduled. Please note the updated date and time below."
+          ? `The ${kindLower} has been rescheduled. Please note the updated date and time below.`
+          : `Your ${kindLower} has been rescheduled. Please note the updated date and time below.`
         : isRealtor
-          ? "This confirms the inspection has been scheduled."
-          : "This confirms your inspection has been scheduled.";
+          ? `This confirms the ${kindLower} has been scheduled.`
+          : `This confirms your ${kindLower} has been scheduled.`;
 
       const html = `
         <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;padding:24px;">
@@ -279,7 +284,7 @@ export async function POST(req: Request) {
           </table>
 
           <p style="margin-top:18px;">
-            Your inspection agreement and payment information may be sent separately if required.
+            Your ${kindLower} agreement and payment information may be sent separately if required.
           </p>
 
           <p>
@@ -305,7 +310,7 @@ Date: ${dateText}
 Time: ${timeText}
 Services: ${services}
 
-Your inspection agreement and payment information may be sent separately if required.
+Your ${kindLower} agreement and payment information may be sent separately if required.
 
 Client Portal:
 ${portalUrl}

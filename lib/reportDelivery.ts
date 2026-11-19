@@ -12,6 +12,8 @@
 // pure helpers (isPaymentComplete/isPublished) import nothing server-only and
 // are safe to use from client components too.
 
+import { paidWithBalanceRemaining } from "./paymentSettled";
+
 function getNumber(value: any) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -48,6 +50,9 @@ export function isPaymentComplete(row: Record<string, any> | null | undefined) {
 
   // The inspector's explicit decisions: paid, waived, or payment not required
   // (e.g. imported reports).
+  // ("Paid" with a recorded payment smaller than the invoice — the price was
+  // raised after payment — still has a balance due.)
+  if (status === "paid" && paidWithBalanceRemaining(row)) return false;
   if (status === "paid" || status === "waived" || status === "not required") return true;
 
   // A job with NO price used to count as paid ("nothing to collect"), so a

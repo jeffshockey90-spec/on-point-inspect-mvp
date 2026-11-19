@@ -10,6 +10,7 @@ import { getNotificationPrefs } from "../../../../lib/notificationPrefs";
 import { reminderDateWindow } from "../../../../lib/reminderWindow";
 import { isCronAuthorized } from "../../../../lib/cronAuth";
 import { isOrientationJob } from "../../../../lib/orientation";
+import { WALKTHROUGH_NOUN, isWalkthroughJob } from "../../../../lib/report/serviceScope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -412,6 +413,7 @@ function isEnvironmentalOnly(row: InspectionRow) {
 function getInspectionNoun(row: InspectionRow) {
   // A walkthrough isn't an inspection (no report) — say what it is.
   if (isOrientationJob(row as any)) return "Home Orientation";
+  if (isWalkthroughJob(row as any)) return WALKTHROUGH_NOUN;
   if (!isEnvironmentalOnly(row)) return "Inspection";
 
   const radon = includesRadonService(row);
