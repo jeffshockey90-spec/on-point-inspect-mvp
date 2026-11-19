@@ -69,3 +69,12 @@ describe("verbal-only services (no written report)", () => {
     expect(isVerbalOnlyService("Verbalize")).toBe(false);
   });
 });
+
+describe("walkthroughs are consultations in every state", () => {
+  it("titles WV and PA walkthrough jobs as consultations too", async () => {
+    const { reportTitleFor: title, isWalkthroughJob } = await import("./serviceScope");
+    expect(isWalkthroughJob({ service_mode: "pre_offer_verbal_walkthrough" })).toBe(true);
+    expect(title({ state: "WV", service_mode: "pre_offer_verbal_walkthrough" }, "WV", "X")).toBe("Walkthrough Consultation");
+    expect(title({ state: "PA", service_mode: "home" }, "PA", "X")).toBe("X");
+  });
+});

@@ -1,5 +1,6 @@
 "use client";
 
+import { effectivePaymentStatus } from "../lib/paymentSettled";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { supabase } from "../lib/supabaseClient";
@@ -155,7 +156,10 @@ export default function PaymentInvoicePanel({
   const invoiceAmountNumber = useMemo(() => getNumber(invoiceAmount), [invoiceAmount]);
   const amountPaidNumber = useMemo(() => getNumber(amountPaid), [amountPaid]);
   const balanceDue = Math.max(0, invoiceAmountNumber - amountPaidNumber);
-  const isPaid = paymentStatus === "Paid" || paymentStatus === "Waived" || balanceDue <= 0;
+  // "Paid" but the invoice is now higher than what was paid (price raised after
+  // payment) shows — and saves — as Partial with the balance due.
+  const shownStatus = effectivePaymentStatus(paymentStatus, invoiceAmountNumber, amountPaidNumber);
+  const isPaid = shownStatus === "Paid" || shownStatus === "Waived" || (invoiceAmountNumber > 0 && balanceDue <= 0);
   const isPartial = !isPaid && amountPaidNumber > 0;
 
   async function savePaymentStatus() {
@@ -171,8 +175,8 @@ export default function PaymentInvoicePanel({
       const { error } = await supabase
         .from("inspections")
         .update({
-          invoice_status: paymentStatus,
-          payment_status: paymentStatus,
+          invoice_status: shownStatus,
+          payment_status: shownStatus,
           invoice_amount: invoiceAmountNumber || null,
           amount_paid: amountPaidNumber || 0,
           // Waived means nothing is owed (it used to keep the full balance).
@@ -181,7 +185,7 @@ export default function PaymentInvoicePanel({
           invoice_due_date: invoiceDueDate || null,
           payment_notes: paymentNotes || null,
           invoice_notes: paymentNotes || null,
-          paid_at: paymentStatus === "Paid" || paymentStatus === "Waived" ? new Date().toISOString() : null,
+          paid_at: shownStatus === "Paid" || shownStatus === "Waived" ? new Date().toISOString() : null,
         })
         .eq("id", inspectionId);
       if (error) throw error;
@@ -365,7 +369,7 @@ export default function PaymentInvoicePanel({
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--fl-accent-text)]">Invoice / Payment</p>
             <h2 className={`mt-2 text-2xl font-semibold ${isPaid ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"}`}>{isPaid ? "Payment Complete" : "Payment Required"}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Badge tone={isPaid ? "green" : isPartial ? "yellow" : "orange"}>{paymentStatus}</Badge>
+              <Badge tone={isPaid ? "green" : isPartial ? "yellow" : "orange"}>{shownStatus}</Badge>
               <Badge tone="slate">Invoice {money(invoiceAmountNumber)}</Badge>
               <Badge tone="slate">Paid {money(amountPaidNumber)}</Badge>
               <Badge tone={isPaid ? "green" : "orange"}>Due {money(balanceDue)}</Badge>

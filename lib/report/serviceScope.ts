@@ -111,6 +111,13 @@ export function isWalkthroughService(name: string): boolean {
   return WALKTHROUGH.test(String(name || ""));
 }
 
+export const WALKTHROUGH_NOUN = "Walkthrough Consultation";
+
+/** Any walkthrough job, any state: it's a consultation, not an inspection. */
+export function isWalkthroughJob(inspection: Record<string, any> | null | undefined): boolean {
+  return isWalkthroughService(jobServiceName(inspection));
+}
+
 /** Maryland walkthrough job: a consultation, not a home inspection. */
 export function isMarylandWalkthrough(inspection: Record<string, any> | null | undefined, stateCode: string): boolean {
   return stateCode === "MD" && isWalkthroughService(jobServiceName(inspection));
@@ -120,9 +127,10 @@ export const MD_WALKTHROUGH_TITLE = "Walkthrough Consultation";
 export const MD_WALKTHROUGH_NOTICE =
   "This walkthrough is a consultation and is not a home inspection under Maryland law (Business Occupations and Professions Article, § 16-101(i)). These notes are not a home inspection report. For a home inspection, a Maryland licensed home inspector must perform the inspection and provide a written report.";
 
-/** The report's title for this job. */
+/** The report's title for this job: walkthroughs (every state) are consultations. */
 export function reportTitleFor(inspection: Record<string, any> | null | undefined, stateCode: string, fallback: string): string {
-  return isMarylandWalkthrough(inspection, stateCode) ? MD_WALKTHROUGH_TITLE : fallback;
+  void stateCode;
+  return isWalkthroughJob(inspection) ? MD_WALKTHROUGH_TITLE : fallback;
 }
 
 function escapeHtml(value: string) {
