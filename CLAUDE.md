@@ -32,7 +32,7 @@ Rules:
 - Wide tables (fixed minimum width) need a card layout below the width where they fit; never leave a page that only works by scrolling sideways.
 - Rows of buttons/badges must `flex-wrap`; don't put `shrink-0`/`whitespace-nowrap` on a whole group.
 - Use smaller padding/type on phones (e.g. `px-3 sm:px-6`, `text-3xl sm:text-5xl`).
-- The custom `fold:` breakpoint (600px, `app/globals.css`) is for two-pane layouts on the open Duo and tablets; phones held upright stay single-column.
+- The iOS app must be rebuilt with an Xcode that supports the iPhone Duo, or iOS boxes it at phone size on the inner screen (Safari shows the real width). Don't add Duo-specific web layout to work around that.
 - When changing layout, check the result at 360, 390, 466, 626, 890 and 1280 wide (Playwright against the built CSS works without a database).
 
 ## How you work here
