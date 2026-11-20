@@ -146,6 +146,7 @@ export async function createDirectChargeCheckoutSession({
   metadata,
   successUrl,
   cancelUrl,
+  idempotencyKey,
 }: {
   company: any;
   lineItems: Stripe.Checkout.SessionCreateParams.LineItem[];
@@ -155,6 +156,8 @@ export async function createDirectChargeCheckoutSession({
   metadata: Record<string, string>;
   successUrl: string;
   cancelUrl: string;
+  /** Stripe idempotency key, so a double-click can't open two payable sessions. */
+  idempotencyKey?: string;
 }) {
   const stripe = getStripe();
   const connectedStripeAccountId = String(company.stripe_account_id);
@@ -176,6 +179,7 @@ export async function createDirectChargeCheckoutSession({
     },
     {
       stripeAccount: connectedStripeAccountId,
+      ...(idempotencyKey ? { idempotencyKey } : {}),
     }
   );
 
@@ -251,6 +255,50 @@ export async function createInspectionCheckoutSession({
   const property = inspection.property_address || inspection.address || "Inspection";
   const clientEmail = getValidEmail(inspection.client_email);
 
+  // One payable link per inspection. Each portal click, reminder and resend
+  // used to open a NEW Stripe session and leave the old ones payable, so a
+  // client could pay the same balance twice. If the saved session is still
+  // open for this exact amount, hand that one back; otherwise expire it before
+  // creating a fresh one. Never let this housekeeping block the payment.
+  const previousSessionId = String(inspection.stripe_checkout_session_id || "");
+  if (previousSessionId) {
+    try {
+      const stripe = getStripe();
+      const previous = await stripe.checkout.sessions.retrieve(previousSessionId, undefined, {
+        stripeAccount: connectedStripeAccountId,
+      });
+      const expectedCents = Math.round(totalOnlinePayment * 100);
+      if (previous.status === "open") {
+        if (previous.amount_total === expectedCents && previous.url) {
+          return {
+            ok: true,
+            url: previous.url,
+            sessionId: previous.id,
+            balanceDue,
+            portalProcessingFee,
+            totalOnlinePayment,
+            connectedStripeAccountId,
+          };
+        }
+        await stripe.checkout.sessions.expire(previousSessionId, undefined, {
+          stripeAccount: connectedStripeAccountId,
+        });
+      }
+    } catch (error) {
+      console.error("Could not reuse/expire previous checkout session:", error);
+    }
+  }
+
+  // Concurrent clicks resolve to one session: same inspection, amount and
+  // previous session within a 10-minute window share a key.
+  const idempotencyKey = [
+    "inspection-checkout",
+    inspectionId,
+    Math.round(totalOnlinePayment * 100),
+    previousSessionId || "none",
+    Math.floor(Date.now() / 600000),
+  ].join(":");
+
   const metadata: Record<string, string> = {
     inspection_id: String(inspectionId),
     property_address: String(property),
@@ -282,6 +330,7 @@ export async function createInspectionCheckoutSession({
     clientEmail,
     clientReferenceId: String(inspectionId),
     metadata,
+    idempotencyKey,
     successUrl: `${appUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}&stripe_account=${connectedStripeAccountId}${
       portalReturnToken ? `&portal_token=${encodeURIComponent(portalReturnToken)}` : ""
     }`,

@@ -12,6 +12,7 @@ import {
   getCompanyBrandingById,
   buildBrandedFromHeader, brandedReplyTo } from "../../../lib/companyBranding";
 import { buildRefundHtml, buildRefundNumber } from "../../../lib/refundEmail";
+import { manualRefundBlockReason } from "../../../lib/refundTotals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -186,6 +187,12 @@ export async function POST(req: Request) {
 
     const inspection = await loadInspection(admin, inspectionId);
     if (!inspection) return notFound("Inspection not found.");
+
+    const stripeBlock = manualRefundBlockReason({
+      method,
+      inspectionPaymentMethod: inspection.payment_method,
+    });
+    if (stripeBlock) return NextResponse.json({ error: stripeBlock }, { status: 400 });
 
     const amountPaid = num(inspection.amount_paid);
     const invoiceTotal = invoiceTotalOf(inspection);

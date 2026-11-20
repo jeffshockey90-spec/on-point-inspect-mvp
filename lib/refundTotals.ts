@@ -20,3 +20,23 @@ export function combineRefunds(input: {
   const manualPart = Math.max(0, existing - Math.max(0, input.previousStripe));
   return round2(manualPart + stripe);
 }
+
+// Record Refund is for money returned OUTSIDE Stripe (cash, check, Zelle...).
+// A Stripe card payment must be refunded in Stripe: the charge.refunded webhook
+// records it. Recording it here as well counted the same refund twice (the
+// manual figure was kept as "manual" and Stripe's total added on top). The form
+// pre-fills the job's payment method, which is "Stripe" for portal payments,
+// so a blank/Card/Stripe method on a Stripe-paid job is treated as Stripe.
+export const STRIPE_REFUND_MESSAGE =
+  "This payment was made through Stripe. Refund it in your Stripe dashboard and FLOW records it automatically. Use Record Refund only for money you returned another way (cash, check, Zelle, etc.) and pick that method.";
+
+export function manualRefundBlockReason(input: {
+  method: string;
+  inspectionPaymentMethod?: string | null;
+}): string | null {
+  const method = String(input.method || "").trim().toLowerCase();
+  const paidVia = String(input.inspectionPaymentMethod || "").trim().toLowerCase();
+  if (method.includes("stripe")) return STRIPE_REFUND_MESSAGE;
+  if (paidVia.includes("stripe") && (method === "" || method === "card")) return STRIPE_REFUND_MESSAGE;
+  return null;
+}
