@@ -30,8 +30,6 @@
 	<string>FLOW uses the camera to capture inspection photos for reports.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>FLOW uses your location to detect arrival and departure at inspection properties and record business mileage.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>FLOW uses background location during active inspection travel and property presence monitoring so it can prompt you to start mileage when you leave.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>FLOW uses the microphone to record inspection videos and dictate inspection findings.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
@@ -44,11 +42,6 @@
 	<string>FLOW may save inspection photos or report images to your photo library when requested.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>FLOW uses your photo library so you can attach inspection photos and videos to reports.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-		<string>location</string>
-	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
