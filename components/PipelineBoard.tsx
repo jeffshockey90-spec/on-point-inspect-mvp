@@ -156,7 +156,51 @@ export default function PipelineBoard({
             : "No active jobs — everything is delivered. Nice work."}
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <>
+        {/* Phones and small tablets: stacked cards. */}
+        <div className="space-y-3 md:hidden">
+          {visibleJobs.map((job) => (
+            <div
+              key={job.id}
+              className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="break-words font-semibold text-[var(--fl-text)]">{job.address}</p>
+                  <p className="mt-0.5 break-words text-xs text-[var(--fl-muted)]">
+                    {job.client || "No client listed"}
+                  </p>
+                </div>
+                <div className="shrink-0">
+                  <StagePill stage={job.stage} />
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span
+                  className={
+                    job.paid
+                      ? "text-xs font-semibold text-[var(--fl-good-text)]"
+                      : "text-xs font-semibold text-[var(--fl-warn-text)]"
+                  }
+                >
+                  {job.paymentLabel}
+                </span>
+                <span className="font-mono text-xs tabular-nums text-[var(--fl-muted)]">
+                  {job.dateLabel}
+                </span>
+                <Link
+                  href={`/reports/${job.id}`}
+                  className="ml-auto rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent)] transition-colors hover:border-[var(--fl-accent)]/50 hover:bg-[var(--fl-accent)]/10"
+                >
+                  Open
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* md and up: the full table. */}
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <thead>
               <tr className="border-b border-[var(--fl-raised)] text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fl-faint)]">
@@ -209,6 +253,7 @@ export default function PipelineBoard({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </section>
   );

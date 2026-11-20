@@ -104,7 +104,66 @@ export default async function AgreementStatusPage() {
           </Link>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)]">
+        {/* Phones and small tablets: stacked cards. */}
+        <div className="space-y-3 md:hidden">
+          {rows.map(({ insp, signers, total, signed, status }) => {
+            const meta = STATUS_META[status];
+            return (
+              <div
+                key={String(insp.id)}
+                className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 text-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/reports/${insp.id}`}
+                      className="break-words font-bold text-[var(--fl-text)] hover:text-[var(--fl-accent-text)]"
+                    >
+                      {insp.property_address || insp.address || "Property"}
+                    </Link>
+                    <p className="mt-0.5 break-words text-xs text-[var(--fl-muted)]">
+                      {insp.client_name || "Client"} ·{" "}
+                      {insp.inspection_date ? formatDateOnly(insp.inspection_date) : "—"}
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${meta.cls}`}
+                  >
+                    {total > 0 && status !== "signed" ? `${signed}/${total} signed` : meta.label}
+                  </span>
+                </div>
+                {signers.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {signers.map((s, i) => (
+                      <span
+                        key={`${insp.id}-${i}`}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
+                          s.agreement_signed
+                            ? "border-emerald-500/40 bg-emerald-500/10 text-[var(--fl-good-text)]"
+                            : "border-[var(--fl-line)] bg-[var(--fl-raised)] text-[var(--fl-muted)]"
+                        }`}
+                      >
+                        {s.agreement_signed ? "✓" : "•"} {s.name || s.email || s.role || "Signer"}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {(status === "unsigned" || status === "partial") && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <AgreementStatusResend inspectionId={String(insp.id)} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {rows.length === 0 && (
+            <div className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] px-4 py-10 text-center text-sm text-[var(--fl-muted)]">
+              No inspections yet.
+            </div>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] md:block">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-[var(--fl-raised)] text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
               <tr>

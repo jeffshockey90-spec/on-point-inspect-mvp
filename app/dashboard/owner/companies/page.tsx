@@ -188,7 +188,37 @@ export default async function OwnerCompaniesPage() {
         <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
           <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">All Companies</h2>
 
-          <div className="mt-6 overflow-x-auto">
+          {/* Phones and small tablets: stacked cards. */}
+          <div className="mt-6 space-y-3 md:hidden">
+            {rows.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[var(--fl-muted)]">No companies found yet.</p>
+            ) : (
+              rows.map((row) => (
+                <div
+                  key={row.id}
+                  className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 text-sm"
+                >
+                  <p className="break-words font-bold text-[var(--fl-text)]">{row.name}</p>
+                  <p className="mt-0.5 break-all text-xs text-[var(--fl-muted)]">{row.email}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${row.subscription.tone}`}>
+                      {row.subscription.label}
+                    </span>
+                    <CompanyStatusBadge isDeleted={row.isDeleted} isActive={row.isActive} />
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--fl-muted)]">
+                    {row.inspectionCount} {row.inspectionCount === 1 ? "inspection" : "inspections"} · Created{" "}
+                    {formatDate(row.createdAt)}
+                  </p>
+                  <div className="mt-3">
+                    <ManageCompanyLink ownerUserId={row.ownerUserId} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="mt-6 hidden overflow-x-auto md:block">
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-[var(--fl-raised)] text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
@@ -221,31 +251,10 @@ export default async function OwnerCompaniesPage() {
                       <td className="py-3 pr-4 text-[var(--fl-muted)]">{row.inspectionCount}</td>
                       <td className="py-3 pr-4 text-[var(--fl-muted)]">{formatDate(row.createdAt)}</td>
                       <td className="py-3 pr-4">
-                        {row.isDeleted ? (
-                          <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-crit-text)]">
-                            Deleted
-                          </span>
-                        ) : row.isActive ? (
-                          <span className="rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-warn-text)]">
-                            Suspended
-                          </span>
-                        )}
+                        <CompanyStatusBadge isDeleted={row.isDeleted} isActive={row.isActive} />
                       </td>
                       <td className="py-3">
-                        {row.ownerUserId ? (
-                          <Link
-                            href={`/dashboard/owner/users?highlight=${encodeURIComponent(row.ownerUserId)}`}
-                            className="font-bold text-[var(--fl-info-text)] hover:text-[var(--fl-info-text)]"
-                          >
-                            View in Users →
-                          </Link>
-                        ) : (
-                          <span className="text-[var(--fl-faint)]">No owner found</span>
-                        )}
+                        <ManageCompanyLink ownerUserId={row.ownerUserId} />
                       </td>
                     </tr>
                   ))
@@ -256,5 +265,40 @@ export default async function OwnerCompaniesPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function CompanyStatusBadge({ isDeleted, isActive }: { isDeleted: boolean; isActive: boolean }) {
+  if (isDeleted) {
+    return (
+      <span className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-crit-text)]">
+        Deleted
+      </span>
+    );
+  }
+  if (isActive) {
+    return (
+      <span className="rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]">
+        Active
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-warn-text)]">
+      Suspended
+    </span>
+  );
+}
+
+function ManageCompanyLink({ ownerUserId }: { ownerUserId: string }) {
+  return ownerUserId ? (
+    <Link
+      href={`/dashboard/owner/users?highlight=${encodeURIComponent(ownerUserId)}`}
+      className="font-bold text-[var(--fl-info-text)] hover:text-[var(--fl-info-text)]"
+    >
+      View in Users →
+    </Link>
+  ) : (
+    <span className="text-[var(--fl-faint)]">No owner found</span>
   );
 }
