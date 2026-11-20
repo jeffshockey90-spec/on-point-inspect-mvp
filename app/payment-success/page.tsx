@@ -166,7 +166,15 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
       throw new Error("Missing inspection ID from Stripe session.");
     }
 
-    if (paid) {
+    // An add-on invoice session also carries the linked inspection_id. Its
+    // payment belongs to the invoice (the webhook's invoice branch records it),
+    // so never apply it to the inspection's balance here: doing so let a paid
+    // add-on invoice unlock the inspection's own unpaid balance/report.
+    const isAddOnInvoiceSession = Boolean(session.metadata?.invoice_id);
+
+    if (paid && isAddOnInvoiceSession) {
+      message = "Payment complete. Thank you!";
+    } else if (paid) {
       const supabase = getSupabaseAdmin();
 
       totalPaid = (session.amount_total || 0) / 100;

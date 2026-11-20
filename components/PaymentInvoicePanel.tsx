@@ -84,7 +84,10 @@ export default function PaymentInvoicePanel({
   const savedRefunded = getNumber(inspection.amount_refunded);
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundAmount, setRefundAmount] = useState("");
-  const [refundMethod, setRefundMethod] = useState(inspection.payment_method || "");
+  // Stripe payments are refunded in Stripe (the webhook records them), so
+  // don't pre-select "Stripe" here; Record Refund is for cash/check/etc.
+  const defaultRefundMethod = /stripe/i.test(String(inspection.payment_method || "")) ? "" : inspection.payment_method || "";
+  const [refundMethod, setRefundMethod] = useState(defaultRefundMethod);
   const [refundReason, setRefundReason] = useState("");
   const [refundEmail, setRefundEmail] = useState(
     String(inspection.client_email || inspection.email || inspection.contact_email || ""),
@@ -262,7 +265,7 @@ export default function PaymentInvoicePanel({
     setCanceledKeys([]);
     setRefundAmount(remainingRefundable > 0 ? String(remainingRefundable) : "");
     setRefundReason("");
-    setRefundMethod(inspection.payment_method || "");
+    setRefundMethod(defaultRefundMethod);
     setRefundEmail(String(inspection.client_email || inspection.email || inspection.contact_email || ""));
     setRefundOpen(true);
   }

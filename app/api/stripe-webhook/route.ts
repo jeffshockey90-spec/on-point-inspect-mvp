@@ -165,15 +165,24 @@ function getPropertyLabel(inspection: any) {
 //   false -> already sent by someone else, skip
 //   null  -> the column doesn't exist yet (pre-migration); caller should fall
 //            back to its previous gate so nothing regresses before the SQL runs
+//
+// sinceIso: when this payment's checkout session was created. A receipt claimed
+// BEFORE then belongs to an earlier payment (e.g. a deposit, or the difference
+// after an upgrade), so this payment may claim again. Redeliveries of the same
+// payment still lose: the first claim stamps a time after the session started.
 async function claimReceiptSend(
   supabase: any,
-  inspectionId: string | number
+  inspectionId: string | number,
+  sinceIso?: string
 ): Promise<boolean | null> {
+  const unclaimed = sinceIso
+    ? `receipt_sent_at.is.null,receipt_sent_at.lt.${sinceIso}`
+    : "receipt_sent_at.is.null";
   const { data, error } = await supabase
     .from("inspections")
     .update({ receipt_sent_at: new Date().toISOString() })
     .eq("id", inspectionId)
-    .is("receipt_sent_at", null)
+    .or(unclaimed)
     .select("id");
 
   if (error) return null;
@@ -1029,7 +1038,11 @@ export async function POST(req: Request) {
               // race), alreadyPaid is already true here and both get dropped.
               // claimReceiptSend returns null pre-migration - fall back to the
               // old alreadyPaid gate then so nothing regresses before the SQL runs.
-              const receiptClaim = await claimReceiptSend(supabase, inspectionId);
+              const receiptClaim = await claimReceiptSend(
+                supabase,
+                inspectionId,
+                session.created ? new Date(session.created * 1000).toISOString() : undefined
+              );
               const shouldSendReceipt =
                 receiptClaim === null ? !alreadyPaid : receiptClaim;
 
@@ -1056,7 +1069,11 @@ export async function POST(req: Request) {
                   inspection: existingInspection,
                   session,
                   amountPaid,
-                  balanceDue: 0,
+                  // What's still owed after this payment ("Partial" payments
+                  // used to get a "paid in full, $0 due" receipt).
+                  balanceDue: decision.apply
+                    ? decision.balanceDue
+                    : Math.max(0, Number(existingInspection?.balance_due || 0)),
                   paidAt,
                   portalProcessingFee,
                   totalCharged,
