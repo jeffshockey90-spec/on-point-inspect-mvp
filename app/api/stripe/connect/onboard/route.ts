@@ -19,7 +19,7 @@ function getStripe() {
 async function getCompanyForUser(supabase: any, userId: string) {
   const { data: companyUser, error: companyUserError } = await supabase
     .from("company_users")
-    .select("company_id")
+    .select("company_id, role")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -29,6 +29,11 @@ async function getCompanyForUser(supabase: any, userId: string) {
   }
 
   if (!companyUser?.company_id) return null;
+
+  // Only the company owner may create or finish the payout account. Any member
+  // could otherwise complete a half-finished Express onboarding with their own
+  // identity and bank, and every client payment would land in their account.
+  if (String(companyUser.role || "").toLowerCase() !== "owner") return { notOwner: true };
 
   const { data: company, error: companyError } = await supabase
     .from("companies")
@@ -74,6 +79,14 @@ export async function GET() {
 
     if (!company) {
       return NextResponse.redirect(`${getAppUrl()}/settings?error=no_company`);
+    }
+
+    if ((company as any).notOwner) {
+      return NextResponse.redirect(
+        `${getAppUrl()}/settings?error=${encodeURIComponent(
+          "Only the company owner can set up or change Stripe payouts."
+        )}`
+      );
     }
 
     let stripeAccountId = company.stripe_account_id || "";

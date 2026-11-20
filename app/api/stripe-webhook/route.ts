@@ -931,6 +931,8 @@ export async function POST(req: Request) {
               const decision = decidePaymentRecord({
                 existing: existingInspection,
                 sessionId: session.id,
+                paymentIntentId:
+                  typeof session.payment_intent === "string" ? session.payment_intent : null,
                 balancePaid: amountPaid,
                 now: paidAt,
               });

@@ -183,7 +183,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
       const { data: existingForPay } = await supabase
         .from("inspections")
         .select(
-          "amount_paid, invoice_amount, total_price, total, price, payment_status, invoice_status, paid_at, stripe_checkout_session_id"
+          "amount_paid, invoice_amount, total_price, total, price, payment_status, invoice_status, paid_at, stripe_checkout_session_id, stripe_payment_intent_id, payment_notes"
         )
         .eq("id", inspectionId)
         .maybeSingle();
@@ -203,6 +203,7 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
       const decision = decidePaymentRecord({
         existing: existingForPay,
         sessionId: session.id,
+        paymentIntentId,
         balancePaid,
       });
 

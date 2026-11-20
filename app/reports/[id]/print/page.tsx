@@ -362,21 +362,14 @@ export default async function PrintableReportPage({ params }: PageProps) {
 
   let inspection = inspectionByToken;
 
-  // Legacy fallback: reports published before share tokens existed on every
-  // row won't match above. Still safe - restricted to published reports
-  // only, same condition the public RLS policy itself enforces.
-  if (!inspection && /^\d+$/.test(shareLookup)) {
-    const { data: inspectionByPublishedId } = await supabase
-      .from("inspections")
-      .select("*")
-      .eq("id", shareLookup)
-      .eq("published", true)
-      .maybeSingle();
+  // No anonymous lookup by numeric id: ids are sequential, so a signed-out
+  // "published id" fallback let anyone walk /reports/1/print, /reports/2/print…
+  // across every tenant (and the delivery-gate redirect below then revealed the
+  // report's share token). Every inspection has a token (ensure-share-tokens.sql
+  // backfill + column default), so public access is token-only, like /share.
+  // A numeric id falls through to the signed-in, access-checked path below.
 
-    inspection = inspectionByPublishedId;
-  }
-
-  // True when we got here via a PUBLIC published token/id (a client/realtor),
+  // True when we got here via a PUBLIC published token (a client/realtor),
   // not the signed-in owner path below. The public path must honor the same
   // payment/agreement delivery gate as /share — `published` alone is exactly
   // the gated state, so without this the PDF was a full paywall/agreement
