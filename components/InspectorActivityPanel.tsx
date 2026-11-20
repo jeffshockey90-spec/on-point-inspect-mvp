@@ -27,10 +27,10 @@ function shortDate(iso: string | null) {
 }
 
 // A table cell showing a count with the date it last happened underneath.
-function CountDate({ count, iso, accent }: { count: number; iso: string | null; accent?: boolean }) {
+function CountDateValue({ count, iso, accent }: { count: number; iso: string | null; accent?: boolean }) {
   const d = count > 0 ? shortDate(iso) : null;
   return (
-    <td className="px-3 py-2 text-right align-top">
+    <>
       <div className={`font-bold ${accent && count > 0 ? "text-[var(--fl-accent-text)]" : count > 0 ? "text-[var(--fl-text)]" : "text-[var(--fl-faint)]"}`}>
         {count}
       </div>
@@ -41,7 +41,25 @@ function CountDate({ count, iso, accent }: { count: number; iso: string | null; 
       >
         {count === 0 ? "—" : d ? d.label : "—"}
       </div>
+    </>
+  );
+}
+
+function CountDate(props: { count: number; iso: string | null; accent?: boolean }) {
+  return (
+    <td className="px-3 py-2 text-right align-top">
+      <CountDateValue {...props} />
     </td>
+  );
+}
+
+/** Phone-card tile: a labelled count with its last date. */
+function CountDateTile({ label, ...props }: { label: string; count: number; iso: string | null; accent?: boolean }) {
+  return (
+    <div className="rounded-lg border border-white/10 p-2 text-center">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">{label}</p>
+      <CountDateValue {...props} />
+    </div>
   );
 }
 
@@ -127,8 +145,38 @@ export default function InspectorActivityPanel() {
             })}
           </div>
 
-          {/* Per-inspector breakdown */}
-          <div className="mt-6 overflow-x-auto">
+          {/* Per-inspector breakdown: stacked cards on phones. */}
+          <div className="mt-6 space-y-3 md:hidden">
+            {data.inspectors.map((i) => (
+              <div
+                key={i.inspector_id}
+                className="rounded-xl border border-white/10 bg-[var(--fl-surface-2)] p-4 text-sm"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="min-w-0 break-all font-bold text-[var(--fl-text)]">{i.email}</span>
+                  {i.isOwner && (
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--fl-warn-text)]">
+                      you
+                    </span>
+                  )}
+                  <span className="ml-auto text-xs text-[var(--fl-muted)]">
+                    <span className="font-bold text-[var(--fl-text)]">{i.inspections}</span> inspections
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <CountDateTile label="Scheduled" count={i.scheduled} iso={i.lastScheduled} />
+                  <CountDateTile label="Published" count={i.published} iso={i.lastPublished} />
+                  <CountDateTile label="Sent" count={i.sent} iso={i.lastSent} />
+                  <CountDateTile label="Paid" count={i.paid} iso={i.lastPaid} accent />
+                </div>
+              </div>
+            ))}
+            {data.inspectors.length === 0 && (
+              <p className="py-4 text-center text-sm text-[var(--fl-muted)]">No inspector activity yet.</p>
+            )}
+          </div>
+
+          <div className="mt-6 hidden overflow-x-auto md:block">
             <table className="w-full min-w-[680px] text-left text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">

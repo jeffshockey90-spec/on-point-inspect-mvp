@@ -74,7 +74,22 @@ export default function Secure24LeadsPanel() {
           </div>
 
           {data.byInspector.length > 0 && (
-            <div className="mt-6 overflow-x-auto">
+            <>
+            <div className="mt-6 space-y-2 md:hidden">
+              {data.byInspector.map((i) => (
+                <div
+                  key={i.inspector_id}
+                  className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-white/5 bg-[var(--fl-surface-2)] px-3 py-2 text-sm"
+                >
+                  <span className="min-w-0 break-all font-bold text-[var(--fl-text)]">{i.email}</span>
+                  <span className="text-[var(--fl-muted)]">
+                    <span className="font-semibold text-[var(--fl-accent-text)]">{i.count}</span>{" "}
+                    {i.count === 1 ? "lead" : "leads"} · last {shortDate(i.lastAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 hidden overflow-x-auto md:block">
               <table className="w-full min-w-[420px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
@@ -94,6 +109,7 @@ export default function Secure24LeadsPanel() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {data.recent.length > 0 && (

@@ -251,7 +251,21 @@ export default async function TimesheetsPage({
         {inspectorTotals.length > 1 && (
           <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-xl">
             <h2 className="text-2xl font-semibold text-[var(--fl-accent-text)]">By Inspector</h2>
-            <div className="mt-5 overflow-x-auto">
+            <div className="mt-5 space-y-2 md:hidden">
+              {inspectorTotals.map((i) => (
+                <div
+                  key={i.email}
+                  className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3 text-sm"
+                >
+                  <p className="min-w-0 break-all font-bold text-[var(--fl-text)]">{i.email}</p>
+                  <p className="text-[var(--fl-muted)]">
+                    {i.jobs} {i.jobs === 1 ? "job" : "jobs"} ·{" "}
+                    <span className="font-semibold text-[var(--fl-accent-text)]">{fmtHours(i.hours)}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 hidden overflow-x-auto md:block">
               <table className="w-full min-w-[420px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
@@ -285,7 +299,43 @@ export default async function TimesheetsPage({
             />
           </div>
 
-          <div className="mt-5 overflow-x-auto">
+          <div className="mt-5 space-y-3 md:hidden">
+            {sessions.map((s, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4 text-sm"
+              >
+                <p className="break-words font-bold text-[var(--fl-text)]">{s.property}</p>
+                <p className="mt-0.5 break-all text-xs text-[var(--fl-muted)]">{s.email}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg border border-[var(--fl-line)] p-2">
+                    <p className="text-[var(--fl-faint)]">Arrived</p>
+                    <p className="mt-0.5 text-[var(--fl-muted)]">{fmtDateTime(s.arrived_at)}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--fl-line)] p-2">
+                    <p className="text-[var(--fl-faint)]">Departed</p>
+                    <p className="mt-0.5 text-[var(--fl-muted)]">{fmtDateTime(s.departed_at)}</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>{renderHours(s)}</div>
+                  <TimesheetOverrideCell
+                    inspectionId={s.inspection_id}
+                    current={s.manual ? s.hours : null}
+                    manual={s.manual}
+                  />
+                </div>
+              </div>
+            ))}
+            {sessions.length === 0 && (
+              <p className="py-6 text-center text-sm text-[var(--fl-muted)]">
+                No on‑site sessions in this period. Hours are captured automatically when GPS
+                arrival/departure detection is on during an inspection.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-5 hidden overflow-x-auto md:block">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
@@ -304,21 +354,7 @@ export default async function TimesheetsPage({
                     <td className="px-3 py-2 text-[var(--fl-muted)]">{s.property}</td>
                     <td className="px-3 py-2 text-[var(--fl-muted)]">{fmtDateTime(s.arrived_at)}</td>
                     <td className="px-3 py-2 text-[var(--fl-muted)]">{fmtDateTime(s.departed_at)}</td>
-                    <td className="px-3 py-2 text-right align-top">
-                      {s.reason == null ? (
-                        <span className="font-semibold text-[var(--fl-accent-text)]">
-                          {s.hours!.toFixed(1)}
-                          {s.manual && (
-                            <span className="ml-1 text-[10px] font-bold text-[var(--fl-faint)]">edited</span>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-bold text-[var(--fl-warn-text)]">
-                          {s.hours != null ? `${s.hours.toFixed(1)} · ` : ""}
-                          {s.reason}
-                        </span>
-                      )}
-                    </td>
+                    <td className="px-3 py-2 text-right align-top">{renderHours(s)}</td>
                     <td className="px-3 py-2 text-right align-top">
                       <TimesheetOverrideCell
                         inspectionId={s.inspection_id}
@@ -342,5 +378,20 @@ export default async function TimesheetsPage({
         </section>
       </div>
     </main>
+  );
+}
+
+/** Hours value (or the reason it was excluded), shared by the table and the phone cards. */
+function renderHours(s: { hours: number | null; reason: string | null; manual: boolean }) {
+  return s.reason == null ? (
+    <span className="font-semibold text-[var(--fl-accent-text)]">
+      {s.hours!.toFixed(1)}
+      {s.manual && <span className="ml-1 text-[10px] font-bold text-[var(--fl-faint)]">edited</span>}
+    </span>
+  ) : (
+    <span className="text-[11px] font-bold text-[var(--fl-warn-text)]">
+      {s.hours != null ? `${s.hours.toFixed(1)} · ` : ""}
+      {s.reason}
+    </span>
   );
 }

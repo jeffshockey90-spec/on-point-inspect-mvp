@@ -289,7 +289,30 @@ export default async function OwnerMailPage() {
           {messages.length === 0 ? (
             <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-6 text-center text-[var(--fl-muted)]">Nothing sent yet.</div>
           ) : (
-            <div className="mt-5 overflow-x-auto">
+            <>
+            {/* Phones and small tablets: stacked cards. */}
+            <div className="mt-5 space-y-3 md:hidden">
+              {messages.map((m: any) => {
+                const s = statusOf(m);
+                return (
+                  <div
+                    key={m.id}
+                    className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4 text-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="break-words font-bold text-[var(--fl-text)]">{m.recipient_name || m.recipient_email}</p>
+                        {m.recipient_name && <p className="break-all text-xs text-[var(--fl-faint)]">{m.recipient_email}</p>}
+                      </div>
+                      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${s.tone}`}>{s.label}</span>
+                    </div>
+                    <p className="mt-2 break-words text-[var(--fl-muted)]">{m.subject || "—"}</p>
+                    <p className="mt-1 text-xs text-[var(--fl-faint)]">{fmt(m.sent_at)}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-5 hidden overflow-x-auto md:block">
               <table className="w-full min-w-[560px] text-left text-sm">
                 <thead className="text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
                   <tr>
@@ -319,6 +342,7 @@ export default async function OwnerMailPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </section>
       </div>
