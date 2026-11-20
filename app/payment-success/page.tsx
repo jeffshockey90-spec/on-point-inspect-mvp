@@ -180,13 +180,25 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
           ? session.payment_intent
           : null;
 
-      const { data: existingForPay } = await supabase
+      // Only columns that exist on inspections: naming a missing one (this used
+      // to ask for total_price/total) fails the whole query, and a null row made
+      // decidePaymentRecord see no prior payment and no invoice — so a second
+      // payment REPLACED the first and was marked Paid/$0 due.
+      const { data: existingForPay, error: existingError } = await supabase
         .from("inspections")
         .select(
-          "amount_paid, invoice_amount, total_price, total, price, payment_status, invoice_status, paid_at, stripe_checkout_session_id, stripe_payment_intent_id, payment_notes"
+          "amount_paid, invoice_amount, price, payment_status, invoice_status, paid_at, stripe_checkout_session_id, stripe_payment_intent_id, payment_notes"
         )
         .eq("id", inspectionId)
         .maybeSingle();
+
+      // Never record against a row we couldn't read; the Stripe webhook (which
+      // reads the full row) records the payment instead.
+      if (existingError || !existingForPay) {
+        throw new Error(
+          `Could not load inspection ${inspectionId} to record payment: ${existingError?.message || "not found"}`
+        );
+      }
 
       // The webhook processes this same checkout session too, so the receipt/
       // analytics side effects can double-fire. Gate the duplicate logging on

@@ -88,7 +88,7 @@ export default async function OwnerCompaniesPage() {
   const [{ data: companies }, { data: companyUsers }, { data: inspections }] = await Promise.all([
     admin.from("companies").select("*").order("created_at", { ascending: false }),
     admin.from("company_users").select("company_id,user_id,role"),
-    admin.from("inspections").select("id,company_id,invoice_amount,total_price,total,price").neq("is_demo", true),
+    admin.from("inspections").select("id,company_id,invoice_amount,price").neq("is_demo", true),
   ]);
 
   const ownerUserIdByCompany = new Map<string, string>();
