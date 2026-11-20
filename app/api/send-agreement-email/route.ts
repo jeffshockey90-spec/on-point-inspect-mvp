@@ -1,4 +1,5 @@
 import { brandEmailHtml } from "../../../lib/emailBrand";
+import { signTrackingUrl } from "../../../lib/emailTracking";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
@@ -454,11 +455,11 @@ export async function POST(req: Request) {
 
       const links = clientContacts.map((contact: any) => {
         const rawUrl = `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}`;
-        const url = `${baseUrl}/api/email-click?inspection_id=${encodeURIComponent(
+        const url = signTrackingUrl(`${baseUrl}/api/email-click?inspection_id=${encodeURIComponent(
           String(inspection.id)
         )}&recipient_type=client&recipient_email=${encodeURIComponent(
           String(contact.email || "")
-        )}&target=${encodeURIComponent(rawUrl)}`;
+        )}&target=${encodeURIComponent(rawUrl)}`);
         return { name: contact.name || "Client", url };
       });
 
@@ -592,19 +593,19 @@ ${branding.name}`,
       const agreementUrl = `${baseUrl}/client-agreement/${portalShareToken}?contact=${contact.id}`;
       // Wrap the link through /api/email-click so a click is recorded (email
       // link clicks were showing 0 because agreement links weren't tracked).
-      const trackedAgreementUrl = `${baseUrl}/api/email-click?inspection_id=${encodeURIComponent(
+      const trackedAgreementUrl = signTrackingUrl(`${baseUrl}/api/email-click?inspection_id=${encodeURIComponent(
         String(inspection.id)
       )}&recipient_type=${encodeURIComponent(
         contact.role || "client"
-      )}&recipient_email=${encodeURIComponent(email)}&target=${encodeURIComponent(agreementUrl)}`;
+      )}&recipient_email=${encodeURIComponent(email)}&target=${encodeURIComponent(agreementUrl)}`);
       // Open-tracking pixel (best-effort — some mail clients block or proxy it).
-      const emailOpenPixelUrl = `${baseUrl}/api/email-open?inspection_id=${encodeURIComponent(
+      const emailOpenPixelUrl = signTrackingUrl(`${baseUrl}/api/email-open?inspection_id=${encodeURIComponent(
         String(inspection.id)
       )}&recipient_type=${encodeURIComponent(
         contact.role || "client"
       )}&recipient_email=${encodeURIComponent(
         email
-      )}&email_type=agreement_email`;
+      )}&email_type=agreement_email`);
       const subject = `Inspection Agreement - ${property}`;
 
       const clientHtml = `

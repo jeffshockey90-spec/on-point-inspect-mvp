@@ -316,7 +316,7 @@ export default async function PublicInspectorProfilePage({
   const shownCertifications = certifications.slice(0, 4);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[var(--fl-ground)] pb-24 text-[var(--fl-text)] sm:pb-0">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--fl-ground)] pb-[calc(6rem+env(safe-area-inset-bottom))] text-[var(--fl-text)] sm:pb-0">
       <PublicProfileAnalyticsTracker companyId={company.id} profileSlug={slug} />
       <section className="relative overflow-hidden border-b border-[var(--fl-raised)]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.24),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.16),transparent_42%)]" />
@@ -647,7 +647,7 @@ export default async function PublicInspectorProfilePage({
         </div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-teal-500/25 bg-[var(--fl-ground)] p-3 backdrop-blur sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-teal-500/25 bg-[var(--fl-ground)] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur sm:hidden">
         <Link
           href={bookingHref}
           data-public-profile-event="booking_click"

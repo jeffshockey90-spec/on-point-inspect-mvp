@@ -1,4 +1,5 @@
 import { OWNER_EMAILS } from "../../../../lib/ownerEmails";
+import { selectAllRows } from "../../../../lib/selectAllRows";
 
 import { formatAppValue } from "../../../../lib/app-time";
 import Link from "next/link";
@@ -611,13 +612,19 @@ export default async function OwnerUsersPage() {
     safeSelect(admin.from("inspector_profiles").select("*"), "inspector_profiles"),
     safeSelect(admin.from("company_users").select("*"), "company_users"),
     safeSelect(admin.from("inspections").select("*"), "inspections"),
-    safeSelect(admin.from("findings").select("*"), "findings"),
-    safeSelect(admin.from("photos").select("*"), "photos"),
+    // Paged + projected: findings/photos are past PostgREST's 1000-row cap, which
+    // silently truncated these per-inspector counts.
+    safeSelect(selectAllRows((from, to) => admin.from("findings").select("id, inspection_id").order("id").range(from, to)), "findings"),
+    safeSelect(selectAllRows((from, to) => admin.from("photos").select("id, inspection_id").order("id").range(from, to)), "photos"),
     safeSelect(
-      admin
-        .from("email_logs")
-        .select("inspection_id_bigint, email_type, sent_at, created_at")
-        .in("email_type", ["inspection_report", "environmental_report"]),
+      selectAllRows((from, to) =>
+        admin
+          .from("email_logs")
+          .select("id, inspection_id_bigint, email_type, sent_at, created_at")
+          .in("email_type", ["inspection_report", "environmental_report"])
+          .order("id")
+          .range(from, to),
+      ),
       "email_logs",
     ),
     safeSelect(admin.from("app_native_push_tokens").select("*"), "app_native_push_tokens"),

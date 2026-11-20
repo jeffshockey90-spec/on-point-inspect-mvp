@@ -1,4 +1,5 @@
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
+import { selectAllRows } from "../../../lib/selectAllRows";
 
 import { formatAppValue } from "../../../lib/app-time";
 import Link from "next/link";
@@ -413,8 +414,8 @@ export default async function OwnerDashboardPage() {
     // Project only the columns the dashboard actually reads — these are the two
     // largest tables (across ALL companies) and select("*") pulled every wide
     // column (photo URLs/metadata, finding text) just to produce counts.
-    safeSelect(admin.from("findings").select("id, inspection_id, section, severity"), "findings"),
-    safeSelect(admin.from("photos").select("id, inspection_id"), "photos"),
+    safeSelect(selectAllRows((from, to) => admin.from("findings").select("id, inspection_id, section, severity").order("id").range(from, to)), "findings"),
+    safeSelect(selectAllRows((from, to) => admin.from("photos").select("id, inspection_id").order("id").range(from, to)), "photos"),
     safeSelect(admin.from("inspection_agreements").select("*"), "inspection_agreements"),
     Promise.resolve([]),
     safeSelect(admin.from("finding_templates").select("*"), "finding_templates"),

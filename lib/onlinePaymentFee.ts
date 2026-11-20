@@ -12,6 +12,13 @@
 const STRIPE_STANDARD_PERCENT = 0.029;
 const STRIPE_STANDARD_FIXED = 0.3;
 
+// Round to cents, half up. Plain Math.round(x * 100) / 100 rounds 17.775 down to
+// 17.77 because 450 * 0.0395 is 17.774999... in floating point; nudging by a
+// tiny epsilon fixes those exact-half cases without moving any other value.
+function roundCents(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100 * (1 + Number.EPSILON)) / 100;
+}
+
 function getNumber(value: any): number {
   const parsed = Number(String(value ?? "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
@@ -25,16 +32,16 @@ export function getOnlineProcessingFee(balanceDue: number, company: any): number
 
   if (feeType === "stripe_fee") {
     const totalCharged = (balanceDue + STRIPE_STANDARD_FIXED) / (1 - STRIPE_STANDARD_PERCENT);
-    return Math.round((totalCharged - balanceDue) * 100) / 100;
+    return roundCents(totalCharged - balanceDue);
   }
 
   const amount = getNumber(company?.online_payment_fee_amount);
   if (amount <= 0) return 0;
 
   if (feeType === "flat") {
-    return Math.round(amount * 100) / 100;
+    return roundCents(amount);
   }
 
   // percentage (default) - amount is a percent of the balance due
-  return Math.round(balanceDue * (amount / 100) * 100) / 100;
+  return roundCents(balanceDue * (amount / 100));
 }

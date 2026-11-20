@@ -5357,7 +5357,8 @@ function FieldPageContent() {
                                       value === "__remove__" ? null : value,
                                     );
                                   }}
-                                  className="mt-1 w-16 rounded border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-1 py-1 text-[10px] font-bold text-[var(--fl-text)]"
+                                  aria-label="Move photo to another item"
+                                  className="mt-1 min-h-10 w-full rounded border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-1.5 text-xs font-bold text-[var(--fl-text)]"
                                 >
                                   <option value="">Move…</option>
                                   {group.photoIndexes.length > 1 && (
@@ -5389,52 +5390,64 @@ function FieldPageContent() {
                         </div>
                       )}
 
-                      <input
-                        value={group.title}
-                        onChange={(event) =>
-                          updateMediaGroup(group.id, {
-                            title: event.target.value,
-                          })
-                        }
-                        placeholder="Title"
-                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 font-semibold text-[var(--fl-text)]"
-                      />
+                      <label className="mt-3 block">
+                        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Title</span>
+                        <input
+                          value={group.title}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              title: event.target.value,
+                            })
+                          }
+                          placeholder="Title"
+                          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 font-semibold text-[var(--fl-text)]"
+                        />
+                      </label>
 
-                      <textarea
-                        value={group.observation}
-                        onChange={(event) =>
-                          updateMediaGroup(group.id, {
-                            observation: event.target.value,
-                          })
-                        }
-                        rows={3}
-                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
-                        placeholder="Observation"
-                      />
+                      <label className="mt-3 block">
+                        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Observation</span>
+                        <textarea
+                          value={group.observation}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              observation: event.target.value,
+                            })
+                          }
+                          rows={3}
+                          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
+                          placeholder="Observation"
+                        />
+                      </label>
 
-                      <textarea
-                        value={group.implication || ""}
-                        onChange={(event) =>
-                          updateMediaGroup(group.id, {
-                            implication: event.target.value,
-                          })
-                        }
-                        rows={2}
-                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
-                        placeholder="Implication"
-                      />
+                      <label className="mt-3 block">
+                        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Implication</span>
+                        <textarea
+                          value={group.implication || ""}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              implication: event.target.value,
+                            })
+                          }
+                          rows={2}
+                          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
+                          placeholder="Implication"
+                        />
+                      </label>
 
-                      <textarea
-                        value={group.recommendation || ""}
-                        onChange={(event) =>
-                          updateMediaGroup(group.id, {
-                            recommendation: event.target.value,
-                          })
-                        }
-                        rows={2}
-                        className="mt-3 w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
-                        placeholder="Recommendation"
-                      />
+                      <label className="mt-3 block">
+                        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--fl-muted)]">Recommendation</span>
+                        <textarea
+                          value={group.recommendation || ""}
+                          onChange={(event) =>
+                            updateMediaGroup(group.id, {
+                              recommendation: event.target.value,
+                            })
+                          }
+                          rows={2}
+                          className="w-full rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-[var(--fl-text)]"
+                          placeholder="Recommendation"
+                        />
+                      </label>
 
                       <FindingToneControl
                         className="mt-3"
@@ -5563,8 +5576,9 @@ function FieldPageContent() {
 
               {units.length > 0 && (
                 <div className="mb-4 rounded-xl border border-teal-500/40 bg-teal-500/10 p-3">
-                  <label className="mb-2 block font-bold text-[var(--fl-accent-text)]">Unit</label>
+                  <label htmlFor="field-defect-unit" className="mb-2 block font-bold text-[var(--fl-accent-text)]">Unit</label>
                   <select
+                    id="field-defect-unit"
                     value={activeUnit == null ? "" : String(activeUnit)}
                     onChange={(e) =>
                       setActiveUnit(e.target.value === "" ? null : Number(e.target.value))
@@ -5585,8 +5599,9 @@ function FieldPageContent() {
               )}
 
               <div>
-                <label className="mb-2 block font-bold">Section</label>
+                <label htmlFor="field-defect-section" className="mb-2 block font-bold">Section</label>
                 <select
+                  id="field-defect-section"
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
                   className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"
@@ -5601,8 +5616,9 @@ function FieldPageContent() {
 
               {photoType === "limitation" && existingLimitations.length > 0 && (
                 <div className="mt-5">
-                  <label className="mb-2 block font-bold">Save to</label>
+                  <label htmlFor="field-limitation-target" className="mb-2 block font-bold">Save to</label>
                   <select
+                    id="field-limitation-target"
                     value={limitationTargetId}
                     onChange={(e) => setLimitationTargetId(e.target.value)}
                     className="w-full rounded-xl border border-orange-400/60 bg-[var(--fl-surface-2)] p-4 text-[var(--fl-text)]"

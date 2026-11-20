@@ -2837,23 +2837,6 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     let secureShareToken = getInspectionShareToken(inspection);
 
-    // Only create a missing token when a logged-in authorized user is downloading by numeric ID.
-    // Public/token downloads never expose or create predictable numeric access.
-    if (!secureShareToken && !allowedByShareToken && user?.email) {
-      secureShareToken = randomUUID().replace(/-/g, "");
-
-      const { error: tokenError } = await admin
-        .from("inspections")
-        .update({ public_share_token: secureShareToken })
-        .eq("id", inspectionId);
-
-      if (tokenError) {
-        console.error("Secure share token create error:", tokenError);
-      } else {
-        inspection.public_share_token = secureShareToken;
-      }
-    }
-
     let allowed = allowedByShareToken;
     let downloadAudience: "client" | "agent" = "client";
 
@@ -2877,6 +2860,25 @@ export async function GET(req: Request, { params }: RouteProps) {
 
     if (!allowed) {
       return reportErrorResponse(req, "You do not have access to this report.", 403);
+    }
+
+    // Only create a missing token AFTER access is confirmed, for a logged-in
+    // authorized user downloading by numeric ID. (This used to run before the
+    // check, letting any signed-in account write tokens onto other tenants' rows.)
+    // Public/token downloads never expose or create predictable numeric access.
+    if (!secureShareToken && !allowedByShareToken && user?.email) {
+      secureShareToken = randomUUID().replace(/-/g, "");
+
+      const { error: tokenError } = await admin
+        .from("inspections")
+        .update({ public_share_token: secureShareToken })
+        .eq("id", inspectionId);
+
+      if (tokenError) {
+        console.error("Secure share token create error:", tokenError);
+      } else {
+        inspection.public_share_token = secureShareToken;
+      }
     }
 
     // Verbal walkthrough: no written report (its agreement says so). Only the

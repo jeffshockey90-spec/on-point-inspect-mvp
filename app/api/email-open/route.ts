@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { verifyTrackingParams } from "../../../lib/emailTracking";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -82,7 +83,8 @@ export async function GET(req: Request) {
 
     const numericInspectionId = Number(inspectionId);
 
-    if (!numericInspectionId || !Number.isFinite(numericInspectionId)) {
+    // Record only opens from pixels FLOW signed (lib/emailTracking).
+    if (!numericInspectionId || !Number.isFinite(numericInspectionId) || !verifyTrackingParams(url.searchParams)) {
       return transparentGifResponse();
     }
 

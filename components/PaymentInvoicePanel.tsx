@@ -473,7 +473,7 @@ export default function PaymentInvoicePanel({
           onClick={() => !receiptBusy && setReceiptOpen(false)}
         >
           <div
-            className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5 shadow-2xl"
+            className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-y-auto rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">

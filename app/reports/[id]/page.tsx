@@ -953,18 +953,11 @@ async function loadEmailLogs(supabase: any, inspectionId: any) {
 
   if (!byBigint.error) return byBigint;
 
-  const byInspectionId = await supabase
-    .from("email_logs")
-    .select("*")
-    .eq("inspection_id", numericInspectionId)
-    .order("created_at", { ascending: false });
-
-  if (!byInspectionId.error) return byInspectionId;
-
-  console.error("Email logs load failed for both inspection ID columns:", {
+  // No fallback to email_logs.inspection_id: it's a UUID column, so a numeric id
+  // there can never match (CLAUDE.md) and only cost an extra failing query.
+  console.error("Email logs load failed:", {
     inspectionId: numericInspectionId,
-    bigintError: byBigint.error,
-    inspectionIdError: byInspectionId.error,
+    error: byBigint.error,
   });
 
   return { data: [], error: null };

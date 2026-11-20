@@ -1,4 +1,5 @@
 import { WALKTHROUGH_NOUN, isWalkthroughJob } from "../../../lib/report/serviceScope";
+import { signTrackingUrl } from "../../../lib/emailTracking";
 import { brandEmailHtml } from "../../../lib/emailBrand";
 import { NextResponse } from "next/server";
 import { logError } from "../../../lib/jarvis/logError";
@@ -237,19 +238,19 @@ export async function POST(req: Request) {
       // Route the portal link through /api/email-click so a click on the
       // schedule confirmation is recorded, tagged with this recipient's role
       // (client vs realtor) and email.
-      const trackedPortalUrl = `${getBaseUrl(req)}/api/email-click?inspection_id=${encodeURIComponent(
+      const trackedPortalUrl = signTrackingUrl(`${getBaseUrl(req)}/api/email-click?inspection_id=${encodeURIComponent(
         String(inspection.id)
       )}&recipient_type=${encodeURIComponent(
         recipient.role || "client"
-      )}&recipient_email=${encodeURIComponent(recipient.email)}&target=${encodeURIComponent(portalUrl)}`;
+      )}&recipient_email=${encodeURIComponent(recipient.email)}&target=${encodeURIComponent(portalUrl)}`);
       // Open-tracking pixel (best-effort — some clients block/proxy images).
-      const emailOpenPixelUrl = `${getBaseUrl(req)}/api/email-open?inspection_id=${encodeURIComponent(
+      const emailOpenPixelUrl = signTrackingUrl(`${getBaseUrl(req)}/api/email-open?inspection_id=${encodeURIComponent(
         String(inspection.id)
       )}&recipient_type=${encodeURIComponent(
         recipient.role || "client"
       )}&recipient_email=${encodeURIComponent(
         recipient.email
-      )}&email_type=appointment_confirmed`;
+      )}&email_type=appointment_confirmed`);
 
       // Walkthroughs are consultations, not inspections — say what it is.
       const isWalkthrough = isWalkthroughJob(inspection);

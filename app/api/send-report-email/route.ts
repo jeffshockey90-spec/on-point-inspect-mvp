@@ -1,4 +1,5 @@
 import { brandEmailHtml } from "../../../lib/emailBrand";
+import { signTrackingUrl } from "../../../lib/emailTracking";
 import { NextResponse } from "next/server";
 import { logError } from "../../../lib/jarvis/logError";
 import { cookies } from "next/headers";
@@ -807,16 +808,16 @@ export async function POST(req: Request) {
         )}&email=${encodeURIComponent(recipient.email)}&src=email`;
 
       const trackedShareUrl =
-        `${appUrl}/api/email-click?inspection_id=${encodeURIComponent(
+        signTrackingUrl(`${appUrl}/api/email-click?inspection_id=${encodeURIComponent(
           String(inspectionId)
         )}&recipient_type=${encodeURIComponent(
           recipientRoleForTracking
         )}&recipient_email=${encodeURIComponent(
           recipient.email
-        )}&target=${encodeURIComponent(shareUrlWithViewer)}`;
+        )}&target=${encodeURIComponent(shareUrlWithViewer)}`);
 
       const emailOpenPixelUrl =
-        `${appUrl}/api/email-open?inspection_id=${encodeURIComponent(
+        signTrackingUrl(`${appUrl}/api/email-open?inspection_id=${encodeURIComponent(
           String(inspectionId)
         )}&recipient_type=${encodeURIComponent(
           recipientRoleForTracking
@@ -826,7 +827,7 @@ export async function POST(req: Request) {
           isStandaloneEnvironmentalService(inspection)
             ? "environmental_report"
             : "inspection_report"
-        )}`;
+        )}`);
 
       const html = buildEmailHtml({
         inspection,

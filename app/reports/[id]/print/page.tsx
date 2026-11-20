@@ -489,28 +489,81 @@ export default async function PrintableReportPage({ params }: PageProps) {
     String(inspection.client_email || "N/A").trim() ||
     "N/A";
 
-  const { data: findingsRaw } = await supabase
-    .from("findings")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    // Exclude drafts still awaiting approval (needs_review) from the printed/PDF
-    // report. `not is true` keeps false AND legacy null rows.
-    .not("needs_review", "is", true)
-    // Honor the inspector's manual in-section order (findings.sort_order);
-    // nulls last, created_at tiebreak.
-    .order("sort_order", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: true });
+  // Start every inspection-scoped query at once; each is still awaited where
+  // it was used before. They used to run one after another (~8 serial
+  // round trips before the photos were even signed). Promise.resolve starts
+  // the lazy Supabase builder immediately.
+  const findingsQuery = Promise.resolve(
+    supabase
+      .from("findings")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      // Exclude drafts still awaiting approval (needs_review) from the printed/PDF
+      // report. `not is true` keeps false AND legacy null rows.
+      .not("needs_review", "is", true)
+      // Honor the inspector's manual in-section order (findings.sort_order);
+      // nulls last, created_at tiebreak.
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true })
+  );
+  const reportSectionsQuery = Promise.resolve(
+    supabase
+      .from("report_section_overrides")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .order("sort_order", { ascending: true })
+  );
+  const sectionNotesQuery = Promise.resolve(
+    supabase
+      .from("report_section_notes")
+      .select("section_name, notes")
+      .eq("inspection_id", inspection.id)
+  );
+  const checklistQuery = Promise.resolve(
+    supabase
+      .from("section_checklist_selections")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .order("created_at", { ascending: true })
+  );
+  const limitationsQuery = Promise.resolve(
+    supabase
+      .from("section_limitations")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      // Hide limitations still awaiting inspector review (async background drafts).
+      .not("needs_review", "is", true)
+      .order("created_at", { ascending: true })
+  );
+  const referencePhotosQuery = Promise.resolve(
+    supabase
+      .from("section_reference_photos")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .order("created_at", { ascending: true })
+  );
+  const disclaimersQuery = Promise.resolve(
+    supabase
+      .from("report_disclaimers")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      .order("created_at", { ascending: true })
+  );
+  const equipmentQuery = Promise.resolve(
+    supabase
+      .from("equipment_inventory")
+      .select("*")
+      .eq("inspection_id", inspection.id)
+      // Hide equipment still awaiting inspector review (async background drafts).
+      .not("needs_review", "is", true)
+      .order("created_at", { ascending: true })
+  );
 
-  const { data: reportSectionsRaw } = await supabase
-    .from("report_section_overrides")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    .order("sort_order", { ascending: true });
+  const { data: findingsRaw } = await findingsQuery;
 
-  const { data: sectionNotesRaw } = await supabase
-    .from("report_section_notes")
-    .select("section_name, notes")
-    .eq("inspection_id", inspection.id);
+  const { data: reportSectionsRaw } = await reportSectionsQuery;
+
+  const { data: sectionNotesRaw } = await sectionNotesQuery;
 
   const notesBySection: Record<string, string> = {};
   for (const row of sectionNotesRaw || []) {
@@ -610,19 +663,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
   });
 
 
-  const { data: checklistRows } = await supabase
-    .from("section_checklist_selections")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    .order("created_at", { ascending: true });
+  const { data: checklistRows } = await checklistQuery;
 
-  const { data: limitationRows } = await supabase
-    .from("section_limitations")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    // Hide limitations still awaiting inspector review (async background drafts).
-    .not("needs_review", "is", true)
-    .order("created_at", { ascending: true });
+  const { data: limitationRows } = await limitationsQuery;
 
   const limitationIds = (limitationRows || []).map((item: any) => item.id);
 
@@ -676,11 +719,7 @@ export default async function PrintableReportPage({ params }: PageProps) {
     photosByLimitationId
   );
 
-  const { data: sectionReferencePhotosRaw } = await supabase
-    .from("section_reference_photos")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    .order("created_at", { ascending: true });
+  const { data: sectionReferencePhotosRaw } = await referencePhotosQuery;
 
   const referencePhotoSignedUrlMap = await createSignedUrlMap(
     supabase,
@@ -711,19 +750,9 @@ export default async function PrintableReportPage({ params }: PageProps) {
   );
 
 
-  const { data: reportDisclaimers } = await supabase
-    .from("report_disclaimers")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    .order("created_at", { ascending: true });
+  const { data: reportDisclaimers } = await disclaimersQuery;
 
-  const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await supabase
-    .from("equipment_inventory")
-    .select("*")
-    .eq("inspection_id", inspection.id)
-    // Hide equipment still awaiting inspector review (async background drafts).
-    .not("needs_review", "is", true)
-    .order("created_at", { ascending: true });
+  const { data: equipmentInventoryRaw, error: equipmentInventoryError } = await equipmentQuery;
 
   if (equipmentInventoryError) {
     console.error("Print equipment inventory load error:", equipmentInventoryError);

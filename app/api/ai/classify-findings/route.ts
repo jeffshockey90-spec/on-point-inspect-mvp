@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { classifyFindingsWithAI } from "../../../../lib/ai/classifyDefectType";
 import { recomputeDealPrevalence } from "../../../../lib/dealInsights";
+import { isCronAuthorized } from "../../../../lib/cronAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,18 +11,17 @@ export const maxDuration = 300;
 // AI-tag findings with a Common Ground catalog defect type. dryRun=1 reports
 // what WOULD change without writing (safe to run against live data); otherwise
 // it updates findings.defect_type and recomputes prevalence.
-function authorized(req: Request, url: URL) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true; // open in local/dev where no secret is configured
-  const auth = req.headers.get("authorization") || "";
-  const header = req.headers.get("x-cron-secret") || "";
-  const q = url.searchParams.get("secret") || "";
-  return auth === `Bearer ${secret}` || header === secret || q === secret;
+// Same rule as the cron routes (lib/cronAuth): the CRON_SECRET header when set,
+// otherwise only Vercel's scheduler. It used to run for ANYONE when no secret was
+// configured, and accepted the secret in the query string (which lands in logs
+// and Referer headers) - letting outsiders rewrite any tenant's defect types.
+function authorized(req: Request) {
+  return isCronAuthorized(req);
 }
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  if (!authorized(req, url)) {
+  if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 

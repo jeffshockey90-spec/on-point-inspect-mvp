@@ -291,17 +291,39 @@ export async function sendPushNotification(options: SendPushOptions) {
     eventType: options.eventType,
   };
 
+  // A push meant for ONE user but with no id/email (e.g. a job with no
+  // inspector_id) must go to nobody. matchesTarget treats "no target" as
+  // "everyone", so this used to broadcast one tenant's notification to every
+  // device on the platform.
+  if (target === "user" && !targetUserId && !targetUserEmail) {
+    console.warn("Push skipped: target 'user' with no user id or email", { eventType: options.eventType });
+    return { sent: 0, webSent: 0, nativeSent: 0, failed: 0, webTargets: 0, nativeTargets: 0, failures: [] };
+  }
+
   const admin = createPushAdminClient();
 
-  const { data: webRows, error: webError } = await admin
-    .from("app_push_subscriptions")
-    .select("*")
-    .eq("enabled", true);
+  // Filter device rows in the database for a single-user push instead of
+  // loading every enabled token on the platform and filtering in JS.
+  const userFilter =
+    target === "user"
+      ? [
+          targetUserId ? `user_id.eq.${targetUserId}` : "",
+          targetUserEmail ? `user_email.ilike.${targetUserEmail}` : "",
+        ]
+          .filter(Boolean)
+          .join(",")
+      : "";
 
-  const { data: nativeRows, error: nativeError } = await admin
-    .from("app_native_push_tokens")
-    .select("*")
-    .eq("enabled", true);
+  let webQuery = admin.from("app_push_subscriptions").select("*").eq("enabled", true);
+  let nativeQuery = admin.from("app_native_push_tokens").select("*").eq("enabled", true);
+  if (userFilter) {
+    webQuery = webQuery.or(userFilter);
+    nativeQuery = nativeQuery.or(userFilter);
+  }
+  const [{ data: webRows, error: webError }, { data: nativeRows, error: nativeError }] = await Promise.all([
+    webQuery,
+    nativeQuery,
+  ]);
 
   if (webError) {
     console.error("Web push lookup error:", webError);

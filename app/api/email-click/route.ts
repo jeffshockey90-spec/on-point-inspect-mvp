@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyTrackingParams } from "../../../lib/emailTracking";
 
 export const runtime = "nodejs";
 
@@ -113,7 +114,9 @@ export async function GET(req: Request) {
   try {
     const numericInspectionId = Number(inspectionId);
 
-    if (numericInspectionId && Number.isFinite(numericInspectionId)) {
+    // Record only clicks on links FLOW signed (lib/emailTracking); anything else
+    // still redirects, it just isn't counted.
+    if (numericInspectionId && Number.isFinite(numericInspectionId) && verifyTrackingParams(url.searchParams)) {
       await supabaseAdmin.from("inspection_view_events").insert({
         inspection_id_bigint: numericInspectionId,
         view_type: "email_click",

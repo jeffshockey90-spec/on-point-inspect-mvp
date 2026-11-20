@@ -1,4 +1,5 @@
 import { brandEmailHtml } from "../../../lib/emailBrand";
+import { signTrackingUrl } from "../../../lib/emailTracking";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -673,21 +674,21 @@ export async function POST(req: Request) {
 
       const responseUrl = `${appUrl}/repair-response/${encodeURIComponent(share.token)}`;
 
-      const trackedRepairRequestUrl = `${appUrl}/api/email-click?inspection_id=${encodeURIComponent(
+      const trackedRepairRequestUrl = signTrackingUrl(`${appUrl}/api/email-click?inspection_id=${encodeURIComponent(
         String(inspectionId)
       )}&recipient_type=${encodeURIComponent(
         recipient.recipientType
       )}&recipient_email=${encodeURIComponent(
         recipient.email
-      )}&target=${encodeURIComponent(repairUrlWithViewer)}`;
+      )}&target=${encodeURIComponent(repairUrlWithViewer)}`);
 
-      const trackedResponseUrl = `${appUrl}/api/email-click?inspection_id=${encodeURIComponent(
+      const trackedResponseUrl = signTrackingUrl(`${appUrl}/api/email-click?inspection_id=${encodeURIComponent(
         String(inspectionId)
       )}&recipient_type=${encodeURIComponent(
         recipient.recipientType
       )}&recipient_email=${encodeURIComponent(
         recipient.email
-      )}&target=${encodeURIComponent(responseUrl)}`;
+      )}&target=${encodeURIComponent(responseUrl)}`);
 
       const html = buildRepairRequestEmailHtml({
         property,

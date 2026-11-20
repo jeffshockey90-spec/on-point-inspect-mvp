@@ -386,6 +386,16 @@ export default function GlobalLiveActivity() {
 
     if (inspectionIds.length === 0) return;
 
+    // Ask Realtime for only this user's reports' events (its `in` filter takes up
+    // to 100 values). Without a filter every signed-in tab was sent - and RLS-
+    // checked - every view event across the platform. Past 100 reports it falls
+    // back to the unfiltered stream; the inspectionIds check below still applies.
+    const numericIds = inspectionIds.filter((id) => /^\d+$/.test(id));
+    const realtimeFilter =
+      numericIds.length > 0 && numericIds.length <= 100
+        ? { filter: `inspection_id_bigint=in.(${numericIds.join(",")})` }
+        : {};
+
     const channel = supabase
       .channel("global-live-report-activity")
       .on(
@@ -394,6 +404,7 @@ export default function GlobalLiveActivity() {
           event: "INSERT",
           schema: "public",
           table: "inspection_view_events",
+          ...realtimeFilter,
         },
         (payload) => {
           if (!liveActivityEnabled) return;
@@ -486,7 +497,7 @@ export default function GlobalLiveActivity() {
   );
 
   return (
-    <div className="fixed bottom-24 right-5 z-[9999] w-[calc(100vw-2.5rem)] max-w-md rounded-2xl border border-teal-500/50 bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] shadow-2xl shadow-black/40 md:bottom-5">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+94px)] right-5 z-[9999] w-[calc(100vw-2.5rem)] max-w-md rounded-2xl border border-teal-500/50 bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] shadow-2xl shadow-black/40 xl:bottom-5">
       <div className="flex gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-2xl">
           {getActivityIcon(latestEvent)}
@@ -507,7 +518,8 @@ export default function GlobalLiveActivity() {
             <button
               type="button"
               onClick={() => setVisible(false)}
-              className="rounded-lg border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-[var(--fl-crit-text)]"
+              aria-label="Dismiss"
+              className="flex min-h-10 min-w-10 items-center justify-center rounded-lg border border-[var(--fl-line)] px-2 py-1 text-xs font-semibold text-[var(--fl-muted)] transition hover:border-red-400 hover:text-[var(--fl-crit-text)]"
             >
               ✕
             </button>

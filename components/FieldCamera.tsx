@@ -902,6 +902,7 @@ export default function FieldCamera({
             if (!recording) setOpen(false);
           }}
           disabled={recording}
+          aria-label="Close camera"
           className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--fl-surface-2)] text-2xl text-[var(--fl-text)] backdrop-blur disabled:opacity-40"
         >
           ✕
@@ -925,6 +926,8 @@ export default function FieldCamera({
           <button
             type="button"
             onClick={toggleTorch}
+            aria-label={torchOn ? "Turn flashlight off" : "Turn flashlight on"}
+            aria-pressed={torchOn}
             className={`flex h-12 w-12 items-center justify-center rounded-full text-xl backdrop-blur ${
               torchOn ? "bg-yellow-300 text-black" : "bg-[var(--fl-surface-2)] text-[var(--fl-text)]"
             }`}
@@ -1029,6 +1032,7 @@ export default function FieldCamera({
             type="button"
             onClick={toggleFacingCamera}
             disabled={recording}
+            aria-label="Switch camera"
             className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--fl-surface-2)] text-2xl text-[var(--fl-text)] backdrop-blur disabled:opacity-40"
           >
             🔄
