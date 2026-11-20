@@ -21,6 +21,13 @@ export type CaptureSourceRect = {
 // shaves a sliver off the photo.
 const FILL_TOLERANCE = 1.01;
 
+// A frame much WIDER than the screen means the camera is sending a landscape
+// picture to a portrait screen - the iPhone Duo's inner screen held upright
+// does this (16:9 frame on a ~0.7 screen). Fit-whole-frame left a thin strip
+// with huge bars, so fill instead. Normal phones (9:16 frame on a ~0.46
+// screen, ratio ~1.2) stay well under this and keep showing the whole frame.
+const LANDSCAPE_ON_PORTRAIT_RATIO = 1.6;
+
 export function shouldFillPreview(
   videoWidth: number,
   videoHeight: number,
@@ -28,7 +35,10 @@ export function shouldFillPreview(
   viewHeight: number,
 ): boolean {
   if (videoWidth <= 0 || videoHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) return false;
-  return viewWidth / viewHeight > (videoWidth / videoHeight) * FILL_TOLERANCE;
+  const viewAspect = viewWidth / viewHeight;
+  const videoAspect = videoWidth / videoHeight;
+  if (viewAspect > videoAspect * FILL_TOLERANCE) return true;
+  return videoAspect / viewAspect > LANDSCAPE_ON_PORTRAIT_RATIO;
 }
 
 /**
@@ -48,9 +58,15 @@ export function captureSourceRect(
   let sw = videoWidth;
   let sh = videoHeight;
   if (fill) {
-    // Cover scales the frame to the screen's width; only a band of the frame's
-    // height, in the screen's aspect ratio, stays visible.
-    sh = Math.min(videoHeight, videoWidth * (viewHeight / viewWidth));
+    if (viewWidth / viewHeight > videoWidth / videoHeight) {
+      // Screen wider than the frame: cover scales to the screen's width, so only
+      // a band of the frame's height stays visible.
+      sh = Math.min(videoHeight, videoWidth * (viewHeight / viewWidth));
+    } else {
+      // Frame much wider than the screen: cover scales to the screen's height,
+      // so only a band of the frame's width stays visible.
+      sw = Math.min(videoWidth, videoHeight * (viewWidth / viewHeight));
+    }
   }
 
   const z = zoom > 1 ? zoom : 1;

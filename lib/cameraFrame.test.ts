@@ -14,6 +14,14 @@ describe("shouldFillPreview", () => {
     expect(shouldFillPreview(VW, VH, 466, 678)).toBe(true);
   });
 
+  it("fills a portrait screen fed a landscape frame (Duo inner screen held upright)", () => {
+    expect(shouldFillPreview(1920, 1080, 626, 890)).toBe(true);
+  });
+
+  it("keeps the whole frame for a landscape frame on a landscape screen", () => {
+    expect(shouldFillPreview(1920, 1080, 890, 626)).toBe(false);
+  });
+
   it("does not flip to fill for a near-identical aspect ratio", () => {
     expect(shouldFillPreview(VW, VH, 1080, 1915)).toBe(false);
   });
@@ -38,6 +46,15 @@ describe("captureSourceRect", () => {
     // ...centred vertically, inside the frame.
     expect(r.sy).toBeCloseTo((VH - r.sh) / 2, 6);
     expect(r.sy).toBeGreaterThan(0);
+  });
+
+  it("crops the SIDES to the visible band for a landscape frame on a portrait screen", () => {
+    const r = captureSourceRect(1920, 1080, 626, 890);
+    expect(r.fill).toBe(true);
+    expect(r.sh).toBe(1080);
+    expect(r.sw / r.sh).toBeCloseTo(626 / 890, 6);
+    expect(r.sx).toBeCloseTo((1920 - r.sw) / 2, 6);
+    expect(r.sy).toBe(0);
   });
 
   it("applies software zoom about the centre, on top of the fill crop", () => {
