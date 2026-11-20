@@ -110,6 +110,10 @@ import {
   LIMITATION_STATUS,
 } from "../../../lib/equipmentFindings";
 import ChangeServicePanel from "../../../components/ChangeServicePanel";
+import ReportWorkspaceTabs from "../../../components/ReportWorkspaceTabs";
+import ReportTabHashRouter from "../../../components/ReportTabHashRouter";
+import ReportSectionJumpList from "../../../components/ReportSectionJumpList";
+import { normalizeWorkspaceTab } from "../../../lib/report/workspaceTabs";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -3028,6 +3032,9 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
     noReport: noReportToSend,
   });
 
+  // Write / Client & payment / Insights: only the active tab's panels render.
+  const workspaceTab = normalizeWorkspaceTab(resolvedSearchParams?.tab);
+
   const reportSectionTabs = [
     { key: "client", label: "Client & Contacts", anchorId: "client-contacts" },
     { key: "agreement", label: "Agreement", anchorId: "agreement-status" },
@@ -3088,7 +3095,17 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           </div>
         </div>
 
+        <ReportWorkspaceTabs
+          active={workspaceTab}
+          badges={{
+            write: `${findings.length}`,
+            client: !agreementComplete || !isPaymentComplete(inspection) ? "To do" : undefined,
+          }}
+        />
+        <ReportTabHashRouter active={workspaceTab} />
+
         <div className="mb-4 overflow-x-clip overflow-y-visible rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-1.5 shadow-xl sm:p-3 md:rounded-2xl md:p-6">
+          {workspaceTab === "write" && (<>
           <div className="mb-6 max-w-full space-y-4 overflow-x-clip overflow-y-visible">
             {/* Main actions up front; every other report/share/communicate
                 tool is unchanged, just tucked under "More". */}
@@ -3381,6 +3398,57 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             currentEmails={[inspection.client_email, inspection.realtor_email]}
           />
 
+          <ReportSectionJumpList
+            sections={groupedFindingsArray.map((group: any) => ({ section: String(group.section), count: group.findings.length }))}
+            extra={[{ label: "Executive summary", href: "#executive-summary" }]}
+          />
+
+          <div id="executive-summary" className="scroll-mt-24">
+          <CollapsibleReportSection
+            title="Executive Summary"
+            subtitle={executiveSummary ? "Saved" : "Not generated yet"}
+            defaultOpen={Boolean(executiveSummary)}
+            accentClassName="border-purple-500/40 text-[var(--fl-purple-text)]"
+          >
+          <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface-2)] p-4 shadow-xl">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-[var(--fl-purple-text)]">
+                  Executive Summary
+                </h2>
+
+                <p className="mt-1 text-sm text-[var(--fl-muted)]">
+                  AI-generated client-friendly overview saved from this report.
+                </p>
+              </div>
+
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                  executiveSummary
+                    ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
+                    : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
+                }`}
+              >
+                {executiveSummary ? "Saved" : "Not Generated Yet"}
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <GenerateSummaryButton inspectionId={String(inspection.id)} />
+
+              {executiveSummary && (
+                <DeleteSummaryButton inspectionId={String(inspection.id)} />
+              )}
+            </div>
+
+            <div className="mt-4 whitespace-pre-line rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-7 text-[var(--fl-text)]">
+              {executiveSummary ||
+                "Click Generate AI Summary to create and save the executive summary for this report."}
+            </div>
+          </section>
+          </CollapsibleReportSection>
+          </div>
+
           <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
             <FieldReviewQueue
               inspectionId={String(inspection.id)}
@@ -3447,8 +3515,10 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
               }}
             />
           </div>
+          </>)}
 
 
+          {workspaceTab === "client" && (<>
           {/* Job panel (agreement, payment, delivery…) sits after the findings. */}
           <ReportBuilderSectionTabs tabs={reportSectionTabs}>
             {/* Client & Contacts: who's on the job and the property details. */}
@@ -4115,10 +4185,12 @@ Service-life information is a general industry estimate only. Actual service lif
             )}
 
           </ReportBuilderSectionTabs>
+          </>)}
 
+          {workspaceTab === "insights" && (<>
           {/* AI & Insights: workspace stats, age watchlist, route & drone —
               closed by default so the findings stay near the top. */}
-          <details id="ai-insights" className="group mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
+          <details id="ai-insights" open className="group mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [touch-action:manipulation]">
               <span>
                 <span className="block text-lg font-semibold text-[var(--fl-text)]">AI &amp; Insights</span>
@@ -4430,6 +4502,7 @@ Service-life information is a general industry estimate only. Actual service lif
 
             </div>
           </details>
+          </>)}
 
           <InspectorToolsDrawer
             badge={inspectorWorkspaceBadge}
@@ -4960,49 +5033,6 @@ Service-life information is a general industry estimate only. Actual service lif
 
           </InspectorToolsDrawer>
 
-          <CollapsibleReportSection
-            title="Executive Summary"
-            subtitle={executiveSummary ? "Saved" : "Not generated yet"}
-            defaultOpen={Boolean(executiveSummary)}
-            accentClassName="border-purple-500/40 text-[var(--fl-purple-text)]"
-          >
-          <section className="mb-8 rounded-2xl border border-purple-500/40 bg-[var(--fl-surface-2)] p-4 shadow-xl">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-[var(--fl-purple-text)]">
-                  Executive Summary
-                </h2>
-
-                <p className="mt-1 text-sm text-[var(--fl-muted)]">
-                  AI-generated client-friendly overview saved from this report.
-                </p>
-              </div>
-
-              <span
-                className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                  executiveSummary
-                    ? "border-green-500/40 bg-green-500/10 text-[var(--fl-good-text)]"
-                    : "border-yellow-500/40 bg-yellow-500/10 text-[var(--fl-warn-text)]"
-                }`}
-              >
-                {executiveSummary ? "Saved" : "Not Generated Yet"}
-              </span>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <GenerateSummaryButton inspectionId={String(inspection.id)} />
-
-              {executiveSummary && (
-                <DeleteSummaryButton inspectionId={String(inspection.id)} />
-              )}
-            </div>
-
-            <div className="mt-4 whitespace-pre-line rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4 text-sm leading-7 text-[var(--fl-text)]">
-              {executiveSummary ||
-                "Click Generate AI Summary to create and save the executive summary for this report."}
-            </div>
-          </section>
-          </CollapsibleReportSection>
 
 
 
