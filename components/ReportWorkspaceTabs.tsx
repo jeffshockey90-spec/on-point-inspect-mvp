@@ -31,7 +31,8 @@ export default function ReportWorkspaceTabs({
                 : "text-[var(--fl-muted)] hover:bg-[var(--fl-surface-2)] hover:text-[var(--fl-text)]"
             }`}
           >
-            <span>{tab.label}</span>
+            <span className="sm:hidden">{tab.shortLabel}</span>
+            <span className="hidden sm:inline">{tab.label}</span>
             {badge ? (
               <span className="rounded-full border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 py-0.5 text-[11px] font-semibold text-[var(--fl-muted)]">
                 {badge}

@@ -5,10 +5,10 @@
 
 export type WorkspaceTab = "write" | "client" | "insights";
 
-export const WORKSPACE_TABS: { key: WorkspaceTab; label: string }[] = [
-  { key: "write", label: "Write" },
-  { key: "client", label: "Client & payment" },
-  { key: "insights", label: "Insights" },
+export const WORKSPACE_TABS: { key: WorkspaceTab; label: string; shortLabel: string }[] = [
+  { key: "write", label: "Write", shortLabel: "Write" },
+  { key: "client", label: "Client & payment", shortLabel: "Client" },
+  { key: "insights", label: "Insights", shortLabel: "Insights" },
 ];
 
 export function normalizeWorkspaceTab(value: unknown): WorkspaceTab {
