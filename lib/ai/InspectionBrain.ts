@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { getAIModel, getFastAIModel } from "../openai";
+import { temperatureParam } from "../aiModelParams";
 
 export type InspectionAIRequest = {
   task:
@@ -17,6 +18,8 @@ export type InspectionAIRequest = {
   // Use the fast model (lower latency) for real-time / draft output the
   // inspector reviews — e.g. the live camera and field write-ups.
   fast?: boolean;
+  // Explicit model (wins over fast/smart), e.g. OPENAI_FINDINGS_MODEL.
+  model?: string;
   // Cap the response length. Structured extraction tasks (equipment) have a
   // bounded JSON answer, so a cap keeps the model from running long and trims
   // the slowest tail of the wait. Omit for open-ended prose tasks.
@@ -60,13 +63,15 @@ export class InspectionBrain {
       }
     }
 
-    const model = request.fast ? getFastAIModel() : getAIModel();
+    const model = request.model || (request.fast ? getFastAIModel() : getAIModel());
 
     const response = await this.client.chat.completions.create(
       {
         model,
-        temperature: request.temperature ?? 0.2,
-        ...(request.maxTokens ? { max_tokens: request.maxTokens } : {}),
+        // Newer models (gpt-5/6, o-series) reject a custom temperature and the
+        // old max_tokens name; max_completion_tokens works on every chat model.
+        ...temperatureParam(model, request.temperature ?? 0.2),
+        ...(request.maxTokens ? { max_completion_tokens: request.maxTokens } : {}),
         response_format:
           request.responseFormat === "json_object"
             ? { type: "json_object" }

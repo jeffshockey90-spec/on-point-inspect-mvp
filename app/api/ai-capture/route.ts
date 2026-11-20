@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { logAIEvent } from "../../../lib/logging";
 import { routeFindingSection, normalizeSeverity } from "../../../lib/routeFindingSection";
 import { getAIModel, getFastAIModel, getAIVersion } from "../../../lib/openai";
+import { findingsModel, temperatureParam } from "../../../lib/aiModelParams";
 import { learningEngine } from "../../../lib/ai/LearningEngine";
 import { getSessionUser, getAdminClient } from "../../../lib/apiAuth";
 import { buildWritingStyleInstructions } from "../../../lib/ai/writingStyle";
@@ -164,7 +165,8 @@ export async function POST(req: Request) {
     // live video, and the fast model missed subtle defects there that the
     // field tool's multi-photo organize (smart model) catches. Other callers
     // keep the fast model.
-    const writerModel = body.smartModel === true ? getAIModel() : AI_WRITER_MODEL;
+    // OPENAI_FINDINGS_MODEL (e.g. gpt-6.2-sol) overrides the smart model here.
+    const writerModel = body.smartModel === true ? findingsModel(getAIModel()) : AI_WRITER_MODEL;
 
     const requestedSection = cleanText(body.section);
     const requestedSeverity = cleanText(body.severity);
@@ -409,7 +411,7 @@ Keep the inspector's intent. Improve the writing without drifting away from the 
         { role: "system", content: systemPrompt },
         { role: "user", content: userContent },
       ],
-      temperature: 0.2,
+      ...temperatureParam(writerModel, 0.2),
       max_completion_tokens: 1400,
     });
 

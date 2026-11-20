@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { findingsModel } from "../../../../lib/aiModelParams";
+import { getAIModel } from "../../../../lib/openai";
 import { createClient } from "@supabase/supabase-js";
 import { inspectionBrain } from "../../../../lib/ai";
 import { learningEngine } from "../../../../lib/ai/LearningEngine";
@@ -843,8 +845,10 @@ If mode is "live_watch":
       // The continuous "live watch" stream stays on the fast model (fires
       // repeatedly — latency and cost matter). The deliberate Analyze pass is
       // a one-shot capture the inspector asked to analyze, so give it the smart
-      // model for report-builder-quality defect depiction.
+      // model for report-builder-quality defect depiction — or
+      // OPENAI_FINDINGS_MODEL (e.g. gpt-6.2-sol) when set.
       fast: isLiveWatch,
+      ...(isLiveWatch ? {} : { model: findingsModel(getAIModel()) }),
     });
 
     const parsed = safeJsonParse(brainResult.text || "{}");
