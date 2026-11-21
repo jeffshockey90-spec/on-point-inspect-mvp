@@ -3178,7 +3178,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                     Share &amp; PDFs
                     <span className="text-[var(--fl-muted)] transition group-open:rotate-90">›</span>
                   </summary>
-                  <div className="mt-2 w-[min(20rem,calc(100vw-3rem))] space-y-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-2xl sm:absolute sm:left-0 sm:top-full sm:z-40">
+                  <div className="mt-2 w-[min(20rem,calc(100vw-3rem))] space-y-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-2xl sm:absolute sm:right-0 sm:top-full sm:z-40">
                     <div>
                       <p className="px-3 pb-1 pt-1 text-xs font-semibold text-[var(--fl-muted)]">Links</p>
                       <FastLinkButton href={shareHref} loadingText="Opening Client Report..." className="flex w-full items-center justify-start! rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] min-h-11! transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
