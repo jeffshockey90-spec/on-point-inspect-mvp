@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { saveInspectionPreload } from "../lib/offlineInspectionPreload";
+import { groupedFindingsWithPhotoAliases, withPhotoUrlAliases } from "../lib/photoUrlAliases";
 
 type Props = {
   inspectionId: string;
@@ -32,6 +33,9 @@ export default function OfflineReportCacheBridge({
     const flatFindings = (groupedFindings || []).flatMap((group: any) =>
       (group.findings || []).map((finding: any) => ({
         ...finding,
+        // The server sends each photo URL once; restore the alias keys the
+        // offline viewer reads (lib/photoUrlAliases).
+        ...(Array.isArray(finding.photos) ? { photos: finding.photos.map(withPhotoUrlAliases) } : {}),
         section: finding.section || group.section,
       })),
     );
@@ -50,6 +54,7 @@ export default function OfflineReportCacheBridge({
     if (sig === lastSigRef.current) return;
     lastSigRef.current = sig;
 
+    const aliasedGroups = groupedFindingsWithPhotoAliases(groupedFindings);
     const write = () =>
       saveInspectionPreload({
         inspectionId,
@@ -59,14 +64,14 @@ export default function OfflineReportCacheBridge({
         templates: [],
         sections,
         findings: flatFindings,
-        groupedFindings,
+        groupedFindings: aliasedGroups,
         clientInfo: {
           ...(clientInfo || {}),
           ...(inspection || {}),
         },
         reportSnapshot: {
           inspection,
-          groupedFindings,
+          groupedFindings: aliasedGroups,
           sections,
           cachedFrom: "report-page",
         },

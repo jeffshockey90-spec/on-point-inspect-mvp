@@ -2452,21 +2452,11 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
     return {
       ...photo,
-      // Keep every signed variant because different report components look for
-      // different keys. The inspector editor should never have to rely on a
-      // public storage URL when a signed URL is available.
+      // Only signed_url + signed_thumbnail_url are sent; the client components
+      // rebuild the other alias keys (lib/photoUrlAliases), which used to repeat
+      // every ~500-character URL 4-6 times in the page payload.
       signed_url: finalFullUrl,
-      signedUrl: finalFullUrl,
-      signed_video_url: finalFullUrl,
-      signedVideoUrl: finalFullUrl,
       signed_thumbnail_url:
-        signedImagePreviewMap[fullPath] ||
-        signedThumbnailUrl ||
-        existingThumbnailUrl ||
-        finalFullUrl ||
-        existingFullUrl ||
-        "",
-      signedThumbnailUrl:
         signedImagePreviewMap[fullPath] ||
         signedThumbnailUrl ||
         existingThumbnailUrl ||

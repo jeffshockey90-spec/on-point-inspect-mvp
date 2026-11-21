@@ -17,6 +17,7 @@ import { matchStandards } from "../../../lib/ai/standardsReference";
 import AISectionReview from "../../../components/AISectionReview";
 import ExpandableReportImage from "../../../components/ExpandableReportImage";
 import RelatedFindingsEditor from "../../../components/RelatedFindingsEditor";
+import { groupedFindingsWithPhotoAliases } from "../../../lib/photoUrlAliases";
 import { supabase } from "../../../lib/supabaseClient";
 import { flowConfirm } from "../../../components/ConfirmProvider";
 import { refreshKeepScroll } from "../../../lib/refreshKeepScroll";
@@ -162,7 +163,12 @@ function DeferredOpenSection({
   );
 }
 
-export default function ReportFindingsSortable({ groupedFindings, deletedSections, sectionNotes, weatherContext, hasEquipment, equipment, units: unitRows, isMultiUnit }: any) {
+export default function ReportFindingsSortable({ groupedFindings: groupedFindingsProp, deletedSections, sectionNotes, weatherContext, hasEquipment, equipment, units: unitRows, isMultiUnit }: any) {
+  // The server sends each photo URL once; rebuild the alias keys the cards read.
+  const groupedFindings = useMemo(
+    () => groupedFindingsWithPhotoAliases(groupedFindingsProp),
+    [groupedFindingsProp],
+  );
   // Multi-Unit: ordered units for the per-finding + add-form unit pickers. Empty
   // for single-family jobs, in which case no unit UI renders anywhere below.
   const units: InspectionUnit[] = useMemo(() => normalizeUnits(unitRows), [unitRows]);
