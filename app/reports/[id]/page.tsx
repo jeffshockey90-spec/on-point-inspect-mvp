@@ -112,7 +112,6 @@ import {
 import ChangeServicePanel from "../../../components/ChangeServicePanel";
 import ReportWorkspaceTabs from "../../../components/ReportWorkspaceTabs";
 import ReportTabHashRouter from "../../../components/ReportTabHashRouter";
-import ReportSectionJumpList from "../../../components/ReportSectionJumpList";
 import { normalizeWorkspaceTab } from "../../../lib/report/workspaceTabs";
 
 export const dynamic = "force-dynamic";
@@ -3331,10 +3330,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             currentEmails={[inspection.client_email, inspection.realtor_email]}
           />
 
-          <ReportSectionJumpList
-            sections={groupedFindingsArray.map((group: any) => ({ section: String(group.section), count: group.findings.length }))}
-            extra={[{ label: "Executive summary", href: "#executive-summary" }]}
-          />
 
           <div id="executive-summary" className="scroll-mt-24">
           <CollapsibleReportSection
