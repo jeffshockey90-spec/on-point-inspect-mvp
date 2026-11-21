@@ -63,37 +63,59 @@ export default function PipelineBoard({
     [jobs],
   );
 
-  const visibleJobs = useMemo(() => {
-    const list = selected
-      ? jobs.filter((j) => j.stage === selected)
-      : jobs.filter((j) => j.stage !== "delivered");
-    return list.slice(0, 12);
-  }, [jobs, selected]);
+  // Show the first few jobs; "Show all" expands the list.
+  const [showAll, setShowAll] = useState(false);
+
+  const filteredJobs = useMemo(
+    () =>
+      selected
+        ? jobs.filter((j) => j.stage === selected)
+        : jobs.filter((j) => j.stage !== "delivered"),
+    [jobs, selected],
+  );
+  const visibleJobs = showAll ? filteredJobs : filteredJobs.slice(0, 6);
+  // Phones show fewer before "Show all" so the page stays short.
+  const phoneJobs = showAll ? filteredJobs : filteredJobs.slice(0, 3);
+  const hiddenOnPhone = filteredJobs.length - phoneJobs.length;
+  const hiddenOnWide = filteredJobs.length - visibleJobs.length;
+
+  function pick(key: string | null) {
+    setSelected(key);
+    setShowAll(false);
+  }
 
   const selectedMeta = selected ? STAGE_META[selected] : null;
 
   return (
-    <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
-            Pipeline
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
-            Every job, at a glance
-          </h2>
-        </div>
+    <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
+          Pipeline
+        </p>
         <Link
           href="/reports"
-          className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
+          className="text-sm font-semibold text-[var(--fl-accent-text)] hover:opacity-80"
         >
-          All Reports
+          All reports
         </Link>
       </div>
 
-      {/* Clickable stage chips — the funnel, but every card filters the list. */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {stages.map((stage, index) => {
+      {/* Stage chips: tap one to filter the list below; "Active" shows every
+          job still in progress. */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          aria-pressed={selected === null}
+          onClick={() => pick(null)}
+          className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors ${
+            selected === null
+              ? "border-[var(--fl-accent)] text-[var(--fl-accent-text)]"
+              : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)] hover:border-[var(--fl-accent)]/50"
+          }`}
+        >
+          Active <span className="font-mono tabular-nums">{activeCount}</span>
+        </button>
+        {stages.map((stage) => {
           const meta = STAGE_META[stage.key] || STAGE_META.report;
           const isSelected = selected === stage.key;
           return (
@@ -101,52 +123,23 @@ export default function PipelineBoard({
               key={stage.key}
               type="button"
               aria-pressed={isSelected}
-              onClick={() => setSelected(isSelected ? null : stage.key)}
-              className={`relative rounded-xl border p-4 text-left transition-colors ${
+              title={stage.hint}
+              onClick={() => pick(isSelected ? null : stage.key)}
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors ${
                 isSelected
-                  ? meta.ring
-                  : "border-[var(--fl-raised)] bg-[var(--fl-surface-2)] hover:border-[var(--fl-line)]"
+                  ? `${meta.ring} ${meta.color}`
+                  : "border-[var(--fl-line)] bg-[var(--fl-surface-2)] text-[var(--fl-text)] hover:border-[var(--fl-accent)]/50"
               }`}
             >
-              <div className="flex items-center justify-between">
-                <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
-                <span className="font-mono text-[26px] font-semibold tabular-nums text-[var(--fl-text)]">
-                  {stage.count}
-                </span>
-              </div>
-              <p className={`mt-3 text-sm font-semibold ${meta.color}`}>{stage.label}</p>
-              <p className="mt-0.5 text-xs text-[var(--fl-muted)]">{stage.hint}</p>
-              {index < stages.length - 1 ? (
-                <span className="pointer-events-none absolute -right-3 top-1/2 hidden -translate-y-1/2 text-xl text-[var(--fl-faint)] lg:block">
-                  ›
-                </span>
-              ) : null}
+              <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+              {stage.label}
+              <span className="font-mono tabular-nums">{stage.count}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Filter status row — what the list below is showing + a reset. */}
-      <div className="mt-5 mb-3 flex flex-wrap items-center gap-2 text-sm">
-        {selected ? (
-          <>
-            <span className="text-[var(--fl-muted)]">Showing</span>
-            <StagePill stage={selected} />
-            <button
-              type="button"
-              onClick={() => setSelected(null)}
-              className="ml-1 rounded-lg border border-[var(--fl-line)] px-2.5 py-1 text-xs font-semibold text-[var(--fl-muted)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent-text)]"
-            >
-              Clear · show all active
-            </button>
-          </>
-        ) : (
-          <span className="text-[var(--fl-muted)]">
-            <span className="font-semibold text-[var(--fl-text)]">{activeCount}</span> active{" "}
-            {activeCount === 1 ? "job" : "jobs"} in progress — tap a stage above to filter
-          </span>
-        )}
-      </div>
+      <div className="mt-3" />
 
       {/* The filtered job list. */}
       {visibleJobs.length === 0 ? (
@@ -157,46 +150,38 @@ export default function PipelineBoard({
         </div>
       ) : (
         <>
-        {/* Phones and small tablets: stacked cards. */}
-        <div className="space-y-3 md:hidden">
-          {visibleJobs.map((job) => (
-            <div
+        {/* Phones and small tablets: compact rows; tap a row to open the report. */}
+        <div className="md:hidden">
+          {phoneJobs.map((job) => (
+            <Link
               key={job.id}
-              className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4"
+              href={`/reports/${job.id}`}
+              className="flex items-center justify-between gap-3 border-t border-[var(--fl-line)] py-3 first:border-t-0 first:pt-0"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="break-words font-semibold text-[var(--fl-text)]">{job.address}</p>
-                  <p className="mt-0.5 break-words text-xs text-[var(--fl-muted)]">
-                    {job.client || "No client listed"}
-                  </p>
-                </div>
-                <div className="shrink-0">
-                  <StagePill stage={job.stage} />
-                </div>
+              <div className="min-w-0">
+                <p className="break-words font-semibold text-[var(--fl-text)]">{job.address}</p>
+                <p className="mt-0.5 truncate text-xs text-[var(--fl-muted)]">
+                  {[job.client, job.dateLabel].filter(Boolean).join(" · ")}
+                  {" · "}
+                  <span className={job.paid ? "text-[var(--fl-good-text)]" : "text-[var(--fl-warn-text)]"}>
+                    {job.paymentLabel}
+                  </span>
+                </p>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-                <span
-                  className={
-                    job.paid
-                      ? "text-xs font-semibold text-[var(--fl-good-text)]"
-                      : "text-xs font-semibold text-[var(--fl-warn-text)]"
-                  }
-                >
-                  {job.paymentLabel}
-                </span>
-                <span className="font-mono text-xs tabular-nums text-[var(--fl-muted)]">
-                  {job.dateLabel}
-                </span>
-                <Link
-                  href={`/reports/${job.id}`}
-                  className="ml-auto rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent)] transition-colors hover:border-[var(--fl-accent)]/50 hover:bg-[var(--fl-accent)]/10"
-                >
-                  Open
-                </Link>
+              <div className="shrink-0">
+                <StagePill stage={job.stage} />
               </div>
-            </div>
+            </Link>
           ))}
+          {hiddenOnPhone > 0 || showAll ? (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="mt-1 flex min-h-11 w-full items-center justify-center border-t border-[var(--fl-line)] pt-2 text-sm font-semibold text-[var(--fl-accent-text)]"
+            >
+              {showAll ? "Show fewer" : `Show all ${filteredJobs.length} jobs`}
+            </button>
+          ) : null}
         </div>
 
         {/* md and up: the full table. */}
@@ -252,6 +237,15 @@ export default function PipelineBoard({
               ))}
             </tbody>
           </table>
+          {hiddenOnWide > 0 || (showAll && filteredJobs.length > 6) ? (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="mt-2 text-sm font-semibold text-[var(--fl-accent-text)] hover:opacity-80"
+            >
+              {showAll ? "Show fewer" : `Show all ${filteredJobs.length} jobs`}
+            </button>
+          ) : null}
         </div>
         </>
       )}

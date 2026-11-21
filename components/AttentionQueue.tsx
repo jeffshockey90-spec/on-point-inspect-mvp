@@ -106,9 +106,7 @@ function ActionButton({
       ? "border border-emerald-400/50 bg-emerald-500/10 text-[var(--fl-good-text)]"
       : state === "error"
         ? "border border-rose-400/50 bg-rose-500/10 text-[var(--fl-crit-text)]"
-        : primary
-          ? "bg-[var(--fl-accent)] text-[var(--fl-accent-text)] hover:opacity-90"
-          : "border border-[var(--fl-line)] bg-[var(--fl-surface)] text-[var(--fl-text)] hover:border-[var(--fl-accent)]/50";
+        : "border border-[var(--fl-line)] bg-[var(--fl-surface)] text-[var(--fl-text)] hover:border-[var(--fl-accent)]/50";
 
   return (
     <button
@@ -133,30 +131,22 @@ function Row({ row }: { row: AttentionRow }) {
   const keys = new Set(row.items.map((i) => i.key));
 
   return (
-    <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-[var(--fl-text)]">{row.address}</p>
-          <p className="truncate text-xs text-[var(--fl-muted)]">
-            {row.client || "No client listed"}
-          </p>
-        </div>
-        <Link
-          href={`/reports/${row.id}`}
-          className="shrink-0 rounded-lg border border-[var(--fl-line)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent)] transition-colors hover:border-[var(--fl-accent)]/50 hover:bg-[var(--fl-accent)]/10"
-        >
-          Open
-        </Link>
-      </div>
+    <div className="border-t border-[var(--fl-line)] py-3 first:border-t-0 first:pt-0">
+      <Link href={`/reports/${row.id}`} className="block min-w-0 hover:opacity-90">
+        <p className="truncate font-semibold text-[var(--fl-text)]">{row.address}</p>
+        <p className="truncate text-xs text-[var(--fl-muted)]">
+          {row.client || "No client listed"}
+        </p>
+      </Link>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {row.items.map((item) => (
           <ItemChip key={item.key} item={item} />
         ))}
       </div>
 
       {/* Inline one-tap actions for whatever this job is waiting on. */}
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap gap-2">
         {keys.has("payment") ? (
           <ActionButton
             id={row.id}
@@ -188,7 +178,7 @@ function Row({ row }: { row: AttentionRow }) {
         {keys.has("draft") && !keys.has("payment") && !keys.has("agreement") ? (
           <Link
             href={`/reports/${row.id}`}
-            className="inline-flex items-center rounded-lg bg-[var(--fl-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-accent-text)] transition-colors hover:opacity-90"
+            className="inline-flex items-center rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--fl-text)] transition-colors hover:border-[var(--fl-accent)]/50"
           >
             Continue Report
           </Link>
@@ -198,20 +188,36 @@ function Row({ row }: { row: AttentionRow }) {
   );
 }
 
+// Show the first few follow-ups; the rest are one tap away.
+const FIRST_ROWS = 3;
+
 export default function AttentionQueue({ rows }: { rows: AttentionRow[] }) {
+  const [showAll, setShowAll] = useState(false);
+
   if (rows.length === 0) {
     return (
-      <div className="mt-5 rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm text-[var(--fl-muted)]">
+      <div className="mt-3 rounded-2xl border border-dashed border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-5 text-sm text-[var(--fl-muted)]">
         No reports needing attention right now.
       </div>
     );
   }
 
+  const shown = showAll ? rows : rows.slice(0, FIRST_ROWS);
+
   return (
-    <div className="mt-5 space-y-3">
-      {rows.map((row) => (
+    <div className="mt-3">
+      {shown.map((row) => (
         <Row key={row.id} row={row} />
       ))}
+      {rows.length > FIRST_ROWS && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="mt-1 flex min-h-11 w-full items-center justify-center border-t border-[var(--fl-line)] pt-2 text-sm font-semibold text-[var(--fl-accent-text)]"
+        >
+          {showAll ? "Show fewer" : `Show all ${rows.length}`}
+        </button>
+      )}
     </div>
   );
 }

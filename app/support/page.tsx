@@ -253,6 +253,12 @@ export default function SupportPage() {
           <p className="mt-4 max-w-2xl text-[var(--fl-muted)]">
             Send Jeff a message if you need help with reports, billing, payments, agreements, or app setup.
           </p>
+          <a
+            href="/?tour=1"
+            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--fl-line)] px-4 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-500/60 hover:text-[var(--fl-accent-text)]"
+          >
+            🧭 Take the dashboard tour
+          </a>
         </section>
 
         <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl">

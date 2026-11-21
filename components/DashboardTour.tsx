@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { Compass } from "lucide-react";
 
 type TourStep = {
   target: string;
@@ -76,7 +75,12 @@ export default function DashboardTour({
 
   useEffect(() => {
     setReady(true);
-    if (!initialDismissed && !readDismissed()) {
+    // "Take the tour" lives on the Support page and links here with ?tour=1.
+    let asked = false;
+    try {
+      asked = new URLSearchParams(window.location.search).get("tour") === "1";
+    } catch {}
+    if (asked || (!initialDismissed && !readDismissed())) {
       setStepIndex(0);
     }
   }, [initialDismissed]);
@@ -137,25 +141,10 @@ export default function DashboardTour({
     setStepIndex(stepIndex - 1);
   }
 
-  function restartTour() {
-    setStepIndex(0);
-  }
-
   if (!ready) return null;
 
-  if (!step || !rect) {
-    if (step) return null;
-
-    return (
-      <button
-        type="button"
-        onClick={restartTour}
-        className="fixed bottom-24 right-4 z-[150] flex items-center gap-2 rounded-full border border-teal-500/50 bg-[var(--fl-surface)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--fl-accent-text)] shadow-2xl shadow-black/40 transition hover:border-teal-300 hover:text-[var(--fl-accent-text)] active:scale-[0.97] xl:bottom-6"
-      >
-        <Compass className="h-4 w-4" strokeWidth={2.5} /> Take the Tour
-      </button>
-    );
-  }
+  // No floating "Take the tour" button over the dashboard; restart it from Support.
+  if (!step || !rect) return null;
 
   const padding = 8;
   const boxTop = rect.top - padding;

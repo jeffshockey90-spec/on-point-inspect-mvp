@@ -20,7 +20,7 @@ export const DASHBOARD_WIDGETS: {
 }[] = [
   { id: "kpis", title: "Revenue & Status", defaultSize: "full" },
   { id: "pipeline", title: "Pipeline", defaultSize: "full" },
-  { id: "next-attention", title: "Next Up & Needs Attention", defaultSize: "full" },
+  { id: "next-attention", title: "Needs Attention", defaultSize: "full" },
   { id: "today-route", title: "Today's Route", defaultSize: "half" },
   { id: "trends", title: "Trends", defaultSize: "half", defaultVisible: false },
   { id: "activity-metrics", title: "Engagement", defaultSize: "full", defaultVisible: false },

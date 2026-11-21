@@ -27,40 +27,29 @@ function formatClock(time: string | null): string {
 
 export default function TodayRoute({ stops }: { stops: RouteStop[] }) {
   return (
-    <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
+    <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
             Today's Route
           </p>
-          <h2 className="mt-1 text-2xl font-semibold text-[var(--fl-text)]">
+          <p className="mt-0.5 text-sm text-[var(--fl-muted)]">
             {stops.length === 0
               ? "No stops today"
-              : `${stops.length} stop${stops.length === 1 ? "" : "s"}`}
-          </h2>
+              : `${stops.length} stop${stops.length === 1 ? "" : "s"} · appointment order`}
+          </p>
         </div>
         <Link
           href="/route"
-          className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
+          className="shrink-0 rounded-xl border border-[var(--fl-line)] px-3 py-2 text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 hover:text-[var(--fl-accent-text)]"
         >
-          Plan Route
+          Plan route
         </Link>
       </div>
 
-      {stops.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--fl-muted)]">
-          Nothing scheduled today. The{" "}
-          <Link href="/route" className="text-[var(--fl-accent-text)] underline">
-            route planner
-          </Link>{" "}
-          optimizes any day's stops by drive time.
-        </p>
-      ) : (
+      {stops.length === 0 ? null : (
         <>
-          <p className="mt-1 text-xs text-[var(--fl-muted)]">
-            In appointment order — open the planner to optimize by drive time.
-          </p>
-          <ol className="mt-4 space-y-2">
+          <ol className="mt-3 space-y-2">
             {stops.map((stop, index) => (
               <li
                 key={stop.id}

@@ -535,6 +535,9 @@ function getInspectionAttentionItems({
   return items;
 }
 
+const HERO_SECONDARY_LINK =
+  "inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 text-[13px] font-semibold text-[var(--fl-muted)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent)] md:px-4";
+
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient();
 
@@ -980,65 +983,82 @@ export default async function HomePage() {
     <main className="min-h-screen bg-[var(--fl-ground)] px-4 py-8 text-[var(--fl-text)] md:px-6">
       <DashboardTour initialDismissed={Boolean(tourProfile?.dashboard_tour_dismissed_at)} />
       <div className="mx-auto max-w-[96rem] space-y-8">
-        <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.3)] md:p-7">
-          <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr] xl:items-center">
-            <div>
-              <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--fl-accent)]" />
-                FLOW · Command Center
-              </p>
+        <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-6 md:p-7">
+          <p className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-faint)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--fl-accent)]" />
+            FLOW
+          </p>
 
-              <h1 className="text-[28px] font-semibold tracking-tight text-[var(--fl-text)] md:text-[34px]">
-                {getGreeting(userTimeZone)}, {getFirstName(user.email)}
-              </h1>
+          <h1 className="text-[26px] font-semibold tracking-tight text-[var(--fl-text)] md:text-[34px]">
+            {getGreeting(userTimeZone)}, {getFirstName(user.email)}
+          </h1>
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--fl-muted)]">
-                Inspections, report delivery, payments, agreements, and repair requests — all in one place.
-              </p>
+          <div className="mt-4 grid gap-2 md:grid-cols-[auto_1fr] md:items-center md:gap-3">
+            <Link
+              href="/inspections/new"
+              data-tour="tour-new-inspection"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--fl-accent)] px-5 text-sm font-semibold text-slate-950 transition-colors hover:bg-[var(--fl-accent)]"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} /> New Inspection
+            </Link>
 
-              <div className="mt-6 flex flex-wrap gap-2.5">
-                <Link
-                  href="/inspections/new"
-                  data-tour="tour-new-inspection"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[var(--fl-accent)] px-4 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-[var(--fl-accent)]"
-                >
-                  <Plus className="h-4 w-4" strokeWidth={2.5} /> New Inspection
-                </Link>
-
-                <Link
-                  href="/field"
-                  data-tour="tour-field-tool"
-                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent)]"
-                >
-                  <Smartphone className="h-4 w-4" strokeWidth={2} /> Field Tool
-                </Link>
-
-                <Link
-                  href="/schedule"
-                  data-tour="tour-schedule"
-                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent)]"
-                >
-                  <CalendarDays className="h-4 w-4" strokeWidth={2} /> Schedule
-                </Link>
-
-                <Link
-                  href="/import-report"
-                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-4 py-2.5 text-sm font-semibold text-[var(--fl-text)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent)]"
-                >
-                  <FileDown className="h-4 w-4" strokeWidth={2} /> Import Report
-                </Link>
-              </div>
-            </div>
-
-            <div data-tour="tour-metrics" className="flex flex-col gap-3 xl:justify-end">
-              <CommandSearchTrigger />
-              <div className="grid grid-cols-3 gap-3">
-                <CommandMetric label="Today" value={String(todayInspections.length)} helper="Scheduled" tone="teal" />
-                <CommandMetric label="Drafts" value={String(draftReports.length)} helper="Unpublished" tone="yellow" />
-                <CommandMetric label="Repair" value={String(repairStats.waiting)} helper="Waiting" tone="cyan" />
-              </div>
+            <div className="grid grid-cols-3 gap-2 md:flex md:flex-wrap">
+              <Link href="/field" data-tour="tour-field-tool" className={HERO_SECONDARY_LINK}>
+                <Smartphone className="h-4 w-4 shrink-0" strokeWidth={2} /> Field Tool
+              </Link>
+              <Link href="/schedule" data-tour="tour-schedule" className={HERO_SECONDARY_LINK}>
+                <CalendarDays className="h-4 w-4 shrink-0" strokeWidth={2} /> Schedule
+              </Link>
+              <Link href="/import-report" className={HERO_SECONDARY_LINK}>
+                <FileDown className="h-4 w-4 shrink-0" strokeWidth={2} /> Import
+              </Link>
             </div>
           </div>
+
+          <div className="mt-3">
+            <CommandSearchTrigger />
+          </div>
+        </section>
+
+        {/* Next Up is pinned right under the hero (not part of the customizable grid)
+            so the job you're about to work on is always the first thing you see. */}
+        <section className="rounded-xl border border-[var(--fl-accent)]/35 bg-[var(--fl-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
+                Next Up
+              </p>
+              <h2 className="mt-1 break-words text-xl font-semibold text-[var(--fl-text)] sm:text-2xl">
+                {nextInspection ? getAddress(nextInspection) : "No inspections yet"}
+              </h2>
+              <p className="mt-0.5 text-sm text-[var(--fl-muted)]">
+                {nextInspection
+                  ? `${nextInspection.client_name || "No client listed"} · ${formatInspectionDate(
+                      nextInspection.inspection_date
+                    )}`
+                  : "Create your first inspection to get started."}
+              </p>
+            </div>
+
+            {nextInspection ? (
+              <span
+                className={
+                  isPublished(nextInspection)
+                    ? "shrink-0 rounded-full border border-emerald-400/50 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-good-text)]"
+                    : "shrink-0 rounded-full border border-yellow-400/50 bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-[var(--fl-warn-text)]"
+                }
+              >
+                {isPublished(nextInspection) ? "Published" : "Draft"}
+              </span>
+            ) : null}
+          </div>
+
+          <Link
+            href={nextInspection ? `/reports/${nextInspection.id}` : "/inspections/new"}
+            className="mt-4 flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--fl-accent)] px-5 text-sm font-semibold text-slate-950 transition hover:opacity-90 active:scale-[0.98] sm:w-auto sm:max-w-xs"
+          >
+            {nextInspection ? "Continue report" : "Create inspection"}
+          </Link>
         </section>
 
         <SetupChecklist />
@@ -1047,11 +1067,11 @@ export default async function HomePage() {
           initialLayout={dashboardLayout}
           widgets={[
             { id: "kpis", node: (
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section data-tour="tour-metrics" className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4">
           <KpiTile label="Collected" value={money(collectedRevenue)} sub="Payments received" accent="teal" />
           <KpiTile label="Outstanding" value={money(totalBalanceDue)} sub={`${unpaidInspections.length} unpaid`} accent="amber" />
-          <KpiTile label="Needs Attention" value={String(needsAttentionCount)} sub="Items to follow up" accent="rose" />
-          <KpiTile label="Published" value={`${publishedReports.length}/${reportableInspections.length}`} sub="Reports delivered" accent="emerald" />
+          <KpiTile label="Attention" value={String(needsAttentionCount)} sub="To follow up" accent="rose" />
+          <KpiTile label="Published" value={`${publishedReports.length}/${reportableInspections.length}`} sub="Delivered" accent="emerald" />
         </section>
 
             ) },
@@ -1062,124 +1082,11 @@ export default async function HomePage() {
         <DashboardTrends data={monthlyTrends} />
             ) },
             { id: "next-attention", node: (
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-accent-text)]">
-                  Next Up
-                </p>
-
-                <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
-                  {nextInspection ? getAddress(nextInspection) : "No inspections yet"}
-                </h2>
-
-                <p className="mt-2 text-sm text-[var(--fl-muted)]">
-                  {nextInspection
-                    ? `${nextInspection.client_name || "No client listed"} • ${formatInspectionDate(
-                        nextInspection.inspection_date
-                      )}`
-                    : "Create your first inspection to get started."}
-                </p>
-              </div>
-
-              {nextInspection ? (
-                <span
-                  className={
-                    isPublished(nextInspection)
-                      ? "rounded-full border border-emerald-400/50 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-[var(--fl-good-text)]"
-                      : "rounded-full border border-yellow-400/50 bg-yellow-500/10 px-4 py-2 text-xs font-semibold text-[var(--fl-warn-text)]"
-                  }
-                >
-                  {isPublished(nextInspection) ? "Published" : "Draft"}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {nextInspection ? (
-                <>
-                  <Link
-                    href={`/reports/${nextInspection.id}`}
-                    className="rounded-2xl bg-teal-400 px-5 py-4 text-center text-sm font-semibold text-slate-950 transition hover:bg-teal-300 active:scale-[0.98]"
-                  >
-                    Continue Report
-                  </Link>
-
-                  <Link
-                    href="/field"
-                    className="rounded-2xl border border-cyan-400/60 bg-cyan-500/10 px-5 py-4 text-center text-sm font-semibold text-[var(--fl-info-text)] transition hover:bg-cyan-500/20 active:scale-[0.98]"
-                  >
-                    Field Tool
-                  </Link>
-
-                  <Link
-                    href="/reports"
-                    className="rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-5 py-4 text-center text-sm font-semibold text-[var(--fl-text)] transition hover:border-teal-400 active:scale-[0.98]"
-                  >
-                    All Reports
-                  </Link>
-                </>
-              ) : (
-                <Link
-                  href="/inspections/new"
-                  className="rounded-2xl bg-teal-400 px-5 py-4 text-center text-sm font-semibold text-slate-950 transition hover:bg-teal-300 active:scale-[0.98] sm:col-span-3"
-                >
-                  Create Inspection
-                </Link>
-              )}
-            </div>
-
-            {nextInspection ? (
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <MiniStatus label="Payment" value={isPaymentComplete(nextInspection) ? "Complete" : "Pending"} good={isPaymentComplete(nextInspection)} />
-                <MiniStatus
-                  label="Agreement"
-                  value={
-                    getAgreementStatsForInspection({
-                      inspection: nextInspection,
-                      contactsByInspectionId,
-                      signedAgreementMap,
-                    }).unsignedCount > 0
-                      ? "Unsigned"
-                      : "Ready"
-                  }
-                  good={
-                    getAgreementStatsForInspection({
-                      inspection: nextInspection,
-                      contactsByInspectionId,
-                      signedAgreementMap,
-                    }).unsignedCount === 0
-                  }
-                />
-                <MiniStatus label="Published" value={isPublished(nextInspection) ? "Yes" : "No"} good={isPublished(nextInspection)} />
-              </div>
-            ) : null}
-          </section>
-
-          <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--fl-warn-text)]">
-                  Needs Attention
-                </p>
-
-                <h2 className="mt-2 text-3xl font-semibold text-[var(--fl-text)]">
-                  {needsAttentionCount}
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-                  One-tap follow-up on drafts, unsigned agreements, unpaid invoices, and repair responses.
-                </p>
-              </div>
-
-              <span className="flex items-center justify-center rounded-2xl bg-yellow-500/10 p-4 text-[var(--fl-warn-text)]">
-                <Zap className="h-7 w-7" strokeWidth={2.25} />
-              </span>
-            </div>
-
-            <AttentionQueue rows={attentionQueue} />
-          </section>
+        <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-warn-text)]">
+            Needs Attention · {needsAttentionCount}
+          </p>
+          <AttentionQueue rows={attentionQueue} />
         </section>
 
             ) },
@@ -1378,67 +1285,6 @@ export default async function HomePage() {
   );
 }
 
-function CommandMetric({
-  label,
-  value,
-  helper,
-  tone,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-  tone: "teal" | "yellow" | "green" | "cyan" | "orange";
-}) {
-  const dot = {
-    teal: "bg-[var(--fl-accent)]",
-    yellow: "bg-[var(--fl-warn)]",
-    green: "bg-[var(--fl-good)]",
-    cyan: "bg-[var(--fl-info-text)]",
-    orange: "bg-[var(--fl-warn)]",
-  }[tone];
-
-  return (
-    <div className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
-      <div className="flex items-center gap-2">
-        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
-          {label}
-        </p>
-      </div>
-
-      <p className="mt-2 font-mono text-[26px] font-semibold leading-none text-[var(--fl-text)] tabular-nums">
-        {value}
-      </p>
-
-      <p className="mt-1.5 text-xs leading-5 text-[var(--fl-muted)]">
-        {helper}
-      </p>
-    </div>
-  );
-}
-
-function MiniStatus({
-  label,
-  value,
-  good,
-}: {
-  label: string;
-  value: string;
-  good: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fl-muted)]">
-        {label}
-      </p>
-      <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-[var(--fl-text)]">
-        <span className={`h-1.5 w-1.5 rounded-full ${good ? "bg-[var(--fl-good)]" : "bg-[var(--fl-warn)]"}`} />
-        {value}
-      </p>
-    </div>
-  );
-}
-
 function ActivityMetric({
   label,
   value,
@@ -1484,17 +1330,17 @@ function KpiTile({
   }[accent];
 
   return (
-    <div className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-colors hover:border-[var(--fl-line)]">
+    <div className="min-w-0 rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-colors hover:border-[var(--fl-line)] sm:p-5">
       <div className="flex items-center gap-2">
-        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+        <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)] sm:text-[11px]">
           {label}
         </p>
       </div>
-      <p className="mt-3 font-mono text-[34px] font-semibold leading-none tracking-tight text-[var(--fl-text)] tabular-nums">
+      <p className="mt-2 truncate font-mono text-[22px] font-semibold leading-none tracking-tight text-[var(--fl-text)] tabular-nums sm:mt-3 sm:text-[34px]">
         {value}
       </p>
-      <p className="mt-2 text-sm text-[var(--fl-muted)]">{sub}</p>
+      <p className="mt-1.5 truncate text-xs text-[var(--fl-muted)] sm:mt-2 sm:text-sm">{sub}</p>
     </div>
   );
 }
