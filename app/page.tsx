@@ -536,7 +536,7 @@ function getInspectionAttentionItems({
 }
 
 const HERO_SECONDARY_LINK =
-  "inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-2 text-[13px] font-semibold text-[var(--fl-muted)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent)] md:px-4";
+  "inline-flex min-h-10 min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-1.5 text-[12.5px] font-semibold text-[var(--fl-muted)] transition-colors hover:border-[var(--fl-accent)]/50 hover:text-[var(--fl-accent)] sm:gap-1.5 sm:text-[13px] md:px-4";
 
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient();
@@ -1084,7 +1084,7 @@ export default async function HomePage() {
             { id: "next-attention", node: (
         <section className="rounded-xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.3)] sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-warn-text)]">
-            Needs Attention · {needsAttentionCount}
+            Needs Attention
           </p>
           <AttentionQueue rows={attentionQueue} />
         </section>
