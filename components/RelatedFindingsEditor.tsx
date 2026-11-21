@@ -19,10 +19,16 @@ export default function RelatedFindingsEditor({
   inspectionId,
   finding,
   allFindings,
+  defaultOpen = false,
+  onClose,
 }: {
   inspectionId: string;
   finding: Finding;
   allFindings: Finding[];
+  /** Start with the picker open (opened from the card's ⋯ menu). */
+  defaultOpen?: boolean;
+  /** Called when the picker closes (Done or after saving). */
+  onClose?: () => void;
 }) {
   const router = useRouter();
   const findingId = String(finding?.id || "");
@@ -31,7 +37,7 @@ export default function RelatedFindingsEditor({
     ? finding.related_finding_ids.map((x: any) => String(x)).filter(Boolean)
     : [];
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [selectedIds, setSelectedIds] = useState<string[]>(initialRelated);
   const [note, setNote] = useState(String(finding?.related_note || ""));
   const [aiHint, setAiHint] = useState("");
@@ -99,6 +105,7 @@ export default function RelatedFindingsEditor({
       if (!res.ok) throw new Error(data.error || "Could not save links.");
       setSaving(false);
       setOpen(false);
+      onClose?.();
       refreshKeepScroll(router);
     } catch (e: any) {
       setError(e?.message || "Could not save links.");
@@ -124,7 +131,10 @@ export default function RelatedFindingsEditor({
         </div>
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => {
+            if (open) onClose?.();
+            setOpen((v) => !v);
+          }}
           className="shrink-0 rounded-lg border border-indigo-500/50 px-3 py-1.5 text-xs font-semibold text-[var(--fl-purple-text)] transition hover:bg-indigo-500/10"
         >
           {open ? "Done" : linkedChips.length > 0 ? "Edit links" : "Link findings"}

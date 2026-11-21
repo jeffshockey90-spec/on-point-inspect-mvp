@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { flowConfirm } from "./ConfirmProvider";
 import { useRouter } from "next/navigation";
@@ -27,12 +27,34 @@ const SECTIONS = [
 ];
 
 
+// One entry in the defect card's "More" (⋯) menu, supplied by the card.
+export type FindingMenuItem = {
+  key: string;
+  icon: string;
+  label: string;
+  onSelect: () => void;
+};
+
 function EditableFinding({
   finding,
   availableSections,
+  onAddMedia,
+  mediaOpen,
+  aiNote,
+  menuItems,
+  menuTailItems,
 }: {
   finding: any;
   availableSections?: string[];
+  /** "Media" button in the action row (the card owns the upload panel). */
+  onAddMedia?: () => void;
+  mediaOpen?: boolean;
+  /** The card's AI note box, shown inside the AI panel above "Rewrite softer". */
+  aiNote?: ReactNode;
+  /** Card-level actions listed first in the ⋯ menu. */
+  menuItems?: FindingMenuItem[];
+  /** Card-level actions listed after this editor's own, just above Delete. */
+  menuTailItems?: FindingMenuItem[];
 }) {
   const router = useRouter();
 
@@ -75,7 +97,6 @@ function EditableFinding({
   const [repairNotes, setRepairNotes] = useState(finding.repair_notes || "");
 
   const [saving, setSaving] = useState(false);
-  const [savingTemplate, setSavingTemplate] = useState(false);
   const [rewriting, setRewriting] = useState(false);
   const [savingRepair, setSavingRepair] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -85,6 +106,9 @@ function EditableFinding({
     finding.section || "Exterior",
   );
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [repairPanelOpen, setRepairPanelOpen] = useState(false);
   const [quickStatus, setQuickStatus] = useState<
     "complete" | "needs_photo" | "needs_implication" | ""
   >("");
@@ -93,7 +117,6 @@ function EditableFinding({
   const [saveLabel, setSaveLabel] = useState("Save Finding");
   const [repairLabel, setRepairLabel] = useState("Save Repair Request");
   const [rewriteLabel, setRewriteLabel] = useState("AI Rewrite Softer");
-  const [templateLabel, setTemplateLabel] = useState("Save to Library");
   const [deleteLabel, setDeleteLabel] = useState("Delete Finding");
 
   const [message, setMessage] = useState("");
@@ -351,8 +374,8 @@ function EditableFinding({
     }
   }
 
-  async function saveRepairRequestSettings() {
-    if (savingRepair) return;
+  async function saveRepairRequestSettings(): Promise<boolean> {
+    if (savingRepair) return false;
 
     setSavingRepair(true);
     setRepairLabel("Saving...");
@@ -370,7 +393,7 @@ function EditableFinding({
       if (error) {
         setRepairLabel("Failed");
         showMessage("error", error.message);
-        return;
+        return false;
       }
 
       repairDirtyRef.current = false; // persisted now matches; safe to re-seed
@@ -394,9 +417,11 @@ function EditableFinding({
           }),
         );
       }
+      return true;
     } catch (error: any) {
       setRepairLabel("Failed");
       showMessage("error", error?.message || "Failed to save repair request.");
+      return false;
     } finally {
       window.setTimeout(() => {
         setSavingRepair(false);
@@ -471,51 +496,6 @@ function EditableFinding({
       window.setTimeout(() => {
         setRewriting(false);
         setRewriteLabel("AI Rewrite Softer");
-      }, 700);
-    }
-  }
-
-  async function saveToLibrary() {
-    if (savingTemplate) return;
-
-    if (!title.trim()) {
-      showMessage("error", "Add a title before saving.");
-      return;
-    }
-
-    setSavingTemplate(true);
-    setTemplateLabel("Saving...");
-
-    try {
-      // Stamp the owning inspector so saved library entries are scoped to them
-      // (comment_library.inspector_id) rather than saved unowned/global.
-      const { data: authData } = await supabase.auth.getUser();
-      const { error } = await supabase.from("comment_library").insert({
-        title,
-        section,
-        severity,
-        observation,
-        implication,
-        recommendation,
-        tags: `${section}, ${severity}`,
-        inspector_id: authData?.user?.id ?? null,
-      });
-
-      if (error) {
-        setTemplateLabel("Failed");
-        showMessage("error", error.message);
-        return;
-      }
-
-      setTemplateLabel("Saved!");
-      showMessage("success", "Saved to comment library.");
-    } catch (error: any) {
-      setTemplateLabel("Failed");
-      showMessage("error", error?.message || "Failed to save to library.");
-    } finally {
-      window.setTimeout(() => {
-        setSavingTemplate(false);
-        setTemplateLabel("Save to Library");
       }, 700);
     }
   }
@@ -734,127 +714,195 @@ function EditableFinding({
   }
 
   if (!editing) {
-    return (
-      <div className="mt-3 w-full max-w-full space-y-3 overflow-hidden print:hidden">
-        <InlineStatusMessage type={messageType} message={message} />
-        <div className="w-full max-w-full overflow-hidden rounded-2xl border border-[var(--fl-accent)]/25 bg-[var(--fl-surface-2)] p-3 sm:p-5">
-          <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--fl-accent-text)] sm:text-sm">
-            Quick Tools
-          </h4>
+    const rowBtn =
+      "inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]";
+    const idleBtn = "border-[var(--fl-line)] bg-[var(--fl-surface)] text-[var(--fl-text)] hover:bg-[var(--fl-raised)]";
+    const menuRow =
+      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:opacity-60 [touch-action:manipulation]";
+    const pick = (fn: () => void) => () => {
+      setMoreOpen(false);
+      fn();
+    };
+    const ownItems: FindingMenuItem[] = [
+      {
+        key: "move-section",
+        icon: "↪",
+        label: "Move to another section",
+        onSelect: () => {
+          setMoveTargetSection(String(finding.section || section || "Exterior"));
+          setMovePanelOpen(true);
+        },
+      },
+      {
+        key: "repair",
+        icon: "🧾",
+        label: repairRequest ? "Repair request settings" : "Add to repair request",
+        onSelect: () => {
+          if (!repairRequest) {
+            repairDirtyRef.current = true;
+            setRepairRequest(true);
+          }
+          setRepairPanelOpen(true);
+        },
+      },
+    ];
+    const allItems = [...(menuItems || []), ...ownItems, ...(menuTailItems || [])];
 
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap">
+    return (
+      <div className="w-full max-w-full space-y-3 print:hidden">
+        <InlineStatusMessage type={messageType} message={message} />
+
+        <div className="grid w-full grid-cols-[1fr_1fr_1fr_auto] gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className={`${rowBtn} border-teal-500 bg-teal-500 text-slate-950 hover:bg-teal-400`}
+          >
+            ✎ Edit
+          </button>
+          {onAddMedia && (
+            <button
+              type="button"
+              onClick={onAddMedia}
+              aria-expanded={!!mediaOpen}
+              className={`${rowBtn} ${mediaOpen ? "border-teal-500 text-[var(--fl-accent-text)]" : idleBtn}`}
+            >
+              📷 Media
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setAiOpen((v) => !v);
+              setMoreOpen(false);
+            }}
+            aria-expanded={aiOpen}
+            className={`${rowBtn} ${aiOpen ? "border-purple-400 bg-purple-500/10 text-[var(--fl-purple-text)]" : idleBtn} ${onAddMedia ? "" : "col-span-2"}`}
+          >
+            ✨ AI
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMoreOpen((v) => !v);
+              setAiOpen(false);
+            }}
+            aria-expanded={moreOpen}
+            aria-label="More actions"
+            title="More actions"
+            className={`${rowBtn} w-12 text-lg ${moreOpen ? "border-teal-500 text-[var(--fl-accent-text)]" : `${idleBtn} text-[var(--fl-muted)]`}`}
+          >
+            ⋯
+          </button>
+        </div>
+
+        {moreOpen && (
+          <div className="w-full rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-1.5 shadow-xl">
+            {allItems.map((item) => (
+              <button key={item.key} type="button" onClick={pick(item.onSelect)} className={menuRow}>
+                <span aria-hidden className="w-5 shrink-0 text-center">{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+            <div className="mx-1 my-1.5 h-px bg-[var(--fl-line)]" />
+            <button
+              type="button"
+              onClick={pick(() => void deleteFinding())}
+              disabled={deleting}
+              className={`${menuRow} text-[var(--fl-crit-text)] hover:bg-red-500/10`}
+            >
+              <span aria-hidden className="w-5 shrink-0 text-center">🗑</span>
+              {deleting ? deleteLabel : "Delete finding…"}
+            </button>
+          </div>
+        )}
+
+        {aiOpen && (
+          <div className="w-full max-w-full space-y-3 rounded-2xl border border-purple-500/40 bg-purple-500/10 p-3 sm:p-4">
+            {aiNote}
             <button
               type="button"
               onClick={rewriteSofter}
               disabled={rewriting}
               aria-busy={rewriting}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-teal-500 px-3 py-3 text-xs font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
+              className={`${rowBtn} w-full ${idleBtn} sm:w-auto sm:px-5`}
             >
               <Spinner active={rewriting} />
-              {rewriteLabel}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                repairDirtyRef.current = true;
-                setRepairRequest(!repairRequest);
-              }}
-              disabled={savingRepair}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-3 py-3 text-xs font-semibold text-[var(--fl-text)] transition active:scale-[0.98] hover:bg-[var(--fl-raised)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
-            >
-              {repairRequest ? "Remove From Request" : "Add To Repair Request"}
-            </button>
-
-            <button
-              type="button"
-              onClick={saveRepairRequestSettings}
-              disabled={savingRepair}
-              aria-busy={savingRepair}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-orange-500 px-3 py-3 text-xs font-semibold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-orange-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
-            >
-              <Spinner active={savingRepair} />
-              {repairLabel}
+              {rewriteLabel === "AI Rewrite Softer" ? "Rewrite softer" : rewriteLabel}
             </button>
           </div>
+        )}
 
-          {repairRequest && (
-            <div className="mt-3 grid w-full max-w-full gap-2 md:grid-cols-2">
-              <select
-                value={repairPriority}
+        {repairPanelOpen && (
+          <div className="w-full max-w-full rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 sm:p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
+              Repair request
+            </p>
+            <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-[var(--fl-text)]">
+              <input
+                type="checkbox"
+                checked={!!repairRequest}
                 onChange={(e) => {
                   repairDirtyRef.current = true;
-                  setRepairPriority(e.target.value);
+                  setRepairRequest(e.target.checked);
                 }}
                 disabled={savingRepair}
-                className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm font-bold text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <option>Safety</option>
-                <option>Major</option>
-                <option>Recommended</option>
-                <option>Informational</option>
-              </select>
-
-              <textarea
-                placeholder="Repair request notes..."
-                value={repairNotes}
-                onChange={(e) => {
-                  repairDirtyRef.current = true;
-                  setRepairNotes(e.target.value);
-                }}
-                disabled={savingRepair}
-                className="min-h-[76px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm font-bold leading-6 text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+                className="h-4 w-4 accent-teal-400"
               />
+              Include on the repair request
+            </label>
+            {repairRequest && (
+              <div className="mt-3 grid w-full max-w-full gap-2 md:grid-cols-2">
+                <select
+                  value={repairPriority}
+                  onChange={(e) => {
+                    repairDirtyRef.current = true;
+                    setRepairPriority(e.target.value);
+                  }}
+                  disabled={savingRepair}
+                  className="w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm font-bold text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option>Safety</option>
+                  <option>Major</option>
+                  <option>Recommended</option>
+                  <option>Informational</option>
+                </select>
+                <textarea
+                  placeholder="Repair request notes..."
+                  value={repairNotes}
+                  onChange={(e) => {
+                    repairDirtyRef.current = true;
+                    setRepairNotes(e.target.value);
+                  }}
+                  disabled={savingRepair}
+                  className="min-h-[76px] w-full min-w-0 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3 text-sm font-bold leading-6 text-[var(--fl-text)] disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"
+                />
+              </div>
+            )}
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (await saveRepairRequestSettings()) setRepairPanelOpen(false);
+                }}
+                disabled={savingRepair}
+                aria-busy={savingRepair}
+                className={`${rowBtn} border-teal-500 bg-teal-500 px-4 text-slate-950 hover:bg-teal-400`}
+              >
+                <Spinner active={savingRepair} />
+                {savingRepair ? repairLabel : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRepairPanelOpen(false)}
+                disabled={savingRepair}
+                className={`${rowBtn} ${idleBtn} px-4`}
+              >
+                Close
+              </button>
             </div>
-          )}
-        </div>
-
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap">
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-3 py-3 text-xs font-semibold text-slate-950 transition active:scale-[0.98] hover:bg-cyan-400 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
-          >
-            Edit Finding
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setMoveTargetSection(String(finding.section || section || "Exterior"));
-              setMovePanelOpen((current) => !current);
-            }}
-            disabled={movingSection}
-            aria-expanded={movePanelOpen}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500 bg-purple-500/10 px-3 py-3 text-xs font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
-          >
-            <Spinner active={movingSection} />
-            {movingSection ? "Moving..." : "Move Finding"}
-          </button>
-
-          <button
-            type="button"
-            onClick={saveToLibrary}
-            disabled={savingTemplate}
-            aria-busy={savingTemplate}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500 px-3 py-3 text-xs font-semibold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
-          >
-            <Spinner active={savingTemplate} />
-            {templateLabel}
-          </button>
-
-          <button
-            type="button"
-            onClick={deleteFinding}
-            disabled={deleting}
-            aria-busy={deleting}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-3 text-xs font-semibold text-white transition active:scale-[0.98] hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-5 sm:text-sm [touch-action:manipulation]"
-          >
-            <Spinner active={deleting} />
-            {deleteLabel}
-          </button>
-        </div>
-
+          </div>
+        )}
         {movePanelOpen && (
           <div className="w-full max-w-full rounded-2xl border border-purple-500/60 bg-purple-500/10 p-3 shadow-xl sm:p-4">
             <div className="mb-3">

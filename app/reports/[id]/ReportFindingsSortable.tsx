@@ -3101,6 +3101,8 @@ function FindingCardBase({
     [finding?.title, finding?.observation, finding?.recommendation],
   );
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
+  // Related-findings box: always shown once links exist, otherwise opened from ⋯.
+  const [showRelatedEditor, setShowRelatedEditor] = useState(false);
   const [photoPickerLimit, setPhotoPickerLimit] = useState(
     PHOTO_PICKER_PAGE_SIZE,
   );
@@ -4089,7 +4091,8 @@ function FindingCardBase({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="mb-1.5 flex flex-wrap items-center gap-1.5 sm:mb-2 sm:gap-2">
+            {/* pr leaves room for the ↑/↓ reorder arrows at the card's top-right. */}
+            <div className="mb-1.5 flex flex-wrap items-center gap-1.5 pr-20 sm:mb-2 sm:gap-2">
               <span
                 className="rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide"
                 style={severityBadgeStyle(severityConfig, displayFinding.severity)}
@@ -4244,7 +4247,8 @@ function FindingCardBase({
           </div>
         )}
 
-        <div className="sticky top-2 z-20 mb-3 flex flex-wrap justify-end gap-2 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-xl sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        {/* Room for the card's ↑/↓ reorder arrows (top-right), so they never cover a button. */}
+        <div className="mb-2 flex min-h-9 flex-wrap items-center gap-2 pr-24">
           {isSafetyOrMajor && (
             <button
               type="button"
@@ -4260,38 +4264,6 @@ function FindingCardBase({
               Mark Reviewed
             </button>
           )}
-
-          {onStartCombine && (
-            <button
-              type="button"
-              onClick={() => onStartCombine(finding.id)}
-              title="Combine this finding with another (same defect, different location)"
-              className="rounded-xl border border-purple-500/60 px-4 py-2 text-sm font-semibold text-[var(--fl-purple-text)] transition hover:bg-purple-500/10"
-            >
-              🔗 Combine
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={toggleFindingFlag}
-            title={isFlagged ? "Remove review flag" : "Flag this finding for review"}
-            className={`rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-              isFlagged
-                ? "border-amber-400 bg-amber-500/15 text-[var(--fl-warn-text)] hover:bg-amber-500/25"
-                : "border-[var(--fl-line)] text-[var(--fl-muted)] hover:border-amber-400/60 hover:text-[var(--fl-warn-text)]"
-            }`}
-          >
-            {isFlagged ? "🚩 Flagged" : "🚩 Flag"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setExpanded(false)}
-            className="rounded-xl border border-[var(--fl-line)] px-4 py-2 text-sm font-semibold text-[var(--fl-muted)] hover:bg-[var(--fl-raised)]"
-          >
-            Collapse Finding
-          </button>
         </div>
         {draggingOver && (
           <div className="mt-3 rounded-xl border border-teal-400 bg-teal-500/10 px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)]">
@@ -4541,106 +4513,108 @@ function FindingCardBase({
           </p>
         )}
 
-        <div className="mb-4 grid w-full grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap">
-          <button
-            type="button"
-            onClick={async (event) => {
-              event.stopPropagation();
-
-              try {
-                const res = await fetch("/api/save-finding-template", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    title:
-                      displayFinding.title ||
-                      displayFinding.finding_title ||
-                      displayFinding.defect_title ||
-                      displayFinding.name ||
-                      "Untitled Finding",
-                    section: displayFinding.section || "Inspection Details",
-                    severity: displayFinding.severity || "Recommended Repair",
-                    observation: displayFinding.observation || "",
-                    implication: displayFinding.implication || "",
-                    recommendation: displayFinding.recommendation || "",
-                  }),
-                });
-
-                let data: any = {};
-
-                try {
-                  data = await res.json();
-                } catch {
-                  data = {};
-                }
-
-                if (!res.ok) {
-                  showMessage(
-                    "error",
-                    data.error || "Failed to save template.",
-                  );
-                  return;
-                }
-
-                showMessage("success", "Template saved!");
-              } catch {
-                showMessage("error", "Failed to save template.");
-              }
-            }}
-            className="w-full rounded-xl border border-yellow-500 px-3 py-3 text-xs font-semibold text-[var(--fl-warn-text)] transition active:scale-[0.98] hover:bg-yellow-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
-          >
-            ⭐ Save as Template
-          </button>
-
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
+        <div onClick={(event) => event.stopPropagation()} className="mb-4 w-full max-w-full">
+          <EditableFinding
+            // Stable key (id only). The editor re-syncs from props on its own
+            // (with a dirty-guard), so it is not remounted on content changes,
+            // which used to drop in-progress typing.
+            key={String(displayFinding.id || finding.id)}
+            finding={displayFinding}
+            availableSections={availableSections}
+            onAddMedia={() => {
               setShowUploadPanel((prev) => !prev);
               setShowPhotoPicker(false);
             }}
-            className="w-full rounded-xl border border-teal-500 px-3 py-3 text-xs font-semibold text-[var(--fl-accent-text)] transition active:scale-[0.98] hover:bg-teal-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
-          >
-            📷 Add Media
-          </button>
-
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onNeedPhotoPicker?.();
-              setPhotoPickerLimit(PHOTO_PICKER_PAGE_SIZE);
-              setShowPhotoPicker((prev) => !prev);
-              setShowUploadPanel(false);
-            }}
-            className="w-full rounded-xl border border-cyan-500 px-3 py-3 text-xs font-semibold text-[var(--fl-info-text)] transition active:scale-[0.98] hover:bg-cyan-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
-          >
-            📎 Move Existing Photo
-          </button>
-
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-
-              const markupable = photos.filter((p: any) => !isVideoMedia(p));
-              if (!markupable.length) {
-                showMessage("error", "This finding has no photos to mark up.");
-                return;
-              }
-              // One photo → straight to markup. Several → pick which one first
-              // (and come back to pick another to mark up multiple).
-              if (markupable.length === 1) {
-                void openMarkupEditor(markupable[0]);
-              } else {
-                setShowMarkupPicker(true);
-              }
-            }}
-            className="w-full rounded-xl border border-purple-500 px-3 py-3 text-xs font-semibold text-[var(--fl-purple-text)] transition active:scale-[0.98] hover:bg-purple-500/10 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
-          >
-            ✏️ Markup Photo
-          </button>
+            mediaOpen={showUploadPanel}
+            aiNote={
+              <div>
+                <p className="text-sm font-semibold text-[var(--fl-purple-text)]">
+                  ✨ Ask AI to adjust this finding
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[var(--fl-muted)]">
+                  AI changes the observation, implication, recommendation, title, severity or section only as needed.
+                </p>
+                <textarea
+                  value={aiInspectorNote}
+                  onChange={(event) => setAiInspectorNote(event.target.value)}
+                  disabled={aiInspectorBusy}
+                  placeholder="e.g. make this less aggressive and say further evaluation by a qualified contractor is recommended."
+                  className="mt-3 min-h-[80px] w-full rounded-xl border border-purple-500/40 bg-[var(--fl-ground)] px-3 py-2.5 text-[var(--fl-text)] outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  onClick={() => void runAiInspectorNoteRewrite()}
+                  disabled={aiInspectorBusy || !aiInspectorNote.trim()}
+                  className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
+                >
+                  {aiInspectorBusy && (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  )}
+                  {aiInspectorBusy ? "Adjusting finding..." : "Apply note"}
+                </button>
+              </div>
+            }
+            menuItems={[
+              {
+                key: "flag",
+                icon: "🚩",
+                label: isFlagged ? "Remove flag" : "Flag for follow-up",
+                onSelect: () => void toggleFindingFlag(),
+              },
+              ...(onStartCombine
+                ? [
+                    {
+                      key: "combine",
+                      icon: "🔗",
+                      label: "Combine with another finding",
+                      onSelect: () => onStartCombine(finding.id),
+                    },
+                  ]
+                : []),
+              {
+                key: "related",
+                icon: "⛓",
+                label: "Link related findings",
+                onSelect: () => setShowRelatedEditor(true),
+              },
+              {
+                key: "move-photo",
+                icon: "📎",
+                label: "Move a photo from another finding",
+                onSelect: () => {
+                  onNeedPhotoPicker?.();
+                  setPhotoPickerLimit(PHOTO_PICKER_PAGE_SIZE);
+                  setShowPhotoPicker(true);
+                  setShowUploadPanel(false);
+                },
+              },
+            ]}
+            menuTailItems={[
+              {
+                key: "collapse",
+                icon: "▴",
+                label: "Collapse",
+                onSelect: () => setExpanded(false),
+              },
+            ]}
+          />
         </div>
+
+        {(showRelatedEditor ||
+          (Array.isArray(displayFinding.related_finding_ids) &&
+            displayFinding.related_finding_ids.length > 0)) && (
+          <div onClick={(event) => event.stopPropagation()}>
+            <RelatedFindingsEditor
+              inspectionId={String(inspectionId)}
+              finding={displayFinding}
+              allFindings={allFindings || []}
+              // Remount when opened from ⋯ so the picker opens even if links exist.
+              key={showRelatedEditor ? "related-open" : "related-closed"}
+              defaultOpen={showRelatedEditor}
+              onClose={() => setShowRelatedEditor(false)}
+            />
+          </div>
+        )}
 
         {showUploadPanel && (
           <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-teal-700 bg-teal-500/10 p-3 sm:p-4">
@@ -5074,40 +5048,6 @@ function FindingCardBase({
           document.body,
         )}
 
-        <div className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-purple-500/50 bg-purple-500/10 p-3 sm:p-4">
-          <div>
-            <h4 className="text-base font-semibold text-[var(--fl-purple-text)]">
-              🤖 AI Inspector Note
-            </h4>
-            <p className="mt-1 text-sm leading-6 text-[var(--fl-muted)]">
-              Add a correction for this existing finding. AI will adjust the actual observation, implication, recommendation, title, severity, or section only as needed.
-            </p>
-          </div>
-
-          <textarea
-            value={aiInspectorNote}
-            onChange={(event) => setAiInspectorNote(event.target.value)}
-            disabled={aiInspectorBusy}
-            placeholder="Example: make this less aggressive and say further evaluation by a qualified contractor is recommended."
-            className="mt-4 min-h-[90px] w-full rounded-xl border border-purple-500/40 bg-[var(--fl-ground)] px-4 py-3 text-[var(--fl-text)] outline-none focus:border-purple-300 disabled:cursor-not-allowed disabled:opacity-60"
-          />
-
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              void runAiInspectorNoteRewrite();
-            }}
-            disabled={aiInspectorBusy || !aiInspectorNote.trim()}
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto [touch-action:manipulation]"
-          >
-            {aiInspectorBusy && (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            )}
-            {aiInspectorBusy ? "Adjusting Finding..." : "Run AI Inspector"}
-          </button>
-        </div>
-
         {unitList.length > 0 && (
           <div
             onClick={(event) => event.stopPropagation()}
@@ -5136,28 +5076,6 @@ function FindingCardBase({
             )}
           </div>
         )}
-
-        <div
-          onClick={(event) => event.stopPropagation()}
-          className="mb-4 w-full max-w-full overflow-x-hidden rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 sm:p-4"
-        >
-          <EditableFinding
-            // Stable key (id only). The editor now re-syncs from props on its
-            // own (with a dirty-guard), so we no longer remount it on every
-            // content change — the old key included the full title/observation
-            // (and a non-existent `updated_at`), which remounted the editor and
-            // DROPPED in-progress typing whenever the finding object changed.
-            key={String(displayFinding.id || finding.id)}
-            finding={displayFinding}
-            availableSections={availableSections}
-          />
-
-          <RelatedFindingsEditor
-            inspectionId={String(inspectionId)}
-            finding={displayFinding}
-            allFindings={allFindings || []}
-          />
-        </div>
 
         {displayFinding.observation && (
           <ReportBlock title="Observation" text={displayFinding.observation} />
