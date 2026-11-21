@@ -717,8 +717,9 @@ function EditableFinding({
     const rowBtn =
       "inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]";
     const idleBtn = "border-[var(--fl-line)] bg-[var(--fl-surface)] text-[var(--fl-text)] hover:bg-[var(--fl-raised)]";
-    const menuRow =
-      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-[var(--fl-raised)] disabled:opacity-60 [touch-action:manipulation]";
+    const menuRowBase =
+      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition disabled:opacity-60 [touch-action:manipulation]";
+    const menuRow = `${menuRowBase} text-[var(--fl-text)] hover:bg-[var(--fl-raised)]`;
     const pick = (fn: () => void) => () => {
       setMoreOpen(false);
       fn();
@@ -752,7 +753,7 @@ function EditableFinding({
       <div className="w-full max-w-full space-y-3 print:hidden">
         <InlineStatusMessage type={messageType} message={message} />
 
-        <div className="grid w-full grid-cols-[1fr_1fr_1fr_auto] gap-2">
+        <div className="grid w-full grid-cols-[1fr_1fr_1fr_auto] gap-2 sm:max-w-lg">
           <button
             type="button"
             onClick={() => setEditing(true)}
@@ -797,7 +798,7 @@ function EditableFinding({
         </div>
 
         {moreOpen && (
-          <div className="w-full rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-1.5 shadow-xl">
+          <div className="w-full rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-1.5 shadow-xl sm:max-w-lg">
             {allItems.map((item) => (
               <button key={item.key} type="button" onClick={pick(item.onSelect)} className={menuRow}>
                 <span aria-hidden className="w-5 shrink-0 text-center">{item.icon}</span>
@@ -809,7 +810,7 @@ function EditableFinding({
               type="button"
               onClick={pick(() => void deleteFinding())}
               disabled={deleting}
-              className={`${menuRow} text-[var(--fl-crit-text)] hover:bg-red-500/10`}
+              className={`${menuRowBase} text-[var(--fl-crit-text)] hover:bg-red-500/10`}
             >
               <span aria-hidden className="w-5 shrink-0 text-center">🗑</span>
               {deleting ? deleteLabel : "Delete finding…"}
