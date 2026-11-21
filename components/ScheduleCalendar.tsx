@@ -6,6 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useEffect, useMemo, useState } from "react";
+import ScheduleAgenda, { AgendaRow, type AgendaEvent } from "./ScheduleAgenda";
 import { useRouter } from "next/navigation";
 import { DEFAULT_TIME_ZONE, detectDeviceTimeZone, formatAppValue, formatClockTime, toLocalDateKey } from "../lib/app-time";
 import ResendConfirmationButton from "./ResendConfirmationButton";
@@ -249,6 +250,38 @@ export default function ScheduleCalendar({
   // through.
   const [viewRange, setViewRange] = useState<{ startStr: string; endStr: string; title: string } | null>(null);
 
+  // Agenda (our day-by-day list) or one of FullCalendar's views. Phones start on
+  // Agenda, wider screens on Month; the last choice is remembered per device.
+  type ScheduleView = "agenda" | "dayGridMonth" | "timeGridWeek" | "timeGridDay";
+  const [view, setView] = useState<ScheduleView>("dayGridMonth");
+  const [isPhone, setIsPhone] = useState(false);
+  // Month view on a phone: the day whose jobs are listed under the grid.
+  const [pickedDay, setPickedDay] = useState("");
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setIsPhone(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    let saved: string | null = null;
+    try {
+      saved = window.localStorage.getItem("flow_schedule_view");
+    } catch {}
+    if (saved === "agenda" || saved === "dayGridMonth" || saved === "timeGridWeek" || saved === "timeGridDay") {
+      setView(saved);
+    } else if (mq.matches) {
+      setView("agenda");
+    }
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  function chooseView(next: ScheduleView) {
+    setView(next);
+    try {
+      window.localStorage.setItem("flow_schedule_view", next);
+    } catch {}
+  }
+
   useEffect(() => {
     let cancelled = false;
 
@@ -313,6 +346,8 @@ export default function ScheduleCalendar({
             time,
             displayTime,
             inspectorName,
+            lat: inspection.property_latitude ?? null,
+            lng: inspection.property_longitude ?? null,
           },
         };
       })
@@ -369,6 +404,56 @@ export default function ScheduleCalendar({
         String(a.extendedProps.time).localeCompare(String(b.extendedProps.time))
       );
   }, [events, today]);
+
+  const agendaEvents: AgendaEvent[] = useMemo(
+    () =>
+      events.map((event: any) => {
+        const p = event.extendedProps as any;
+        return {
+          id: String(event.id),
+          date: String(p.date || ""),
+          time: String(p.time || ""),
+          displayTime: String(p.displayTime || ""),
+          address: String(p.address || ""),
+          client: String(p.client || ""),
+          type: String(p.type || ""),
+          status: String(p.status || ""),
+          inspectorName: String(p.inspectorName || ""),
+          color: String(event.borderColor || event.backgroundColor || ""),
+          lat: p.lat ?? null,
+          lng: p.lng ?? null,
+        };
+      }),
+    [events],
+  );
+
+  // Open the Edit Appointment sheet (date, time, status, open report, delete).
+  // "Move" uses the same sheet: change the date/time and Save.
+  function openAppointment(id: string) {
+    const event = events.find((e: any) => String(e.id) === String(id));
+    if (!event) return;
+    const props = event.extendedProps as any;
+    setMessage("");
+    setSelected({
+      id: String(event.id),
+      address: props.address,
+      client: props.client,
+      realtor: props.realtor,
+      status: props.status,
+      type: props.type,
+      date: props.date,
+      time: props.time,
+    });
+  }
+
+  const dayForList = pickedDay || today;
+  const pickedDayEvents = useMemo(
+    () =>
+      agendaEvents
+        .filter((e) => e.date === dayForList)
+        .sort((a, b) => a.time.localeCompare(b.time)),
+    [agendaEvents, dayForList],
+  );
 
   // After a date/time change, offer to email the client + realtor an updated
   // confirmation. Prompted (not automatic) so a status-only tweak or a quick
@@ -506,61 +591,36 @@ export default function ScheduleCalendar({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-3 sm:p-4">
-      <div className="mb-4 grid gap-4 lg:grid-cols-[1.1fr_2fr]">
-        <div className="rounded-2xl border border-teal-400/20 bg-[var(--fl-surface-2)] p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-[var(--fl-text)]">Today</h2>
-            <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-3 py-1 text-xs font-bold text-[var(--fl-accent-text)]">
-              {todaysEvents.length}
-            </span>
-          </div>
+      {/* View switcher: Agenda (day-by-day list) or the calendar's own views. */}
+      <div className="mb-3 flex rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-1" role="tablist" aria-label="Schedule view">
+        {(
+          [
+            ["agenda", "Agenda"],
+            ["dayGridMonth", "Month"],
+            ["timeGridWeek", "Week"],
+            ["timeGridDay", "Day"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={view === key}
+            onClick={() => chooseView(key)}
+            className={`min-h-10 flex-1 rounded-lg px-2 text-sm font-semibold transition [touch-action:manipulation] ${
+              view === key ? "bg-[var(--fl-accent)] text-slate-950" : "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-          {todaysEvents.length === 0 ? (
-            <p className="mt-3 text-sm text-[var(--fl-muted)]">
-              No inspections scheduled for today.
-            </p>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {todaysEvents.slice(0, 5).map((event) => (
-                <button
-                  key={event.id}
-                  type="button"
-                  onClick={() => {
-                    const props = event.extendedProps as any;
-
-                    setSelected({
-                      id: event.id,
-                      address: props.address,
-                      client: props.client,
-                      realtor: props.realtor,
-                      status: props.status,
-                      type: props.type,
-                      date: props.date,
-                      time: props.time,
-                    });
-                  }}
-                  className="w-full rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-4 text-left transition hover:border-teal-400/40 hover:bg-[var(--fl-raised)] active:scale-[0.99]"
-                >
-                  <p className="text-sm font-semibold text-[var(--fl-accent-text)]">
-                    {event.extendedProps.displayTime}
-                  </p>
-                  <p className="mt-1 truncate text-sm font-bold text-[var(--fl-text)]">
-                    {event.extendedProps.address}
-                  </p>
-                  <p className="mt-1 truncate text-xs text-[var(--fl-muted)]">
-                    {event.extendedProps.client || "Client not entered"}
-                  </p>
-                  {event.extendedProps.inspectorName ? (
-                    <p className="mt-1 truncate text-xs font-semibold text-[var(--fl-info-text)]">
-                      👤 {event.extendedProps.inspectorName}
-                    </p>
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
+      {view === "agenda" ? (
+        <ScheduleAgenda events={agendaEvents} today={today} onOpen={openAppointment} onMove={openAppointment} />
+      ) : (
+      <>
+      <div className="mb-3">
         <div className="flex flex-wrap content-start gap-2 text-xs font-bold">
           <span className="w-full text-[11px] font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
             {viewRange?.title
@@ -617,11 +677,13 @@ export default function ScheduleCalendar({
         </div>
       </div>
 
-      <div className="schedule-calendar">
+      <div className={`schedule-calendar ${isPhone && view === "dayGridMonth" ? "schedule-month-dots" : ""}`}>
         <FullCalendar
+          key={view}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          height="78vh"
+          initialView={view}
+          initialDate={view !== "dayGridMonth" && pickedDay ? pickedDay : undefined}
+          height={isPhone && view === "dayGridMonth" ? "auto" : "78vh"}
           events={events}
           eventDisplay="block"
           nowIndicator={true}
@@ -632,8 +694,15 @@ export default function ScheduleCalendar({
           eventLongPressDelay={100}
           selectLongPressDelay={100}
           dragScroll={true}
-          dayMaxEvents={6}
-          navLinks={true}
+          dayMaxEvents={isPhone && view === "dayGridMonth" ? false : 6}
+          navLinks={!isPhone}
+          dateClick={(arg) => {
+            // Phones, Month view: tap a day to list its jobs under the grid.
+            if (isPhone && view === "dayGridMonth") setPickedDay(localDateKey(arg.date));
+          }}
+          dayCellClassNames={(arg) =>
+            isPhone && view === "dayGridMonth" && localDateKey(arg.date) === dayForList ? ["schedule-picked-day"] : []
+          }
           stickyHeaderDates={true}
           slotMinTime="06:00:00"
           slotMaxTime="21:00:00"
@@ -651,7 +720,7 @@ export default function ScheduleCalendar({
           headerToolbar={{
             left: "prev,next today",
             center: "title",
-            right: "dayGridMonth,timeGridWeek,timeGridDay",
+            right: "",
           }}
           buttonText={{
             today: "Today",
@@ -738,6 +807,18 @@ export default function ScheduleCalendar({
           eventContent={(eventInfo) => {
             const props = eventInfo.event.extendedProps as any;
 
+            // Phones, Month view: a coloured dot per job instead of squashed
+            // "1:0… 84 K…" text. Still draggable (long-press) to reschedule.
+            if (isPhone && eventInfo.view.type === "dayGridMonth") {
+              return (
+                <span
+                  aria-label={`${props.displayTime} ${props.address}`}
+                  className="schedule-dot"
+                  style={{ backgroundColor: eventInfo.event.borderColor || eventInfo.event.backgroundColor }}
+                />
+              );
+            }
+
             return (
               <div className="leading-tight">
                 <div className="truncate text-[11px] font-semibold sm:text-xs">
@@ -757,6 +838,25 @@ export default function ScheduleCalendar({
         />
       </div>
 
+      {isPhone && view === "dayGridMonth" && dayForList ? (
+        <div className="mt-3">
+          <p className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fl-muted)]">
+            {new Date(`${dayForList}T12:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+          </p>
+          <div className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+            {pickedDayEvents.length === 0 ? (
+              <p className="text-sm text-[var(--fl-muted)]">No inspections this day</p>
+            ) : (
+              pickedDayEvents.map((e) => (
+                <AgendaRow key={e.id} event={e} onOpen={() => openAppointment(e.id)} onMove={() => openAppointment(e.id)} />
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
+      </>
+      )}
+
       {selected ? (
         <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-[calc(78px+env(safe-area-inset-bottom)+0.75rem)] sm:items-center sm:p-4 sm:pb-4">
           <div className="max-h-full w-full max-w-lg overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 shadow-2xl sm:max-h-[85vh]">
@@ -765,6 +865,7 @@ export default function ScheduleCalendar({
                 <h2 className="text-xl font-semibold text-[var(--fl-text)]">
                   Edit Appointment
                 </h2>
+                <p className="mt-0.5 text-xs text-[var(--fl-muted)]">Change the date or time and Save to move it.</p>
                 <p className="mt-1 break-words text-sm text-[var(--fl-muted)]">
                   {selected.address}
                 </p>
@@ -964,6 +1065,46 @@ export default function ScheduleCalendar({
         .schedule-calendar .fc-daygrid-more-link {
           color: var(--fl-accent-text);
           font-weight: 800;
+        }
+
+        .schedule-month-dots .fc-daygrid-day-events {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 3px;
+          min-height: 10px;
+          padding: 0 2px 4px;
+        }
+
+        .schedule-month-dots .fc-daygrid-event-harness {
+          margin: 0 !important;
+        }
+
+        .schedule-month-dots .fc-event {
+          min-height: 0;
+          padding: 0;
+          border: 0;
+          background: transparent !important;
+          transform: none !important;
+        }
+
+        .schedule-month-dots .schedule-dot {
+          display: block;
+          width: 7px;
+          height: 7px;
+          border-radius: 9999px;
+        }
+
+        .schedule-month-dots .fc-daygrid-day-frame {
+          min-height: 44px;
+          cursor: pointer;
+        }
+
+        .schedule-month-dots .schedule-picked-day .fc-daygrid-day-number {
+          background: var(--fl-accent);
+          color: var(--fl-ground);
+          border-radius: 9999px;
+          font-weight: 700;
         }
 
         @media (max-width: 640px) {

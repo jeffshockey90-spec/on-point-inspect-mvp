@@ -9,7 +9,6 @@ import ScheduleCalendar from "../../components/ScheduleCalendarLazy";
 import ScheduleReminderSettings from "../../components/ScheduleReminderSettings";
 import BookingRequestActions from "../../components/BookingRequestActions";
 import InspectorAvailabilitySettings from "../../components/InspectorAvailabilitySettings";
-import WeatherWidget from "../../components/WeatherWidget";
 import InspectionWeatherChip from "../../components/InspectionWeatherChip";
 import { resolveInspectionAccessFilter } from "../../lib/inspectionAccess";
 
@@ -349,68 +348,55 @@ export default async function SchedulePage({
   return (
     <main className="min-h-screen bg-[var(--fl-ground)] p-4 text-[var(--fl-text)] sm:p-6">
       <div className="mx-auto max-w-[96rem]">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-[var(--fl-accent-text)] sm:text-4xl">
-              Inspection Schedule
-            </h1>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold text-[var(--fl-text)] sm:text-3xl">Schedule</h1>
+          <Link
+            href="/inspections/new"
+            className="shrink-0 rounded-xl bg-[var(--fl-accent)] px-4 py-2.5 text-sm font-bold text-[var(--fl-accent-text)] transition hover:opacity-90 active:scale-[0.98]"
+          >
+            + New
+          </Link>
+        </div>
 
-            <p className="mt-3 max-w-2xl text-sm text-[var(--fl-muted)] sm:text-base">
-              {teamView
-                ? "Company view — every inspector's scheduled inspections. Drag to reschedule, click to edit, delete, or open the report."
-                : "Manage your inspection schedule from the calendar. Drag appointments to reschedule, click an appointment to edit, delete, or open the report."}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:items-end">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="text-sm text-[var(--fl-muted)]">
+            {(
+              [
+                ["this week", myStats.week],
+                ["this month", myStats.month],
+                ["this year", myStats.year],
+              ] as const
+            ).map(([label, value], i) => (
+              <span key={label}>
+                {i > 0 ? " · " : ""}
+                <span className="font-mono font-semibold tabular-nums text-[var(--fl-text)]">{value}</span> {label}
+              </span>
+            ))}
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
             {canViewTeam && (
-              <div className="inline-flex rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-1">
+              <div className="inline-flex rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-0.5">
                 <Link
                   href="/schedule"
-                  className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-                    teamView
-                      ? "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
-                      : "bg-[var(--fl-accent)] text-[var(--fl-accent-text)]"
+                  className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                    teamView ? "text-[var(--fl-muted)] hover:text-[var(--fl-text)]" : "bg-[var(--fl-raised)] text-[var(--fl-text)]"
                   }`}
                 >
-                  My Schedule
+                  Mine
                 </Link>
                 <Link
                   href="/schedule?view=team"
-                  className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-                    teamView
-                      ? "bg-[var(--fl-accent)] text-[var(--fl-accent-text)]"
-                      : "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
+                  className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+                    teamView ? "bg-[var(--fl-raised)] text-[var(--fl-text)]" : "text-[var(--fl-muted)] hover:text-[var(--fl-text)]"
                   }`}
                 >
-                  Team Schedule
+                  Team
                 </Link>
               </div>
             )}
-
-            <Link
-              href="/inspections/new"
-              className="rounded-2xl border border-[var(--fl-accent-line)] bg-[var(--fl-accent)] px-5 py-3 text-center text-sm font-bold text-[var(--fl-accent-text)] transition hover:opacity-90 active:scale-[0.98]"
-            >
-              + New Inspection
+            <Link href={bookingPageHref} className="text-sm font-semibold text-[var(--fl-accent-text)] hover:opacity-80">
+              Booking page
             </Link>
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">Your inspections</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { label: "This week", value: myStats.week },
-              { label: "This month", value: myStats.month },
-              { label: "This year", value: myStats.year },
-              { label: "All time", value: myStats.all },
-            ].map((s) => (
-              <div key={s.label} className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
-                <p className="text-3xl font-bold text-[var(--fl-accent-text)]">{s.value}</p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">{s.label}</p>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -426,76 +412,19 @@ export default async function SchedulePage({
           </div>
         ) : null}
 
-        <div className="mb-6">
-          <WeatherWidget
-            lat={widgetFallbackLat}
-            lng={widgetFallbackLng}
-            address={widgetFallbackAddress}
-            fallbackLabel="Weather · Next Job"
-          />
-        </div>
-
-        <div className="mb-6 grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
-              Scheduled
-            </p>
-            <p className="mt-2 text-3xl font-bold text-[var(--fl-text)]">
-              {scheduledRows.length}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
-              Unscheduled
-            </p>
-            <p className="mt-2 text-3xl font-bold text-[var(--fl-warn-text)]">
-              {unscheduledRows.length}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
-              Total Reports
-            </p>
-            <p className="mt-2 text-3xl font-bold text-[var(--fl-accent-text)]">
-              {rows.length}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[var(--fl-faint)]">
-              Booking Requests
-            </p>
-            <p className="mt-2 text-3xl font-bold text-[var(--fl-accent-text)]">
-              {pendingBookingRequests.length}
-            </p>
-          </div>
-        </div>
-
-        <section className="mb-8 rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface-2)] p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-[var(--fl-accent-text)]">Pending Booking Requests</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--fl-muted)]">
-                Public and realtor requests land here first. Confirming a request creates a scheduled inspection from the requested date, time, client, realtor, and property details.
-              </p>
-            </div>
-
-            <Link
-              href={bookingPageHref}
-              className="rounded-xl border border-teal-500/40 bg-teal-500/10 px-4 py-3 text-center text-sm font-semibold text-[var(--fl-accent-text)] transition hover:bg-teal-500/20"
-            >
-              Open Booking Page
-            </Link>
-          </div>
-
-          {pendingBookingRequests.length === 0 ? (
-            <div className="mt-5 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5 text-sm text-[var(--fl-muted)]">
-              No pending booking requests right now.
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4">
+        {pendingBookingRequests.length > 0 ? (
+          <details id="booking-requests" className="group mb-4 rounded-2xl border border-amber-400/45 bg-amber-500/[0.08]">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-[var(--fl-text)] [&::-webkit-details-marker]:hidden">
+              <span>
+                🔔 {pendingBookingRequests.length} booking request{pendingBookingRequests.length === 1 ? "" : "s"} waiting
+              </span>
+              <span className="text-[var(--fl-warn-text)]">
+                <span className="group-open:hidden">Review ›</span>
+                <span className="hidden group-open:inline">Hide</span>
+              </span>
+            </summary>
+            <div className="border-t border-amber-400/25 p-3 sm:p-4">
+              <div className="grid gap-4">
               {pendingBookingRequests.map((request: BookingRequestRow) => (
                 <article key={request.id} className="rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-ground)] p-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
@@ -548,8 +477,9 @@ export default async function SchedulePage({
                 </article>
               ))}
             </div>
-          )}
-        </section>
+            </div>
+          </details>
+        ) : null}
 
         <div className="mb-8">
           <ScheduleCalendar inspections={scheduledRows} />
