@@ -3178,20 +3178,20 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                     Share &amp; PDFs
                     <span className="text-[var(--fl-muted)] transition group-open:rotate-90">›</span>
                   </summary>
-                  <div className="mt-2 w-[min(20rem,calc(100vw-3rem))] space-y-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-2xl">
+                  <div className="mt-2 w-[min(20rem,calc(100vw-3rem))] space-y-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-2xl sm:absolute sm:left-0 sm:top-full sm:z-40">
                     <div>
                       <p className="px-3 pb-1 pt-1 text-xs font-semibold text-[var(--fl-muted)]">Links</p>
-                      <FastLinkButton href={shareHref} loadingText="Opening Client Report..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                      <FastLinkButton href={shareHref} loadingText="Opening Client Report..." className="flex w-full items-center justify-start! rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] min-h-11! transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
                         Client report
                       </FastLinkButton>
-                      <FastLinkButton href={`/client-portal/${inspection.id}`} loadingText="Opening Client Portal..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                      <FastLinkButton href={`/client-portal/${inspection.id}`} loadingText="Opening Client Portal..." className="flex w-full items-center justify-start! rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] min-h-11! transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
                         Client portal
                       </FastLinkButton>
-                      <FastLinkButton href={`/reports/${inspection.id}/summary`} loadingText="Opening Summary..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                      <FastLinkButton href={`/reports/${inspection.id}/summary`} loadingText="Opening Summary..." className="flex w-full items-center justify-start! rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] min-h-11! transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
                         Realtor summary
                       </FastLinkButton>
                       {isStandaloneEnvironmentalReport && (
-                        <FastLinkButton href={editableEnvironmentalHref} loadingText="Opening Environmental Report..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                        <FastLinkButton href={editableEnvironmentalHref} loadingText="Opening Environmental Report..." className="flex w-full items-center justify-start! rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] min-h-11! transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
                           Environmental report
                         </FastLinkButton>
                       )}
@@ -3202,7 +3202,7 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                         href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?type=full`}
                         filename={`inspection-report-${inspection.id}-full.pdf`}
                         preparingText="Preparing PDF..."
-                        className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                        className="flex w-full items-center justify-start! rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] min-h-11! transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                       >
                         Download full report PDF
                       </ReportDownloadButton>
@@ -3210,14 +3210,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
                         href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?summary=1`}
                         filename={`findings-summary-${inspection.id}.pdf`}
                         preparingText="Preparing PDF..."
-                        className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                        className="flex w-full items-center justify-start! rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] min-h-11! transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
                       >
                         Findings summary PDF
                       </ReportDownloadButton>
-                      <FastLinkButton href={`/reports/${inspection.id}/print`} loadingText="Opening PDF..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                      <FastLinkButton href={`/reports/${inspection.id}/print`} loadingText="Opening PDF..." className="flex w-full items-center justify-start! rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] min-h-11! transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
                         Export / print view
                       </FastLinkButton>
-                      <PrintButton label="Print this page" className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]" />
+                      <PrintButton label="Print this page" className="flex w-full items-center justify-start! rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] min-h-11! transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]" />
                     </div>
                   </div>
                 </details>
