@@ -352,7 +352,7 @@ export default async function SchedulePage({
           <h1 className="text-2xl font-bold text-[var(--fl-text)] sm:text-3xl">Schedule</h1>
           <Link
             href="/inspections/new"
-            className="shrink-0 rounded-xl bg-[var(--fl-accent)] px-4 py-2.5 text-sm font-bold text-[var(--fl-accent-text)] transition hover:opacity-90 active:scale-[0.98]"
+            className="shrink-0 rounded-xl bg-[var(--fl-accent)] px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:opacity-90 active:scale-[0.98]"
           >
             + New
           </Link>

@@ -968,7 +968,7 @@ export default function ScheduleCalendar({
                 type="button"
                 disabled={saving}
                 onClick={() => saveScheduleUpdate(selected)}
-                className="rounded-xl bg-[var(--fl-accent)] px-4 py-3 text-sm font-semibold text-[var(--fl-accent-text)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-[var(--fl-accent)] px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? "Saving..." : "Save"}
               </button>
