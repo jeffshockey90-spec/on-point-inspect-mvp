@@ -11,6 +11,10 @@
 //     skipped every real payment (Nov 16-20, 2026 regression).
 //   - A refunded / partially refunded / disputed inspection is never flipped
 //     back to "Paid".
+//   - A payment applied EARLIER (an older checkout link reopened after a newer
+//     payment replaced the row's session/intent) is not applied again either:
+//     callers look it up in the payment ledger (lib/paymentLedger) and pass
+//     appliedBefore. The row only remembers the latest payment.
 //   - amount_paid grows by what THIS session actually collected; it used to be
 //     set to the full invoice, so paying an old $500 link on a $650 invoice
 //     recorded $650 paid / $0 due. The status is "Paid" only when nothing is
@@ -56,6 +60,8 @@ export function decidePaymentRecord(input: {
   paymentIntentId?: string | null;
   /** Inspection balance this session collected (excludes the online fee). */
   balancePaid: number;
+  /** The payment ledger already has this session/intent applied to this inspection. */
+  appliedBefore?: boolean;
   now?: string;
 }): PaymentRecordDecision {
   const existing = input.existing || {};
@@ -63,6 +69,7 @@ export function decidePaymentRecord(input: {
   if (status.includes("refund") || status.includes("disput")) {
     return { apply: false, reason: "refunded_or_disputed" };
   }
+  if (input.appliedBefore) return { apply: false, reason: "session_already_recorded" };
   if (input.sessionId && String(existing.stripe_checkout_session_id || "") === input.sessionId) {
     // Applying a payment stores its payment intent (and a "Session: <id>" note);
     // opening a checkout stores only the session id. Skip only the former.

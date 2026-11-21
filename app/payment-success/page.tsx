@@ -2,6 +2,7 @@ import Link from "next/link";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { decidePaymentRecord } from "../../lib/paymentRecord";
+import { paymentAppliedBefore, recordPaymentApplied } from "../../lib/paymentLedger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -225,9 +226,10 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
         sessionId: session.id,
         paymentIntentId,
         balancePaid,
+        appliedBefore: await paymentAppliedBefore(supabase, inspectionId, session.id, paymentIntentId),
       });
 
-      if (decision.apply) await supabase
+      const { error: applyError } = decision.apply ? await supabase
         .from("inspections")
         .update({
           invoice_status: decision.status,
@@ -261,7 +263,20 @@ export default async function PaymentSuccessPage({ searchParams }: PageProps) {
           stripe_payment_intent_id: paymentIntentId,
           paid_at: decision.paidAt,
         })
-        .eq("id", inspectionId);
+        .eq("id", inspectionId) : { error: null };
+
+      if (applyError) {
+        // Not recorded here; the Stripe webhook records it instead.
+        console.error("Payment success page: inspection update failed:", applyError);
+      } else if (decision.apply) {
+        await recordPaymentApplied(supabase, {
+          inspectionId,
+          sessionId: session.id,
+          paymentIntentId,
+          balancePaid,
+          source: "payment_success_page",
+        });
+      }
 
       if (!alreadyPaid) {
         await logStripeEvent(supabase, {

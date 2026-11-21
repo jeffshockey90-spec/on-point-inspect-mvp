@@ -11,6 +11,7 @@ import { getCompanyBrandingById, buildBrandedFromHeader, type CompanyBranding, b
 import { OWNER_EMAILS } from "../../../lib/ownerEmails";
 import { sendPushNotification } from "../../../lib/push";
 import { decidePaymentRecord } from "../../../lib/paymentRecord";
+import { paymentAppliedBefore, recordPaymentApplied } from "../../../lib/paymentLedger";
 import { combineRefunds } from "../../../lib/refundTotals";
 
 export const runtime = "nodejs";
@@ -944,6 +945,12 @@ export async function POST(req: Request) {
                   typeof session.payment_intent === "string" ? session.payment_intent : null,
                 balancePaid: amountPaid,
                 now: paidAt,
+                appliedBefore: await paymentAppliedBefore(
+                  supabase,
+                  inspectionId,
+                  session.id,
+                  typeof session.payment_intent === "string" ? session.payment_intent : null,
+                ),
               });
 
               const { error } = decision.apply
@@ -980,6 +987,17 @@ export async function POST(req: Request) {
                   { error: "Failed to update inspection payment." },
                   { status: 500 }
                 );
+              }
+
+              if (decision.apply) {
+                await recordPaymentApplied(supabase, {
+                  inspectionId,
+                  sessionId: session.id,
+                  paymentIntentId:
+                    typeof session.payment_intent === "string" ? session.payment_intent : null,
+                  balancePaid: amountPaid,
+                  source: "stripe_webhook",
+                });
               }
         
               if (!alreadyPaid) {
