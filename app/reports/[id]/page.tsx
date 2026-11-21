@@ -3377,26 +3377,6 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           </CollapsibleReportSection>
           </div>
 
-          {/* Findings tools sit beside the findings they add to. */}
-          <div id="findings-tools" className="mb-4 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
-            <p className="mb-2 text-sm font-semibold text-[var(--fl-text)]">
-              Add to findings
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <InsertFavoriteFindingButton inspectionId={String(inspection.id)} />
-
-              <FastLinkButton
-                href={`/reports/${inspection.id}/templates`}
-                loadingText="Opening Library..."
-                className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-              >
-                Favorite Findings Library
-              </FastLinkButton>
-
-              <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
-            </div>
-          </div>
-
           <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
             <FieldReviewQueue
               inspectionId={String(inspection.id)}

@@ -29,7 +29,7 @@ const CLIENT_ANCHORS = new Set([
 
 const INSIGHTS_ANCHORS = new Set(["ai-insights"]);
 
-const WRITE_ANCHORS = new Set(["report-actions", "report-findings", "executive-summary", "findings-tools"]);
+const WRITE_ANCHORS = new Set(["report-actions", "report-findings", "executive-summary"]);
 
 /** The tab that renders an anchor id, or null when it isn't tab-scoped. */
 export function tabForAnchor(anchor: string): WorkspaceTab | null {
