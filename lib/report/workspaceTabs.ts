@@ -17,6 +17,7 @@ export function normalizeWorkspaceTab(value: unknown): WorkspaceTab {
 }
 
 const CLIENT_ANCHORS = new Set([
+  "after-inspection",
   "client-contacts",
   "report-disclaimers",
   "agreement-status",
@@ -28,7 +29,7 @@ const CLIENT_ANCHORS = new Set([
 
 const INSIGHTS_ANCHORS = new Set(["ai-insights"]);
 
-const WRITE_ANCHORS = new Set(["report-actions", "report-findings", "executive-summary"]);
+const WRITE_ANCHORS = new Set(["report-actions", "report-findings", "executive-summary", "findings-tools"]);
 
 /** The tab that renders an anchor id, or null when it isn't tab-scoped. */
 export function tabForAnchor(anchor: string): WorkspaceTab | null {

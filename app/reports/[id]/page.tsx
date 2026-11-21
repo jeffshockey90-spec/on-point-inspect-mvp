@@ -3057,6 +3057,14 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
                 Editing Report
+                {clientEngagementViews.length > 0 && (
+                  <a
+                    href="?tab=insights"
+                    className="ml-2 normal-case tracking-normal text-[var(--fl-muted)] hover:text-[var(--fl-accent-text)]"
+                  >
+                    · Client viewed {clientEngagementViews.length}×
+                  </a>
+                )}
               </p>
               <h1 className="truncate text-xl font-semibold tracking-tight text-[var(--fl-text)] md:text-2xl">
                 {inspection.property_address || inspection.address || "Untitled Report"}
@@ -3100,187 +3108,119 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
         <div className="mb-4 overflow-x-clip overflow-y-visible rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-1.5 shadow-xl sm:p-3 md:rounded-2xl md:p-6">
           {workspaceTab === "write" && (<>
           <div className="mb-6 max-w-full space-y-4 overflow-x-clip overflow-y-visible">
-            {/* Main actions up front; every other report/share/communicate
-                tool is unchanged, just tucked under "More". */}
-            <div id="report-actions" className="scroll-mt-48">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
-                Report
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <FastLinkButton
-                  href={shareHref}
-                  loadingText="Opening Client Report..."
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+            {/* One next step that follows the job's stage (publish -> send ->
+                follow up), plus a single Share menu for every link and PDF.
+                Follow-up tools live in the Client & payment tab ("After the
+                inspection"); findings tools sit beside the findings. */}
+            <div id="report-actions" className="scroll-mt-48 space-y-3">
+              {!noReportToSend && !reportIsPublished && unresolvedSafetyFindingIds.length > 0 && (
+                <a
+                  href="#report-findings"
+                  className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm text-[var(--fl-warn-text)] [touch-action:manipulation]"
                 >
-                  Client Report
-                </FastLinkButton>
+                  <span aria-hidden="true">⚠</span>
+                  <span>
+                    <span className="font-semibold">Before you publish:</span>{" "}
+                    {unresolvedSafetyFindingIds.length} safety{" "}
+                    {unresolvedSafetyFindingIds.length === 1 ? "item still needs" : "items still need"} review.{" "}
+                    <span className="underline">Review</span>
+                  </span>
+                </a>
+              )}
+              <div className="flex flex-wrap items-start gap-3">
                 {noReportToSend ? (
                   <span className="inline-flex min-w-[154px] items-center justify-center rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] px-5 py-3 text-center text-sm font-semibold text-[var(--fl-muted)]">
                     {isVerbalJob ? "Verbal walkthrough — no written report" : "Orientation — no report to publish"}
                   </span>
-                ) : (
+                ) : !reportIsPublished ? (
                   <PublishReportActionButton
                     action={publishReport}
                     inspectionId={String(inspection.id)}
                     published={reportIsPublished}
                   />
-                )}
-                {/* Walkthroughs have no report to send. */}
-                {!noReportToSend && (
+                ) : !latestReportEmail ? (
                   <SendFullReportButton
                     inspectionId={String(inspection.id)}
                     clientEmail={inspection.client_email}
                     realtorEmail={inspection.realtor_email || inspection.agent_email}
                   />
+                ) : (
+                  <FastLinkButton
+                    href={`/repair-request?inspection_id=${inspection.id}`}
+                    loadingText="Opening Repair Request..."
+                    className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
+                  >
+                    Repair Request Builder
+                  </FastLinkButton>
                 )}
                 {/* Until the agreement is signed, sending it is a main action. */}
                 {!agreementComplete && <SendAgreementButton inspectionId={String(inspection.id)} />}
-                {/* One clear PRIMARY (the real server-rendered PDF download),
-                    with the two browser-print paths as consistent secondary
-                    (ghost) buttons — was three different solid colors incl. a
-                    bg-white/text-black that broke in light mode. */}
-                <ReportDownloadButton
-                  href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?type=full`}
-                  filename={`inspection-report-${inspection.id}-full.pdf`}
-                  preparingText="Preparing PDF..."
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 font-bold text-black transition hover:bg-teal-400"
-                >
-                  Download PDF
-                </ReportDownloadButton>
-              </div>
-            </div>
-
-            <details className="group rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--fl-text)] [touch-action:manipulation]">
-                <span>
-                  More
-                  <span className="ml-2 font-normal text-[var(--fl-muted)]">
-                    Summaries &amp; PDFs · Realtor · Portal · Re-inspection · Agreement · Review · Repair request
-                  </span>
-                </span>
-                <span className="text-[var(--fl-muted)] transition group-open:rotate-90">›</span>
-              </summary>
-              <div className="mt-4 space-y-4">
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
-                Report &amp; Share
-              </p>
-              <div className="flex flex-wrap gap-3">
-
-                <ReportDownloadButton
-                  href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?summary=1`}
-                  filename={`findings-summary-${inspection.id}.pdf`}
-                  preparingText="Preparing PDF..."
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                >
-                  Findings Summary PDF
-                </ReportDownloadButton>
-
-                <PrintButton
-                  label="Print / Save PDF"
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                />
-
-                <FastLinkButton
-                  href={`/reports/${inspection.id}/print`}
-                  loadingText="Opening PDF..."
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                >
-                  Export PDF
-                </FastLinkButton>
-
-                <FastLinkButton
-                  href={`/reports/${inspection.id}/summary`}
-                  loadingText="Opening Summary..."
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                >
-                  Realtor Summary
-                </FastLinkButton>
-
-
-
-                <CreateDemoReportButton inspectionId={String(inspection.id)} />
-
-                {(inspection as any).is_demo && (
-                  <SendDemoReportButton inspectionId={String(inspection.id)} />
+                {/* Published reports can still be re-sent or unpublished. */}
+                {!noReportToSend && reportIsPublished && (
+                  <>
+                    {latestReportEmail && (
+                      <SendFullReportButton
+                        inspectionId={String(inspection.id)}
+                        clientEmail={inspection.client_email}
+                        realtorEmail={inspection.realtor_email || inspection.agent_email}
+                      />
+                    )}
+                    <PublishReportActionButton
+                      action={publishReport}
+                      inspectionId={String(inspection.id)}
+                      published={reportIsPublished}
+                    />
+                  </>
                 )}
 
-                {isStandaloneEnvironmentalReport && (
-                  <FastLinkButton
-                    href={editableEnvironmentalHref}
-                    loadingText="Opening Environmental Report..."
-                    className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                  >
-                    Environmental Report
-                  </FastLinkButton>
-                )}
-
-                <FastLinkButton
-                  href={`/client-portal/${inspection.id}`}
-                  loadingText="Opening Client Portal..."
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                >
-                  Client Portal
-                </FastLinkButton>
-
-                <CreateReinspectionButton inspectionId={String(inspection.id)} />
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
-                Send &amp; Communicate
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-
-                {inspection.realtor_name ? (
-                  <SaveAgentButton
-                    name={inspection.realtor_name}
-                    email={inspection.realtor_email || inspection.agent_email}
-                    phone={inspection.realtor_phone}
-                    wrapperClassName="print:hidden"
-                  />
-                ) : null}
-
-                <SendReviewRequestButton
-                  inspectionId={String(inspection.id)}
-                  clientEmail={inspection.client_email}
-                  clientEmails={reviewClientEmails}
-                  realtorEmail={inspection.realtor_email || inspection.agent_email}
-                  reviewStatus={inspection.review_status}
-                />
-
-                {agreementComplete && <SendAgreementButton inspectionId={String(inspection.id)} />}
-
-                <FastLinkButton
-                  href={`/repair-request?inspection_id=${inspection.id}`}
-                  loadingText="Opening Repair Request..."
-                  className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
-                >
-                  Repair Request Builder
-                </FastLinkButton>
-              </div>
-            </div>
-
-              </div>
-            </details>
-
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--fl-faint)]">
-                Findings Tools
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <InsertFavoriteFindingButton inspectionId={String(inspection.id)} />
-
-                <FastLinkButton
-                  href={`/reports/${inspection.id}/templates`}
-                  loadingText="Opening Library..."
-                  className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
-                >
-                  Favorite Findings Library
-                </FastLinkButton>
-
-                <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
+                <details className="group relative">
+                  <summary className="flex cursor-pointer list-none items-center gap-2 rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)] [touch-action:manipulation]">
+                    Share &amp; PDFs
+                    <span className="text-[var(--fl-muted)] transition group-open:rotate-90">›</span>
+                  </summary>
+                  <div className="mt-2 w-[min(20rem,calc(100vw-3rem))] space-y-3 rounded-xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-2 shadow-2xl">
+                    <div>
+                      <p className="px-3 pb-1 pt-1 text-xs font-semibold text-[var(--fl-muted)]">Links</p>
+                      <FastLinkButton href={shareHref} loadingText="Opening Client Report..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                        Client report
+                      </FastLinkButton>
+                      <FastLinkButton href={`/client-portal/${inspection.id}`} loadingText="Opening Client Portal..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                        Client portal
+                      </FastLinkButton>
+                      <FastLinkButton href={`/reports/${inspection.id}/summary`} loadingText="Opening Summary..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                        Realtor summary
+                      </FastLinkButton>
+                      {isStandaloneEnvironmentalReport && (
+                        <FastLinkButton href={editableEnvironmentalHref} loadingText="Opening Environmental Report..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                          Environmental report
+                        </FastLinkButton>
+                      )}
+                    </div>
+                    <div>
+                      <p className="px-3 pb-1 text-xs font-semibold text-[var(--fl-muted)]">PDFs</p>
+                      <ReportDownloadButton
+                        href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?type=full`}
+                        filename={`inspection-report-${inspection.id}-full.pdf`}
+                        preparingText="Preparing PDF..."
+                        className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                      >
+                        Download full report PDF
+                      </ReportDownloadButton>
+                      <ReportDownloadButton
+                        href={`/api/realtor-report-download/${encodeURIComponent(reportDownloadId)}?summary=1`}
+                        filename={`findings-summary-${inspection.id}.pdf`}
+                        preparingText="Preparing PDF..."
+                        className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+                      >
+                        Findings summary PDF
+                      </ReportDownloadButton>
+                      <FastLinkButton href={`/reports/${inspection.id}/print`} loadingText="Opening PDF..." className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]">
+                        Export / print view
+                      </FastLinkButton>
+                      <PrintButton label="Print this page" className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--fl-text)] transition hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]" />
+                    </div>
+                  </div>
+                </details>
               </div>
             </div>
 
@@ -3442,6 +3382,26 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
           </CollapsibleReportSection>
           </div>
 
+          {/* Findings tools sit beside the findings they add to. */}
+          <div id="findings-tools" className="mb-4 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-3">
+            <p className="mb-2 text-sm font-semibold text-[var(--fl-text)]">
+              Add to findings
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <InsertFavoriteFindingButton inspectionId={String(inspection.id)} />
+
+              <FastLinkButton
+                href={`/reports/${inspection.id}/templates`}
+                loadingText="Opening Library..."
+                className="rounded-xl border border-[var(--fl-line)] px-5 py-3 font-bold text-[var(--fl-text)] transition hover:border-teal-400 hover:bg-teal-500/10 hover:text-[var(--fl-accent-text)]"
+              >
+                Favorite Findings Library
+              </FastLinkButton>
+
+              <OneTapAIFindingInsert inspectionId={String(inspection.id)} />
+            </div>
+          </div>
+
           <div id="report-findings" data-command-target="report-findings" className="w-full max-w-none overflow-visible">
             <FieldReviewQueue
               inspectionId={String(inspection.id)}
@@ -3512,6 +3472,29 @@ export default async function ReportPage({ params, searchParams }: PageProps) {
 
 
           {workspaceTab === "client" && (<>
+          <section id="after-inspection" className="mb-6 scroll-mt-24 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+            <h2 className="text-base font-semibold text-[var(--fl-text)]">After the inspection</h2>
+            <p className="mt-0.5 text-sm text-[var(--fl-muted)]">Follow-ups for the client and agent once the report is out.</p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <FastLinkButton
+                href={`/repair-request?inspection_id=${inspection.id}`}
+                loadingText="Opening Repair Request..."
+                className="rounded-xl bg-orange-600 px-5 py-3 font-bold text-white hover:bg-orange-500"
+              >
+                Repair Request Builder
+              </FastLinkButton>
+              <SendReviewRequestButton
+                inspectionId={String(inspection.id)}
+                clientEmail={inspection.client_email}
+                clientEmails={reviewClientEmails}
+                realtorEmail={inspection.realtor_email || inspection.agent_email}
+                reviewStatus={inspection.review_status}
+              />
+              {agreementComplete && <SendAgreementButton inspectionId={String(inspection.id)} />}
+              <CreateReinspectionButton inspectionId={String(inspection.id)} />
+            </div>
+          </section>
+
           {/* Job panel (agreement, payment, delivery…) sits after the findings. */}
           <ReportBuilderSectionTabs tabs={reportSectionTabs}>
             {/* Client & Contacts: who's on the job and the property details. */}
@@ -4181,6 +4164,15 @@ Service-life information is a general industry estimate only. Actual service lif
           </>)}
 
           {workspaceTab === "insights" && (<>
+          <section className="mb-6 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface-2)] p-4">
+            <h2 className="text-base font-semibold text-[var(--fl-text)]">Sample report</h2>
+            <p className="mt-0.5 text-sm text-[var(--fl-muted)]">Turn this report into a demo for your website or marketing.</p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <CreateDemoReportButton inspectionId={String(inspection.id)} />
+              {(inspection as any).is_demo && <SendDemoReportButton inspectionId={String(inspection.id)} />}
+            </div>
+          </section>
+
           {/* AI & Insights: workspace stats, age watchlist, route & drone —
               closed by default so the findings stay near the top. */}
           <details id="ai-insights" open className="group mb-8 rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)] p-4">
