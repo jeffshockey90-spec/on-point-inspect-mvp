@@ -1,7 +1,6 @@
 import FastLinkButton from "../../components/FastLinkButton";
 import { OWNER_EMAILS } from "../../lib/ownerEmails";
 import {
-  MessageCircle,
   DollarSign,
   CreditCard,
   Globe,
@@ -12,13 +11,20 @@ import {
   Mail,
   Gauge,
   Layers,
+  Users,
+  FileText,
+  Handshake,
+  Camera,
+  Clock,
+  Plug,
+  Trash2,
 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import DeleteAccountSection from "./DeleteAccountSection";
-import SettingsSectionTabs from "../../components/SettingsSectionTabs";
+import SettingsNavigator, { type SettingsNavItem } from "../../components/SettingsNavigator";
 import {
   COUNTRIES,
   BUSINESS_LANGUAGES,
@@ -30,22 +36,11 @@ import {
 import AppVersionTag from "../../components/AppVersionTag";
 import TeamManagement from "../../components/TeamManagement";
 
-const SETTINGS_TABS = [
-  { key: "company-profile", label: "Company Profile", anchorId: "company-profile", group: "Company" },
-  { key: "team", label: "Team", anchorId: "team", group: "Company" },
-  { key: "standards-of-practice", label: "Standards of Practice", anchorId: "standards-of-practice", group: "Company" },
-  { key: "payments", label: "Payments", anchorId: "payments", group: "Money" },
-  { key: "public-profile", label: "Public Profile", anchorId: "public-profile", group: "Presence" },
-  { key: "notifications", label: "Notifications", anchorId: "notifications", group: "Preferences" },
-  { key: "time-location", label: "Time & Location", anchorId: "time-location", group: "Preferences" },
-  { key: "delete-account", label: "Delete Account", anchorId: "delete-account", group: "Account" },
-];
 import PushNotificationSetup from "../../components/PushNotificationSetup";
 import NotificationSettings from "../../components/NotificationSettings";
 import AsyncDraftSetting from "../../components/AsyncDraftSetting";
 import IdentifySetting from "../../components/IdentifySetting";
 import CompassAutoSetting from "../../components/CompassAutoSetting";
-import SupportUnreadBadge from "../../components/SupportUnreadBadge";
 import CompanyImageUploader from "./CompanyImageUploader";
 import W9Section from "./W9Section";
 import StandardsOfPracticeEditor from "./StandardsOfPracticeEditor";
@@ -629,6 +624,55 @@ export default async function SettingsPage({
     .maybeSingle();
   const isCompanyOwner = Boolean(ownerMembership);
 
+  const stripeReady =
+    Boolean(company?.stripe_account_id) &&
+    company?.stripe_onboarding_complete === true &&
+    company?.stripe_charges_enabled === true;
+  const feeSummary = !feeEnabled
+    ? ""
+    : feeType === "flat"
+      ? ` · online fee $${feeAmount}`
+      : feeType === "stripe_fee"
+        ? " · online fee covers Stripe"
+        : ` · online fee ${feeAmount}%`;
+  const navIcon = "h-4 w-4";
+  // Settings home: one grouped list. Rows with anchorIds show that part of this
+  // page; rows with href open their own settings page.
+  const settingsNavItems: SettingsNavItem[] = [
+    { key: "company-profile", group: "Company", label: "Company profile", description: "Name, logo, license, office address, W-9", icon: <Building2 className={navIcon} />, anchorIds: ["company-profile"], usesPageSave: true },
+    { key: "team", group: "Company", label: "Team", description: "Your inspectors and invites", icon: <Users className={navIcon} />, anchorIds: ["team"] },
+    { key: "report-setup", group: "Company", label: "Report setup", description: "Templates, severity levels, standards of practice", icon: <FileText className={navIcon} />, anchorIds: ["report-setup-links", "standards-of-practice"], usesPageSave: true },
+    ...(isCompanyOwner
+      ? [{ key: "ai-writing", group: "Company", label: "AI writing", badge: "Owner", description: "How the AI writes findings", icon: <Sparkles className={navIcon} />, href: "/settings/ai-writing-studio" }]
+      : []),
+
+    {
+      key: "payments", group: "Money", label: "Payments", icon: <CreditCard className={navIcon} />, anchorIds: ["payments"], usesPageSave: true,
+      status: stripeReady
+        ? { text: `Stripe connected${feeSummary}`, tone: "good" }
+        : { text: "Stripe not set up yet", tone: "warn" },
+    },
+    { key: "my-pricing", group: "Money", label: "My pricing", description: "Your rates for the Quotes calculator", icon: <DollarSign className={navIcon} />, href: "/settings/pricing" },
+    ...(isCompanyOwner
+      ? [{ key: "company-pricing", group: "Money", label: "Company pricing", badge: "Owner", description: "The price sheet your team uses", icon: <DollarSign className={navIcon} />, href: "/settings/company-pricing" }]
+      : []),
+    { key: "subscription", group: "Money", label: "Subscription", description: "Plan and billing", icon: <CreditCard className={navIcon} />, href: "/billing" },
+
+    { key: "public-profile", group: "Clients & marketing", label: "Public profile", description: "Marketing page, directory listing, QR codes", icon: <Globe className={navIcon} />, anchorIds: ["public-profile"] },
+    ...(isCompanyOwner || isOnPointOwner
+      ? [{ key: "marketing-images", group: "Clients & marketing", label: "Marketing images", badge: "Owner", description: "Inspected-property graphics", icon: <ImageIcon className={navIcon} />, href: "/settings/marketing-images" }]
+      : []),
+    { key: "referrals-social", group: "Clients & marketing", label: "Referrals & social", description: "Home-security referral, social media release", icon: <Handshake className={navIcon} />, anchorIds: ["secure24-referral", "social-media-release"] },
+
+    { key: "notifications", group: "App", label: "Notifications", description: "Push, popups, sounds and reminders", icon: <Bell className={navIcon} />, anchorIds: ["notifications"], usesPageSave: true },
+    { key: "live-camera", group: "App", label: "Live camera", description: "Compass, background AI drafting", icon: <Camera className={navIcon} />, anchorIds: ["live-camera"] },
+    { key: "time-location", group: "App", label: "Time & location", description: "Time zone, maps app", icon: <Clock className={navIcon} />, anchorIds: ["time-location"] },
+    { key: "company-email", group: "App", label: "Company email", description: "Send from your own mailbox", icon: <Mail className={navIcon} />, href: "/settings/company-email" },
+    { key: "integrations", group: "App", label: "Integrations", description: "Connected tools, API & webhooks", icon: <Plug className={navIcon} />, anchorIds: ["connected-tools", "developer-api"] },
+
+    { key: "delete-account", group: "", label: "Delete account", danger: true, icon: <Trash2 className={navIcon} />, anchorIds: ["delete-account"] },
+  ];
+
   return (
     <main className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] px-4 py-4 pb-28 text-[var(--fl-text)] md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -642,8 +686,7 @@ export default async function SettingsPage({
           </h1>
 
           <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--fl-muted)] sm:text-base">
-            Manage your company branding, Stripe payment setup, and client
-            online payment fee options.
+            Company, payments, marketing and app preferences.
           </p>
         </section>
 
@@ -691,227 +734,8 @@ export default async function SettingsPage({
           </div>
         )}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <FastLinkButton
-            href="/support"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-fuchsia-400/70 hover:bg-fuchsia-500/10 sm:p-5 [touch-action:manipulation]"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-500/10 text-[var(--fl-purple-text)]">
-                <MessageCircle className="h-6 w-6" strokeWidth={2} />
-              </div>
-              <SupportUnreadBadge />
-            </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-purple-text)]">
-              Support
-            </p>
-            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-              Owner Support
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-              Message Jeff for setup, billing, reports, or bugs.
-            </p>
-            <p className="mt-4 text-sm font-semibold text-[var(--fl-purple-text)] group-hover:text-[var(--fl-purple-text)]">
-              Open Support →
-            </p>
-          </FastLinkButton>
 
-          <FastLinkButton
-            href="/settings/pricing"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-emerald-400/70 hover:bg-emerald-500/10 sm:p-5 [touch-action:manipulation]"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-[var(--fl-good-text)]">
-              <DollarSign className="h-6 w-6" strokeWidth={2} />
-            </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-good-text)]">
-              Personal
-            </p>
-            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-              My Pricing
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-              Set your own rates for the Quotes calculator.
-            </p>
-            <p className="mt-4 text-sm font-semibold text-[var(--fl-good-text)] group-hover:text-[var(--fl-good-text)]">
-              Manage Pricing →
-            </p>
-          </FastLinkButton>
-
-          <FastLinkButton
-            href="/settings/company-email"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-sky-400/70 hover:bg-sky-500/10 sm:p-5 [touch-action:manipulation]"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-[var(--fl-info-text)]">
-              <Mail className="h-6 w-6" strokeWidth={2} />
-            </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-info-text)]">
-              Personal
-            </p>
-            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-              Company Email
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-              Connect your mailbox to resend a stuck email through it.
-            </p>
-            <p className="mt-4 text-sm font-semibold text-[var(--fl-info-text)] group-hover:text-[var(--fl-info-text)]">
-              Set Up Company Email →
-            </p>
-          </FastLinkButton>
-
-          {isCompanyOwner && (
-            <FastLinkButton
-              href="/settings/company-pricing"
-              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-amber-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-amber-400/70 hover:bg-amber-500/10 sm:p-5 [touch-action:manipulation]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-[var(--fl-warn-text)]">
-                <Building2 className="h-6 w-6" strokeWidth={2} />
-              </div>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-warn-text)]">
-                Owner Only
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-                Company Pricing
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-                Set the default price sheet your whole team uses.
-              </p>
-              <p className="mt-4 text-sm font-semibold text-[var(--fl-warn-text)] group-hover:text-[var(--fl-warn-text)]">
-                Manage Company Pricing →
-              </p>
-            </FastLinkButton>
-          )}
-
-          {isCompanyOwner && (
-            <FastLinkButton
-              href="/settings/ai-writing-studio"
-              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
-                <Sparkles className="h-6 w-6" strokeWidth={2} />
-              </div>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
-                Owner Only
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-                AI Writing Studio
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-                Control how the AI writes findings — standard, length, detail, and tone.
-              </p>
-              <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
-                Open AI Writing Studio →
-              </p>
-            </FastLinkButton>
-          )}
-
-          {isCompanyOwner && (
-            <FastLinkButton
-              href="/settings/severities"
-              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
-                <Gauge className="h-6 w-6" strokeWidth={2} />
-              </div>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
-                Owner Only
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-                Severity Levels
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-                Rename, recolor, reorder, or add your own severity levels — with revert to defaults.
-              </p>
-              <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
-                Customize Severities →
-              </p>
-            </FastLinkButton>
-          )}
-
-          <FastLinkButton
-            href="/settings/report-templates"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
-              <Layers className="h-6 w-6" strokeWidth={2} />
-            </div>
-            <h2 className="mt-4 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-              Report Templates
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-              Build section sets for specialty inspections — auto-apply them by service type.
-            </p>
-            <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
-              Manage Templates →
-            </p>
-          </FastLinkButton>
-
-          <FastLinkButton
-            href="/billing"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
-              <CreditCard className="h-6 w-6" strokeWidth={2} />
-            </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
-              Billing
-            </p>
-            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-              Subscription
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-              Manage trial status and monthly plan.
-            </p>
-            <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
-              Manage Billing →
-            </p>
-          </FastLinkButton>
-
-          <FastLinkButton
-            href="/settings/public-profile"
-            className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-cyan-400/70 hover:bg-cyan-500/10 sm:p-5 [touch-action:manipulation]"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-[var(--fl-info-text)]">
-              <Globe className="h-6 w-6" strokeWidth={2} />
-            </div>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-info-text)]">
-              Public Profile
-            </p>
-            <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-              Marketing Page
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-              Logo, headshot, services, and profile link.
-            </p>
-            <p className="mt-4 text-sm font-semibold text-[var(--fl-info-text)] group-hover:text-[var(--fl-info-text)]">
-              Manage Profile →
-            </p>
-          </FastLinkButton>
-
-          {(isCompanyOwner || isOnPointOwner) && (
-            <FastLinkButton
-              href="/settings/marketing-images"
-              className="group w-full flex-col !items-stretch !justify-start rounded-2xl border border-teal-500/30 bg-[var(--fl-surface)] p-4 transition active:scale-[0.98] hover:border-teal-400/70 hover:bg-teal-500/10 sm:p-5 [touch-action:manipulation]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-[var(--fl-accent-text)]">
-                <ImageIcon className="h-6 w-6" strokeWidth={2} />
-              </div>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--fl-accent-text)]">
-                Owner Only
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-[var(--fl-text)] sm:text-xl">
-                Marketing Images
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--fl-muted)]">
-                Create inspected property graphics using your exact FLOW template.
-              </p>
-              <p className="mt-4 text-sm font-semibold text-[var(--fl-accent-text)] group-hover:text-[var(--fl-accent-text)]">
-                Open Template →
-              </p>
-            </FastLinkButton>
-          )}
-        </section>
-
-        <SettingsSectionTabs tabs={SETTINGS_TABS}>
+        <SettingsNavigator items={settingsNavItems}>
 
         <form action={saveCompanySettings} className="space-y-6">
           <section
@@ -1363,7 +1187,7 @@ export default async function SettingsPage({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
+          <section id="developer-api" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
               Developer
             </p>
@@ -1380,7 +1204,7 @@ export default async function SettingsPage({
             </FastLinkButton>
           </section>
 
-          <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
+          <section id="connected-tools" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-xl sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-info-text)]">
               Integrations
             </p>
@@ -1497,6 +1321,29 @@ export default async function SettingsPage({
             </div>
           </section>
 
+          <div id="report-setup-links" className="overflow-hidden rounded-2xl border border-[var(--fl-line)] bg-[var(--fl-surface)]">
+            <FastLinkButton
+              href="/settings/report-templates"
+              className="flex w-full items-center justify-between! gap-3 px-4 py-3 text-left text-[15px] font-semibold text-[var(--fl-text)] hover:bg-white/[0.03]"
+            >
+              <span className="flex items-center gap-3">
+                <Layers className="h-4 w-4 text-[var(--fl-muted)]" /> Report templates
+              </span>
+              <span aria-hidden className="text-lg text-[var(--fl-faint)]">›</span>
+            </FastLinkButton>
+            {isCompanyOwner && (
+              <FastLinkButton
+                href="/settings/severities"
+                className="flex w-full items-center justify-between! gap-3 border-t border-[var(--fl-line)] px-4 py-3 text-left text-[15px] font-semibold text-[var(--fl-text)] hover:bg-white/[0.03]"
+              >
+                <span className="flex items-center gap-3">
+                  <Gauge className="h-4 w-4 text-[var(--fl-muted)]" /> Severity levels
+                </span>
+                <span aria-hidden className="text-lg text-[var(--fl-faint)]">›</span>
+              </FastLinkButton>
+            )}
+          </div>
+
           <div id="standards-of-practice">
             <StandardsOfPracticeEditor
               initialTitle={standardsTitle}
@@ -1531,7 +1378,7 @@ export default async function SettingsPage({
             <MapsProviderSetting />
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div id="settings-save" className="flex flex-col gap-3 sm:flex-row">
             {isCompanyOwner || isOnPointOwner ? (
               <button
                 type="submit"
@@ -1555,7 +1402,7 @@ export default async function SettingsPage({
           <DeleteAccountSection />
         </div>
 
-        </SettingsSectionTabs>
+        </SettingsNavigator>
 
         <AppVersionTag />
       </div>
