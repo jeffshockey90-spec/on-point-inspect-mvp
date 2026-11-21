@@ -54,8 +54,6 @@ import AgreementStatusPanel from "../../../components/AgreementStatusPanel";
 import ReportDeliveryGuard from "../../../components/ReportDeliveryGuard";
 import SendAgreementButton from "../../../components/SendAgreementButton";
 import SendFullReportButton from "../../../components/SendFullReportButton";
-import InsertFavoriteFindingButton from "../../../components/InsertFavoriteFindingButton";
-import OneTapAIFindingInsert from "../../../components/OneTapAIFindingInsert";
 import PaymentInvoicePanel from "../../../components/PaymentInvoicePanel";
 import GenerateSummaryButton from "../../../components/GenerateSummaryButton";
 import SendReviewRequestButton from "../../../components/SendReviewRequestButton";
