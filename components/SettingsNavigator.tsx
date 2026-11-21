@@ -31,6 +31,7 @@ export type SettingsNavItem = {
 };
 
 const SAVE_AREA_ID = "settings-save";
+const HEADER_ID = "settings-header";
 
 function readSectionFromUrl(items: SettingsNavItem[]): string | null {
   try {
@@ -87,6 +88,10 @@ export default function SettingsNavigator({
       }
       const save = document.getElementById(SAVE_AREA_ID);
       if (save) save.hidden = !activeItem?.usesPageSave;
+      // The page's big title card belongs to the list, not to an open section
+      // (each section has its own heading).
+      const header = document.getElementById(HEADER_ID);
+      if (header) header.hidden = Boolean(activeItem);
     },
     [items],
   );
@@ -211,7 +216,7 @@ export default function SettingsNavigator({
 
       {/* One section, with a way back to the list. */}
       {activeItem ? (
-        <div className="mb-4">
+        <div className="mb-3">
           <button
             type="button"
             onClick={back}
@@ -219,7 +224,6 @@ export default function SettingsNavigator({
           >
             ‹ Settings
           </button>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-[var(--fl-text)]">{activeItem.label}</h2>
         </div>
       ) : null}
 

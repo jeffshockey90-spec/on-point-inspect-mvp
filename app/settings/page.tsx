@@ -676,7 +676,7 @@ export default async function SettingsPage({
   return (
     <main className="min-h-screen overflow-x-clip bg-[var(--fl-ground)] px-4 py-4 pb-28 text-[var(--fl-text)] md:p-8 md:pb-10">
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
+        <section id="settings-header" className="rounded-2xl border border-[var(--fl-raised)] bg-[var(--fl-surface)] p-5 shadow-2xl shadow-black/20 sm:p-6 md:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--fl-accent-text)] sm:tracking-[0.35em]">
             FLOW
           </p>
